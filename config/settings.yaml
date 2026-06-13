@@ -1,0 +1,20 @@
+# Configurazione globale Jade Immortal
+# Il modello LLM è sostituibile da qui senza toccare il codice (spec sez. 3).
+
+llm:
+  provider: ollama
+  model: "qwen3:8b"        # default; modificabile
+  host: "http://localhost:11434"
+  enabled: true          # metti true (con Ollama attivo) per la narrativa LLM;
+                           # se false o Ollama non raggiungibile, si usa il fallback testuale
+
+database:
+  path: "database/world.db"
+
+world:
+  starting_location_id: 1
+
+character:
+  # origine preimpostata per saltare la scelta a ogni avvio (es. "divoratore").
+  # null = scegli manualmente all'avvio. Origini: mortale, clan, genio, reincarnato, erede, divoratore
+  default_origin: null

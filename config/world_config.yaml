@@ -1,0 +1,13 @@
+# Parametri di generazione del mondo (Fase 1 — World Static).
+# seed: intero per mondo riproducibile; null = casuale a ogni generazione.
+
+seed: 42
+world_name: "Jade Realm"
+continent_name: "Mondo Mortale"
+
+territories: 3
+locations_per_territory_min: 4
+locations_per_territory_max: 7
+
+factions: 4
+static_npc_count: 8
