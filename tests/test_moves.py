@@ -45,7 +45,7 @@ def test_weapon_grants_signature_move(conn):
 def test_each_weapon_has_distinct_move(conn):
     seen = set()
     for wk in ("spada", "lancia", "sciabola", "arco", "pugno", "bastone"):
-        _, _name, _cd, mods, _desc = moves._WEAPON_MOVES[wk]
+        _key, _name, _cd, _qi, mods, _desc = moves._WEAPON_MOVES[wk]
         seen.add(tuple(sorted(mods.items())))
     assert len(seen) == 6        # sei effetti diversi
 

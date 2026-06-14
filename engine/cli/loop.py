@@ -169,6 +169,8 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     entities.move_player(conn, player.id, exits[direction])
     # il mondo simula durante lo spostamento (scope attivo intorno alla NUOVA posizione)
     obs = world_tick.advance(conn, tick.cost_of("move"))
+    from engine.systems import qi as qimod
+    qimod.restore_fraction(conn, 0.15, player.id)      # camminare recupera un po' di Qi
     new_tick = tick.get_tick(conn)
     moved = entities.get_player(conn, player.id)
     out = f"Tick {new_tick}\n" + render_location(conn, moved)
@@ -179,8 +181,10 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
 
 def cmd_wait(conn: sqlite3.Connection, player: entities.Player) -> str:
     obs = world_tick.advance(conn, tick.cost_of("short_rest"))
+    from engine.systems import qi as qimod
+    qimod.restore_fraction(conn, 0.35, player.id)      # un po' di Qi recuperato
     new_tick = tick.get_tick(conn)
-    out = f"Tick {new_tick} — attendi e osservi."
+    out = f"Tick {new_tick} — attendi e recuperi (Qi {qimod.qi_label(conn, player.id)})."
     if obs:
         out += "\n" + _format_observations(obs)
     else:
@@ -328,9 +332,15 @@ def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
     if move:
         if not move["ready"]:
             return f"{move['name']} non è pronta: riprova tra ~{move['ready_in']} tick."
+        from engine.systems import qi as qimod
+        if not qimod.can_afford(conn, move["qi_cost"], player.id):
+            return (f"Qi insufficiente per {move['name']}: servono {move['qi_cost']}, "
+                    f"ne hai {qimod.get_qi(conn, player.id)}. Riposa ('wait'/'sleep') o "
+                    f"attacca normalmente.")
+        qimod.spend(conn, move["qi_cost"], player.id)
         atk_mods = move["mods"]
         moves.use_cost(conn, move, t, player.id)
-        move_line = f"⚔ Scateni {move['name']}!"
+        move_line = f"⚔ Scateni {move['name']}! (Qi {qimod.get_qi(conn, player.id)}/{qimod.max_qi(conn, player.id)})"
     rng = random.Random(t * 7919 + player.id + npc.id)
     obs: list[str] = []
     res = combat.resolve_combat(
@@ -444,6 +454,8 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
     res = cultivation.cultivate(conn, "player", player.id, t, rng,
                                 multiplier=y * (1 + bonus))
     world_tick.advance(conn, tick.cost_of("cultivate"))
+    from engine.systems import qi as qimod
+    qimod.restore_fraction(conn, 0.5, player.id)       # meditare ristora il Qi
     label = cultivation.realm_label(conn, "player", player.id)
     line = f"Mediti a lungo. {label} — esperienza {res['progress']*100:.0f}%."
     if res.get("stage_up"):
@@ -786,16 +798,22 @@ def _move_effect_label(mods: dict) -> str:
 
 
 def cmd_moves(conn: sqlite3.Connection, player: entities.Player) -> str:
-    from engine.systems import moves
+    from engine.systems import moves, qi as qimod
     ms = moves.available_moves(conn, player.id)
+    qline = f"Qi: {qimod.qi_label(conn, player.id)} (le mosse lo consumano; recuperi riposando)"
     if not ms:
-        return ("Non hai ancora mosse attive. Le ottieni scegliendo un'arma in setta "
+        return (qline + "\nNon hai ancora mosse attive. Le ottieni scegliendo un'arma in setta "
                 "('weapon'), imparando tecniche segrete ('techniques'), o con l'Abisso.")
-    lines = ["Le tue mosse (usa 'attack <bersaglio> <mossa>' o 'use <mossa> <bersaglio>'):"]
+    lines = [qline, "Le tue mosse (usa 'attack <bersaglio> <mossa>' o 'use <mossa> <bersaglio>'):"]
     for m in ms:
-        status = "pronta" if m["ready"] else f"pronta tra ~{m['ready_in']} tick"
+        if not m["ready"]:
+            status = f"pronta tra ~{m['ready_in']} tick"
+        elif not m["affordable"]:
+            status = "Qi insufficiente"
+        else:
+            status = "pronta"
         lines.append(f"  · {m['name']} [{m['key']}] — {_move_effect_label(m['mods'])} "
-                     f"(cooldown {m['cooldown']}) — {status}")
+                     f"(Qi {m['qi_cost']}, cooldown {m['cooldown']}) — {status}")
     return "\n".join(lines)
 
 
@@ -931,7 +949,9 @@ def cmd_sleep(conn: sqlite3.Connection, player: entities.Player) -> str:
     t = tick.get_tick(conn)
     to_next = training.DAY_TICKS - (t % training.DAY_TICKS)
     world_tick.advance(conn, to_next)
-    return "Riposi fino all'alba del giorno seguente."
+    from engine.systems import qi as qimod
+    qimod.restore_full(conn, player.id)                # una notte di riposo: Qi pieno
+    return "Riposi fino all'alba del giorno seguente. Il tuo Qi è ristabilito."
 
 
 def cmd_dao(conn: sqlite3.Connection, player: entities.Player) -> str:
@@ -1115,15 +1135,17 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
             sect_line += f"Prossimo evento di setta — {ag}\n"
     stones = sects.get_resource(conn, "pietre_spirituali", player.id)
     res_line = f"Pietre spirituali: {stones}\n" if (m or stones) else ""
-    from engine.systems import reputation
+    from engine.systems import reputation, qi as qimod
     rep = reputation.line(conn, player.id)
     rep_line = f"{rep}\n" if rep else ""
+    qi_line = f"Qi (mosse): {qimod.qi_label(conn, player.id)}\n"
     return (
         f"Name: {player.name}\n"
         f"{origin_line}"
         f"{sect_line}"
         f"{res_line}"
         f"{rep_line}"
+        f"{qi_line}"
         f"Status: {player.status}\n"
         f"Coltivazione: {realm} (esperienza {prog})\n"
         f"Location: {loc.name if loc else '?'}\n"

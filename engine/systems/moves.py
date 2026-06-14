@@ -20,29 +20,29 @@ from __future__ import annotations
 
 import sqlite3
 
-# mosse firma per Dao d'arma
+# mosse firma per Dao d'arma: (key, nome, cooldown, qi_cost, mods, desc)
 _WEAPON_MOVES = {
-    "spada":    ("fendente", "Fendente Mortale", 12,
+    "spada":    ("fendente", "Fendente Mortale", 12, 32,
                  {"attack_mult": 1.5, "death_bonus": 0.28},
                  "un colpo che cerca la fine"),
-    "lancia":   ("affondo", "Affondo Penetrante", 12,
+    "lancia":   ("affondo", "Affondo Penetrante", 12, 30,
                  {"attack_mult": 1.3, "pierce": 0.6},
                  "trapassa le difese nemiche"),
-    "sciabola": ("danza", "Danza delle Lame", 12,
+    "sciabola": ("danza", "Danza delle Lame", 12, 28,
                  {"attack_mult": 1.2, "extra_strikes": 1},
                  "fendenti ampi e a raffica"),
-    "arco":     ("tiro", "Tiro Preciso", 12,
+    "arco":     ("tiro", "Tiro Preciso", 12, 38,
                  {"attack_mult": 1.8},
                  "un dardo letale che apre lo scontro"),
-    "pugno":    ("pioggia", "Pioggia di Colpi", 12,
+    "pugno":    ("pioggia", "Pioggia di Colpi", 12, 26,
                  {"attack_mult": 1.12, "extra_strikes": 2},
                  "una tempesta di colpi ravvicinati"),
-    "bastone":  ("guardia", "Guardia del Bastone", 10,
+    "bastone":  ("guardia", "Guardia del Bastone", 10, 22,
                  {"taken_mult": 0.4, "attack_mult": 1.1},
                  "difesa imperscrutabile: subisci molto meno"),
 }
 
-_ABYSS_MOVE = ("morso", "Morso dell'Abisso", 16,
+_ABYSS_MOVE = ("morso", "Morso dell'Abisso", 16, 45,
                {"attack_mult": 1.35, "death_bonus": 0.2, "devour_on_kill": True},
                "se uccide, divora all'istante i resti")
 
@@ -76,29 +76,33 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
     from engine.systems import weapons, guild
     wkey = weapons.get_weapon(conn, player_id)
     if wkey and wkey in _WEAPON_MOVES:
-        k, name, cd, mods, desc = _WEAPON_MOVES[wkey]
-        out.append({"key": k, "name": name, "cooldown": cd, "mods": mods,
-                    "desc": desc, "source": "arma"})
+        k, name, cd, qi_cost, mods, desc = _WEAPON_MOVES[wkey]
+        out.append({"key": k, "name": name, "cooldown": cd, "qi_cost": qi_cost,
+                    "mods": mods, "desc": desc, "source": "arma"})
 
-    # tecniche segrete apprese -> burst attivabili (forza dalla magnitude)
+    # tecniche segrete apprese -> burst attivabili (forza e costo dalla magnitude)
     for t in guild.learned(conn, player_id):
         mag = t["magnitude"] or 0
         key = f"tec{t['tech_key'].replace(':', '_')}"
         out.append({"key": key, "name": t["name"], "cooldown": TECH_COOLDOWN,
+                    "qi_cost": int(40 + mag * 200),
                     "mods": {"attack_mult": 1.0 + mag * 4, "death_bonus": 0.15},
                     "desc": "tecnica segreta scatenata", "source": "tecnica"})
 
     # Morso dell'Abisso (Divoratore)
     from engine.systems import absorption
     if absorption.can_absorb(conn, player_id):
-        k, name, cd, mods, desc = _ABYSS_MOVE
-        out.append({"key": k, "name": name, "cooldown": cd, "mods": mods,
-                    "desc": desc, "source": "abisso"})
+        k, name, cd, qi_cost, mods, desc = _ABYSS_MOVE
+        out.append({"key": k, "name": name, "cooldown": cd, "qi_cost": qi_cost,
+                    "mods": mods, "desc": desc, "source": "abisso"})
 
+    from engine.systems import qi as qimod
+    cur_qi = qimod.get_qi(conn, player_id)
     for m in out:
         rt = _ready_tick(conn, player_id, m["key"])
         m["ready"] = now_tick >= rt
         m["ready_in"] = max(0, rt - now_tick)
+        m["affordable"] = cur_qi >= m["qi_cost"]
     return out
 
 
