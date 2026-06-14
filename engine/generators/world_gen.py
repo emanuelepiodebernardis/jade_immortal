@@ -227,6 +227,12 @@ def generate(conn: sqlite3.Connection, cfg: WorldGenConfig | None = None) -> Non
     # ogni setta ha una zona di caccia con mostri scalati al suo livello
     creature_gen.assign_hunt_zones(conn, rng)
 
+    # ZONE TEMATICHE: alcune zone pericolose acquistano un'identità (Guerrieri Dao,
+    # Maestri dell'Anima, Cultivatori del Corpo, ...) con abitanti di classi diverse
+    # ma di forza equivalente.
+    from engine.systems import zones
+    zones.assign_zone_themes(conn, rng)
+
 
 def _bridge_territories(conn, rng, locs_a, locs_b, free_dirs) -> None:
     """Collega due territori con una rotta, usando direzioni libere su entrambi i capi."""

@@ -78,6 +78,7 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
     if wkey and wkey in _WEAPON_MOVES:
         k, name, cd, qi_cost, mods, desc = _WEAPON_MOVES[wkey]
         out.append({"key": k, "name": name, "cooldown": cd, "qi_cost": qi_cost,
+                    "spirit_cost": 0, "fuel": "qi",
                     "mods": mods, "desc": desc, "source": "arma"})
 
     # tecniche segrete apprese -> burst attivabili (forza e costo dalla magnitude)
@@ -85,7 +86,7 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
         mag = t["magnitude"] or 0
         key = f"tec{t['tech_key'].replace(':', '_')}"
         out.append({"key": key, "name": t["name"], "cooldown": TECH_COOLDOWN,
-                    "qi_cost": int(40 + mag * 200),
+                    "qi_cost": int(40 + mag * 200), "spirit_cost": 0, "fuel": "qi",
                     "mods": {"attack_mult": 1.0 + mag * 4, "death_bonus": 0.15},
                     "desc": "tecnica segreta scatenata", "source": "tecnica"})
 
@@ -94,15 +95,24 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
     if absorption.can_absorb(conn, player_id):
         k, name, cd, qi_cost, mods, desc = _ABYSS_MOVE
         out.append({"key": k, "name": name, "cooldown": cd, "qi_cost": qi_cost,
+                    "spirit_cost": 0, "fuel": "qi",
                     "mods": mods, "desc": desc, "source": "abisso"})
 
-    from engine.systems import qi as qimod
+    # TECNICHE DAO (Guerriero Dao): nascono dai Dao e affaticano lo Spirito, non il Qi
+    from engine.systems import dao_techniques
+    out.extend(dao_techniques.dao_techniques(conn, player_id))
+
+    from engine.systems import qi as qimod, spirit as spmod
     cur_qi = qimod.get_qi(conn, player_id)
+    cur_sp = spmod.get_spirit(conn, player_id)
     for m in out:
         rt = _ready_tick(conn, player_id, m["key"])
         m["ready"] = now_tick >= rt
         m["ready_in"] = max(0, rt - now_tick)
-        m["affordable"] = cur_qi >= m["qi_cost"]
+        if m.get("fuel") == "spirit":
+            m["affordable"] = cur_sp >= m["spirit_cost"]
+        else:
+            m["affordable"] = cur_qi >= m["qi_cost"]
     return out
 
 

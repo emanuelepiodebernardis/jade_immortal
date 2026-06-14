@@ -1,33 +1,32 @@
-# Jade Immortal — stato aggiornato (incrementi 1–18)
+# Jade Immortal — stato aggiornato (incrementi 1–21)
 
 Cartella COMPLETA e pronta: nessun file da copiare a mano.
 
 ## Avvio / Test
 ```
 python main.py
-python -m pytest -q     # atteso: 234 passati, 1 "rosso" atteso (settings.yaml: vedi nota)
+python -m pytest -q     # atteso: 255 passati, 1 "rosso" atteso (settings.yaml: vedi nota)
 ```
-test_fallback_render_produces_prose è "rosso" SOLO perché in config/settings.yaml hai
-llm.enabled: true (il test si aspetta l'LLM spento). NON è un bug.
 
 ## Contenuto
-- INCR. 1–17 — (vedi cronologia): assorbimento, dao, sette, reputazione, gilde, arma,
-  eventi/invasioni, mosse, Qi, combattimento narrato, percezione, vie di crescita,
-  Cacciatori dell'Eretico, Corruzione+evoluzioni, tribolazione+Fulmine, guerre tra sette.
-- INCR. 18 — Correzione di 4 bug segnalati (NUOVO):
-    1. RICARICA A INIZIO GIORNATA: a ogni nuovo giorno il Qi torna al massimo (banner
-       "Un nuovo giorno: Qi e spirito ristabiliti"). Non serve più dormire di continuo.
-    2. VITTORIA SCHIACCIANTE = UCCISIONE: se abbatti un nemico in fretta restando in
-       forze, muore (non "si ritira" all'infinito). Solo gli scontri davvero tirati
-       lasciano al nemico la fuga da ferito.
-    3. TERRORE = PARALISI (non fuga): se il tuo spirito sovrasta enormemente quello
-       dell'avversario (anche un patriarca), resta PARALIZZATO e puoi abbatterlo,
-       invece di farlo scappare. Prima era il contrario.
-    4. ASSORBIRE UMANI DÀ SEMPRE STATISTICHE: divorare un essere umano (anche un mortale
-       per strada, senza Dao) dà sempre +forza, +vitalità, +anima (scalate al suo
-       livello: più è forte, più rende), più un frammento di Dao se ne possedeva uno
-       (anche un Dao che TU non hai). Niente più assorbimenti "a vuoto".
+- INCR. 1–19 — (vedi cronologia).
+- INCR. 20 — Potenza Effettiva, Classi e Zone tematiche: profilo a 4 assi
+  (Qi/Corpo/Anima/Dao), rating, classi (Coltivatore del Qi/Cultivatore del Corpo/
+  Maestro dell'Anima/Guerriero Dao), vantaggio di stile (morra cinese), zone tematiche
+  popolate da classi diverse ma equivalenti; comando 'rating'; 'examine' mostra lo Stile.
+- INCR. 21 — I nemici combattono con lo STILE della loro classe (NUOVO):
+    * Ogni classe nemica ha ora MECCANICA e LINGUAGGIO propri in combattimento:
+        - GUERRIERO DAO: i suoi colpi sono "intenti" che PERFORANO la difesa;
+          "Si muove con l'intento del Dao: ogni colpo è una lama di volontà".
+        - CULTIVATORE DEL CORPO: coriaceo (più vitalità/difesa) e colpi più PESANTI;
+          "Il suo corpo è una fortezza vivente: avanza incurante".
+        - MAESTRO DELL'ANIMA: ti opprime con la PRESSIONE SPIRITUALE; linguaggio mentale.
+        - COLTIVATORE DEL QI: tecniche spettacolari, maggiore probabilità di critico.
+    * Corpo e Anima della coltivazione ora pesano nella potenza degli NPC, così le classi
+      hanno identità reale anche meccanica (i Cultivatori del Corpo sono davvero tosti).
+    * In apertura di scontro compare l'INTRO di stile dell'avversario; il vantaggio di
+      stile (Dao>Qi>Corpo>Anima>Dao) resta applicato e narrato.
 
 ## Salvataggi
 Le novità si vedono al meglio nei mondi NUOVI: cancella database/world.db per una prova
-pulita. La migrazione aggiorna comunque i salvataggi vecchi.
+pulita (zone tematiche e classi popolano il mondo alla generazione).

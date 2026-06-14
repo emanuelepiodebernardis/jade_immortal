@@ -63,6 +63,8 @@ def _migrate(conn) -> None:
         conn.execute("ALTER TABLE character_profiles ADD COLUMN weapon TEXT;")
     if pcols and "qi_current" not in pcols:     # Qi per le mosse (-1 = pieno alla prima lettura)
         conn.execute("ALTER TABLE character_profiles ADD COLUMN qi_current INTEGER DEFAULT -1;")
+    if pcols and "spirit_current" not in pcols:  # Spirito per le tecniche Dao (-1 = pieno)
+        conn.execute("ALTER TABLE character_profiles ADD COLUMN spirit_current INTEGER DEFAULT -1;")
     ncols = {r["name"] for r in conn.execute("PRAGMA table_info(npcs);")}
     if ncols and "kind" not in ncols:
         conn.execute("ALTER TABLE npcs ADD COLUMN kind TEXT DEFAULT 'human';")

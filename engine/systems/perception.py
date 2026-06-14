@@ -132,6 +132,8 @@ def describe(conn: sqlite3.Connection, player_id, npc) -> list[str]:
 
     if known or level >= 2:
         lines.append(f"Coltivazione: {cultivation.realm_label(conn, 'npc', npc.id)}.")
+        from engine.systems import power
+        lines.append(f"Stile: {power.classify(conn, 'npc', npc.id)[1]}.")
     if known or level >= 3:
         daos = _dao_names(conn, "npc", npc.id)
         if daos:

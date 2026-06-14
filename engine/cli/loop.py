@@ -47,6 +47,7 @@ HELP = """Comandi disponibili:
   war                           — guerra tra sette in corso: fronte, punteggio, tempo
   spare <nome>                  — al fronte: sottometti e risparmia un nemico (onore)
   home                          — torni direttamente alla sede della tua setta
+  rating                        — il tuo profilo di potenza (Qi/Corpo/Anima/Dao), classe e zona
   map                           — uscite della location corrente con destinazioni
   factions                      — elenco delle fazioni (influenza, territori)
   faction <nome>                — dettaglio di una fazione (territori, relazioni)
@@ -185,6 +186,13 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
             lines.append(f"Qui ha sede la setta {hq['name']}.")
         else:
             lines.append(f"Qui ha sede la setta {hq['name']} — puoi 'join' per il test d'ingresso.")
+    from engine.systems import zones
+    _z = zones.zone_of(conn, loc.id)
+    if _z:
+        if _z["populated_tick"] < 0:
+            now = tick.get_tick(conn)
+            zones.populate_zone(conn, random.Random(loc.id * 131 + now), loc.id, now)
+        lines.append(zones.describe(conn, loc.id))
     return "\n".join(lines)
 
 
@@ -212,6 +220,8 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     obs = world_tick.advance(conn, tick.cost_of("move"))
     from engine.systems import qi as qimod
     qimod.restore_fraction(conn, 0.15, player.id)      # camminare recupera un po' di Qi
+    from engine.systems import spirit as spmod
+    spmod.restore_fraction(conn, 0.15, player.id)
     new_tick = tick.get_tick(conn)
     moved = entities.get_player(conn, player.id)
     out = f"Tick {new_tick}\n" + render_location(conn, moved)
@@ -224,6 +234,8 @@ def cmd_wait(conn: sqlite3.Connection, player: entities.Player) -> str:
     obs = world_tick.advance(conn, tick.cost_of("short_rest"))
     from engine.systems import qi as qimod
     qimod.restore_fraction(conn, 0.35, player.id)      # un po' di Qi recuperato
+    from engine.systems import spirit as spmod
+    spmod.restore_fraction(conn, 0.35, player.id)
     new_tick = tick.get_tick(conn)
     out = f"Tick {new_tick} — attendi e recuperi (Qi {qimod.qi_label(conn, player.id)})."
     if obs:
@@ -478,8 +490,63 @@ def _use_prob(hp_e, emax) -> float:
     return 0.15 + 0.5 * (hp_e / emax if emax > 0 else 0.0)
 
 
+_DAO_TECH_VERBS = {
+    "spada": ["L'intento della tua spada incrina l'aria", "La tua lama proietta uno squarcio netto"],
+    "sciabola": ["La tua sciabola disegna mezzelune d'acciaio", "Un ventaglio di fendenti si abbatte"],
+    "lancia": ["La tua lancia trafigge lo spazio", "Una stoccata d'intento perfora la guardia"],
+    "arco": ["Il tuo intento scocca prima della freccia", "Strali di volontà piovono"],
+    "pugno": ["Il tuo intento si condensa in un pugno di montagna", "Una pressione tellurica esplode dal tuo pugno"],
+    "bastone": ["Il tuo bastone erige una guardia incrollabile", "Un pilastro d'intento devia e contrattacca"],
+    "corpo": ["Il tuo corpo-Dao incassa e restituisce", "La tua carne diventa arma vivente"],
+    "fulmine": ["L'intento del Fulmine ti incorona di scariche", "Una saetta della tua volontà incenerisce"],
+    "tempo": ["Pieghi l'istante: ti muovi prima del tempo", "Un attimo rubato moltiplica i tuoi colpi"],
+    "spazio": ["Annulli la distanza: sei già addosso", "Lo spazio si ripiega sotto il tuo intento"],
+    "destino": ["Un filo del fato stringe il tuo nemico", "La tua sentenza pesa come una legge"],
+    "anima": ["La tua pressione spirituale schiaccia", "Il tuo intento dell'anima invade la sua mente"],
+}
+
+
+def _dao_tech_line(move: dict, rng) -> str:
+    verbs = _DAO_TECH_VERBS.get(move.get("main"), [f"Manifesti {move['name']}"])
+    return f"{rng.choice(verbs)} — {move['name']}!"
+
+
+# Stile di combattimento dei NEMICI per classe: meccanica + linguaggio propri.
+_ENEMY_CLASS = {
+    "dao":   {"pierce": 0.30, "intro": "Si muove con l'intento del Dao: ogni colpo è una lama affilata di volontà.",
+              "verbs": ["proietta un intento tagliente", "libera una lama di pura volontà",
+                        "incide l'aria con un Dao affilato"]},
+    "corpo": {"dmg_mult": 1.15, "intro": "Il suo corpo è una fortezza vivente: avanza incurante.",
+              "verbs": ["ti travolge come una montagna", "incassa e carica a corpo nudo",
+                        "abbatte un pugno di ferro"]},
+    "anima": {"intro": "La sua pressione spirituale grava sulla tua mente.",
+              "verbs": ["preme sulla tua anima", "ti assale con un'onda spirituale",
+                        "incrina la tua concentrazione con l'intento dell'anima"]},
+    "qi":    {"crit": 0.10, "intro": "Incanala il Qi in tecniche spettacolari.",
+              "verbs": ["scaglia un'onda di Qi", "libera una tecnica fragorosa",
+                        "ti investe con un colpo di Qi condensato"]},
+}
+
+
+def _enemy_class_line(klass, name, edmg, pmax, crit, rng) -> str:
+    prof = _ENEMY_CLASS.get(klass)
+    if not prof:
+        return _enemy_line(name, edmg, pmax, crit, rng)
+    verb = rng.choice(prof["verbs"])
+    r = edmg / pmax if pmax > 0 else 1.0
+    if r < 0.08:
+        s = f"{name} {verb}, ma reggi."
+    elif r < 0.20:
+        s = f"{name} {verb}: accusi appena."
+    elif r < 0.45:
+        s = f"{name} {verb}: il colpo morde."
+    else:
+        s = f"{name} {verb}: vacilli sotto la potenza!"
+    return (s + " (critico!)") if crit else s
+
+
 def _attack_auto(conn, player, npc, forced) -> str:
-    from engine.systems import moves as mvmod, qi as qimod, weapons, perception, absorption
+    from engine.systems import moves as mvmod, qi as qimod, weapons, perception, absorption, spirit as spmod
     t = tick.get_tick(conn)
     rng = random.Random(t * 7919 + player.id + npc.id)
     pa = combat.combat_power(conn, "player", player.id)
@@ -490,6 +557,9 @@ def _attack_auto(conn, player, npc, forced) -> str:
     # se il tuo spirito sovrasta enormemente il suo, resta PARALIZZATO dal terrore:
     # non riesce a reagire e sei libero di abbatterlo.
     paralyzed = perception.intimidates(conn, player.id, npc)
+    from engine.systems import power
+    pclass, nclass = power.class_of(conn, "player", player.id), power.class_of(conn, "npc", npc.id)
+    style_bonus = power.matchup_bonus(pclass, nclass)
     wlabel = weapons.weapon_label(weapons.get_weapon(conn, player.id))
     hp_p, hp_e = pa["vitality"], pd["vitality"]
     pmax, emax = hp_p, hp_e
@@ -503,6 +573,12 @@ def _attack_auto(conn, player, npc, forced) -> str:
     if paralyzed:
         lines.append(f"{npc.name} è paralizzato dal terrore di fronte al tuo spirito: "
                      f"non riesce a reagire, e sei libero di abbatterlo.")
+    _note = power.matchup_note(pclass, nclass)
+    if _note:
+        lines.append(_note)
+    _eprof = _ENEMY_CLASS.get(nclass)
+    if _eprof and not paralyzed:
+        lines.append(_eprof["intro"])
     pool = mvmod.available_moves(conn, player.id)
     local_cd: dict[str, int] = {}     # cooldown della tecnica entro lo scontro (in round)
     rounds = 0
@@ -512,7 +588,9 @@ def _attack_auto(conn, player, npc, forced) -> str:
     while hp_p > 0 and hp_e > 0 and rounds < _MAX_AUTO_ROUNDS:
         rounds += 1
         usable = [m for m in pool
-                  if qimod.can_afford(conn, m["qi_cost"], player.id)
+                  if (spmod.can_afford(conn, m["spirit_cost"], player.id)
+                      if m.get("fuel") == "spirit"
+                      else qimod.can_afford(conn, m["qi_cost"], player.id))
                   and local_cd.get(m["key"], 0) <= rounds]
         # non sprecare tecniche se un colpo normale basterebbe ad atterrarlo
         normal_dmg = max(1.0, pa["attack"] - pd["defense"] * 0.5)
@@ -527,18 +605,26 @@ def _attack_auto(conn, player, npc, forced) -> str:
                          + (0.3 if m["mods"].get("extra_strikes") else 0.0))
         mods = {}
         if chosen:
-            qimod.spend(conn, chosen["qi_cost"], player.id)
+            if chosen.get("fuel") == "spirit":
+                spmod.spend(conn, chosen["spirit_cost"], player.id)
+            else:
+                qimod.spend(conn, chosen["qi_cost"], player.id)
             local_cd[chosen["key"]] = rounds + 3
             mods = chosen["mods"]
             strikes = 1 + int(mods.get("extra_strikes", 0))
-            lines.append(f"⚔ Scateni {chosen['name']}! "
-                         f"(Qi {qimod.get_qi(conn, player.id)}/{qimod.max_qi(conn, player.id)})")
+            if chosen["source"] == "dao":
+                lines.append(f"◈ {_dao_tech_line(chosen, rng)} "
+                             f"(Spirito {spmod.get_spirit(conn, player.id)}/"
+                             f"{spmod.max_spirit(conn, player.id)})")
+            else:
+                lines.append(f"⚔ Scateni {chosen['name']}! "
+                             f"(Qi {qimod.get_qi(conn, player.id)}/{qimod.max_qi(conn, player.id)})")
         else:
             strikes = 1
             lines.append(_player_normal_line(wlabel, rng))
         last_mods = mods
 
-        a_attack = pa["attack"] * mods.get("attack_mult", 1.0) * (1.0 + edge * 0.5)
+        a_attack = pa["attack"] * mods.get("attack_mult", 1.0) * (1.0 + edge * 0.5) * (1.0 + style_bonus)
         d_def = pd["defense"] * (1.0 - mods.get("pierce", 0.0))
         dealt = 0.0
         crit_any = False
@@ -556,15 +642,20 @@ def _attack_auto(conn, player, npc, forced) -> str:
             return _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
                                    crit_any, mods, chosen, lines)
 
-        edmg, ecrit = combat._strike(pd["attack"], pa["defense"], rng)
-        edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge) * fear_mult
+        edef = pa["defense"] * (1.0 - (_eprof.get("pierce", 0.0) if _eprof else 0.0))
+        edmg, ecrit = combat._strike(pd["attack"], edef, rng)
+        if _eprof and _eprof.get("crit") and rng.random() < _eprof["crit"]:
+            ecrit = True
+            edmg *= 1.5
+        edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge) * fear_mult \
+            * (_eprof.get("dmg_mult", 1.0) if _eprof else 1.0)
         if paralyzed:
             edmg = 0.0
         hp_p -= edmg
         if paralyzed:
             lines.append(f"  {npc.name}, pietrificato dal terrore, non oppone resistenza.")
         else:
-            lines.append("  " + _enemy_line(npc.name, edmg, pmax, ecrit, rng))
+            lines.append("  " + _enemy_class_line(nclass, npc.name, edmg, pmax, ecrit, rng))
 
         if hp_p <= 0:
             return _auto_end_player(conn, t, rng, player, npc, rounds, lines)
@@ -681,6 +772,8 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
     world_tick.advance(conn, tick.cost_of("cultivate"))
     from engine.systems import qi as qimod, progression
     qimod.restore_fraction(conn, 0.5, player.id)       # meditare ristora il Qi
+    from engine.systems import spirit as spmod
+    spmod.restore_fraction(conn, 0.5, player.id)
     progression.record_cultivation(conn, player.id)    # via dell'Universo
     label = cultivation.realm_label(conn, "player", player.id)
     line = f"Mediti a lungo. {label} — esperienza {res['progress']*100:.0f}%."
@@ -1033,22 +1126,30 @@ def _move_effect_label(mods: dict) -> str:
 
 
 def cmd_moves(conn: sqlite3.Connection, player: entities.Player) -> str:
-    from engine.systems import moves, qi as qimod
+    from engine.systems import moves, qi as qimod, spirit as spmod, dao_techniques
     ms = moves.available_moves(conn, player.id)
-    qline = f"Qi: {qimod.qi_label(conn, player.id)} (le mosse lo consumano; recuperi riposando)"
+    qline = f"Qi: {qimod.qi_label(conn, player.id)} (mosse dei coltivatori; recuperi riposando)"
+    has_dao = any(m.get("fuel") == "spirit" for m in ms)
+    spline = (f"Spirito: {spmod.spirit_label(conn, player.id)} (tecniche Dao; si affatica e recupera)"
+              if has_dao else None)
     if not ms:
         return (qline + "\nNon hai ancora mosse attive. Le ottieni scegliendo un'arma in setta "
-                "('weapon'), imparando tecniche segrete ('techniques'), o con l'Abisso.")
-    lines = [qline, "Le tue mosse (usa 'attack <bersaglio> <mossa>' o 'use <mossa> <bersaglio>'):"]
+                "('weapon'), imparando tecniche segrete ('techniques'), coltivando i Dao "
+                "(le tecniche Dao nascono a comprensione ≥10), o con l'Abisso.")
+    head = [qline] + ([spline] if spline else [])
+    lines = head + ["Le tue mosse (usa 'attack <bersaglio> <mossa>' o 'use <mossa> <bersaglio>'):"]
     for m in ms:
+        spirit_fuel = m.get("fuel") == "spirit"
+        cost = (f"Spirito {m['spirit_cost']}" if spirit_fuel else f"Qi {m['qi_cost']}")
         if not m["ready"]:
             status = f"pronta tra ~{m['ready_in']} tick"
         elif not m["affordable"]:
-            status = "Qi insufficiente"
+            status = "Spirito insufficiente" if spirit_fuel else "Qi insufficiente"
         else:
             status = "pronta"
-        lines.append(f"  · {m['name']} [{m['key']}] — {_move_effect_label(m['mods'])} "
-                     f"(Qi {m['qi_cost']}, cooldown {m['cooldown']}) — {status}")
+        tag = " «Dao»" if m["source"] == "dao" else ""
+        lines.append(f"  · {m['name']}{tag} [{m['key']}] — {_move_effect_label(m['mods'])} "
+                     f"({cost}, cooldown {m['cooldown']}) — {status}")
     return "\n".join(lines)
 
 
@@ -1061,21 +1162,32 @@ def cmd_use(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
 
 
 def cmd_techniques(conn: sqlite3.Connection, player: entities.Player) -> str:
-    from engine.systems import sects, guild
+    from engine.systems import sects, guild, dao_techniques, spirit as spmod
+    out: list[str] = []
+    dao_list = dao_techniques.technique_list(conn, player.id)
+    if dao_list:
+        out.append(f"Tecniche del Dao (Guerriero Dao) — Spirito: {spmod.spirit_label(conn, player.id)}:")
+        out += [f"  ◈ {ln}" for ln in dao_list]
+        out.append("  Nascono dai tuoi Dao (≥10) ed evolvono a soglie; affaticano lo Spirito, non il Qi.")
     m = sects.get_membership(conn, player.id)
     if not m:
-        return "Non appartieni a una setta: nessuna tecnica segreta. Usa 'sects'."
+        if not dao_list:
+            return ("Non hai tecniche. Le tecniche Dao nascono coltivando un Dao fino a "
+                    "comprensione ≥10 ('comprehend <dao>'); le tecniche segrete richiedono una setta.")
+        return "\n".join(out)
     techs = guild.sect_techniques(conn, m["faction_id"])
     merit = guild.get_merit(conn, player.id)
-    lines = [f"Tecniche segrete di {m['sect_name']} (merito disponibile: {merit}):"]
+    if out:
+        out.append("")
+    out.append(f"Tecniche segrete di {m['sect_name']} (merito disponibile: {merit}):")
     for t in techs:
         if guild.is_learned(conn, t["key"], player.id):
             mark = "✔ appresa"
         else:
             mark = f"costo {t['cost']} merito"
-        lines.append(f"  {t['rank']}. {t['name']} — +{int(t['magnitude']*100)}% potenza — {mark}")
-    lines.append("Guadagna merito cacciando i mostri ('huntzone'); 'learn <n>' per apprendere.")
-    return "\n".join(lines)
+        out.append(f"  {t['rank']}. {t['name']} — +{int(t['magnitude']*100)}% potenza — {mark}")
+    out.append("Guadagna merito cacciando i mostri ('huntzone'); 'learn <n>' per apprendere.")
+    return "\n".join(out)
 
 
 def cmd_learn(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
@@ -1130,6 +1242,8 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     # nuovo giorno: energie ristabilite (Qi al massimo). Non serve più dormire di continuo.
     from engine.systems import qi as qimod
     qimod.restore_full(conn, player.id)
+    from engine.systems import spirit as spmod
+    spmod.restore_full(conn, player.id)
     bar = "=" * 26
     lines = [bar, f"  GIORNO {day + 1}", bar, "  Un nuovo giorno: Qi e spirito ristabiliti."]
     if sects.get_membership(conn, player.id):
@@ -1192,6 +1306,8 @@ def cmd_sleep(conn: sqlite3.Connection, player: entities.Player) -> str:
     world_tick.advance(conn, to_next)
     from engine.systems import qi as qimod
     qimod.restore_full(conn, player.id)                # una notte di riposo: Qi pieno
+    from engine.systems import spirit as spmod
+    spmod.restore_full(conn, player.id)
     return "Riposi fino all'alba del giorno seguente. Il tuo Qi è ristabilito."
 
 
@@ -1385,6 +1501,10 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
     rep = reputation.line(conn, player.id)
     rep_line = f"{rep}\n" if rep else ""
     qi_line = f"Qi (mosse): {qimod.qi_label(conn, player.id)}\n"
+    from engine.systems import spirit as spmod, dao_techniques as dtk
+    spirit_line = ""
+    if dtk.dao_techniques(conn, player.id):
+        spirit_line = f"Spirito (tecniche Dao): {spmod.spirit_label(conn, player.id)}\n"
     path_line = f"Via: {progression.path_label(conn, player.id)}\n"
     abyss_line = ""
     _prof = character.get_profile(conn, "player", player.id)
@@ -1406,6 +1526,7 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
         f"{res_line}"
         f"{rep_line}"
         f"{qi_line}"
+        f"{spirit_line}"
         f"{path_line}"
         f"{abyss_line}"
         f"Status: {player.status}\n"
@@ -1483,6 +1604,25 @@ def cmd_home(conn: sqlite3.Connection, player: entities.Player) -> str:
     return out
 
 
+def cmd_rating(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import power, zones
+    pr = power.power_profile(conn, "player", player.id)
+    cls = power.classify(conn, "player", player.id)[1]
+    rating = power.combat_rating(conn, "player", player.id)
+    mx = max(pr.values()) or 1.0
+    bars = []
+    for axis in ("qi", "corpo", "anima", "dao"):
+        n = int(round(pr[axis] / mx * 12))
+        bars.append(f"  {axis.capitalize():7} |{'█' * n}{'·' * (12 - n)}| {int(pr[axis])}")
+    out = [f"Classe: {cls}  ·  Potenza effettiva (rating): {rating}",
+           "Profilo di potenza:"] + bars
+    z = zones.zone_of(conn, player.location_id)
+    if z:
+        out.append(zones.describe(conn, player.location_id))
+    out.append("(Stili: Dao batte Qi, Qi batte Corpo, Corpo batte Anima, Anima batte Dao.)")
+    return "\n".join(out)
+
+
 def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str | None:
     parts = raw.strip().split(maxsplit=1)
     if not parts:
@@ -1504,6 +1644,8 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_spare(conn, player, arg)
     if cmd in ("home", "base", "casa", "torna"):
         return cmd_home(conn, player)
+    if cmd in ("rating", "potenza", "classe", "class_power"):
+        return cmd_rating(conn, player)
     if cmd == "look":
         return cmd_look(conn, player, arg)
     if cmd == "examine":

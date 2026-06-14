@@ -63,6 +63,14 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
             "defense": 6 + cour * 0.25 + pride * 0.1,
             "vitality": 35 + cour * 0.4,
         }
+        # corpo/anima della coltivazione: i Cultivatori del Corpo sono coriacei,
+        # i Maestri dell'Anima colpiscono con la pressione spirituale (identità di classe)
+        from engine.simulation import cultivation as _cult
+        _rec = _cult.get_record(conn, ctype, cid)
+        if _rec:
+            base["vitality"] += (_rec["body_level"] or 0) * 0.6
+            base["defense"] += (_rec["body_level"] or 0) * 0.2
+            base["attack"] += (_rec["soul_level"] or 0) * 0.2
     rf = _realm_factor(conn, ctype, cid)
     keep = 1.0 - _active_injury_penalty(conn, ctype, cid)
     # affinità di combattimento (numero nascosto del profilo del personaggio)
