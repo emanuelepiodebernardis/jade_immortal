@@ -70,6 +70,8 @@ def _migrate(conn) -> None:
         conn.execute("ALTER TABLE npcs ADD COLUMN event_id INTEGER;")
     if ncols and "hunting" not in ncols:
         conn.execute("ALTER TABLE npcs ADD COLUMN hunting INTEGER DEFAULT 0;")
+    if ncols and "war_id" not in ncols:
+        conn.execute("ALTER TABLE npcs ADD COLUMN war_id INTEGER;")
     # livello/elemento delle sette (sette a livelli + rappresentanti)
     fcols = {r["name"] for r in conn.execute("PRAGMA table_info(factions);")}
     if fcols and "tier" not in fcols:

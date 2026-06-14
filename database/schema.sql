@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS npcs (
     kind TEXT DEFAULT 'human',         -- human | beast | demon | spirit
     event_id INTEGER,                  -- se appartiene all'ondata di un evento mondiale
     hunting INTEGER DEFAULT 0,         -- 1 = dà attivamente la caccia al giocatore (Eretico)
+    war_id INTEGER,                    -- se è un combattente di una guerra tra sette in corso
     birth_tick INTEGER,
     death_tick INTEGER,
     -- AGGIUNTA (non nello spec): ultimo tick in cui l'NPC è stato simulato.
@@ -587,6 +588,20 @@ CREATE TABLE IF NOT EXISTS tribulation_boons (
     boon_key TEXT NOT NULL,
     level INTEGER DEFAULT 1,
     PRIMARY KEY (player_id, boon_key)
+);
+
+-- Guerre tra sette: una setta rivale attacca la tua; il fronte è un luogo con discepoli.
+CREATE TABLE IF NOT EXISTS sect_wars (
+    id INTEGER PRIMARY KEY,
+    player_faction_id INTEGER REFERENCES factions(id),
+    enemy_faction_id INTEGER REFERENCES factions(id),
+    battle_location_id INTEGER REFERENCES locations(id),
+    status TEXT DEFAULT 'active',         -- active | won | lost
+    started_tick INTEGER DEFAULT 0,
+    deadline_tick INTEGER DEFAULT 0,
+    score_player INTEGER DEFAULT 0,
+    score_enemy INTEGER DEFAULT 0,
+    wave_total INTEGER DEFAULT 0
 );
 
 -- Eventi mondiali: invasioni (maree di bestie / incursioni demoniache) che colpiscono

@@ -1,33 +1,35 @@
-# Jade Immortal — stato aggiornato (incrementi 1–16)
+# Jade Immortal — stato aggiornato (incrementi 1–17)
 
 Cartella COMPLETA e pronta: nessun file da copiare a mano.
 
 ## Avvio / Test
 ```
 python main.py
-python -m pytest -q     # atteso: 222 passati, 1 "rosso" atteso (settings.yaml: vedi nota)
+python -m pytest -q     # atteso: 229 passati, 1 "rosso" atteso (settings.yaml: vedi nota)
 ```
 test_fallback_render_produces_prose è "rosso" SOLO perché in config/settings.yaml hai
 llm.enabled: true (il test si aspetta l'LLM spento). NON è un bug.
 
 ## Contenuto
-- INCR. 1–15 — (vedi cronologia): assorbimento, dao, sette, reputazione, gilde, arma,
+- INCR. 1–16 — (vedi cronologia): assorbimento, dao, sette, reputazione, gilde, arma,
   eventi/invasioni, mosse, Qi, combattimento narrato, percezione, vie di crescita,
-  Cacciatori dell'Eretico, Corruzione+linee evolutive con effetti reali.
-- INCR. 16 — Tribolazione: il Fulmine protegge e ogni folgore dona poteri (NUOVO):
-    * RESISTENZA DEL FULMINE: più alta è la tua comprensione del DAO DEL FULMINE, meno la
-      tribolazione dell'Abisso ti ferisce. A padronanza altissima la assorbi interamente
-      ("il fulmine ti appartiene"): nessuna ferita.
-    * BENEDIZIONI CELESTI: ogni folgore di tribolazione che ti colpisce viene ASSORBITA e
-      ti dona una capacità permanente e potente, che si accumula a ogni colpo:
-        - Corpo di Fulmine (+attacco), Pelle di Tuono (+difesa), Cuore Folgorato (+vitalità),
-          Anima Folgorata (+spirito/percezione), Furia Celeste (+attacco diretto).
-      I livelli si sommano: dopo molte tribolazioni diventi straordinariamente forte.
-    * Inoltre ogni colpo fa CRESCERE il tuo Dao del Fulmine (circolo virtuoso: più ti
-      colpiscono, più diventi resistente).
-    * 'status' mostra i "Doni del Fulmine" accumulati.
-  Così la tribolazione, da pericolo, diventa la fonte dei poteri più rari — e i coltivatori
-  del Fulmine hanno una via dedicata per dominarla.
+  Cacciatori dell'Eretico, Corruzione+linee evolutive, tribolazione+doni del Fulmine.
+- INCR. 17 — Guerre tra sette (NUOVO):
+    * Ogni tanto una setta rivale DICHIARA GUERRA alla tua: si apre un FRONTE (un luogo)
+      con discepoli nemici e tuoi compagni schierati.
+    * Raggiungi il fronte ('home' ti porta dritto in setta) e per ogni nemico scegli:
+        - 'attack <nome>' UCCIDI  -> merito di setta (+ poca infamia, è guerra);
+        - 'spare <nome>'  RISPARMIA -> onore e fama (e lo togli dalla guerra);
+        - 'absorb <nome>' ASSORBI  -> ne divori l'eredità/Dao, ma cresce l'infamia.
+    * Sul campo cadono anche i TUOI compagni (skirmish di sfondo): i resti restano a terra.
+      Divorarli dà potere ma è un TRADIMENTO: la setta inizia a sospettare di te.
+    * Alla scadenza la guerra si RISOLVE: il tuo contributo + la forza della setta decidono
+      vittoria o sconfitta. Vincere dà merito, fama, pietre e influenza; ignorare la guerra
+      indebolisce la tua setta (perde influenza).
+    * 'war' mostra fronte, nemici/compagni in campo, punteggio e tempo rimasto.
+  Comodità richieste:
+    * 'h' (oltre a 'help') apre l'elenco comandi.
+    * 'home' ti riporta direttamente alla sede della tua setta (niente più giri a vuoto).
 
 ## Salvataggi
 Le novità si vedono al meglio nei mondi NUOVI: cancella database/world.db per una prova

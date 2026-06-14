@@ -44,6 +44,9 @@ HELP = """Comandi disponibili:
   attack <nome> [mossa]         — attacchi un NPC (puoi morire!); mossa attiva opzionale
   moves                         — le tue mosse attive in combattimento (cooldown)
   absorb <nome>                 — (Abisso Divoratore) divori i resti di un caduto
+  war                           — guerra tra sette in corso: fronte, punteggio, tempo
+  spare <nome>                  — al fronte: sottometti e risparmia un nemico (onore)
+  home                          — torni direttamente alla sede della tua setta
   map                           — uscite della location corrente con destinazioni
   factions                      — elenco delle fazioni (influenza, territori)
   faction <nome>                — dettaglio di una fazione (territori, relazioni)
@@ -70,7 +73,7 @@ HELP = """Comandi disponibili:
   mask <on|off>                 — indossi/togli la maschera (agisci in incognito)
   profilo                       — origine, età e affinità (descrizione qualitativa)
   where                         — nome e pericolo della location corrente
-  help                          — questo messaggio
+  help                          — questo messaggio (anche 'h')
   quit / exit                   — esci
   (con Ollama attivo puoi anche scrivere in linguaggio naturale, es. "esamina il vecchio")
 """
@@ -120,6 +123,22 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
         who = ", ".join(h["name"] for h in hunters_here)
         lines.append(f"⚠ CACCIATORE DELL'ERETICO qui: {who}! Affrontalo ('attack <nome>') "
                      f"oppure fuggi ('mask on' e spostati per seminarlo).")
+
+    from engine.systems import sect_war as _sw
+    _war = _sw.active_war(conn)
+    if _war and _war["battle_location_id"] == loc.id:
+        en = _sw.enemy_disciples(conn, _war)
+        fallen = conn.execute(
+            "SELECT name FROM npcs WHERE war_id=? AND status='dead' ORDER BY id;",
+            (_war["id"],)).fetchall()
+        lines.append("⚔ FRONTE DI GUERRA TRA SETTE.")
+        if en:
+            lines.append("  Discepoli nemici: " + ", ".join(e["name"] for e in en))
+            lines.append("  Per ognuno: 'attack <nome>' (uccidi), 'spare <nome>' (risparmia), "
+                         "'absorb <nome>' sui caduti.")
+        if fallen:
+            lines.append("  Resti sul campo (anche tuoi compagni): "
+                         + ", ".join(f["name"] for f in fallen) + ". 'war' per i dettagli.")
 
     # creature selvatiche: chiarisci che si cacciano e come (merito nella zona di setta)
     creatures = conn.execute(
@@ -360,6 +379,10 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     h_msg = hunters.on_hunter_defeated(conn, npc.id, player)
     if h_msg:
         lines.append(h_msg)
+    from engine.systems import sect_war
+    w_msg = sect_war.on_enemy_defeated(conn, t, player, npc.id, "kill")
+    if w_msg:
+        lines.append(w_msg)
     if move and move["mods"].get("devour_on_kill"):
         dv = _devour_on_kill(conn, t, rng, player, npc)
         if dv:
@@ -802,6 +825,10 @@ def cmd_absorb(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
     sh = reputation.suspicion_hint(reputation.get(conn, player.id)["suspicion"])
     if sh and watchers and not disguised:
         out.append(sh)
+    from engine.systems import sect_war
+    w_msg = sect_war.on_enemy_defeated(conn, tick.get_tick(conn), player, npc.id, "absorb")
+    if w_msg:
+        out.append(w_msg)
     return " ".join(out)
 
 
@@ -1378,6 +1405,66 @@ def cmd_where(conn: sqlite3.Connection, player: entities.Player) -> str:
     return f"{loc.name} {_danger_tag(loc.danger_level)} — {loc.location_type}"
 
 
+def cmd_war(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import sect_war
+    war = sect_war.active_war(conn)
+    if not war:
+        return "Nessuna guerra tra sette in corso. (Se appartieni a una setta, può scoppiare.)"
+    return sect_war.describe(conn, war, player.location_id, _first_step_toward)
+
+
+def cmd_spare(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    """Sottometti e risparmia un discepolo nemico al fronte (richiede di essere abbastanza forte)."""
+    from engine.systems import sect_war
+    if not arg:
+        return "Risparmiare chi? Usa: spare <nome> (su un discepolo nemico al fronte)."
+    war = sect_war.active_war(conn)
+    if not war or war["battle_location_id"] != player.location_id:
+        return "Non sei a un fronte di guerra: non c'è nessun nemico da risparmiare qui."
+    enemies = sect_war.enemy_disciples(conn, war)
+    low = arg.strip().lower()
+    target = next((e for e in enemies if low in e["name"].lower()), None)
+    if target is None:
+        return f"Nessun discepolo nemico di nome '{arg}' al fronte."
+    pr = combat.combat_power(conn, "player", player.id)
+    er = combat.combat_power(conn, "npc", target["id"])
+    p_rating = pr["attack"] * 0.5 + pr["defense"] * 0.3 + pr["vitality"] * 0.2
+    e_rating = er["attack"] * 0.5 + er["defense"] * 0.3 + er["vitality"] * 0.2
+    if p_rating < e_rating:
+        return (f"{target['name']} è troppo forte per essere sottomesso a mani basse: "
+                f"se vuoi affrontarlo devi combatterlo ('attack {arg}').")
+    t = tick.get_tick(conn)
+    msg = sect_war.on_enemy_defeated(conn, t, player, target["id"], "spare")
+    obs = world_tick.advance(conn, tick.cost_of("short_rest"))
+    out = f"Sopraffai {target['name']} e gli concedi la vita. " + (msg or "")
+    if obs:
+        out += "\n" + _format_observations(obs)
+    return out
+
+
+def cmd_home(conn: sqlite3.Connection, player: entities.Player) -> str:
+    """Torna direttamente alla sede della tua setta (evita di perderti)."""
+    from engine.systems import sects
+    m = sects.get_membership(conn, player.id)
+    if m is None:
+        return "Non appartieni a nessuna setta. ('join' per iscriverti dove possibile.)"
+    home = conn.execute("SELECT home_location_id FROM factions WHERE id=?;",
+                        (m["faction_id"],)).fetchone()
+    if not home or home["home_location_id"] is None:
+        return "La tua setta non ha una sede raggiungibile."
+    dest = home["home_location_id"]
+    if dest == player.location_id:
+        return "Sei già alla sede della tua setta.\n" + render_location(conn, player)
+    entities.move_player(conn, player.id, dest)
+    obs = world_tick.advance(conn, tick.cost_of("move"))
+    moved = entities.get_player(conn, player.id)
+    out = (f"Tick {tick.get_tick(conn)} — torni alla sede della tua setta.\n"
+           + render_location(conn, moved))
+    if obs:
+        out += "\nNel frattempo:\n" + _format_observations(obs)
+    return out
+
+
 def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str | None:
     parts = raw.strip().split(maxsplit=1)
     if not parts:
@@ -1391,8 +1478,14 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
 
     if cmd in ("quit", "exit"):
         return None
-    if cmd == "help":
+    if cmd in ("help", "h", "?", "comandi"):
         return HELP
+    if cmd in ("war", "guerra"):
+        return cmd_war(conn, player)
+    if cmd in ("spare", "risparmia"):
+        return cmd_spare(conn, player, arg)
+    if cmd in ("home", "base", "casa", "torna"):
+        return cmd_home(conn, player)
     if cmd == "look":
         return cmd_look(conn, player, arg)
     if cmd == "examine":

@@ -182,6 +182,9 @@ def advance(conn: sqlite3.Connection, n: int, player_id: int = 1,
         if tick_no % 24 == 0:
             from engine.systems import absorption
             events += absorption.maybe_tribulation(c, tick_no, rng, player, observations)
+        # guerre tra sette: una setta rivale può dichiarare guerra alla tua
+        from engine.systems import sect_war
+        events += sect_war.tick(c, tick_no, rng, player, observations)
         # fazioni (cadenza)
         if tick_no % FACTION_DRIFT_INTERVAL == 0:
             events += faction_engine.faction_drift(
