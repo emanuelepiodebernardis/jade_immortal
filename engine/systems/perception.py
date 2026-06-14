@@ -34,7 +34,14 @@ def spirit_score(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
     from engine.simulation import cultivation
     from engine.systems import progression
     tier = cultivation.realm_tier(conn, ctype, cid) or 1
-    return _anima(conn, ctype, cid) + tier * 8.0 + progression.spirit_bonus(conn, ctype, cid)
+    base = _anima(conn, ctype, cid) + tier * 8.0 + progression.spirit_bonus(conn, ctype, cid)
+    if ctype == "player":
+        from engine.systems import absorption, character
+        prof = character.get_profile(conn, "player", cid)
+        if prof and prof["anomaly"] == "abisso_divoratore":
+            base += (prof["soul_residue"] or 0) * 0.05      # presenza abissale
+        base += absorption.evolution_bonuses(conn, cid).get("spirit", 0)
+    return base
 
 
 def soul_level(conn: sqlite3.Connection, player_id: int = 1) -> int:
@@ -51,10 +58,14 @@ def soul_level(conn: sqlite3.Connection, player_id: int = 1) -> int:
 
 
 def is_renowned(conn: sqlite3.Connection, npc_id: int) -> bool:
-    """Informazioni pubblicamente note: ricercati, capi-setta, coltivatori di alto regno."""
+    """Informazioni pubblicamente note: ricercati, capi-setta, coltivatori di alto regno,
+    e i cacciatori che ti danno la caccia (li vedi arrivare)."""
     from engine.systems import bounties
     from engine.simulation import cultivation
     if bounties.get_outlaw(conn, npc_id):
+        return True
+    h = conn.execute("SELECT hunting FROM npcs WHERE id=?;", (npc_id,)).fetchone()
+    if h and h["hunting"]:
         return True
     if conn.execute("SELECT 1 FROM factions WHERE leader_id=?;", (npc_id,)).fetchone():
         return True

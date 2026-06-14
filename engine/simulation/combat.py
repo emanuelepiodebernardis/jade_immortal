@@ -76,8 +76,17 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     # punti DIRETTI da Dao (per tutti) e dalle sessioni/via (solo player)
     from engine.systems import progression
     flat = progression.growth_bonuses(conn, ctype, cid)
-    return {k: max(1.0, v * rf * keep * caf * daf * tf) + flat.get(k, 0.0)
-            for k, v in base.items()}
+    result = {k: max(1.0, v * rf * keep * caf * daf * tf) + flat.get(k, 0.0)
+              for k, v in base.items()}
+    # linea evolutiva dell'Abisso (solo giocatore): moltiplicatori per statistica
+    if ctype == "player":
+        from engine.systems import absorption
+        evb = absorption.evolution_bonuses(conn, cid)
+        if evb:
+            result["attack"] *= evb.get("attack_mult", 1.0)
+            result["defense"] *= evb.get("defense_mult", 1.0)
+            result["vitality"] *= evb.get("vitality_mult", 1.0)
+    return result
 
 
 # ---------- scambio di colpi ----------

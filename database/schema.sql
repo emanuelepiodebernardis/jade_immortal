@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS npcs (
     archetype TEXT,
     kind TEXT DEFAULT 'human',         -- human | beast | demon | spirit
     event_id INTEGER,                  -- se appartiene all'ondata di un evento mondiale
+    hunting INTEGER DEFAULT 0,         -- 1 = dà attivamente la caccia al giocatore (Eretico)
     birth_tick INTEGER,
     death_tick INTEGER,
     -- AGGIUNTA (non nello spec): ultimo tick in cui l'NPC è stato simulato.

@@ -113,6 +113,14 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
             suffix = f" ({tag})" if tag else ""
             lines.append(f"  - {n.name}{suffix}")
 
+    hunters_here = conn.execute(
+        "SELECT name FROM npcs WHERE location_id=? AND hunting=1 AND status='alive' ORDER BY id;",
+        (loc.id,)).fetchall()
+    if hunters_here:
+        who = ", ".join(h["name"] for h in hunters_here)
+        lines.append(f"⚠ CACCIATORE DELL'ERETICO qui: {who}! Affrontalo ('attack <nome>') "
+                     f"oppure fuggi ('mask on' e spostati per seminarlo).")
+
     # creature selvatiche: chiarisci che si cacciano e come (merito nella zona di setta)
     creatures = conn.execute(
         "SELECT name FROM npcs WHERE location_id=? AND status='alive' AND kind<>'human' "
@@ -348,6 +356,10 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     ev_msg = world_events.on_creature_killed(conn, npc.id, t, player)
     if ev_msg:
         lines.append(ev_msg)
+    from engine.systems import hunters
+    h_msg = hunters.on_hunter_defeated(conn, npc.id, player)
+    if h_msg:
+        lines.append(h_msg)
     if move and move["mods"].get("devour_on_kill"):
         dv = _devour_on_kill(conn, t, rng, player, npc)
         if dv:
@@ -448,12 +460,14 @@ def _use_prob(hp_e, emax) -> float:
 
 
 def _attack_auto(conn, player, npc, forced) -> str:
-    from engine.systems import moves as mvmod, qi as qimod, weapons, perception
+    from engine.systems import moves as mvmod, qi as qimod, weapons, perception, absorption
     t = tick.get_tick(conn)
     rng = random.Random(t * 7919 + player.id + npc.id)
     pa = combat.combat_power(conn, "player", player.id)
     pd = combat.combat_power(conn, "npc", npc.id)
     edge = perception.spirit_edge(conn, player.id, npc.id)   # 0..0.3
+    dread = absorption.dread_level(conn, player.id)          # terrore abissale
+    fear_mult = 1.0 - min(0.4, dread * 0.08)                 # i nemici colpiscono peggio
     wlabel = weapons.weapon_label(weapons.get_weapon(conn, player.id))
     hp_p, hp_e = pa["vitality"], pd["vitality"]
     pmax, emax = hp_p, hp_e
@@ -462,6 +476,8 @@ def _attack_auto(conn, player, npc, forced) -> str:
               if wlabel else f"Affronti {npc.name}.")]
     if edge >= 0.1:
         lines.append("Il tuo spirito superiore anticipa le sue mosse: lo leggi come un libro aperto.")
+    if dread >= 2:
+        lines.append(f"La tua presenza abissale terrorizza {npc.name}: i suoi colpi esitano.")
     pool = mvmod.available_moves(conn, player.id)
     local_cd: dict[str, int] = {}     # cooldown della tecnica entro lo scontro (in round)
     rounds = 0
@@ -516,7 +532,7 @@ def _attack_auto(conn, player, npc, forced) -> str:
                                    crit_any, mods, chosen, lines)
 
         edmg, ecrit = combat._strike(pd["attack"], pa["defense"], rng)
-        edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge)    # spirito: rallenti i suoi colpi
+        edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge) * fear_mult
         hp_p -= edmg
         lines.append("  " + _enemy_line(npc.name, edmg, pmax, ecrit, rng))
 
@@ -1170,6 +1186,8 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
     from engine.systems import sects
     elem = sects.element_bonus(conn, d["dao_key"], player.id)   # setta affine = comprensione più rapida
     y *= elem
+    from engine.systems import absorption
+    y *= 1.0 + absorption.evolution_bonuses(conn, player.id).get("dao_gain", 0.0)  # Imperatore Spirituale
     rng = random.Random(t * 53 + player.id)
     res = dao_training.comprehend(conn, t, rng, d["dao_key"], multiplier=y, player_id=player.id)
     world_tick.advance(conn, tick.cost_of("cultivate"))
@@ -1323,6 +1341,15 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
     rep_line = f"{rep}\n" if rep else ""
     qi_line = f"Qi (mosse): {qimod.qi_label(conn, player.id)}\n"
     path_line = f"Via: {progression.path_label(conn, player.id)}\n"
+    abyss_line = ""
+    _prof = character.get_profile(conn, "player", player.id)
+    if _prof and _prof["anomaly"] == "abisso_divoratore":
+        from engine.systems import absorption
+        res = _prof["soul_residue"] or 0
+        abyss_line = f"Corruzione dell'Abisso: {absorption.corruption_label(res)}.\n"
+        evo = absorption.evolution_path(conn, player.id)
+        if evo:
+            abyss_line += f"Ciò che diventi: {evo}.\n"
     return (
         f"Name: {player.name}\n"
         f"{origin_line}"
@@ -1331,6 +1358,7 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
         f"{rep_line}"
         f"{qi_line}"
         f"{path_line}"
+        f"{abyss_line}"
         f"Status: {player.status}\n"
         f"Coltivazione: {realm} (esperienza {prog})\n"
         f"Location: {loc.name if loc else '?'}\n"

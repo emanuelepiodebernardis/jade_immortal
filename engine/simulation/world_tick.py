@@ -175,6 +175,13 @@ def advance(conn: sqlite3.Connection, n: int, player_id: int = 1,
         # eventi mondiali: invasioni (comparsa a cadenza + risoluzione scadute)
         from engine.systems import world_events
         events += world_events.tick(c, tick_no, rng, player, observations)
+        # cacciatori dell'Eretico: se sei troppo famigerato, ti danno la caccia
+        from engine.systems import hunters
+        events += hunters.tick(c, tick_no, rng, player, observations)
+        # tribolazione dell'Abisso: al culmine della corruzione il Cielo ti colpisce
+        if tick_no % 24 == 0:
+            from engine.systems import absorption
+            events += absorption.maybe_tribulation(c, tick_no, rng, player, observations)
         # fazioni (cadenza)
         if tick_no % FACTION_DRIFT_INTERVAL == 0:
             events += faction_engine.faction_drift(

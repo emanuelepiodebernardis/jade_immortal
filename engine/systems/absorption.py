@@ -273,3 +273,92 @@ def evolution_path(conn, player_id: int = 1) -> str | None:
               "umani": "Divoratore Celeste (Via degli Immortali)"}
     stage = "nascente" if total < 30 else ("affermato" if total < 100 else "compiuto")
     return f"{titles[top]} — {stage}"
+
+
+def _evolution_state(conn, player_id: int = 1):
+    """(tipo dominante, stadio 1..3) oppure (None, 0)."""
+    p = character.get_profile(conn, "player", player_id)
+    if p is None:
+        return (None, 0)
+    counts = {"bestie": p["abs_beast"] or 0, "demoni": p["abs_demon"] or 0,
+              "spiriti": p["abs_spirit"] or 0, "umani": p["abs_human"] or 0}
+    total = sum(counts.values())
+    if total < 5:
+        return (None, 0)
+    top, n = max(counts.items(), key=lambda kv: kv[1])
+    if n / total < 0.5:
+        return (None, 0)
+    s = 1 if total < 30 else (2 if total < 100 else 3)
+    return (top, s)
+
+
+def evolution_bonuses(conn, player_id: int = 1) -> dict:
+    """Bonus MECCANICI della linea evolutiva (per stadio). Solo per il giocatore.
+    attack_mult/defense_mult/vitality_mult (potenza), spirit (percezione),
+    fear (terrore in battaglia), dao_gain (comprensione più rapida)."""
+    top, s = _evolution_state(conn, player_id)
+    if not top:
+        return {}
+    if top == "bestie":     # Predatore Primordiale: corpo e rigenerazione
+        return {"attack_mult": 1 + 0.08 * s, "vitality_mult": 1 + 0.09 * s}
+    if top == "demoni":     # Tiranno Demoniaco: offensiva e aura terrificante
+        return {"attack_mult": 1 + 0.11 * s, "fear": s}
+    if top == "spiriti":    # Imperatore Spirituale: spirito, difesa, Dao
+        return {"defense_mult": 1 + 0.07 * s, "spirit": 20 * s, "dao_gain": 0.08 * s}
+    if top == "umani":      # Divoratore Celeste: tutto un po'
+        return {"attack_mult": 1 + 0.04 * s, "defense_mult": 1 + 0.04 * s,
+                "vitality_mult": 1 + 0.04 * s, "spirit": 10 * s}
+    return {}
+
+
+def dread_level(conn, player_id: int = 1) -> int:
+    """Terrore che emani: dalla CORRUZIONE (presenza abissale) + aura demoniaca."""
+    p = character.get_profile(conn, "player", player_id)
+    if p is None or p["anomaly"] != "abisso_divoratore":
+        return 0
+    res = p["soul_residue"] or 0
+    _label, effects = corruption_tier(res)
+    dread = 0
+    if "terrore" in effects:
+        dread += 2
+    if "anomalia_celeste" in effects:
+        dread += 3
+    dread += evolution_bonuses(conn, player_id).get("fear", 0)
+    return dread
+
+
+# --- Tribolazione dell'Abisso (Anomalia Celeste, corruzione >= 1000) -----------
+TRIB_INTERVAL = 24
+TRIB_CHANCE = 0.22
+
+
+def maybe_tribulation(conn, tick, rng, player, observations) -> int:
+    """Al culmine della corruzione, il Cielo ti considera una minaccia e ti colpisce:
+    una tribolazione celeste ti ferisce, ma scarica parte della corruzione. Sopravvivere
+    è leggendario (cresce la tua fama, e il tuo terrore)."""
+    p = character.get_profile(conn, "player", player.id)
+    if p is None or p["anomaly"] != "abisso_divoratore":
+        return 0
+    res = p["soul_residue"] or 0
+    if res < 1000 or rng.random() >= TRIB_CHANCE:
+        return 0
+    from engine.simulation import cultivation
+    from engine.systems import perception, reputation
+    ptier = cultivation.realm_tier(conn, "player", player.id) or 1
+    endure = ptier * 10 + perception.spirit_score(conn, "player", player.id) * 0.2
+    severity = max(1, min(8, 7 - int(endure / 45)))
+    conn.execute(
+        "INSERT INTO injuries (character_type, character_id, severity, description, "
+        "inflicted_tick, heal_tick) VALUES ('player', ?, ?, ?, ?, ?);",
+        (player.id, severity, "fulmine della tribolazione dell'Abisso", tick, tick + 18))
+    discharge = rng.randint(120, 220)
+    conn.execute(
+        "UPDATE character_profiles SET soul_residue=? "
+        "WHERE character_type='player' AND character_id=?;", (max(0, res - discharge), player.id))
+    reputation.adjust(conn, player.id, fame=15, infamy=12)
+    if observations is not None:
+        observations.append(
+            "⚡ ANOMALIA CELESTE: una tribolazione dell'Abisso ti incenerisce dall'alto! "
+            f"La reggi a stento (ferita di gravità {severity}); parte della corruzione si scarica. "
+            "Sopravvivere a un castigo del Cielo ti rende leggenda.")
+    return 1
