@@ -80,6 +80,47 @@ def combat_dao_factor(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
     return 1.0 + total
 
 
+# --- Punti-statistica DIRETTI dai livelli di Dao -------------------------------
+# Oltre alle percentuali, ogni soglia raggiunta versa punti DIRETTI in una statistica.
+# Cumulativi e indicizzati come DAO_THRESHOLDS (principiante..legislatore).
+DAO_TIER_POINTS = [0, 2, 5, 10, 20, 35, 55, 85]
+
+# Ogni Dao alimenta una statistica precisa.
+DAO_STAT = {
+    "corpo": "vitality",
+    "fulmine": "attack",      # "velocità": offensiva fulminea
+    "spada": "attack", "lancia": "attack", "sciabola": "attack",
+    "arco": "attack", "pugno": "attack", "tempo": "attack",
+    "bastone": "defense", "destino": "defense", "spazio": "defense",
+    "anima": "spirit",
+}
+
+
+def _tier_index(c: int) -> int:
+    idx = 0
+    for i, t in enumerate(DAO_THRESHOLDS):
+        if c >= t[0]:
+            idx = i
+    return idx
+
+
+def dao_tier_points(comprehension: int) -> int:
+    """Punti diretti versati da UN Dao alla soglia raggiunta (cumulativi)."""
+    return DAO_TIER_POINTS[_tier_index(comprehension or 0)]
+
+
+def dao_stat_points(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
+    """Somma dei punti DIRETTI versati da tutti i Dao del personaggio, per statistica."""
+    out = {"attack": 0.0, "defense": 0.0, "vitality": 0.0, "spirit": 0.0}
+    rows = conn.execute(
+        "SELECT dao_key, comprehension FROM character_daos "
+        "WHERE character_type=? AND character_id=?;", (ctype, cid)).fetchall()
+    for r in rows:
+        stat = DAO_STAT.get(r["dao_key"], "attack")
+        out[stat] += dao_tier_points(r["comprehension"] or 0)
+    return out
+
+
 def trainable_daos(conn: sqlite3.Connection, player_id: int = 1) -> list[sqlite3.Row]:
     """Dao che puoi allenare: praticati o già risvegliati (comprensione > 0)."""
     return conn.execute(

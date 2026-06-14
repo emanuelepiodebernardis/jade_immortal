@@ -55,7 +55,8 @@ def _migrate(conn) -> None:
     pcols = {r["name"] for r in conn.execute("PRAGMA table_info(character_profiles);")}
     for col in ("grow_strength", "grow_vitality", "grow_resistance", "grow_aura",
                 "grow_soul", "abs_beast", "abs_demon", "abs_spirit", "abs_human",
-                "fame", "infamy", "suspicion", "disguised"):
+                "fame", "infamy", "suspicion", "disguised",
+                "dao_sessions", "cult_sessions"):
         if pcols and col not in pcols:
             conn.execute(f"ALTER TABLE character_profiles ADD COLUMN {col} INTEGER DEFAULT 0;")
     if pcols and "weapon" not in pcols:        # arma principale (TEXT, non INTEGER)

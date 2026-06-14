@@ -73,7 +73,11 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     # tecniche segrete apprese (solo player): bonus permanente alla potenza
     from engine.systems import guild
     tf = guild.technique_combat_factor(conn, ctype, cid)
-    return {k: max(1.0, v * rf * keep * caf * daf * tf) for k, v in base.items()}
+    # punti DIRETTI da Dao (per tutti) e dalle sessioni/via (solo player)
+    from engine.systems import progression
+    flat = progression.growth_bonuses(conn, ctype, cid)
+    return {k: max(1.0, v * rf * keep * caf * daf * tf) + flat.get(k, 0.0)
+            for k, v in base.items()}
 
 
 # ---------- scambio di colpi ----------

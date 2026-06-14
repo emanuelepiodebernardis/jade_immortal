@@ -33,7 +33,7 @@ HELP = """Comandi disponibili:
   move <north|south|east|west>  (abbrev: n/s/e/w)  — ti sposti, +1 tick
   wait                          — attendi (il mondo avanza, osservi i dintorni)
   sleep                         — dormi fino all'alba del giorno seguente
-  cultivate                     — mediti per accumulare progresso nel tuo regno
+  cultivate (o 'c')             — mediti per accumulare progresso nel tuo regno
   dao                           — i Dao che pratichi e la loro comprensione
   comprehend <nome>             — affini un Dao (i Dao da combattimento ti rendono più forte)
   breakthrough                  — tenti di salire di regno (può fallire o ucciderti!)
@@ -112,6 +112,20 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
             tag = _npc_tag(conn, n)
             suffix = f" ({tag})" if tag else ""
             lines.append(f"  - {n.name}{suffix}")
+
+    # creature selvatiche: chiarisci che si cacciano e come (merito nella zona di setta)
+    creatures = conn.execute(
+        "SELECT name FROM npcs WHERE location_id=? AND status='alive' AND kind<>'human' "
+        "AND kind IS NOT NULL ORDER BY id;", (loc.id,)).fetchall()
+    if creatures:
+        names = ", ".join(c["name"] for c in creatures)
+        hz = conn.execute(
+            "SELECT 1 FROM factions f JOIN sect_memberships sm ON sm.faction_id=f.id "
+            "WHERE sm.player_id=? AND f.hunt_zone_id=?;", (player.id, loc.id)).fetchone()
+        zone_note = (" — è la ZONA DI CACCIA della tua setta: abbatterle dà merito!"
+                     if hz else "")
+        lines.append(f"Creature selvatiche qui: {names}. Usa 'attack <nome>' per cacciarle"
+                     f"{zone_note}")
 
     exits = entities.get_exits(conn, loc.id)
     lines.append("Exits: " + (", ".join(sorted(exits.keys())) if exits else "none"))
@@ -225,12 +239,12 @@ def cmd_examine(conn: sqlite3.Connection, player: entities.Player, arg: str) -> 
     traits = entities.get_npc_traits(conn, npc.id)
     disp = relations.get_disposition(conn, npc.id)
     lines = [f"{npc.name} — {npc.archetype or 'sconosciuto'}"]
-    from engine.systems import bounties
+    from engine.systems import bounties, perception
     ol = bounties.get_outlaw(conn, npc.id)
     if ol:
         lines.append(f"⚠ RICERCATO: {ol['crime']}. Taglia: {ol['reward']} pietre.")
-    realm = cultivation.realm_label(conn, "npc", npc.id)
-    lines.append(f"Coltivazione: {realm}")
+    # informazioni filtrate da notorietà + Dao dell'Anima
+    lines += perception.describe(conn, player.id, npc)
     faction = conn.execute(
         "SELECT f.name FROM npcs n JOIN factions f ON f.id=n.faction_id WHERE n.id=?;",
         (npc.id,),
@@ -363,6 +377,10 @@ def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
     npc, forced, target = _parse_attack_arg(conn, player, arg)
     if npc is None:
         return f"Non vedi nessuno di nome '{target}' qui."
+    from engine.systems import perception
+    if perception.intimidates(conn, player.id, npc):
+        return (f"Il tuo spirito sovrasta quello di {npc.name}: percepisce la differenza "
+                f"e si sottomette, fuggendo terrorizzato. Non c'è bisogno di combattere.")
     return _attack_auto(conn, player, npc, forced)
 
 
@@ -430,17 +448,20 @@ def _use_prob(hp_e, emax) -> float:
 
 
 def _attack_auto(conn, player, npc, forced) -> str:
-    from engine.systems import moves as mvmod, qi as qimod, weapons
+    from engine.systems import moves as mvmod, qi as qimod, weapons, perception
     t = tick.get_tick(conn)
     rng = random.Random(t * 7919 + player.id + npc.id)
     pa = combat.combat_power(conn, "player", player.id)
     pd = combat.combat_power(conn, "npc", npc.id)
+    edge = perception.spirit_edge(conn, player.id, npc.id)   # 0..0.3
     wlabel = weapons.weapon_label(weapons.get_weapon(conn, player.id))
     hp_p, hp_e = pa["vitality"], pd["vitality"]
     pmax, emax = hp_p, hp_e
 
     lines = [(f"Impugni la tua {wlabel.lower()} e affronti {npc.name}."
               if wlabel else f"Affronti {npc.name}.")]
+    if edge >= 0.1:
+        lines.append("Il tuo spirito superiore anticipa le sue mosse: lo leggi come un libro aperto.")
     pool = mvmod.available_moves(conn, player.id)
     local_cd: dict[str, int] = {}     # cooldown della tecnica entro lo scontro (in round)
     rounds = 0
@@ -476,7 +497,7 @@ def _attack_auto(conn, player, npc, forced) -> str:
             lines.append(_player_normal_line(wlabel, rng))
         last_mods = mods
 
-        a_attack = pa["attack"] * mods.get("attack_mult", 1.0)
+        a_attack = pa["attack"] * mods.get("attack_mult", 1.0) * (1.0 + edge * 0.5)
         d_def = pd["defense"] * (1.0 - mods.get("pierce", 0.0))
         dealt = 0.0
         crit_any = False
@@ -495,7 +516,7 @@ def _attack_auto(conn, player, npc, forced) -> str:
                                    crit_any, mods, chosen, lines)
 
         edmg, ecrit = combat._strike(pd["attack"], pa["defense"], rng)
-        edmg *= mods.get("taken_mult", 1.0)
+        edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge)    # spirito: rallenti i suoi colpi
         hp_p -= edmg
         lines.append("  " + _enemy_line(npc.name, edmg, pmax, ecrit, rng))
 
@@ -609,8 +630,9 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
     res = cultivation.cultivate(conn, "player", player.id, t, rng,
                                 multiplier=y * (1 + bonus))
     world_tick.advance(conn, tick.cost_of("cultivate"))
-    from engine.systems import qi as qimod
+    from engine.systems import qi as qimod, progression
     qimod.restore_fraction(conn, 0.5, player.id)       # meditare ristora il Qi
+    progression.record_cultivation(conn, player.id)    # via dell'Universo
     label = cultivation.realm_label(conn, "player", player.id)
     line = f"Mediti a lungo. {label} — esperienza {res['progress']*100:.0f}%."
     if res.get("stage_up"):
@@ -1027,7 +1049,10 @@ def cmd_bounties(conn: sqlite3.Connection, player: entities.Player) -> str:
     lines = ["Ricercati (sconfiggili per riscuotere la taglia):"]
     for r in rows:
         where = f" — a {r['loc_name']}" if r["loc_name"] else ""
-        lines.append(f"  · {r['name']}{where}: {r['crime']}. Taglia: {r['reward']} pietre.")
+        realm = cultivation.realm_label(conn, "npc", r["npc_id"]) if "npc_id" in r.keys() else None
+        lvl = f" [{realm}]" if realm else ""
+        lines.append(f"  · {r['name']}{lvl}{where}: {r['crime']}. Taglia: {r['reward']} pietre.")
+    lines.append("Il livello tra [ ] è la loro coltivazione: misurati prima di attaccare.")
     lines.append("Giustiziarli è un atto giusto (karma). Divorarli dà potere, ma corrompe.")
     return "\n".join(lines)
 
@@ -1150,6 +1175,9 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
     world_tick.advance(conn, tick.cost_of("cultivate"))
     if res["status"] == "locked":
         return f"Il {d['name']} è solo un'affinità latente: devi prima risvegliarlo (assorbendo)."
+    from engine.systems import progression
+    if res["status"] not in ("exhausted",):
+        progression.record_dao_training(conn, player.id)   # via del Dao
     name = d["name"]
     if res["status"] in ("exhausted",):
         return (f"Mediti sul {name}, ma sei troppo sfinito per progredire oggi "
@@ -1290,10 +1318,11 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
             sect_line += f"Prossimo evento di setta — {ag}\n"
     stones = sects.get_resource(conn, "pietre_spirituali", player.id)
     res_line = f"Pietre spirituali: {stones}\n" if (m or stones) else ""
-    from engine.systems import reputation, qi as qimod
+    from engine.systems import reputation, qi as qimod, progression
     rep = reputation.line(conn, player.id)
     rep_line = f"{rep}\n" if rep else ""
     qi_line = f"Qi (mosse): {qimod.qi_label(conn, player.id)}\n"
+    path_line = f"Via: {progression.path_label(conn, player.id)}\n"
     return (
         f"Name: {player.name}\n"
         f"{origin_line}"
@@ -1301,6 +1330,7 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
         f"{res_line}"
         f"{rep_line}"
         f"{qi_line}"
+        f"{path_line}"
         f"Status: {player.status}\n"
         f"Coltivazione: {realm} (esperienza {prog})\n"
         f"Location: {loc.name if loc else '?'}\n"
@@ -1407,7 +1437,7 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_wait(conn, player)
     if cmd in ("sleep", "dormi"):
         return cmd_sleep(conn, player)
-    if cmd in ("cultivate", "meditate"):
+    if cmd in ("cultivate", "meditate", "coltiva", "c", "med"):
         return cmd_cultivate(conn, player)
     if cmd == "breakthrough":
         return cmd_breakthrough(conn, player)

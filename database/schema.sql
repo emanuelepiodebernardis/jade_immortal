@@ -454,6 +454,8 @@ CREATE TABLE IF NOT EXISTS character_profiles (
     disguised INTEGER DEFAULT 0,          -- 1 = maschera indossata (in incognito)
     weapon TEXT,                          -- arma principale scelta in setta (sblocca il Dao d'arma)
     qi_current INTEGER DEFAULT -1,        -- Qi attuale per le mosse (-1 = non inizializzato => pieno)
+    dao_sessions INTEGER DEFAULT 0,       -- quante volte hai allenato i Dao (via del Dao)
+    cult_sessions INTEGER DEFAULT 0,      -- quante volte hai coltivato (via dell'Universo)
     flags TEXT,                          -- JSON: trade-off dell'origine
     created_tick INTEGER DEFAULT 0,
     UNIQUE(character_type, character_id)
