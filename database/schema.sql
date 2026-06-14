@@ -592,6 +592,7 @@ CREATE TABLE IF NOT EXISTS world_events (
     wave_remaining INTEGER DEFAULT 0
 );
 
+
 CREATE TABLE IF NOT EXISTS outlaws (
     id INTEGER PRIMARY KEY,
     npc_id INTEGER NOT NULL REFERENCES npcs(id),

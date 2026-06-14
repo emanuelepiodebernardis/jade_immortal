@@ -311,11 +311,41 @@ def cmd_log(conn: sqlite3.Connection, arg: str) -> str:
     return "\n".join(lines)
 
 
-def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
-    if not arg:
-        return "Attaccare chi? Usa: attack <nome> [mossa]  (vedi 'moves')"
+def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
+    """Ricompense/conseguenze quando il giocatore uccide un bersaglio.
+    Condiviso tra modalità automatica e a turni."""
+    lines: list[str] = []
+    from engine.systems import bounties
+    was_outlaw = bounties.get_outlaw(conn, npc.id) is not None
+    if was_outlaw:
+        claim = bounties.claim(conn, t, npc.id, player.id)
+        if claim["status"] == "claimed":
+            lines.append(f"Era un ricercato: hai fatto giustizia. Taglia riscossa: "
+                         f"+{claim['reward']} pietre spirituali.")
+    rep_line = _kill_reputation(conn, player, npc, was_outlaw)
+    if rep_line:
+        lines.append(rep_line)
+    from engine.systems import guild
+    mk = guild.on_creature_kill(conn, npc.id, player.id)
+    if mk["gained"]:
+        zone = " (zona di caccia della tua setta!)" if mk.get("in_zone") else ""
+        lines.append(f"Merito della setta +{mk['gained']}{zone}. Totale: {mk['merit']}.")
+    from engine.systems import world_events
+    ev_msg = world_events.on_creature_killed(conn, npc.id, t, player)
+    if ev_msg:
+        lines.append(ev_msg)
+    if move and move["mods"].get("devour_on_kill"):
+        dv = _devour_on_kill(conn, t, rng, player, npc)
+        if dv:
+            lines.append(dv)
+    elif absorb_hint := _absorb_hint(conn, player):
+        lines.append(absorb_hint)
+    return lines
+
+
+def _parse_attack_arg(conn, player, arg):
+    """Ritorna (npc, move) interpretando 'nome [mossa]'."""
     from engine.systems import moves
-    # mossa attiva opzionale: ultimo token se corrisponde a una mossa disponibile
     move = None
     target = arg.strip()
     parts = target.split()
@@ -324,78 +354,203 @@ def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
         if cand:
             move, target = cand, " ".join(parts[:-1])
     npc = entities.find_npc_in_location(conn, player.location_id, target)
+    return npc, move, target
+
+
+def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    if not arg:
+        return "Attaccare chi? Usa: attack <nome> [tecnica]"
+    npc, forced, target = _parse_attack_arg(conn, player, arg)
     if npc is None:
         return f"Non vedi nessuno di nome '{target}' qui."
-    t = tick.get_tick(conn)
-    atk_mods = None
-    move_line = None
-    if move:
-        if not move["ready"]:
-            return f"{move['name']} non è pronta: riprova tra ~{move['ready_in']} tick."
-        from engine.systems import qi as qimod
-        if not qimod.can_afford(conn, move["qi_cost"], player.id):
-            return (f"Qi insufficiente per {move['name']}: servono {move['qi_cost']}, "
-                    f"ne hai {qimod.get_qi(conn, player.id)}. Riposa ('wait'/'sleep') o "
-                    f"attacca normalmente.")
-        qimod.spend(conn, move["qi_cost"], player.id)
-        atk_mods = move["mods"]
-        moves.use_cost(conn, move, t, player.id)
-        move_line = f"⚔ Scateni {move['name']}! (Qi {qimod.get_qi(conn, player.id)}/{qimod.max_qi(conn, player.id)})"
-    rng = random.Random(t * 7919 + player.id + npc.id)
-    obs: list[str] = []
-    res = combat.resolve_combat(
-        conn, t, rng,
-        ("player", player.id, "Tu"), ("npc", npc.id, npc.name),
-        player.location_id, player.location_id, obs, atk_mods=atk_mods,
-    )
-    # il tempo avanza un poco intorno allo scontro
-    world_tick.advance(conn, 1)
+    return _attack_auto(conn, player, npc, forced)
 
-    winner_is_player = res["winner"][0] == "player"
-    from engine.systems import combat_narration as cn
-    lines = []
-    if move_line:
-        lines.append(move_line)
-    if res["died"] and not winner_is_player:
-        lines.append(f"Affronti {npc.name}... e cadi. ({res['rounds']} round)")
-    elif res["died"] and winner_is_player:
-        clash = cn.clash_line(conn, "Tu", npc.name, ("player", player.id),
-                              ("npc", npc.id), res["rounds"], rng)
-        lines.append(f"{clash} Lo uccidi. ({res['rounds']} round)")
-        from engine.systems import bounties
-        was_outlaw = bounties.get_outlaw(conn, npc.id) is not None
-        if was_outlaw:
-            claim = bounties.claim(conn, t, npc.id, player.id)
-            if claim["status"] == "claimed":
-                lines.append(f"Era un ricercato: hai fatto giustizia. Taglia riscossa: "
-                             f"+{claim['reward']} pietre spirituali.")
-        rep_line = _kill_reputation(conn, player, npc, was_outlaw)
-        if rep_line:
-            lines.append(rep_line)
-        from engine.systems import guild
-        mk = guild.on_creature_kill(conn, npc.id, player.id)
-        if mk["gained"]:
-            zone = " (zona di caccia della tua setta!)" if mk.get("in_zone") else ""
-            lines.append(f"Merito della setta +{mk['gained']}{zone}. Totale: {mk['merit']}.")
-        from engine.systems import world_events
-        ev_msg = world_events.on_creature_killed(conn, npc.id, t, player)
-        if ev_msg:
-            lines.append(ev_msg)
-        # Morso dell'Abisso: se la mossa lo prevede, divora all'istante
-        if move and move["mods"].get("devour_on_kill"):
-            dv = _devour_on_kill(conn, t, rng, player, npc)
-            if dv:
-                lines.append(dv)
-        elif absorb_hint := _absorb_hint(conn, player):
-            lines.append(absorb_hint)
-    elif winner_is_player:
-        clash = cn.clash_line(conn, "Tu", npc.name, ("player", player.id),
-                              ("npc", npc.id), res["rounds"], rng)
-        lines.append(f"{clash} È ferito ma vivo. ({res['rounds']} round)")
+
+# ---------- COMBATTIMENTO AUTOMATICO con narrazione round-per-round ----------
+# Il sistema decide a ogni scambio se tirare un attacco normale o una tecnica
+# (spendendo Qi), e racconta le azioni di entrambi. La durata emerge dal divario
+# di forza: forze simili -> scontro prolungato; divario enorme -> si chiude subito.
+
+_NORMAL_VERBS = ("Sferri un colpo", "Affondi rapido", "Colpisci di netto",
+                 "Attacchi deciso", "Cerchi un'apertura e colpisci")
+_ENEMY_VERBS = ("risponde", "contrattacca", "ti colpisce di rimando",
+                "reagisce con ferocia", "ti affonda un colpo")
+_MAX_AUTO_ROUNDS = 14
+
+
+def _player_normal_line(wlabel, rng) -> str:
+    if wlabel:
+        return rng.choice((f"Sferri un fendente di {wlabel.lower()}",
+                           f"Colpisci con la tua {wlabel.lower()}",
+                           f"Affondi con la {wlabel.lower()}")) + "."
+    return rng.choice(_NORMAL_VERBS) + "."
+
+
+def _hit_desc(dealt, emax, name, crit) -> str:
+    r = dealt / emax if emax > 0 else 1.0
+    if r < 0.08:
+        base = f"{name} para quasi del tutto: appena scalfito."
+    elif r < 0.20:
+        base = f"{name} incassa il colpo."
+    elif r < 0.45:
+        base = f"Vai a segno: {name} barcolla."
     else:
-        lines.append(f"Affronti {npc.name} ma hai la peggio: sei ferito. ({res['rounds']} round)")
+        base = f"Un colpo potente squarcia le difese di {name}!"
+    return ("Critico! " + base) if crit else base
+
+
+def _enemy_line(name, edmg, pmax, crit, rng) -> str:
+    verb = rng.choice(_ENEMY_VERBS)
+    r = edmg / pmax if pmax > 0 else 1.0
+    if r < 0.08:
+        s = f"{name} {verb}, ma schivi quasi tutto."
+    elif r < 0.20:
+        s = f"{name} {verb} e ti graffia."
+    elif r < 0.45:
+        s = f"{name} {verb}: accusi il colpo."
+    else:
+        s = f"{name} {verb} con violenza: vacilli!"
+    return (s + " (critico!)") if crit else s
+
+
+def _state_desc(hp, mx) -> str:
+    r = hp / mx if mx > 0 else 0.0
+    if r > 0.75:
+        return "illeso"
+    if r > 0.45:
+        return "ferito"
+    if r > 0.20:
+        return "malconcio"
+    return "allo stremo"
+
+
+def _use_prob(hp_e, emax) -> float:
+    # più probabile usare una tecnica quando il nemico è ancora in forze
+    return 0.15 + 0.5 * (hp_e / emax if emax > 0 else 0.0)
+
+
+def _attack_auto(conn, player, npc, forced) -> str:
+    from engine.systems import moves as mvmod, qi as qimod, weapons
+    t = tick.get_tick(conn)
+    rng = random.Random(t * 7919 + player.id + npc.id)
+    pa = combat.combat_power(conn, "player", player.id)
+    pd = combat.combat_power(conn, "npc", npc.id)
+    wlabel = weapons.weapon_label(weapons.get_weapon(conn, player.id))
+    hp_p, hp_e = pa["vitality"], pd["vitality"]
+    pmax, emax = hp_p, hp_e
+
+    lines = [(f"Impugni la tua {wlabel.lower()} e affronti {npc.name}."
+              if wlabel else f"Affronti {npc.name}.")]
+    pool = mvmod.available_moves(conn, player.id)
+    local_cd: dict[str, int] = {}     # cooldown della tecnica entro lo scontro (in round)
+    rounds = 0
+    last_crit = False
+    last_mods: dict = {}
+
+    while hp_p > 0 and hp_e > 0 and rounds < _MAX_AUTO_ROUNDS:
+        rounds += 1
+        usable = [m for m in pool
+                  if qimod.can_afford(conn, m["qi_cost"], player.id)
+                  and local_cd.get(m["key"], 0) <= rounds]
+        # non sprecare tecniche se un colpo normale basterebbe ad atterrarlo
+        normal_dmg = max(1.0, pa["attack"] - pd["defense"] * 0.5)
+        quick_kill = hp_e <= normal_dmg * 1.2
+        chosen = None
+        if quick_kill:
+            chosen = None
+        elif forced and rounds == 1 and any(m["key"] == forced["key"] for m in usable):
+            chosen = next(m for m in usable if m["key"] == forced["key"])
+        elif usable and rng.random() < _use_prob(hp_e, emax):
+            chosen = max(usable, key=lambda m: m["mods"].get("attack_mult", 1.0)
+                         + (0.3 if m["mods"].get("extra_strikes") else 0.0))
+        mods = {}
+        if chosen:
+            qimod.spend(conn, chosen["qi_cost"], player.id)
+            local_cd[chosen["key"]] = rounds + 3
+            mods = chosen["mods"]
+            strikes = 1 + int(mods.get("extra_strikes", 0))
+            lines.append(f"⚔ Scateni {chosen['name']}! "
+                         f"(Qi {qimod.get_qi(conn, player.id)}/{qimod.max_qi(conn, player.id)})")
+        else:
+            strikes = 1
+            lines.append(_player_normal_line(wlabel, rng))
+        last_mods = mods
+
+        a_attack = pa["attack"] * mods.get("attack_mult", 1.0)
+        d_def = pd["defense"] * (1.0 - mods.get("pierce", 0.0))
+        dealt = 0.0
+        crit_any = False
+        for _ in range(strikes):
+            dmg, crit = combat._strike(a_attack, d_def, rng)
+            hp_e -= dmg
+            dealt += dmg
+            crit_any = crit_any or crit
+            if hp_e <= 0:
+                break
+        lines.append("  " + _hit_desc(dealt, emax, npc.name, crit_any))
+        last_crit = crit_any
+
+        if hp_e <= 0:
+            return _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
+                                   crit_any, mods, chosen, lines)
+
+        edmg, ecrit = combat._strike(pd["attack"], pa["defense"], rng)
+        edmg *= mods.get("taken_mult", 1.0)
+        hp_p -= edmg
+        lines.append("  " + _enemy_line(npc.name, edmg, pmax, ecrit, rng))
+
+        if hp_p <= 0:
+            return _auto_end_player(conn, t, rng, player, npc, rounds, lines)
+
+        if rounds in (4, 8, 12):
+            lines.append(f"  ({npc.name}: {_state_desc(hp_e, emax)}; tu: {_state_desc(hp_p, pmax)})")
+
+    # round massimi raggiunti: scontro lunghissimo, decide chi sta meglio
+    world_tick.advance(conn, 1)
+    if (hp_p / pmax) >= (hp_e / emax):
+        lines.append(f"Dopo un lungo, estenuante scontro {npc.name} cede e si ritira. "
+                     f"Resti ferito. ({rounds} round)")
+    else:
+        lines.append(f"Dopo un lungo, estenuante scontro hai la peggio e ti ritiri, "
+                     f"ferito. ({rounds} round)")
     return "\n".join(lines)
 
+
+def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
+                    crit_any, mods, chosen, lines) -> str:
+    wfrac = hp_p / max(1.0, pmax)
+    death_prob = (0.12 + (0.28 if wfrac > 0.5 else 0.0) + (0.2 if crit_any else 0.0)
+                  + mods.get("death_bonus", 0.0))
+    died = rng.random() < death_prob
+    obs: list[str] = []
+    combat._apply_outcome(conn, t, rng, ("player", player.id, "Tu"),
+                          ("npc", npc.id, npc.name), rounds, died, crit_any,
+                          player.location_id, player.location_id, obs)
+    world_tick.advance(conn, 1)
+    if rounds == 1:
+        lines.append("La differenza è schiacciante.")
+    if died:
+        lines.append(f"★ {npc.name} crolla: lo hai ucciso! ({rounds} round)")
+        lines += _after_player_kill(conn, t, rng, player, npc, chosen)
+    else:
+        lines.append(f"{npc.name} è gravemente ferito e si ritira dallo scontro. ({rounds} round)")
+    return "\n".join(lines)
+
+
+def _auto_end_player(conn, t, rng, player, npc, rounds, lines) -> str:
+    died = rng.random() < (0.5 if rounds > 1 else 0.7)
+    obs: list[str] = []
+    combat._apply_outcome(conn, t, rng, ("npc", npc.id, npc.name),
+                          ("player", player.id, "Tu"), rounds, died, False,
+                          player.location_id, player.location_id, obs)
+    world_tick.advance(conn, 1)
+    if rounds == 1:
+        lines.append("Sei surclassato.")
+    if died:
+        lines.append(f"Cadi sotto i colpi di {npc.name}. ({rounds} round)")
+    else:
+        lines.append(f"Sei sopraffatto e ti accasci, ferito ma vivo. ({rounds} round)")
+    return "\n".join(lines)
 
 def _devour_on_kill(conn, t, rng, player, npc) -> str | None:
     """Assorbimento istantaneo del Morso dell'Abisso (con un piccolo costo di sospetto

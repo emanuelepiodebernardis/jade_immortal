@@ -58,22 +58,23 @@ def test_cannot_spend_more_than_have(conn):
     assert qi.get_qi(conn) == 10            # invariato
 
 
-def test_move_blocked_when_qi_exhausted(conn):
+def test_move_unaffordable_when_qi_exhausted(conn):
+    # con Qi a zero, la tecnica non è "affordable" e il resolver non la usa
+    # (niente Qi negativo, nessun crash): resta agli attacchi normali.
     from engine.cli import loop
     sect = sects.joinable_sects(conn)[0]
     conn.execute("UPDATE players SET location_id=? WHERE id=1;", (sect["home_location_id"],))
     sects.join_sect(conn, tick=0); sect_life.setup_class(conn, 0, random.Random(1))
     weapons.choose_weapon(conn, "spada", 1)
-    # svuota il Qi: la mossa è in cooldown-ready ma non affordable
     qi._set(conn, 1, 0)
     mv = moves.find_move(conn, "fendente", 1)
-    assert mv["ready"] is True and mv["affordable"] is False
-    # un NPC qualunque presente per tentare l'attacco
+    assert mv["affordable"] is False
     npc = conn.execute("SELECT name, location_id FROM npcs WHERE kind='human' AND status='alive' LIMIT 1;").fetchone()
     conn.execute("UPDATE players SET location_id=? WHERE id=1;", (npc["location_id"],))
     player = entities.get_player(conn)
     out = loop.cmd_attack(conn, player, f"{npc['name'].split()[0]} fendente")
-    assert "Qi insufficiente" in out
+    assert isinstance(out, str) and out                      # combatte comunque
+    assert qi.get_qi(conn) == 0                              # nessuna tecnica spesa
 
 
 def test_attacking_does_not_restore_qi_but_resting_does(conn):

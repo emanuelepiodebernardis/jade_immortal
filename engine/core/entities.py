@@ -108,6 +108,15 @@ def _npc_from_row(r: sqlite3.Row) -> NPC:
     )
 
 
+def get_npc(conn: sqlite3.Connection, npc_id: int) -> NPC | None:
+    """Recupera un NPC per id (qualsiasi stato)."""
+    row = conn.execute(
+        "SELECT id, name, location_id, status, description, archetype FROM npcs WHERE id = ?;",
+        (npc_id,),
+    ).fetchone()
+    return _npc_from_row(row) if row else None
+
+
 def find_npc_in_location(conn: sqlite3.Connection, location_id: int,
                          name_fragment: str) -> NPC | None:
     """Trova un NPC vivo nella location per sottostringa del nome (case-insensitive)."""
