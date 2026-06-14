@@ -36,11 +36,12 @@ def spirit_score(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
     tier = cultivation.realm_tier(conn, ctype, cid) or 1
     base = _anima(conn, ctype, cid) + tier * 8.0 + progression.spirit_bonus(conn, ctype, cid)
     if ctype == "player":
-        from engine.systems import absorption, character
+        from engine.systems import absorption, character, tribulation
         prof = character.get_profile(conn, "player", cid)
         if prof and prof["anomaly"] == "abisso_divoratore":
             base += (prof["soul_residue"] or 0) * 0.05      # presenza abissale
         base += absorption.evolution_bonuses(conn, cid).get("spirit", 0)
+        base += tribulation.boon_bonuses(conn, cid)["spirit"]   # Anima Folgorata
     return base
 
 

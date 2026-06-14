@@ -581,6 +581,14 @@ CREATE TABLE IF NOT EXISTS game_state (
     value TEXT
 );
 
+-- Benedizioni della tribolazione: capacità celesti assorbite dai fulmini del castigo.
+CREATE TABLE IF NOT EXISTS tribulation_boons (
+    player_id INTEGER NOT NULL,
+    boon_key TEXT NOT NULL,
+    level INTEGER DEFAULT 1,
+    PRIMARY KEY (player_id, boon_key)
+);
+
 -- Eventi mondiali: invasioni (maree di bestie / incursioni demoniache) che colpiscono
 -- un luogo. Il giocatore può difenderlo o ignorarlo (conseguenze alla scadenza).
 CREATE TABLE IF NOT EXISTS world_events (

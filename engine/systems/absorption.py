@@ -343,22 +343,36 @@ def maybe_tribulation(conn, tick, rng, player, observations) -> int:
     if res < 1000 or rng.random() >= TRIB_CHANCE:
         return 0
     from engine.simulation import cultivation
-    from engine.systems import perception, reputation
+    from engine.systems import perception, reputation, tribulation as trib
     ptier = cultivation.realm_tier(conn, "player", player.id) or 1
-    endure = ptier * 10 + perception.spirit_score(conn, "player", player.id) * 0.2
-    severity = max(1, min(8, 7 - int(endure / 45)))
-    conn.execute(
-        "INSERT INTO injuries (character_type, character_id, severity, description, "
-        "inflicted_tick, heal_tick) VALUES ('player', ?, ?, ?, ?, ?);",
-        (player.id, severity, "fulmine della tribolazione dell'Abisso", tick, tick + 18))
+    # il Dao del Fulmine ti protegge: più lo padroneggi, meno il castigo ti ferisce
+    resist = trib.fulmine_resistance(conn, player.id)
+    endure = ptier * 10 + perception.spirit_score(conn, "player", player.id) * 0.2 + resist
+    severity = max(0, min(8, 7 - int(endure / 45)))
+    if severity > 0:
+        conn.execute(
+            "INSERT INTO injuries (character_type, character_id, severity, description, "
+            "inflicted_tick, heal_tick) VALUES ('player', ?, ?, ?, ?, ?);",
+            (player.id, severity, "fulmine della tribolazione dell'Abisso", tick, tick + 18))
     discharge = rng.randint(120, 220)
     conn.execute(
         "UPDATE character_profiles SET soul_residue=? "
         "WHERE character_type='player' AND character_id=?;", (max(0, res - discharge), player.id))
     reputation.adjust(conn, player.id, fame=15, infamy=12)
+    # ASSORBI il fulmine: una capacità celeste permanente, e il tuo Dao del Fulmine cresce
+    boon = trib.grant_boon(conn, rng, player.id)
+    from engine.generators import dao_gen
+    cur_f = trib._fulmine_comp(conn, player.id)
+    dao_gen._set_dao(conn, "player", player.id, "fulmine", 60, cur_f + 5, 1)
     if observations is not None:
+        if severity > 0:
+            hurt = (f"La reggi a stento (ferita di gravità {severity})"
+                    if resist < 30 else
+                    f"Il tuo Dao del Fulmine devia gran parte del castigo (ferita lieve, gravità {severity})")
+        else:
+            hurt = "Il tuo Dao del Fulmine assorbe interamente il castigo: non ti scalfisce"
         observations.append(
             "⚡ ANOMALIA CELESTE: una tribolazione dell'Abisso ti incenerisce dall'alto! "
-            f"La reggi a stento (ferita di gravità {severity}); parte della corruzione si scarica. "
-            "Sopravvivere a un castigo del Cielo ti rende leggenda.")
+            f"{hurt}. Assorbi la folgore e ottieni: {boon}! "
+            "Parte della corruzione si scarica; il tuo Fulmine si rafforza.")
     return 1

@@ -80,12 +80,17 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
               for k, v in base.items()}
     # linea evolutiva dell'Abisso (solo giocatore): moltiplicatori per statistica
     if ctype == "player":
-        from engine.systems import absorption
+        from engine.systems import absorption, tribulation
         evb = absorption.evolution_bonuses(conn, cid)
         if evb:
             result["attack"] *= evb.get("attack_mult", 1.0)
             result["defense"] *= evb.get("defense_mult", 1.0)
             result["vitality"] *= evb.get("vitality_mult", 1.0)
+        # benedizioni della tribolazione (capacità celesti assorbite dai fulmini)
+        bb = tribulation.boon_bonuses(conn, cid)
+        result["attack"] = result["attack"] * bb["attack_mult"] + bb["attack_flat"]
+        result["defense"] *= bb["defense_mult"]
+        result["vitality"] *= bb["vitality_mult"]
     return result
 
 

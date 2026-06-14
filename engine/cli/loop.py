@@ -1350,6 +1350,10 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
         evo = absorption.evolution_path(conn, player.id)
         if evo:
             abyss_line += f"Ciò che diventi: {evo}.\n"
+        from engine.systems import tribulation
+        boons = tribulation.boon_list(conn, player.id)
+        if boons:
+            abyss_line += f"Doni del Fulmine: {', '.join(boons)}.\n"
     return (
         f"Name: {player.name}\n"
         f"{origin_line}"
