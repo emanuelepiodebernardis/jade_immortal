@@ -79,7 +79,7 @@ def test_absorb_marks_target_and_logs_event(conn):
     character.apply_origin(conn, "divoratore", random.Random(1))
     npc = _kill_npc_here(conn)
     res = absorption.absorb(conn, tick=5, rng=random.Random(3), target_id=npc)
-    assert res["status"] in ("comprehension", "trauma", "shattered")
+    assert res["status"] in ("comprehension", "human", "trauma", "shattered")
     assert conn.execute("SELECT status FROM npcs WHERE id=?;", (npc,)).fetchone()["status"] == "absorbed"
     ev = conn.execute("SELECT id FROM events WHERE event_type='absorption';").fetchall()
     assert len(ev) == 1
@@ -116,9 +116,10 @@ def test_corpse_decay_reduces_yield(conn):
     # forza esito 'comprehension' con anima alta e bersaglio non superiore
     r_fresh = absorption.absorb(conn, tick=110, rng=random.Random(1), target_id=ids[0])
     r_old = absorption.absorb(conn, tick=110, rng=random.Random(1), target_id=ids[1])
-    # se entrambi danno comprensione, il fresco rende >= del vecchio
-    if r_fresh["status"] == "comprehension" and r_old["status"] == "comprehension":
-        assert r_fresh["gain"] >= r_old["gain"]
+    # un umano dà sempre statistiche: il cadavere fresco rende >= di quello vecchio
+    assert r_fresh["status"] == "human" and r_old["status"] == "human"
+    assert r_fresh["strength"] >= r_old["strength"]
+    assert r_fresh["dao_gain"] >= r_old["dao_gain"]
 
 
 def test_default_origin_preset_loads(conn, monkeypatch, tmp_path):

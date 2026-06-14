@@ -101,12 +101,12 @@ def test_intimidation_when_spirit_dominates(conn):
     conn.execute("UPDATE cultivation_records SET realm_id=? WHERE character_type='player' AND character_id=1;", (r8,))
     npc = _some_unknown_npc(conn)
     assert perception.intimidates(conn, 1, npc) is True
-    # via comando: niente combattimento
+    # via comando: il nemico è PARALIZZATO dal terrore e puoi abbatterlo (non fugge)
     from engine.cli import loop
     conn.execute("UPDATE players SET location_id=(SELECT location_id FROM npcs WHERE id=?) WHERE id=1;", (npc.id,))
     out = loop.cmd_attack(conn, entities.get_player(conn), npc.name.split()[0])
-    assert "si sottomette" in out
-    assert conn.execute("SELECT status FROM npcs WHERE id=?;", (npc.id,)).fetchone()["status"] == "alive"
+    assert "paralizzato" in out.lower()
+    assert conn.execute("SELECT status FROM npcs WHERE id=?;", (npc.id,)).fetchone()["status"] != "alive"
 
 
 def test_spirit_edge_scales_with_anima_gap(conn):

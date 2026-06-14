@@ -412,10 +412,6 @@ def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
     npc, forced, target = _parse_attack_arg(conn, player, arg)
     if npc is None:
         return f"Non vedi nessuno di nome '{target}' qui."
-    from engine.systems import perception
-    if perception.intimidates(conn, player.id, npc):
-        return (f"Il tuo spirito sovrasta quello di {npc.name}: percepisce la differenza "
-                f"e si sottomette, fuggendo terrorizzato. Non c'è bisogno di combattere.")
     return _attack_auto(conn, player, npc, forced)
 
 
@@ -491,6 +487,9 @@ def _attack_auto(conn, player, npc, forced) -> str:
     edge = perception.spirit_edge(conn, player.id, npc.id)   # 0..0.3
     dread = absorption.dread_level(conn, player.id)          # terrore abissale
     fear_mult = 1.0 - min(0.4, dread * 0.08)                 # i nemici colpiscono peggio
+    # se il tuo spirito sovrasta enormemente il suo, resta PARALIZZATO dal terrore:
+    # non riesce a reagire e sei libero di abbatterlo.
+    paralyzed = perception.intimidates(conn, player.id, npc)
     wlabel = weapons.weapon_label(weapons.get_weapon(conn, player.id))
     hp_p, hp_e = pa["vitality"], pd["vitality"]
     pmax, emax = hp_p, hp_e
@@ -501,6 +500,9 @@ def _attack_auto(conn, player, npc, forced) -> str:
         lines.append("Il tuo spirito superiore anticipa le sue mosse: lo leggi come un libro aperto.")
     if dread >= 2:
         lines.append(f"La tua presenza abissale terrorizza {npc.name}: i suoi colpi esitano.")
+    if paralyzed:
+        lines.append(f"{npc.name} è paralizzato dal terrore di fronte al tuo spirito: "
+                     f"non riesce a reagire, e sei libero di abbatterlo.")
     pool = mvmod.available_moves(conn, player.id)
     local_cd: dict[str, int] = {}     # cooldown della tecnica entro lo scontro (in round)
     rounds = 0
@@ -556,8 +558,13 @@ def _attack_auto(conn, player, npc, forced) -> str:
 
         edmg, ecrit = combat._strike(pd["attack"], pa["defense"], rng)
         edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge) * fear_mult
+        if paralyzed:
+            edmg = 0.0
         hp_p -= edmg
-        lines.append("  " + _enemy_line(npc.name, edmg, pmax, ecrit, rng))
+        if paralyzed:
+            lines.append(f"  {npc.name}, pietrificato dal terrore, non oppone resistenza.")
+        else:
+            lines.append("  " + _enemy_line(npc.name, edmg, pmax, ecrit, rng))
 
         if hp_p <= 0:
             return _auto_end_player(conn, t, rng, player, npc, rounds, lines)
@@ -579,9 +586,12 @@ def _attack_auto(conn, player, npc, forced) -> str:
 def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
                     crit_any, mods, chosen, lines) -> str:
     wfrac = hp_p / max(1.0, pmax)
-    death_prob = (0.12 + (0.28 if wfrac > 0.5 else 0.0) + (0.2 if crit_any else 0.0)
+    # una vittoria decisa è un'uccisione: se lo abbatti in fretta restando in forze,
+    # non si rialza. Solo gli scontri tirati lasciano al nemico la fuga da ferito.
+    decisive = (rounds <= 2 and wfrac >= 0.6) or (rounds <= 1)
+    death_prob = (0.5 + (0.3 if wfrac > 0.5 else 0.0) + (0.15 if crit_any else 0.0)
                   + mods.get("death_bonus", 0.0))
-    died = rng.random() < death_prob
+    died = True if decisive else (rng.random() < min(1.0, death_prob))
     obs: list[str] = []
     combat._apply_outcome(conn, t, rng, ("player", player.id, "Tu"),
                           ("npc", npc.id, npc.name), rounds, died, crit_any,
@@ -796,6 +806,11 @@ def cmd_absorb(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
         detail = f" (+{res['aura']} aura, +{res['strength']} potenza offensiva)"
     elif s == "soul":
         detail = f" (+{res['soul']} anima" + (f", +{res['dao_gain']} Dao)" if res.get("dao_gain") else ")")
+    elif s == "human":
+        bits = [f"+{res['strength']} forza", f"+{res['vitality']} vitalità", f"+{res['soul']} anima"]
+        if res.get("dao_gain"):
+            bits.append(f"+{res['dao_gain']} Dao «{res['dao']}»")
+        detail = " (" + ", ".join(bits) + ")"
     elif s == "comprehension":
         detail = f" (comprensione di '{res['dao']}' +{res['gain']})"
 
@@ -1112,8 +1127,11 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     conn.execute(
         "INSERT INTO game_state (key, value) VALUES ('last_day', ?) "
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value;", (str(day),))
+    # nuovo giorno: energie ristabilite (Qi al massimo). Non serve più dormire di continuo.
+    from engine.systems import qi as qimod
+    qimod.restore_full(conn, player.id)
     bar = "=" * 26
-    lines = [bar, f"  GIORNO {day + 1}", bar]
+    lines = [bar, f"  GIORNO {day + 1}", bar, "  Un nuovo giorno: Qi e spirito ristabiliti."]
     if sects.get_membership(conn, player.id):
         nxt = sect_life.next_event(conn, t, player.id)
         if nxt:

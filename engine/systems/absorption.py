@@ -86,7 +86,7 @@ def absorb(conn: sqlite3.Connection, tick: int, rng: random.Random,
     else:  # human / coltivatore
         outcome, residue_gain = _absorb_human(conn, player_id, target_id, freshness,
                                               ptier, ttier, clean, overreach, consequences,
-                                              tick, rng, name)
+                                              tick, rng, name, yield_pts)
         _bump_count(conn, player_id, "abs_human")
         summary = outcome.pop("_summary", f"Divori l'eredità di {name}.")
 
@@ -172,33 +172,58 @@ def _absorb_spirit(conn, player_id, pts, consequences, tick, rng) -> dict:
 
 
 def _absorb_human(conn, player_id, target_id, freshness, ptier, ttier, clean,
-                  overreach, consequences, tick, rng, name) -> tuple[dict, int]:
+                  overreach, consequences, tick, rng, name, yield_pts) -> tuple[dict, int]:
+    """Ogni essere umano ha un corpo e un'anima: divorarlo dà SEMPRE forza, vitalità e
+    anima (scalate al suo livello), più un frammento di Dao se ne possedeva uno. Se
+    l'integrazione è imperfetta i guadagni sono ridotti e la corruzione maggiore, ma
+    qualcosa ottieni sempre — il progresso si deve sentire."""
+    mult = 1.0 if clean else 0.5
+    s = max(1, int(yield_pts * 0.6 * mult))
+    v = max(1, int(yield_pts * 0.5 * mult))
+    so = max(1, int(yield_pts * 0.7 * mult))
+    _grow(conn, player_id, "grow_strength", s)
+    _grow(conn, player_id, "grow_vitality", v)
+    _grow(conn, player_id, "grow_soul", so)
+    parts = [f"+{s} forza", f"+{v} vitalità", f"+{so} anima"]
+
+    dao_key, dao_gain = None, 0
     tdao = conn.execute(
         "SELECT dao_key, comprehension FROM character_daos "
         "WHERE character_type='npc' AND character_id=? ORDER BY comprehension DESC LIMIT 1;",
         (target_id,)).fetchone()
-    if clean and tdao:
+    if tdao and tdao["comprehension"]:
+        # assorbi anche un Dao che NON possiedi: ne carpisci un frammento (radici aliene)
         p_aff = dao_gen.player_dao_affinity(conn, tdao["dao_key"], player_id)
-        gain = max(1, int(tdao["comprehension"] * 0.18 * freshness
-                          * (p_aff / 100.0) / (1 + max(0, ptier - ttier) * 0.2)))
-        _raise_comprehension(conn, tdao["dao_key"], gain, player_id)
-        # TALENTO: assorbire coltivatori affina le tue radici (test futuri lo misurano)
-        if rng.random() < 0.5:
-            conn.execute(
-                "UPDATE character_profiles SET aff_cultivation=MIN(100, aff_cultivation+1) "
-                "WHERE character_type='player' AND character_id=?;", (player_id,))
-        consequences.append(ev.Consequence(
-            "player", player_id, "dao_fragment", f"+{gain} comprensione in {tdao['dao_key']}",
-            visibility="hidden", resolve_tick=tick))
-        return ({"status": "comprehension", "dao": tdao["dao_key"], "gain": gain,
-                 "_summary": f"Divori l'eredità di {name}: un frammento del suo Dao risuona in te."},
-                2 + overreach)
+        aff_factor = max(0.4, p_aff / 100.0)      # anche senza affinità, un'eco passa
+        dao_gain = max(1, int(tdao["comprehension"] * 0.18 * freshness * aff_factor * mult
+                              / (1 + max(0, ptier - ttier) * 0.2)))
+        _raise_comprehension(conn, tdao["dao_key"], dao_gain, player_id)
+        dao_key = tdao["dao_key"]
+        parts.append(f"+{dao_gain} Dao «{dao_key}»")
+
+    if rng.random() < (0.5 if clean else 0.25):
+        conn.execute(
+            "UPDATE character_profiles SET aff_cultivation=MIN(100, aff_cultivation+1) "
+            "WHERE character_type='player' AND character_id=?;", (player_id,))
+        parts.append("affini le radici")
+
     consequences.append(ev.Consequence(
-        "player", player_id, "soul_trauma", "frammento estraneo e instabile",
+        "player", player_id, "human_growth", ", ".join(parts),
         visibility="hidden", resolve_tick=tick))
-    return ({"status": "trauma",
-             "_summary": f"Divori {name}, ma l'eredità ti contamina: echi non tuoi ti attraversano."},
-            5 + overreach * 3)
+    if not clean:
+        consequences.append(ev.Consequence(
+            "player", player_id, "soul_trauma", "eredità estranea e instabile",
+            visibility="hidden", resolve_tick=tick))
+    residue_gain = (2 + overreach) if clean else (5 + overreach * 3)
+    if dao_key:
+        summary = (f"Divori l'eredità di {name}: corpo e anima si rafforzano, "
+                   f"e un frammento del suo Dao «{dao_key}» risuona in te.")
+    else:
+        summary = f"Divori {name}: ne assorbi corpo e anima, e cresci in forza."
+    if not clean:
+        summary += " L'integrazione è imperfetta: echi non tuoi ti attraversano."
+    return ({"status": "human", "strength": s, "vitality": v, "soul": so,
+             "dao": dao_key, "dao_gain": dao_gain, "_summary": summary}, residue_gain)
 
 
 def _raise_comprehension(conn, dao_key, gain, player_id) -> None:
