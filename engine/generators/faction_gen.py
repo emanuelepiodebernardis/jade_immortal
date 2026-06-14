@@ -62,11 +62,16 @@ def generate_factions(conn: sqlite3.Connection, rng: random.Random,
         influence = rng.randint(35, 65)
         wealth = rng.randint(35, 65)
         goals = json.dumps(rng.sample(_GOALS, k=2))
+        # tier/elemento da un RNG dedicato (NON tocca lo stream principale di world-gen,
+        # così il posizionamento di NPC e il resto restano deterministici)
+        aux = random.Random(home * 911 + 7)
+        tier = aux.choices([1, 2, 3], weights=[4, 2, 1])[0]   # per lo più Regionali
+        element = aux.choice(["corpo", "fulmine", "spada", "anima", None])
         cur = conn.execute(
             "INSERT INTO factions (name, home_location_id, influence, wealth, "
-            "description, goals, status) VALUES (?, ?, ?, ?, ?, ?, 'active');",
+            "description, goals, tier, element, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active');",
             (name, home, influence, wealth,
-             "Una potenza che contende il proprio posto nel mondo.", goals),
+             "Una potenza che contende il proprio posto nel mondo.", goals, tier, element),
         )
         fid = cur.lastrowid
         faction_ids.append(fid)

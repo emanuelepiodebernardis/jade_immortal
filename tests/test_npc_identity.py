@@ -27,7 +27,10 @@ def conn(tmp_path: Path, monkeypatch):
 
 
 def test_every_npc_has_archetype_and_traits(conn):
-    npcs = conn.execute("SELECT id, archetype FROM npcs;").fetchall()
+    # le creature (bestie/demoni/spiriti) hanno una categoria propria: qui si
+    # verifica l'identità degli NPC umani, generati per archetipo.
+    npcs = conn.execute(
+        "SELECT id, archetype FROM npcs WHERE kind='human' OR kind IS NULL;").fetchall()
     assert len(npcs) > 0
     for n in npcs:
         assert n["archetype"] in npc_gen.ARCHETYPE_PROFILES

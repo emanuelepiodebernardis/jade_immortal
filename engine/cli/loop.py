@@ -32,6 +32,7 @@ DIRECTIONS = {
 HELP = """Comandi disponibili:
   move <north|south|east|west>  (abbrev: n/s/e/w)  — ti sposti, +1 tick
   wait                          — attendi (il mondo avanza, osservi i dintorni)
+  sleep                         — dormi fino all'alba del giorno seguente
   cultivate                     — mediti per accumulare progresso nel tuo regno
   dao                           — i Dao che pratichi e la loro comprensione
   comprehend <nome>             — affini un Dao (i Dao da combattimento ti rendono più forte)
@@ -40,21 +41,33 @@ HELP = """Comandi disponibili:
   look <dir>                    — sbirci la location adiacente in quella direzione
   examine <nome>                — esamini un NPC presente (archetipo, indole, rapporto)
   greet <nome>                  — saluti un NPC: prima conoscenza / migliora il rapporto
-  attack <nome>                 — attacchi un NPC (puoi morire!)
+  attack <nome> [mossa]         — attacchi un NPC (puoi morire!); mossa attiva opzionale
+  moves                         — le tue mosse attive in combattimento (cooldown)
   absorb <nome>                 — (Abisso Divoratore) divori i resti di un caduto
   map                           — uscite della location corrente con destinazioni
   factions                      — elenco delle fazioni (influenza, territori)
   faction <nome>                — dettaglio di una fazione (territori, relazioni)
   sects                         — sette a cui iscriversi e dove hanno sede
   bounties                      — ricercati da cacciare (taglie e missioni)
+  events                        — invasioni mondiali in corso (difendi un luogo)
+  defend                        — difendi il luogo invaso (abbatti l'ondata)
+  hunt <nome>                   — localizza un ricercato e ti indica dove andare
   join                          — test d'ingresso e iscrizione alla setta locale
   class                         — compagni di classe, classifica, prossima sfida/torneo
+  invitations                   — inviti delle sette superiori (dopo aver vinto un torneo)
+  accept <n>                    — accetti un invito e ascendi a una setta superiore
+  huntzone                      — la zona di caccia della tua setta (mostri = merito)
+  weapon <arma>                 — scegli l'arma principale (sblocca il Dao d'arma)
+  techniques                    — tecniche segrete della setta e merito disponibile
+  learn <n>                     — impari una tecnica segreta spendendo merito
   leave                         — lascia la tua setta
   log [n]                       — cronache recenti note al giocatore
   memories                      — ciò che il tuo personaggio ricorda (memoria attiva)
   narrate                       — rendi la scena attuale come prosa (LLM o fallback)
   chronicle                     — un breve passo di cronaca del mondo
   status                        — il tuo stato e il tick globale
+  reputation                    — fama, infamia, allineamento percepito, sospetto
+  mask <on|off>                 — indossi/togli la maschera (agisci in incognito)
   profilo                       — origine, età e affinità (descrizione qualitativa)
   where                         — nome e pericolo della location corrente
   help                          — questo messaggio
@@ -74,10 +87,6 @@ def _npc_tag(conn: sqlite3.Connection, npc: entities.NPC) -> str:
     return ", ".join(parts)
 
 
-def _danger_tag(level: int) -> str:
-    return f"[pericolo {level}]"
-
-
 def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
     loc = entities.get_location(conn, player.location_id)
     if loc is None:
@@ -88,6 +97,13 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
     owner = entities.location_owner_name(conn, loc.id)
     if owner:
         lines.append(f"Controllata da: {owner}")
+    from engine.systems import world_events
+    wev = world_events.active_event(conn)
+    if wev and wev["location_id"] == loc.id:
+        rem = conn.execute("SELECT COUNT(*) c FROM npcs WHERE event_id=? AND status='alive';",
+                           (wev["id"],)).fetchone()["c"]
+        lines.append(f"⚠ INVASIONE IN CORSO: {world_events.KIND_LABEL[wev['kind']]} "
+                     f"({rem} creature). Usa 'defend' per respingerla!")
 
     npcs = entities.npcs_in_location(conn, loc.id)
     if npcs:
@@ -102,11 +118,39 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
     corpses = entities.dead_npcs_in_location(conn, loc.id)
     if corpses:
         lines.append("Resti a terra: " + ", ".join(c.name for c in corpses))
+
+    # Consapevolezza dei testimoni: ti permette di SCEGLIERE prima di agire.
+    # (mostrata quando c'è gente o resti a terra: è allora che la cosa conta.)
+    from engine.systems import reputation
+    if npcs or corpses:
+        watchers = reputation.witnesses(conn, loc.id)
+        if reputation.is_disguised(conn, player.id):
+            lines.append("Sei in incognito: i presenti non riconoscono il tuo volto.")
+        elif watchers:
+            names = ", ".join(w["name"] for w in watchers)
+            lines.append(f"Occhi su di te — testimoni: {names}. "
+                         f"Qui le azioni losche (uccidere innocenti, divorare resti) "
+                         f"verrebbero notate. ('mask on' per agire in incognito.)")
+        else:
+            lines.append("Nessun testimone nei paraggi: puoi agire senza essere visto.")
+
     from engine.systems import sects
     hq = sects.sect_at_location(conn, loc.id)
     if hq:
-        lines.append(f"Qui ha sede la setta {hq['name']} — puoi 'join' per il test d'ingresso.")
+        m = sects.get_membership(conn, player.id)
+        if m and m["faction_id"] == hq["id"]:
+            lines.append(f"Qui ha sede la tua setta, {hq['name']}.")
+        elif m:
+            lines.append(f"Qui ha sede la setta {hq['name']}.")
+        else:
+            lines.append(f"Qui ha sede la setta {hq['name']} — puoi 'join' per il test d'ingresso.")
     return "\n".join(lines)
+
+
+def _danger_tag(level: int) -> str:
+    word = {1: "tranquillo", 2: "incerto", 3: "rischioso",
+            4: "pericoloso", 5: "letale"}.get(min(5, max(1, level)), "ignoto")
+    return f"[pericolo {level}: {word}]"
 
 
 def _format_observations(obs: list[str]) -> str:
@@ -207,12 +251,16 @@ def cmd_greet(conn: sqlite3.Connection, player: entities.Player, arg: str) -> st
         return f"Non vedi nessuno di nome '{arg}' qui."
     t = tick.get_tick(conn)
     before = relations.get_disposition(conn, npc.id)
+    from engine.systems import reputation
+    sf = reputation.social_factor(conn, player.id)
     # primo contatto vale di più; saluti successivi danno rendimenti decrescenti
-    delta = 10 if before.relationship_type == "stranger" else 2
+    base = 10 if before.relationship_type == "stranger" else 2
+    delta = max(0, int(round(base * sf)))
     after = relations.adjust(conn, npc.id, delta, t)
+    fear = " Ti osserva con timore." if sf < 0.7 else ""
     if before.relationship_type == "stranger":
-        return f"Ti presenti a {npc.name}. Ora siete {after.relationship_type}. ({after.score:+d})"
-    return f"Scambi qualche parola con {npc.name}. Rapporto: {after.relationship_type} ({after.score:+d})"
+        return f"Ti presenti a {npc.name}. Ora siete {after.relationship_type}. ({after.score:+d}){fear}"
+    return f"Scambi qualche parola con {npc.name}. Rapporto: {after.relationship_type} ({after.score:+d}){fear}"
 
 
 def cmd_factions(conn: sqlite3.Connection) -> str:
@@ -261,40 +309,122 @@ def cmd_log(conn: sqlite3.Connection, arg: str) -> str:
 
 def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
     if not arg:
-        return "Attaccare chi? Usa: attack <nome>"
-    npc = entities.find_npc_in_location(conn, player.location_id, arg)
+        return "Attaccare chi? Usa: attack <nome> [mossa]  (vedi 'moves')"
+    from engine.systems import moves
+    # mossa attiva opzionale: ultimo token se corrisponde a una mossa disponibile
+    move = None
+    target = arg.strip()
+    parts = target.split()
+    if len(parts) >= 2:
+        cand = moves.find_move(conn, parts[-1], player.id)
+        if cand:
+            move, target = cand, " ".join(parts[:-1])
+    npc = entities.find_npc_in_location(conn, player.location_id, target)
     if npc is None:
-        return f"Non vedi nessuno di nome '{arg}' qui."
+        return f"Non vedi nessuno di nome '{target}' qui."
     t = tick.get_tick(conn)
+    atk_mods = None
+    move_line = None
+    if move:
+        if not move["ready"]:
+            return f"{move['name']} non è pronta: riprova tra ~{move['ready_in']} tick."
+        atk_mods = move["mods"]
+        moves.use_cost(conn, move, t, player.id)
+        move_line = f"⚔ Scateni {move['name']}!"
     rng = random.Random(t * 7919 + player.id + npc.id)
     obs: list[str] = []
     res = combat.resolve_combat(
         conn, t, rng,
         ("player", player.id, "Tu"), ("npc", npc.id, npc.name),
-        player.location_id, player.location_id, obs,
+        player.location_id, player.location_id, obs, atk_mods=atk_mods,
     )
     # il tempo avanza un poco intorno allo scontro
     world_tick.advance(conn, 1)
 
     winner_is_player = res["winner"][0] == "player"
+    from engine.systems import combat_narration as cn
     lines = []
+    if move_line:
+        lines.append(move_line)
     if res["died"] and not winner_is_player:
         lines.append(f"Affronti {npc.name}... e cadi. ({res['rounds']} round)")
     elif res["died"] and winner_is_player:
-        lines.append(f"Affronti {npc.name} e lo uccidi. ({res['rounds']} round)")
+        clash = cn.clash_line(conn, "Tu", npc.name, ("player", player.id),
+                              ("npc", npc.id), res["rounds"], rng)
+        lines.append(f"{clash} Lo uccidi. ({res['rounds']} round)")
         from engine.systems import bounties
-        if bounties.get_outlaw(conn, npc.id):
+        was_outlaw = bounties.get_outlaw(conn, npc.id) is not None
+        if was_outlaw:
             claim = bounties.claim(conn, t, npc.id, player.id)
             if claim["status"] == "claimed":
                 lines.append(f"Era un ricercato: hai fatto giustizia. Taglia riscossa: "
                              f"+{claim['reward']} pietre spirituali.")
-        if absorb_hint := _absorb_hint(conn, player):
+        rep_line = _kill_reputation(conn, player, npc, was_outlaw)
+        if rep_line:
+            lines.append(rep_line)
+        from engine.systems import guild
+        mk = guild.on_creature_kill(conn, npc.id, player.id)
+        if mk["gained"]:
+            zone = " (zona di caccia della tua setta!)" if mk.get("in_zone") else ""
+            lines.append(f"Merito della setta +{mk['gained']}{zone}. Totale: {mk['merit']}.")
+        from engine.systems import world_events
+        ev_msg = world_events.on_creature_killed(conn, npc.id, t, player)
+        if ev_msg:
+            lines.append(ev_msg)
+        # Morso dell'Abisso: se la mossa lo prevede, divora all'istante
+        if move and move["mods"].get("devour_on_kill"):
+            dv = _devour_on_kill(conn, t, rng, player, npc)
+            if dv:
+                lines.append(dv)
+        elif absorb_hint := _absorb_hint(conn, player):
             lines.append(absorb_hint)
     elif winner_is_player:
-        lines.append(f"Affronti {npc.name} e lo sopraffai: è ferito. ({res['rounds']} round)")
+        clash = cn.clash_line(conn, "Tu", npc.name, ("player", player.id),
+                              ("npc", npc.id), res["rounds"], rng)
+        lines.append(f"{clash} È ferito ma vivo. ({res['rounds']} round)")
     else:
         lines.append(f"Affronti {npc.name} ma hai la peggio: sei ferito. ({res['rounds']} round)")
     return "\n".join(lines)
+
+
+def _devour_on_kill(conn, t, rng, player, npc) -> str | None:
+    """Assorbimento istantaneo del Morso dell'Abisso (con un piccolo costo di sospetto
+    se ci sono testimoni umani e non sei mascherato)."""
+    from engine.systems import absorption, reputation
+    res = absorption.absorb(conn, t, rng, npc.id, player.id)
+    if res["status"] in ("no_anomaly", "not_found", "not_here", "not_dead"):
+        return None
+    if not reputation.is_disguised(conn, player.id) and \
+            reputation.witnesses(conn, player.location_id, npc.id):
+        reputation.adjust(conn, player.id, infamy=10, suspicion=18)
+    summary = res.get("summary", "L'Abisso reclama i resti.")
+    return "L'Abisso reclama all'istante: " + summary
+
+
+def _kill_reputation(conn, player, npc, was_outlaw: bool) -> str | None:
+    """Effetto sociale di un'uccisione: giustizia -> fama; in pubblico/tradimento -> infamia.
+    Con la maschera indossata nulla ricade sul tuo nome."""
+    from engine.systems import reputation, sects
+    if reputation.is_disguised(conn, player.id):
+        return None
+    # uccidere creature (bestie/demoni/spiriti) non infanga: non sono persone
+    vrow = conn.execute("SELECT faction_id, kind FROM npcs WHERE id=?;", (npc.id,)).fetchone()
+    if vrow and vrow["kind"] not in (None, "human"):
+        return None
+    if was_outlaw:
+        reputation.adjust(conn, player.id, fame=12)
+        return "La tua giustizia si diffonde: la tua fama cresce."
+    vfac = vrow["faction_id"] if vrow else None
+    m = sects.get_membership(conn, player.id)
+    my_fac = m["faction_id"] if m else None
+    if my_fac and vfac == my_fac:
+        reputation.adjust(conn, player.id, infamy=40, suspicion=10)
+        return "Hai ucciso un membro della tua stessa setta: l'infamia ti macchia."
+    witnesses = reputation.witnesses(conn, player.location_id, npc.id)
+    if witnesses:
+        reputation.adjust(conn, player.id, infamy=15)
+        return "L'omicidio davanti a testimoni infanga il tuo nome."
+    return None
 
 
 def _absorb_hint(conn, player) -> str | None:
@@ -383,21 +513,91 @@ def cmd_absorb(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
         return "Non possiedi l'Abisso Divoratore: non puoi assorbire nessuno."
     if not arg:
         return "Assorbire chi? Usa: absorb <nome> (su resti a terra)"
-    npc = entities.find_dead_npc_in_location(conn, player.location_id, arg)
+    # 'absorb <nome> confirm' (o '!') = fallo comunque, anche davanti a testimoni
+    raw = arg.strip()
+    force = False
+    low = raw.lower()
+    for tok in (" confirm", " conferma", " comunque", " !"):
+        if low.endswith(tok):
+            force = True
+            raw = raw[: len(raw) - len(tok)].strip()
+            break
+    if raw.endswith("!"):
+        force = True
+        raw = raw[:-1].strip()
+    npc = entities.find_dead_npc_in_location(conn, player.location_id, raw)
     if npc is None:
-        return f"Non vedi i resti di '{arg}' qui."
+        return f"Non vedi i resti di '{raw}' qui."
+    # contesto sociale PRIMA di assorbire (poi il bersaglio diventa 'absorbed')
+    from engine.systems import reputation, sects
+    watchers = reputation.witnesses(conn, player.location_id, npc.id)
+    disguised = reputation.is_disguised(conn, player.id)
+    # avviso: se c'è gente che guarda e non sei in incognito, lascia scegliere
+    if watchers and not disguised and not force:
+        names = ", ".join(w["name"] for w in watchers)
+        return (f"Ci sono testimoni qui: {names}. Divorare i resti davanti a loro "
+                f"ti coprirà d'infamia e farà crescere il sospetto.\n"
+                f"  • 'mask on' poi 'absorb {raw}'  → in incognito\n"
+                f"  • 'absorb {raw} confirm'         → fallo comunque")
+    vf = conn.execute("SELECT faction_id FROM npcs WHERE id=?;", (npc.id,)).fetchone()
+    victim_fac = vf["faction_id"] if vf else None
     t = tick.get_tick(conn)
     rng = random.Random(t * 2999 + player.id + npc.id)
     res = absorption.absorb(conn, t, rng, npc.id, player.id)
     s = res["status"]
-    if s == "comprehension":
-        return (f"Divori l'eredità di {npc.name}. Un frammento del Dao risuona in te "
-                f"(comprensione di '{res['dao']}' +{res['gain']}).")
-    if s == "trauma":
-        return f"Divori {npc.name}, ma l'eredità ti contamina: echi non tuoi ti attraversano."
+    # esiti che non producono assorbimento: messaggi diretti
+    if s == "no_anomaly":
+        return "Non possiedi l'Abisso Divoratore: non puoi assorbire nessuno."
+    if s in ("not_found", "not_here"):
+        return f"Non vedi i resti di '{arg}' qui."
+    if s == "not_dead":
+        return f"{npc.name} è ancora vivo: non puoi assorbirne i resti."
+
+    # frase principale: fonte unica dal sistema (coerente con l'evento loggato)
+    line = res.get("summary", f"Divori i resti di {npc.name}.")
+
     if s == "shattered":
-        return f"L'eredità di {npc.name} è troppo vasta: la tua anima si frantuma..."
-    return "Nulla da assorbire."
+        return line + ".."          # morte: l'anima si frantuma
+
+    # dettaglio meccanico per tipo (qualitativo, niente numeri grezzi a parte i guadagni)
+    detail = ""
+    if s == "body":
+        detail = (f" (+{res['strength']} forza, +{res['vitality']} vitalità, "
+                  f"+{res['resistance']} resistenza)")
+    elif s == "aura":
+        detail = f" (+{res['aura']} aura, +{res['strength']} potenza offensiva)"
+    elif s == "soul":
+        detail = f" (+{res['soul']} anima" + (f", +{res['dao_gain']} Dao)" if res.get("dao_gain") else ")")
+    elif s == "comprehension":
+        detail = f" (comprensione di '{res['dao']}' +{res['gain']})"
+
+    out = [line + detail]
+
+    # soglie di Corruzione e linea evolutiva: mostrale solo quando emergono
+    clab = absorption.corruption_label(res.get("residue", 0))
+    if clab and clab != "nessun segno visibile":
+        out.append(f"Corruzione dell'Abisso: {clab}.")
+    path = absorption.evolution_path(conn, player.id)
+    if path:
+        out.append(f"Ciò che stai diventando: {path}.")
+
+    # SOSPETTO/INFAMIA: divorare un cadavere lascia sempre un segno; con testimoni
+    # è molto peggio; un compagno di setta è un tradimento. La maschera contiene.
+    m = sects.get_membership(conn, player.id)
+    ally = bool(m and victim_fac and victim_fac == m["faction_id"])
+    if disguised:
+        reputation.adjust(conn, player.id, suspicion=3)   # la maschera contiene, non annulla
+    else:
+        if watchers:
+            reputation.adjust(conn, player.id, infamy=(40 if ally else 18), suspicion=28)
+            out.append("Ti hanno visto divorare i resti: il sospetto cresce."
+                       + (" Era uno dei tuoi: i compagni ti guardano con orrore." if ally else ""))
+        else:
+            reputation.adjust(conn, player.id, suspicion=8)
+    sh = reputation.suspicion_hint(reputation.get(conn, player.id)["suspicion"])
+    if sh and watchers and not disguised:
+        out.append(sh)
+    return " ".join(out)
 
 
 def cmd_sects(conn: sqlite3.Connection, player: entities.Player) -> str:
@@ -410,9 +610,13 @@ def cmd_sects(conn: sqlite3.Connection, player: entities.Player) -> str:
     for r in rows:
         here = " ← sei qui" if r["home_location_id"] == player.location_id else ""
         mine = " [la tua setta]" if m and m["faction_id"] == r["id"] else ""
-        lines.append(f"  · {r['name']} — sede: {r['hq_name']}{here}{mine}")
+        el = f", affine al {sects._dao_display(conn, r['element'])}" if r["element"] else ""
+        lines.append(f"  · {r['name']} — {sects.tier_name(r['tier'])}{el} — sede: {r['hq_name']}{here}{mine}")
     if m:
-        lines.append(f"\nSei {m['rank']} di {m['sect_name']} ({m['grade']}).")
+        tn = sects.tier_name(m["sect_tier"])
+        lines.append(f"\nSei {m['rank']} di {m['sect_name']} ({m['grade']}) — {tn}.")
+        if sects.pending_invitations(conn, player.id):
+            lines.append("Hai inviti pendenti da sette superiori: usa 'invitations'.")
     return "\n".join(lines)
 
 
@@ -426,18 +630,50 @@ def cmd_join(conn: sqlite3.Connection, player: entities.Player) -> str:
     if s == "already_member":
         return f"Sei già membro di {res['sect']}. Usa 'leave' per andartene."
     if s == "joined":
-        from engine.systems import sect_life
+        from engine.systems import sect_life, weapons
         rng = random.Random(t * 17 + player.id)
         setup = sect_life.setup_class(conn, t, rng, player.id)
         agenda = sect_life.agenda_line(conn, t, player.id)
         mates = sect_life.classmates(conn, player.id)
         mate_names = ", ".join(m["name"] for m in mates)
-        return (f"Ti presenti alla sede di {res['sect']}. Misurano le tue radici spirituali: "
-                f"{res['grade']}.\nSei ammesso come {res['rank']}. "
-                f"Ricevi {res['stones']} pietre spirituali.\n"
-                f"I tuoi compagni di classe: {mate_names}.\n"
-                f"Annuncio: {agenda} Allenati: la classifica deciderà chi conta.")
+        msg = (f"Ti presenti alla sede di {res['sect']}. Misurano le tue radici spirituali: "
+               f"{res['grade']}.\nSei ammesso come {res['rank']}. "
+               f"Ricevi {res['stones']} pietre spirituali.\n"
+               f"I tuoi compagni di classe: {mate_names}.\n"
+               f"Annuncio: {agenda} Allenati: la classifica deciderà chi conta.")
+        if weapons.get_weapon(conn, player.id) is None:
+            msg += ("\nÈ ora di scegliere la tua ARMA principale (scelta permanente): "
+                    "usa 'weapon <spada|lancia|sciabola|arco|pugni|bastone>'.")
+        return msg
     return "Nulla accade."
+
+
+def cmd_weapon(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    from engine.systems import weapons, sects
+    current = weapons.get_weapon(conn, player.id)
+    if not arg.strip():
+        if current:
+            return (f"La tua arma è: {weapons.weapon_label(current)} "
+                    f"(Dao d'arma sbloccato; allenalo con 'comprehend {current}').")
+        lines = ["Non hai ancora scelto un'arma. Le vie disponibili:"]
+        lines += weapons.list_choices()
+        lines.append("Scegli con 'weapon <nome>' (o il numero). La scelta è permanente.")
+        return "\n".join(lines)
+    if current:
+        return (f"Hai già intrapreso la via della {weapons.weapon_label(current)}: "
+                f"non si torna indietro. Allenala con 'comprehend {current}'.")
+    if sects.get_membership(conn, player.id) is None:
+        return ("Si sceglie l'arma entrando in una setta, che ti istruisce nella sua via. "
+                "Unisciti prima a una setta ('sects' per trovarne una).")
+    res = weapons.choose_weapon(conn, arg, player.id)
+    if res["status"] == "invalid":
+        return ("Arma non riconosciuta. Scegli tra: spada, lancia, sciabola, arco, pugni, bastone "
+                "(o il numero 1-6).")
+    if res["status"] == "already":
+        return f"Hai già scelto: {res['weapon']}."
+    return (f"Abbracci la via della {res['weapon']}. Sblocchi il {res['dao']}: "
+            f"un Dao da combattimento. Allenalo con 'comprehend {res['dao_key']}' "
+            f"per crescere secondo la tua via.")
 
 
 def cmd_leave(conn: sqlite3.Connection, player: entities.Player) -> str:
@@ -446,6 +682,167 @@ def cmd_leave(conn: sqlite3.Connection, player: entities.Player) -> str:
     if res["status"] == "not_member":
         return "Non appartieni ad alcuna setta."
     return f"Lasci {res['sect']}. Sei di nuovo un coltivatore errante."
+
+
+def cmd_invitations(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import sects
+    invs = sects.pending_invitations(conn, player.id)
+    if not invs:
+        return ("Nessun rappresentante ti corteggia. Vinci un torneo di setta "
+                "(arriva 1°) per attirare le sette superiori.")
+    lines = ["I RAPPRESENTANTI delle sette superiori ti offrono un posto",
+             "(usa 'accept <numero>' per ascendere — lascerai la setta attuale):"]
+    for r in invs:
+        lines.append(f"  {r['slot']}. {r['name']} — {r['hint']}")
+    return "\n".join(lines)
+
+
+def cmd_accept(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    from engine.systems import sects
+    if not arg or not arg.strip().isdigit():
+        return "Accettare quale invito? Usa: accept <numero> (vedi 'invitations')."
+    slot = int(arg.strip())
+    t = tick.get_tick(conn)
+    rng = random.Random(t * 131 + player.id + slot)
+    res = sects.accept_invitation(conn, t, rng, slot, player.id)
+    if res["status"] == "no_invitation":
+        return f"Non c'è un invito numero {slot}. Usa 'invitations' per la lista."
+    el = sects._dao_display(conn, res["element"])
+    return (f"Ascendi a {res['sect']} ({sects.tier_name(res['tier'])}) come {res['rank']} "
+            f"({res['grade']}). Ricevi {res['stones']} pietre spirituali. "
+            f"La setta è affine al {el}: comprenderlo sarà più rapido. "
+            f"Ti trasferisci alla nuova sede; una nuova classe di rivali ti attende.")
+
+
+def cmd_huntzone(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import sects
+    m = sects.get_membership(conn, player.id)
+    if not m:
+        return "Non appartieni a una setta: nessuna zona di caccia. Usa 'sects'."
+    f = conn.execute("SELECT hunt_zone_id FROM factions WHERE id=?;", (m["faction_id"],)).fetchone()
+    if not f or not f["hunt_zone_id"]:
+        return "La tua setta non ha una zona di caccia designata."
+    zid = f["hunt_zone_id"]
+    zone = entities.get_location(conn, zid)
+    alive = conn.execute(
+        "SELECT COUNT(*) c FROM npcs WHERE location_id=? AND kind<>'human' AND status='alive';",
+        (zid,)).fetchone()["c"]
+    if zid == player.location_id:
+        return (f"Sei nella zona di caccia di {m['sect_name']}: {zone.name} "
+                f"{_danger_tag(zone.danger_level)}. Mostri presenti: {alive}. "
+                f"Attaccali ('attack <nome>') per guadagnare merito; puoi anche assorbirli.")
+    step = _first_step_toward(conn, player.location_id, zid)
+    where = f"{zone.name} {_danger_tag(zone.danger_level)}"
+    if step:
+        return (f"La zona di caccia di {m['sect_name']} è {where} (mostri: {alive}). "
+                f"Muoviti verso '{step}' per raggiungerla.")
+    return f"La zona di caccia di {m['sect_name']} è {where}, ma non trovo una via da qui."
+
+
+def cmd_events(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import world_events
+    ev = world_events.active_event(conn)
+    if not ev:
+        return "Nessun evento mondiale in corso. Il mondo è in quiete... per ora."
+    return world_events.describe(conn, ev, player.location_id, _first_step_toward)
+
+
+def cmd_defend(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import world_events
+    ev = world_events.active_event(conn)
+    if not ev:
+        return "Non c'è nessuna invasione da respingere ora. Usa 'events' per controllare."
+    if ev["location_id"] != player.location_id:
+        lname = conn.execute("SELECT name FROM locations WHERE id=?;",
+                             (ev["location_id"],)).fetchone()["name"]
+        step = _first_step_toward(conn, player.location_id, ev["location_id"])
+        if step:
+            return (f"L'invasione è a {lname}: non sei sul posto. "
+                    f"Muoviti verso '{step}' per raggiungerla.")
+        return f"L'invasione è a {lname}, ma non trovo una via da qui."
+    inv = conn.execute(
+        "SELECT name FROM npcs WHERE event_id=? AND status='alive' AND location_id=? LIMIT 1;",
+        (ev["id"], player.location_id)).fetchone()
+    if not inv:
+        return "Non resta alcun invasore da abbattere qui."
+    return cmd_attack(conn, player, inv["name"].split()[0])
+
+
+def _move_effect_label(mods: dict) -> str:
+    parts = []
+    if mods.get("attack_mult", 1) > 1:
+        parts.append(f"+{int((mods['attack_mult'] - 1) * 100)}% attacco")
+    if mods.get("pierce"):
+        parts.append(f"perfora {int(mods['pierce'] * 100)}% difesa")
+    if mods.get("extra_strikes"):
+        parts.append(f"+{int(mods['extra_strikes'])} colpi/round")
+    if mods.get("taken_mult", 1) < 1:
+        parts.append(f"-{int((1 - mods['taken_mult']) * 100)}% danni subiti")
+    if mods.get("death_bonus"):
+        parts.append("colpo esecutore")
+    if mods.get("devour_on_kill"):
+        parts.append("divora se uccide")
+    return ", ".join(parts) or "colpo speciale"
+
+
+def cmd_moves(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import moves
+    ms = moves.available_moves(conn, player.id)
+    if not ms:
+        return ("Non hai ancora mosse attive. Le ottieni scegliendo un'arma in setta "
+                "('weapon'), imparando tecniche segrete ('techniques'), o con l'Abisso.")
+    lines = ["Le tue mosse (usa 'attack <bersaglio> <mossa>' o 'use <mossa> <bersaglio>'):"]
+    for m in ms:
+        status = "pronta" if m["ready"] else f"pronta tra ~{m['ready_in']} tick"
+        lines.append(f"  · {m['name']} [{m['key']}] — {_move_effect_label(m['mods'])} "
+                     f"(cooldown {m['cooldown']}) — {status}")
+    return "\n".join(lines)
+
+
+def cmd_use(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    parts = arg.strip().split(maxsplit=1)
+    if len(parts) < 2:
+        return "Uso: use <mossa> <bersaglio>  (vedi 'moves')."
+    move_tok, target = parts[0], parts[1]
+    return cmd_attack(conn, player, f"{target} {move_tok}")
+
+
+def cmd_techniques(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import sects, guild
+    m = sects.get_membership(conn, player.id)
+    if not m:
+        return "Non appartieni a una setta: nessuna tecnica segreta. Usa 'sects'."
+    techs = guild.sect_techniques(conn, m["faction_id"])
+    merit = guild.get_merit(conn, player.id)
+    lines = [f"Tecniche segrete di {m['sect_name']} (merito disponibile: {merit}):"]
+    for t in techs:
+        if guild.is_learned(conn, t["key"], player.id):
+            mark = "✔ appresa"
+        else:
+            mark = f"costo {t['cost']} merito"
+        lines.append(f"  {t['rank']}. {t['name']} — +{int(t['magnitude']*100)}% potenza — {mark}")
+    lines.append("Guadagna merito cacciando i mostri ('huntzone'); 'learn <n>' per apprendere.")
+    return "\n".join(lines)
+
+
+def cmd_learn(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    from engine.systems import guild
+    if not arg.strip().isdigit():
+        return "Imparare quale tecnica? Usa: learn <numero> (vedi 'techniques')."
+    t = tick.get_tick(conn)
+    res = guild.learn(conn, t, int(arg.strip()), player.id)
+    s = res["status"]
+    if s == "no_sect":
+        return "Non appartieni a una setta."
+    if s == "no_such":
+        return "Quella tecnica non esiste. Usa 'techniques'."
+    if s == "already":
+        return f"Conosci già {res['name']}."
+    if s == "poor":
+        return (f"Merito insufficiente per {res['name']}: servono {res['need']}, "
+                f"ne hai {res['have']}. Caccia altri mostri ('huntzone').")
+    return (f"Apprendi {res['name']}! La tua potenza cresce (+{int(res['magnitude']*100)}%). "
+            f"Merito residuo: {res['merit']}.")
 
 
 def cmd_bounties(conn: sqlite3.Connection, player: entities.Player) -> str:
@@ -462,6 +859,81 @@ def cmd_bounties(conn: sqlite3.Connection, player: entities.Player) -> str:
     return "\n".join(lines)
 
 
+def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None:
+    """Mostra 'GIORNO N' quando inizia un nuovo giorno, con i giorni all'evento."""
+    from engine.systems import training, sect_life, sects
+    t = tick.get_tick(conn)
+    day = training.current_day(t)
+    row = conn.execute("SELECT value FROM game_state WHERE key='last_day';").fetchone()
+    last = int(row["value"]) if row else -1
+    if day == last:
+        return None
+    conn.execute(
+        "INSERT INTO game_state (key, value) VALUES ('last_day', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value;", (str(day),))
+    bar = "=" * 26
+    lines = [bar, f"  GIORNO {day + 1}", bar]
+    if sects.get_membership(conn, player.id):
+        nxt = sect_life.next_event(conn, t, player.id)
+        if nxt:
+            days = max(0, (nxt["fire_tick"] - t + training.DAY_TICKS - 1) // training.DAY_TICKS)
+            label = ("Sfida di Classifica" if nxt["kind"] == "ranking_challenge"
+                     else "Torneo Mensile")
+            lines.append(f"  {label}: {'oggi!' if days == 0 else f'tra {days} giorni'}")
+    return "\n".join(lines)
+
+
+def cmd_hunt(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    from engine.systems import bounties
+    if not arg:
+        return "Dare la caccia a chi? Usa: hunt <nome> (vedi 'bounties')."
+    rows = bounties.active_bounties(conn)
+    target = next((r for r in rows if arg.strip().lower() in r["name"].lower()), None)
+    if target is None:
+        return f"Nessun ricercato di nome '{arg}'. Usa 'bounties' per la lista."
+    tloc = conn.execute("SELECT location_id FROM npcs WHERE id=?;", (target["npc_id"],)).fetchone()["location_id"]
+    if tloc == player.location_id:
+        return f"{target['name']} è proprio qui! Usa 'attack {target['name'].split()[0]}' per affrontarlo."
+    step = _first_step_toward(conn, player.location_id, tloc)
+    loc_name = conn.execute("SELECT name FROM locations WHERE id=?;", (tloc,)).fetchone()["name"]
+    if step:
+        return (f"{target['name']} è stato avvistato a {loc_name}. "
+                f"Da qui muoviti verso '{step}' per raggiungerlo.")
+    return f"{target['name']} è a {loc_name}, ma non sembra esserci una via diretta."
+
+
+def _first_step_toward(conn, start, goal) -> str | None:
+    """BFS sul grafo delle location: ritorna la direzione del primo passo."""
+    from collections import deque
+    if start == goal:
+        return None
+    seen = {start}
+    q = deque([(start, None)])
+    while q:
+        cur, first_dir = q.popleft()
+        for r in conn.execute(
+            "SELECT direction, to_location_id FROM location_connections WHERE from_location_id=?;",
+            (cur,)).fetchall():
+            nxt, d = r["to_location_id"], r["direction"]
+            if nxt in seen:
+                continue
+            fd = first_dir or d
+            if nxt == goal:
+                return fd
+            seen.add(nxt)
+            q.append((nxt, fd))
+    return None
+
+
+def cmd_sleep(conn: sqlite3.Connection, player: entities.Player) -> str:
+    """Salta direttamente all'inizio del giorno successivo."""
+    from engine.systems import training
+    t = tick.get_tick(conn)
+    to_next = training.DAY_TICKS - (t % training.DAY_TICKS)
+    world_tick.advance(conn, to_next)
+    return "Riposi fino all'alba del giorno seguente."
+
+
 def cmd_dao(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import dao_training
     rows = dao_training.trainable_daos(conn, player.id)
@@ -470,7 +942,10 @@ def cmd_dao(conn: sqlite3.Connection, player: entities.Player) -> str:
     lines = ["I tuoi Dao (usa 'comprehend <nome>' per affinarli):"]
     for r in rows:
         tag = " [combattimento]" if r["dao_key"] in dao_training.COMBAT_DAOS else ""
-        lines.append(f"  · {r['name']} — {dao_training.comprehension_label(r['comprehension'])}{tag}")
+        label = dao_training.comprehension_label(r["comprehension"])
+        tech = dao_training.unlocked_technique(r["name"], r["comprehension"])
+        tech_txt = f" — sbloccata: {tech}" if tech else ""
+        lines.append(f"  · {r['name']} — {label}{tag}{tech_txt}")
     # eventuali Dao latenti non ancora risvegliati
     latent = conn.execute(
         "SELECT d.name FROM character_daos cd JOIN daos d ON d.dao_key=cd.dao_key "
@@ -492,13 +967,14 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
     t = tick.get_tick(conn)
     n = training.record_session(conn, t, "player", player.id)
     y = training.session_yield(n)
+    from engine.systems import sects
+    elem = sects.element_bonus(conn, d["dao_key"], player.id)   # setta affine = comprensione più rapida
+    y *= elem
     rng = random.Random(t * 53 + player.id)
     res = dao_training.comprehend(conn, t, rng, d["dao_key"], multiplier=y, player_id=player.id)
     world_tick.advance(conn, tick.cost_of("cultivate"))
     if res["status"] == "locked":
         return f"Il {d['name']} è solo un'affinità latente: devi prima risvegliarlo (assorbendo)."
-    if res["status"] == "maxed":
-        return f"La tua comprensione del {d['name']} è già sublime (al colmo)."
     name = d["name"]
     if res["status"] in ("exhausted",):
         return (f"Mediti sul {name}, ma sei troppo sfinito per progredire oggi "
@@ -507,6 +983,12 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
     line += f"\nAllenamento {n}° della giornata (rendimento {training.yield_label(y)})."
     if res.get("combat"):
         line += " Senti il tuo potere in battaglia crescere."
+    if elem > 1.0:
+        line += " (la tua setta è affine a questo Dao: progredisci più in fretta)"
+    if res.get("unlocked"):
+        line += f"\n★ Hai sbloccato una tecnica: {res['unlocked']}!"
+    elif res.get("tier_up"):
+        line += f"\nLa tua maestria si eleva: ora sei {res['label']}."
     if y <= 0.15:
         line += "\nSei sfinito: conviene riposare ('wait') o dedicarti ad altro."
     return line
@@ -518,7 +1000,9 @@ def cmd_class(conn: sqlite3.Connection, player: entities.Player) -> str:
     if not m:
         return "Non appartieni ad alcuna setta. Usa 'sects' per trovarne una."
     t = tick.get_tick(conn)
-    lines = [f"Setta: {m['sect_name']} — {m['rank']}"]
+    lines = [f"Setta: {m['sect_name']} — {m['rank']} ({sects.tier_name(m['sect_tier'])})"]
+    from engine.systems import guild
+    lines.append(f"Merito: {guild.get_merit(conn, player.id)} (caccia i mostri con 'huntzone'; 'techniques' per spenderlo)")
     if m["class_rank"]:
         lines.append(f"Posizione attuale in classifica: {m['class_rank']}°")
     mates = sect_life.classmates(conn, player.id)
@@ -539,13 +1023,18 @@ def cmd_profile(conn: sqlite3.Connection, player: entities.Player) -> str:
     if prof and prof["anomaly"]:
         lines.append(f"Anomalia: {prof['anomaly'].replace('_', ' ').title()}.")
         lines.append(f"Stato dell'anima: {absorption.residue_label(prof['soul_residue'])}.")
+    from engine.systems import weapons
+    wkey = weapons.get_weapon(conn, player.id)
+    if wkey:
+        lines.append(f"Via marziale: {weapons.weapon_label(wkey)} ({weapons.WEAPONS[wkey][2]}).")
     daos = dao_gen.list_character_daos(conn, "player", player.id)
     if daos:
         prat = [d for d in daos if d["practiced"]]
         lat = [d for d in daos if not d["practiced"]]
         if prat:
+            from engine.systems import dao_training as _dt
             lines.append("Dao praticati: " + ", ".join(
-                f"{d['name']} ({_comp_label(d['comprehension'])})" for d in prat))
+                f"{d['name']} ({_dt.comprehension_label(d['comprehension'])})" for d in prat))
         if lat:
             lines.append("Affinità latenti: " + ", ".join(d["name"] for d in lat))
     from engine.systems import karma
@@ -569,6 +1058,34 @@ def _comp_label(c: int) -> str:
     return "sublime"
 
 
+def cmd_reputation(conn: sqlite3.Connection, player: entities.Player) -> str:
+    from engine.systems import reputation
+    r = reputation.get(conn, player.id)
+    al = reputation.alignment_of(conn, player.id)
+    t = reputation.title(conn, player.id)
+    lines = [f"Allineamento percepito: {al}" + (f' — "{t}"' if t else "")]
+    lines.append(f"Fama {reputation.fame_word(r['fame'])} · Infamia {reputation.fame_word(r['infamy'])}.")
+    sh = reputation.suspicion_hint(r["suspicion"])
+    lines.append(sh if sh else "Nessun sospetto particolare pende su di te.")
+    lines.append("Sei in incognito (maschera indossata)." if r["disguised"]
+                 else "Cammini a volto scoperto.")
+    return "\n".join(lines)
+
+
+def cmd_mask(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    from engine.systems import reputation
+    a = arg.strip().lower()
+    if a in ("on", "indossa", "si", "sì"):
+        reputation.set_disguise(conn, player.id, True)
+        return "Indossi la maschera. Per il mondo sei un Coltivatore Misterioso."
+    if a in ("off", "togli", "via", "no"):
+        reputation.set_disguise(conn, player.id, False)
+        return "Ti togli la maschera. Il tuo volto è di nuovo scoperto."
+    if reputation.is_disguised(conn, player.id):
+        return "Sei mascherato. Usa 'mask off' per toglierla."
+    return "Sei a volto scoperto. Usa 'mask on' per agire in incognito."
+
+
 def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
     t = tick.get_tick(conn)
     loc = entities.get_location(conn, player.location_id)
@@ -585,9 +1102,12 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
         oname = ORIGINS.get(prof["origin"], {}).get("name", prof["origin"])
         age = (prof["age"] or 16) + t // YEAR_TICKS
         origin_line = f"Origine: {oname} | Età: {age}\n"
-    from engine.systems import sects
+    from engine.systems import sects, weapons
     m = sects.get_membership(conn, player.id)
-    sect_line = (f"Setta: {m['rank']} di {m['sect_name']}\n") if m else ""
+    sect_line = (f"Setta: {m['rank']} di {m['sect_name']} ({sects.tier_name(m['sect_tier'])})\n") if m else ""
+    wkey = weapons.get_weapon(conn, player.id)
+    if wkey:
+        sect_line += f"Arma: {weapons.weapon_label(wkey)}\n"
     if m:
         from engine.systems import sect_life
         ag = sect_life.agenda_line(conn, t, player.id)
@@ -595,11 +1115,15 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
             sect_line += f"Prossimo evento di setta — {ag}\n"
     stones = sects.get_resource(conn, "pietre_spirituali", player.id)
     res_line = f"Pietre spirituali: {stones}\n" if (m or stones) else ""
+    from engine.systems import reputation
+    rep = reputation.line(conn, player.id)
+    rep_line = f"{rep}\n" if rep else ""
     return (
         f"Name: {player.name}\n"
         f"{origin_line}"
         f"{sect_line}"
         f"{res_line}"
+        f"{rep_line}"
         f"Status: {player.status}\n"
         f"Coltivazione: {realm} (esperienza {prog})\n"
         f"Location: {loc.name if loc else '?'}\n"
@@ -638,6 +1162,10 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_greet(conn, player, arg)
     if cmd == "attack":
         return cmd_attack(conn, player, arg)
+    if cmd in ("moves", "mosse"):
+        return cmd_moves(conn, player)
+    if cmd in ("use", "usa"):
+        return cmd_use(conn, player, arg)
     if cmd in ("absorb", "devour", "divora"):
         return cmd_absorb(conn, player, arg)
     if cmd == "map":
@@ -654,12 +1182,30 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_join(conn, player)
     if cmd in ("leave", "lascia"):
         return cmd_leave(conn, player)
+    if cmd in ("invitations", "inviti", "rappresentanti"):
+        return cmd_invitations(conn, player)
+    if cmd in ("accept", "accetta", "ascend", "ascendi"):
+        return cmd_accept(conn, player, arg)
+    if cmd in ("huntzone", "huntground", "zonadicaccia", "zona"):
+        return cmd_huntzone(conn, player)
+    if cmd in ("techniques", "tecniche", "skills"):
+        return cmd_techniques(conn, player)
+    if cmd in ("learn", "impara", "apprendi"):
+        return cmd_learn(conn, player, arg)
+    if cmd in ("weapon", "arma"):
+        return cmd_weapon(conn, player, arg)
+    if cmd in ("events", "eventi", "world"):
+        return cmd_events(conn, player)
+    if cmd in ("defend", "difendi"):
+        return cmd_defend(conn, player)
     if cmd in ("class", "classe", "agenda"):
         return cmd_class(conn, player)
     if cmd in ("dao", "daos"):
         return cmd_dao(conn, player)
     if cmd in ("bounties", "missions", "taglie", "missioni"):
         return cmd_bounties(conn, player)
+    if cmd in ("hunt", "caccia"):
+        return cmd_hunt(conn, player, arg)
     if cmd in ("comprehend", "affina", "studia"):
         return cmd_comprehend(conn, player, arg)
     if cmd in ("log", "news"):
@@ -672,12 +1218,18 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_chronicle(conn)
     if cmd == "status":
         return cmd_status(conn, player)
+    if cmd in ("reputation", "reputazione", "fama", "standing"):
+        return cmd_reputation(conn, player)
+    if cmd in ("mask", "maschera", "disguise"):
+        return cmd_mask(conn, player, arg)
     if cmd in ("profilo", "profile", "background"):
         return cmd_profile(conn, player)
     if cmd == "move":
         return cmd_move(conn, player, arg)
     if cmd in ("wait", "rest"):
         return cmd_wait(conn, player)
+    if cmd in ("sleep", "dormi"):
+        return cmd_sleep(conn, player)
     if cmd in ("cultivate", "meditate"):
         return cmd_cultivate(conn, player)
     if cmd == "breakthrough":
@@ -716,6 +1268,13 @@ def run() -> None:
             return
         if output:
             print(output)
+        # banner di nuovo giorno (se il tempo è avanzato oltre la mezzanotte)
+        with transaction() as conn:
+            p0 = entities.get_player(conn)
+            if p0 is not None:
+                banner = _day_banner(conn, p0)
+                if banner:
+                    print(banner)
         # il mondo può averti ucciso (scontro o minaccia autonoma)
         with transaction() as conn:
             p = entities.get_player(conn)

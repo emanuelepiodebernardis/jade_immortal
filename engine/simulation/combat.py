@@ -48,6 +48,13 @@ def _realm_factor(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
 def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     if ctype == "player":
         base = dict(PLAYER_BASE)
+        # crescita fisica da assorbimento (bestie/demoni): corpo più forte
+        from engine.systems import character as _ch
+        p = _ch.get_profile(conn, "player", cid)
+        if p is not None:
+            base["attack"] += (p["grow_strength"] or 0) + (p["grow_aura"] or 0) * 0.5
+            base["vitality"] += (p["grow_vitality"] or 0)
+            base["defense"] += (p["grow_resistance"] or 0)
     else:
         t = entities.get_npc_traits(conn, cid)
         cour, pride, amb = t.get("courage", 50), t.get("pride", 50), t.get("ambition", 50)
@@ -63,7 +70,10 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     caf = character.affinity_factor(conn, ctype, cid, "combat")
     # comprensione dei Dao da combattimento (Corpo/Fulmine/Spada): fino a +20%
     daf = dao_training.combat_dao_factor(conn, ctype, cid)
-    return {k: max(1.0, v * rf * keep * caf * daf) for k, v in base.items()}
+    # tecniche segrete apprese (solo player): bonus permanente alla potenza
+    from engine.systems import guild
+    tf = guild.technique_combat_factor(conn, ctype, cid)
+    return {k: max(1.0, v * rf * keep * caf * daf * tf) for k, v in base.items()}
 
 
 # ---------- scambio di colpi ----------
@@ -78,23 +88,33 @@ def _strike(attack: float, defense: float, rng: random.Random) -> tuple[float, b
 def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
                    atk: tuple[str, int, str], dfn: tuple[str, int, str],
                    loc: int | None, observer: int | None,
-                   observations: list[str]) -> dict:
-    """atk/dfn = (type, id, name). Ritorna dict con winner, loser, rounds, died."""
+                   observations: list[str], atk_mods: dict | None = None) -> dict:
+    """atk/dfn = (type, id, name). atk_mods = modificatori della MOSSA dell'attaccante
+    (attack_mult, pierce, extra_strikes, taken_mult, death_bonus). Ritorna dict con
+    winner, loser, rounds, died."""
+    mods = atk_mods or {}
     pa = combat_power(conn, atk[0], atk[1])
     pd = combat_power(conn, dfn[0], dfn[1])
+    a_attack = pa["attack"] * mods.get("attack_mult", 1.0)
+    d_defense = pd["defense"] * (1.0 - mods.get("pierce", 0.0))
+    extra = int(mods.get("extra_strikes", 0))
+    taken_mult = mods.get("taken_mult", 1.0)
     hp = {"a": pa["vitality"], "d": pd["vitality"]}
     killing_crit = False
     rounds = 0
 
     while hp["a"] > 0 and hp["d"] > 0 and rounds < MAX_ROUNDS:
         rounds += 1
-        dmg, crit = _strike(pa["attack"], pd["defense"], rng)
-        hp["d"] -= dmg
+        for _ in range(1 + extra):                # colpi extra della mossa (raffica)
+            dmg, crit = _strike(a_attack, d_defense, rng)
+            hp["d"] -= dmg
+            if hp["d"] <= 0:
+                killing_crit = crit
+                break
         if hp["d"] <= 0:
-            killing_crit = crit
             break
         dmg, crit = _strike(pd["attack"], pa["defense"], rng)
-        hp["a"] -= dmg
+        hp["a"] -= dmg * taken_mult               # mossa difensiva = subisci meno
         if hp["a"] <= 0:
             killing_crit = crit
             break
@@ -109,6 +129,8 @@ def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
 
     wfrac = winner_hp / max(1.0, combat_power(conn, winner[0], winner[1])["vitality"])
     death_prob = 0.12 + (0.28 if wfrac > 0.5 else 0.0) + (0.2 if killing_crit else 0.0)
+    if winner == atk:
+        death_prob += mods.get("death_bonus", 0.0)    # mossa esecutrice
     died = rng.random() < death_prob
 
     _apply_outcome(conn, tick, rng, winner, loser, rounds, died, killing_crit,

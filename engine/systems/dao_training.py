@@ -19,19 +19,65 @@ from __future__ import annotations
 import random
 import sqlite3
 
-COMBAT_DAOS = {"corpo", "fulmine", "spada"}
-COMBAT_PER_POINT = 0.0012        # potenza per punto di comprensione (combat dao)
-COMBAT_CAP = 0.20                # tetto al bonus da Dao in combattimento
-COMP_CAP = 100
+COMBAT_DAOS = {"corpo", "fulmine", "spada", "lancia", "sciabola", "arco", "pugno", "bastone"}
+
+# Progressione SENZA TETTO a soglie. Ogni soglia raggiunta dà:
+#   - un'etichetta di maestria
+#   - un bonus di combattimento (solo per i Dao da combattimento), cumulativo per Dao
+#   - eventualmente una TECNICA che si sblocca (nome flavor per Dao)
+# (min_comprensione, etichetta, bonus_combat, tecnica_base|None)
+DAO_THRESHOLDS = [
+    (0,    "principiante",  0.00, None),
+    (10,   "iniziato",      0.05, None),
+    (25,   "adepto",        0.10, None),
+    (50,   "esperto",       0.20, None),
+    (100,  "maestro",       0.35, "Tecnica"),
+    (250,  "gran maestro",  0.55, "Tecnica Suprema"),
+    (500,  "dominatore",    0.80, "Dominio"),
+    (1000, "legislatore",   1.20, "Legge"),
+]
+
+
+def _threshold_for(c: int) -> tuple[int, str, float, str | None]:
+    cur = DAO_THRESHOLDS[0]
+    for t in DAO_THRESHOLDS:
+        if c >= t[0]:
+            cur = t
+    return cur
+
+
+def _dao_suffix(dao_name: str) -> str:
+    """'Dao del Fulmine' -> 'del Fulmine' (per comporre i nomi delle tecniche)."""
+    return dao_name[4:] if dao_name.lower().startswith("dao ") else dao_name
+
+
+def dao_combat_bonus(comprehension: int) -> float:
+    """Bonus di combattimento di UN singolo Dao, dalla soglia raggiunta."""
+    return _threshold_for(comprehension)[2]
+
+
+def unlocked_technique(dao_name: str, comprehension: int) -> str | None:
+    """Tecnica sbloccata alla soglia attuale, es. 'Dominio del Fulmine'. None se nessuna."""
+    base = _threshold_for(comprehension)[3]
+    return f"{base} {_dao_suffix(dao_name)}" if base else None
+
+
+def next_threshold(comprehension: int) -> tuple[int, str, float, str | None] | None:
+    """La prossima soglia da raggiungere (per il display 'manca poco'). None se al massimo."""
+    for t in DAO_THRESHOLDS:
+        if comprehension < t[0]:
+            return t
+    return None
 
 
 def combat_dao_factor(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
-    """Moltiplicatore di potenza dato dalla comprensione dei Dao da combattimento."""
+    """Moltiplicatore di potenza dato dai Dao da combattimento (soglie cumulative, SENZA tetto)."""
     rows = conn.execute(
         "SELECT dao_key, comprehension FROM character_daos "
         "WHERE character_type=? AND character_id=?;", (ctype, cid)).fetchall()
-    total = sum(r["comprehension"] for r in rows if r["dao_key"] in COMBAT_DAOS)
-    return 1.0 + min(COMBAT_CAP, total * COMBAT_PER_POINT)
+    total = sum(dao_combat_bonus(r["comprehension"])
+                for r in rows if r["dao_key"] in COMBAT_DAOS)
+    return 1.0 + total
 
 
 def trainable_daos(conn: sqlite3.Connection, player_id: int = 1) -> list[sqlite3.Row]:
@@ -64,39 +110,42 @@ def find_dao(conn: sqlite3.Connection, fragment: str, player_id: int = 1) -> sql
 
 def comprehend(conn: sqlite3.Connection, tick: int, rng: random.Random,
                dao_key: str, multiplier: float = 1.0, player_id: int = 1) -> dict:
-    """Affina la comprensione di un Dao. multiplier = rendimento giornaliero."""
+    """Affina la comprensione di un Dao (SENZA tetto). multiplier = rendimento giornaliero."""
     row = conn.execute(
         "SELECT affinity, comprehension, practiced FROM character_daos "
         "WHERE character_type='player' AND character_id=? AND dao_key=?;",
         (player_id, dao_key)).fetchone()
     if row is None or (not row["practiced"] and row["comprehension"] == 0):
         return {"status": "locked"}        # Dao latente non ancora risvegliato
-    if row["comprehension"] >= COMP_CAP:
-        return {"status": "maxed", "comprehension": COMP_CAP}
 
     attention = 1 + 0.3 * (_practiced_count(conn, player_id) - 1)
     raw = (row["affinity"] / 50.0) * rng.uniform(1.0, 2.0) * multiplier / attention
     gain = int(round(raw))
     if gain <= 0:
         return {"status": "exhausted", "comprehension": row["comprehension"]}
-    new = min(COMP_CAP, row["comprehension"] + gain)
+
+    before = row["comprehension"]
+    new = before + gain                    # nessun tetto: progressione infinita
     conn.execute(
         "UPDATE character_daos SET comprehension=? "
         "WHERE character_type='player' AND character_id=? AND dao_key=?;",
         (new, player_id, dao_key))
-    return {"status": "ok", "gain": new - row["comprehension"], "comprehension": new,
-            "combat": dao_key in COMBAT_DAOS}
+
+    # soglia / tecnica appena superata?
+    dn = conn.execute("SELECT name FROM daos WHERE dao_key=?;", (dao_key,)).fetchone()
+    dao_name = dn["name"] if dn else dao_key
+    tier_up = _threshold_for(before)[1] != _threshold_for(new)[1]
+    tech_before = _threshold_for(before)[3]
+    tech_after = _threshold_for(new)[3]
+    unlocked = (f"{tech_after} {_dao_suffix(dao_name)}"
+                if tech_after and tech_after != tech_before else None)
+
+    return {"status": "ok", "gain": new - before, "comprehension": new,
+            "combat": dao_key in COMBAT_DAOS, "tier_up": tier_up,
+            "label": _threshold_for(new)[1], "unlocked": unlocked}
 
 
 def comprehension_label(c: int) -> str:
-    if c == 0:
+    if c <= 0:
         return "appena intuito"
-    if c < 20:
-        return "principiante"
-    if c < 45:
-        return "discreto"
-    if c < 70:
-        return "esperto"
-    if c < 90:
-        return "maestro"
-    return "sublime"
+    return _threshold_for(c)[1]

@@ -32,7 +32,8 @@ def seed_outlaws(conn: sqlite3.Connection, rng: random.Random, n: int = 5) -> No
     # candidati: NPC vivi che non guidano una fazione
     leaders = {r["leader_id"] for r in conn.execute("SELECT leader_id FROM factions;")}
     cands = [r["id"] for r in conn.execute(
-        "SELECT id FROM npcs WHERE status='alive';") if r["id"] not in leaders]
+        "SELECT id FROM npcs WHERE status='alive' AND (kind='human' OR kind IS NULL);")
+        if r["id"] not in leaders]
     rng.shuffle(cands)
     for nid in cands[:n]:
         crime, sev = rng.choice(CRIMES)
@@ -71,6 +72,7 @@ def claim(conn: sqlite3.Connection, tick: int, npc_id: int, player_id: int = 1) 
     if o is None:
         return {"status": "no_bounty"}
     conn.execute("UPDATE outlaws SET resolved=1 WHERE npc_id=?;", (npc_id,))
+    _spawn_successor(conn, npc_id, tick)
     from engine.systems import sects
     from engine.simulation import event_system as ev
     sects.grant_resource(conn, "pietre_spirituali", o["reward"], player_id)
@@ -87,6 +89,41 @@ def claim(conn: sqlite3.Connection, tick: int, npc_id: int, player_id: int = 1) 
                                      visibility="public", resolve_tick=tick)],
     )
     return {"status": "claimed", "reward": o["reward"], "name": name}
+
+
+def _spawn_successor(conn, fallen_id, tick) -> None:
+    """Dopo la cattura, un nuovo ricercato più forte prende il posto del caduto."""
+    from engine.generators import npc_gen, dao_gen
+    from engine.simulation import cultivation
+    old = conn.execute("SELECT notoriety, crime FROM outlaws WHERE npc_id=?;", (fallen_id,)).fetchone()
+    if old is None:
+        return
+    new_notor = min(8, old["notoriety"] + 1)
+    tier = min(8, cultivation.realm_tier(conn, "npc", fallen_id) + 1)   # più forte del precedente
+    by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
+    realm_id = by_tier.get(tier, by_tier.get(1))
+    rng = __import__("random").Random(tick * 7 + fallen_id)
+    used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
+    name = npc_gen._unique_name(rng, used)
+    loc = conn.execute(
+        "SELECT id FROM locations ORDER BY danger_level DESC LIMIT 1;").fetchone()["id"]
+    cur = conn.execute(
+        "INSERT INTO npcs (name, location_id, status, description, archetype, realm_id, last_active_tick) "
+        "VALUES (?, ?, 'alive', 'Un fuorilegge temuto.', 'vagabondo', ?, ?);",
+        (name, loc, realm_id, tick))
+    nid = cur.lastrowid
+    stage = min(10, 5 + new_notor)
+    conn.execute(
+        "INSERT INTO cultivation_records (character_id, character_type, realm_id, progress, stage, "
+        "qi_level, body_level, soul_level, dao_understanding) VALUES (?, 'npc', ?, 0.3, ?, ?, ?, ?, ?);",
+        (nid, realm_id, stage, tier * 10 + stage * 2, tier * 8 + stage, tier * 8 + stage, tier * 6))
+    dao_gen._set_dao(conn, "npc", nid, "corpo", 55, tier * 9 + stage, 1)
+    reward = 60 + tier * 25 + new_notor * 18
+    conn.execute(
+        "INSERT INTO outlaws (npc_id, crime, reward, notoriety) VALUES (?, ?, ?, ?);",
+        (nid, old["crime"] + " (un nuovo, più temibile)", reward, new_notor))
+    from engine.systems import karma
+    karma.adjust_karma(conn, "npc", nid, -(40 + new_notor * 25), "crimini", tick)
 
 
 def replenish(conn: sqlite3.Connection, rng: random.Random) -> None:

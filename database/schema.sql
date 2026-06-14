@@ -58,6 +58,9 @@ CREATE TABLE IF NOT EXISTS factions (
     wealth INTEGER DEFAULT 50,
     description TEXT,
     goals TEXT,
+    tier INTEGER DEFAULT 1,               -- livello della setta (1 Regionale .. 6 Celeste)
+    element TEXT,                          -- Dao affine: chi vi appartiene lo comprende più in fretta
+    hunt_zone_id INTEGER REFERENCES locations(id),  -- zona di caccia (mostri scalati al livello)
     status TEXT DEFAULT 'active'
 );
 
@@ -87,6 +90,8 @@ CREATE TABLE IF NOT EXISTS npcs (
     -- AGGIUNTA (non nello spec): archetipo dell'NPC (anziano, mercante, eremita...).
     -- Guida la generazione dei traits (Fase 2) e le decisioni NPC (Fase 15).
     archetype TEXT,
+    kind TEXT DEFAULT 'human',         -- human | beast | demon | spirit
+    event_id INTEGER,                  -- se appartiene all'ondata di un evento mondiale
     birth_tick INTEGER,
     death_tick INTEGER,
     -- AGGIUNTA (non nello spec): ultimo tick in cui l'NPC è stato simulato.
@@ -433,7 +438,21 @@ CREATE TABLE IF NOT EXISTS character_profiles (
     aff_soul INTEGER DEFAULT 50,
     aff_combat INTEGER DEFAULT 50,
     anomaly TEXT,                        -- es. 'abisso_divoratore' (categoria a sé)
-    soul_residue INTEGER DEFAULT 0,      -- accumulo da assorbimenti (costo emergente)
+    soul_residue INTEGER DEFAULT 0,      -- accumulo da assorbimenti = CORRUZIONE dell'Abisso
+    grow_strength INTEGER DEFAULT 0,     -- crescita fisica da assorbimento (bestie)
+    grow_vitality INTEGER DEFAULT 0,
+    grow_resistance INTEGER DEFAULT 0,
+    grow_aura INTEGER DEFAULT 0,         -- aggressività/aura (demoni)
+    grow_soul INTEGER DEFAULT 0,         -- anima (spiriti)
+    abs_beast INTEGER DEFAULT 0,         -- conteggi per "linea evolutiva"
+    abs_demon INTEGER DEFAULT 0,
+    abs_spirit INTEGER DEFAULT 0,
+    abs_human INTEGER DEFAULT 0,
+    fame INTEGER DEFAULT 0,               -- reputazione sociale: gloria pubblica
+    infamy INTEGER DEFAULT 0,             -- disonore pubblico
+    suspicion INTEGER DEFAULT 0,          -- sospetto sull'Abisso
+    disguised INTEGER DEFAULT 0,          -- 1 = maschera indossata (in incognito)
+    weapon TEXT,                          -- arma principale scelta in setta (sblocca il Dao d'arma)
     flags TEXT,                          -- JSON: trade-off dell'origine
     created_tick INTEGER DEFAULT 0,
     UNIQUE(character_type, character_id)
@@ -483,8 +502,35 @@ CREATE TABLE IF NOT EXISTS sect_memberships (
     grade TEXT,                          -- "radici spirituali" emerse dal test
     class_tier INTEGER DEFAULT 1,        -- regno della classe attuale
     class_rank INTEGER,                  -- piazzamento nell'ultima sfida/torneo
+    merit INTEGER DEFAULT 0,             -- punti merito accumulati per QUESTA setta
     joined_tick INTEGER DEFAULT 0,
     UNIQUE(player_id)
+);
+
+-- Tecniche segrete apprese (spendendo merito). Restano tue per sempre.
+CREATE TABLE IF NOT EXISTS learned_techniques (
+    id INTEGER PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    faction_id INTEGER,                  -- setta da cui l'hai appresa
+    tech_key TEXT NOT NULL,              -- "faction_id:rank"
+    name TEXT NOT NULL,
+    magnitude REAL DEFAULT 0,            -- bonus % alla potenza
+    learned_tick INTEGER DEFAULT 0,
+    UNIQUE(player_id, tech_key)
+);
+
+-- Inviti delle sette superiori (i "7 rappresentanti" dopo un torneo vinto).
+-- Sono dati leggeri: la fazione reale nasce solo quando il giocatore accetta.
+CREATE TABLE IF NOT EXISTS sect_invitations (
+    id INTEGER PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    slot INTEGER NOT NULL,               -- 1..7 (numero scelto dal giocatore)
+    name TEXT NOT NULL,
+    tier INTEGER NOT NULL,
+    element TEXT,
+    hint TEXT,
+    created_tick INTEGER DEFAULT 0,
+    resolved INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS player_resources (
@@ -526,6 +572,25 @@ CREATE TABLE IF NOT EXISTS sect_events (
 CREATE INDEX IF NOT EXISTS idx_sect_events ON sect_events(player_id, resolved, fire_tick);
 
 -- ricercati: criminali con una taglia (missioni di caccia)
+CREATE TABLE IF NOT EXISTS game_state (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+
+-- Eventi mondiali: invasioni (maree di bestie / incursioni demoniache) che colpiscono
+-- un luogo. Il giocatore può difenderlo o ignorarlo (conseguenze alla scadenza).
+CREATE TABLE IF NOT EXISTS world_events (
+    id INTEGER PRIMARY KEY,
+    kind TEXT NOT NULL,                  -- beast_tide | demon_incursion
+    location_id INTEGER REFERENCES locations(id),
+    threat INTEGER DEFAULT 1,            -- tier della minaccia
+    status TEXT DEFAULT 'active',        -- active | repelled | lost
+    started_tick INTEGER DEFAULT 0,
+    deadline_tick INTEGER DEFAULT 0,
+    wave_total INTEGER DEFAULT 0,
+    wave_remaining INTEGER DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS outlaws (
     id INTEGER PRIMARY KEY,
     npc_id INTEGER NOT NULL REFERENCES npcs(id),

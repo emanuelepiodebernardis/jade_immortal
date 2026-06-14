@@ -51,6 +51,31 @@ def _migrate(conn) -> None:
         conn.execute("ALTER TABLE sect_memberships ADD COLUMN class_tier INTEGER DEFAULT 1;")
     if mcols and "class_rank" not in mcols:
         conn.execute("ALTER TABLE sect_memberships ADD COLUMN class_rank INTEGER;")
+    # crescita fisica / conteggi assorbimento (assorbimento = identità)
+    pcols = {r["name"] for r in conn.execute("PRAGMA table_info(character_profiles);")}
+    for col in ("grow_strength", "grow_vitality", "grow_resistance", "grow_aura",
+                "grow_soul", "abs_beast", "abs_demon", "abs_spirit", "abs_human",
+                "fame", "infamy", "suspicion", "disguised"):
+        if pcols and col not in pcols:
+            conn.execute(f"ALTER TABLE character_profiles ADD COLUMN {col} INTEGER DEFAULT 0;")
+    if pcols and "weapon" not in pcols:        # arma principale (TEXT, non INTEGER)
+        conn.execute("ALTER TABLE character_profiles ADD COLUMN weapon TEXT;")
+    ncols = {r["name"] for r in conn.execute("PRAGMA table_info(npcs);")}
+    if ncols and "kind" not in ncols:
+        conn.execute("ALTER TABLE npcs ADD COLUMN kind TEXT DEFAULT 'human';")
+    if ncols and "event_id" not in ncols:
+        conn.execute("ALTER TABLE npcs ADD COLUMN event_id INTEGER;")
+    # livello/elemento delle sette (sette a livelli + rappresentanti)
+    fcols = {r["name"] for r in conn.execute("PRAGMA table_info(factions);")}
+    if fcols and "tier" not in fcols:
+        conn.execute("ALTER TABLE factions ADD COLUMN tier INTEGER DEFAULT 1;")
+    if fcols and "element" not in fcols:
+        conn.execute("ALTER TABLE factions ADD COLUMN element TEXT;")
+    if fcols and "hunt_zone_id" not in fcols:
+        conn.execute("ALTER TABLE factions ADD COLUMN hunt_zone_id INTEGER;")
+    mcols = {r["name"] for r in conn.execute("PRAGMA table_info(sect_memberships);")}
+    if mcols and "merit" not in mcols:
+        conn.execute("ALTER TABLE sect_memberships ADD COLUMN merit INTEGER DEFAULT 0;")
 
 
 def is_initialized(db_path: Path | str = DB_PATH) -> bool:

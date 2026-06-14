@@ -218,4 +218,27 @@ def describe_profile(conn: sqlite3.Connection, current_tick: int = 0,
         notes.append("Echi di un'altra vita turbano la tua mente.")
     if notes:
         lines.append(" ".join(notes))
+    # crescita fisica da assorbimento (qualitativa)
+    body = []
+    if (p["grow_strength"] or 0) > 0:
+        body.append(f"forza {label_for(min(100, 30 + p['grow_strength']))}")
+    if (p["grow_vitality"] or 0) > 0:
+        body.append(f"vitalità {label_for(min(100, 30 + p['grow_vitality']))}")
+    if (p["grow_resistance"] or 0) > 0:
+        body.append(f"resistenza {label_for(min(100, 30 + p['grow_resistance']))}")
+    if (p["grow_aura"] or 0) > 0:
+        body.append(f"aura {label_for(min(100, 30 + p['grow_aura']))}")
+    if (p["grow_soul"] or 0) > 0:
+        body.append(f"anima forgiata {label_for(min(100, 30 + p['grow_soul']))}")
+    if body:
+        lines.append("Corpo forgiato dall'Abisso — " + "; ".join(body) + ".")
+    # corruzione dell'Abisso (con effetti a soglia)
+    if p["anomaly"] == "abisso_divoratore":
+        from engine.systems import absorption
+        res = p["soul_residue"] or 0
+        clab = absorption.corruption_label(res)
+        lines.append(f"Corruzione dell'Abisso: {clab}.")
+        path = absorption.evolution_path(conn, player_id)
+        if path:
+            lines.append(f"Ciò che stai diventando: {path}.")
     return "\n".join(lines)

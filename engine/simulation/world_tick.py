@@ -32,6 +32,9 @@ _DIR_IT = {"north": "nord", "south": "sud", "east": "est", "west": "ovest"}
 # Le fazioni evolvono lentamente: drift ogni N tick (non a ogni tick).
 FACTION_DRIFT_INTERVAL = 24
 
+# La fauna selvaggia si ripopola con cadenza (≈ un giorno di gioco).
+WILD_REPLENISH_INTERVAL = 24
+
 
 def compute_active_scope(conn: sqlite3.Connection, location_id: int) -> set[int]:
     """Location osservatore + adiacenti."""
@@ -68,12 +71,17 @@ def simulate_tick(conn: sqlite3.Connection, tick_no: int, scope: set[int],
     """Simula un singolo tick per gli NPC attivi. Ritorna (events, npcs_acted)."""
     npcs = _active_npcs(conn, scope)
     events = 0
+    # gli invasori legati a un evento mondiale presidiano il luogo: non vagano
+    pinned = {r["id"] for r in conn.execute(
+        "SELECT id FROM npcs WHERE event_id IS NOT NULL AND status='alive';")}
 
     for npc in npcs:
         # tutti gli NPC attivi sono "simulati" a questo tick
         conn.execute(
             "UPDATE npcs SET last_active_tick=? WHERE id=?;", (tick_no, npc.id)
         )
+        if npc.id in pinned:
+            continue  # invasore: resta a presidiare il luogo dell'evento
 
         traits = entities.get_npc_traits(conn, npc.id)
         p_move = move_probability if move_probability is not None else _move_probability(traits)
@@ -164,10 +172,18 @@ def advance(conn: sqlite3.Connection, n: int, player_id: int = 1,
         from engine.systems import bounties
         events += bounties.outlaw_crime_tick(
             c, tick_no, rng, player, scope, observer_loc, observations)
+        # eventi mondiali: invasioni (comparsa a cadenza + risoluzione scadute)
+        from engine.systems import world_events
+        events += world_events.tick(c, tick_no, rng, player, observations)
         # fazioni (cadenza)
         if tick_no % FACTION_DRIFT_INTERVAL == 0:
             events += faction_engine.faction_drift(
                 c, tick_no, rng, observer_loc, observations)
+        # fauna selvaggia: ripopola le zone pericolose (cadenza), così
+        # l'assorbitore ha sempre prede da cacciare fuori dalla setta.
+        if tick_no % WILD_REPLENISH_INTERVAL == 0:
+            from engine.generators import creature_gen
+            creature_gen.replenish_wild(c, rng)
         # coltivazione passiva degli NPC attivi
         events += cultivation.npc_cultivation_pass(
             c, tick_no, scope, rng, observer_loc, observations)

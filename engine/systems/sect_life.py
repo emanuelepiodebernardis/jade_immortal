@@ -65,6 +65,11 @@ def _spawn_classmates(conn, rng, faction_id, location_id, tier, n) -> list[int]:
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
     realm_id = by_tier.get(tier, by_tier.get(1))
+    # le sette di livello alto hanno discepoli più affilati (stesso regno, più maestria)
+    srow = conn.execute("SELECT tier FROM factions WHERE id=?;", (faction_id,)).fetchone()
+    sect_tier = (srow["tier"] if srow and srow["tier"] else 1)
+    stage_lo = min(9, 2 + sect_tier)
+    stage_hi = min(10, 6 + sect_tier)
     ids = []
     for _ in range(n):
         name = npc_gen._unique_name(rng, used)
@@ -81,19 +86,19 @@ def _spawn_classmates(conn, rng, faction_id, location_id, tier, n) -> list[int]:
             (nid, traits["ambition"], traits["honor"], traits["greed"], traits["courage"],
              traits["loyalty"], traits["compassion"], traits["pride"]))
         # coltivazione: stesso regno, strato vicino al giocatore (rivali credibili)
-        stage = max(1, min(10, rng.randint(2, 8)))
+        stage = max(1, min(10, rng.randint(stage_lo, stage_hi)))
         conn.execute(
             "INSERT INTO cultivation_records (character_id, character_type, realm_id, progress, "
             "stage, qi_level, body_level, soul_level, dao_understanding) "
             "VALUES (?, 'npc', ?, ?, ?, ?, ?, ?, ?);",
             (nid, realm_id, round(rng.uniform(0, 0.5), 2), stage,
              tier * 10 + stage * 2, tier * 8 + stage, tier * 8 + stage, tier * 5))
-        # un Dao primario, così sono assorbibili / esaminabili
+        # un Dao primario, così sono assorbibili / esaminabili; più forte nelle sette alte
         pool = ["spada", "corpo", "fulmine", "anima"]
         conn.execute(
             "INSERT OR IGNORE INTO character_daos (character_type, character_id, dao_key, "
             "affinity, comprehension, practiced) VALUES ('npc', ?, ?, ?, ?, 1);",
-            (nid, rng.choice(pool), rng.randint(45, 65), tier * 9 + stage))
+            (nid, rng.choice(pool), rng.randint(45, 65), tier * 9 + stage + sect_tier * 8))
         ids.append(nid)
     return ids
 
@@ -154,17 +159,32 @@ def _run_tournament(conn, tick, rng, player_id, faction_id, kind, observer, obse
     player_rank = placement[("player", player_id)]
     total = len(scored)
 
+    # racconta gli incontri del giocatore contro ogni compagno
+    from engine.systems import combat_narration as cn
+    match_lines = []
+    for n in cohort:
+        opp_name = conn.execute("SELECT name FROM npcs WHERE id=?;", (n,)).fetchone()["name"]
+        _, line = cn.match_line(conn, "Tu", opp_name, ("player", player_id), ("npc", n), rng)
+        match_lines.append("  " + line)
+
     conn.execute("UPDATE sect_memberships SET class_rank=? WHERE player_id=?;",
                  (player_rank, player_id))
     stones = REWARDS.get(player_rank, 10)
     from engine.systems import sects
     sects.grant_resource(conn, "pietre_spirituali", stones, player_id)
 
+    # gloria pubblica: il piazzamento accresce la fama (reputazione sociale)
+    from engine.systems import reputation
+    fame_gain = {1: 30, 2: 15, 3: 6}.get(player_rank, 0)
+    if fame_gain:
+        reputation.adjust(conn, player_id, fame=fame_gain)
+
     sect = conn.execute("SELECT name FROM factions WHERE id=?;", (faction_id,)).fetchone()["name"]
     label = "Sfida di Classifica" if kind == "ranking_challenge" else "Torneo Mensile"
     ordinal = {1: "1°", 2: "2°", 3: "3°", 4: "4°"}.get(player_rank, f"{player_rank}°")
     summary = (f"{label} di {sect}: ti classifichi {ordinal} su {total}. "
                f"Ricevi {stones} pietre spirituali.")
+    detail = summary + ("\n" + "\n".join(match_lines) if match_lines else "")
 
     loc = conn.execute("SELECT location_id FROM players WHERE id=?;", (player_id,)).fetchone()["location_id"]
     ev.log_event(
@@ -178,7 +198,15 @@ def _run_tournament(conn, tick, rng, player_id, faction_id, kind, observer, obse
                                      visibility="public", resolve_tick=tick)],
     )
     if observations is not None:
-        observations.append(summary)
+        observations.append(detail)
+
+    # vincere il torneo richiama i 7 rappresentanti delle sette superiori
+    if player_rank == 1:
+        invs = sects.generate_invitations(conn, tick, rng, player_id)
+        if invs and observations is not None:
+            observations.append(
+                "I tuoi exploit hanno richiamato i RAPPRESENTANTI di sette superiori: "
+                "usa 'invitations' per vederli e 'accept <numero>' per ascendere.")
 
 
 # ---------- promozione di classe ----------

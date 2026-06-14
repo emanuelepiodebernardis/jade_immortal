@@ -220,6 +220,13 @@ def generate(conn: sqlite3.Connection, cfg: WorldGenConfig | None = None) -> Non
     from engine.systems import bounties
     bounties.seed_outlaws(conn, rng, n=5)
 
+    # Creature selvagge (bestie/demoni/spiriti) nelle zone pericolose:
+    # popolano il mondo da cacciare e assorbire (Abisso Divoratore).
+    from engine.generators import creature_gen
+    creature_gen.seed_creatures(conn, rng)
+    # ogni setta ha una zona di caccia con mostri scalati al suo livello
+    creature_gen.assign_hunt_zones(conn, rng)
+
 
 def _bridge_territories(conn, rng, locs_a, locs_b, free_dirs) -> None:
     """Collega due territori con una rotta, usando direzioni libere su entrambi i capi."""
