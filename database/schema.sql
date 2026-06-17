@@ -454,7 +454,12 @@ CREATE TABLE IF NOT EXISTS character_profiles (
     infamy INTEGER DEFAULT 0,             -- disonore pubblico
     suspicion INTEGER DEFAULT 0,          -- sospetto sull'Abisso
     disguised INTEGER DEFAULT 0,          -- 1 = maschera indossata (in incognito)
+    mask_fame INTEGER DEFAULT 0,          -- reputazione SEPARATA dell'identità mascherata
+    mask_infamy INTEGER DEFAULT 0,        -- l'infamia commessa col volto coperto vive qui
+    mask_suspicion INTEGER DEFAULT 0,     -- il sospetto sull'Abisso attribuito alla maschera
     weapon TEXT,                          -- arma principale scelta in setta (sblocca il Dao d'arma)
+    weapon_tier INTEGER DEFAULT 0,        -- regno (livello di coltivazione) dell'arma equipaggiata
+    weapon_rarity INTEGER DEFAULT 0,      -- rarità 1..4 dell'arma equipaggiata (bonus crescente)
     qi_current INTEGER DEFAULT -1,        -- Qi attuale per le mosse (-1 = non inizializzato => pieno)
     spirit_current INTEGER DEFAULT -1,    -- Spirito attuale per le tecniche Dao (-1 = pieno)
     dao_sessions INTEGER DEFAULT 0,       -- quante volte hai allenato i Dao (via del Dao)

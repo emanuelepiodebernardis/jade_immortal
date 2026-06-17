@@ -55,6 +55,9 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
             base["attack"] += (p["grow_strength"] or 0) + (p["grow_aura"] or 0) * 0.5
             base["vitality"] += (p["grow_vitality"] or 0)
             base["defense"] += (p["grow_resistance"] or 0)
+        # qualità dell'arma equipaggiata (regno×rarità): amplifica l'attacco
+        from engine.systems import weapons as _wp
+        base["attack"] *= (1.0 + _wp.equipped_bonus(conn, cid))
     else:
         t = entities.get_npc_traits(conn, cid)
         cour, pride, amb = t.get("courage", 50), t.get("pride", 50), t.get("ambition", 50)

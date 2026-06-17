@@ -123,6 +123,89 @@ def title(conn: sqlite3.Connection, player_id: int = 1) -> str | None:
     }.get(al)
 
 
+# ============================================================
+# IDENTITÀ MASCHERATA — una reputazione SEPARATA.
+# Le malefatte commesse col volto coperto non ricadono sul tuo nome: alimentano
+# invece l'infamia di un alter ego (la "maschera"). Karma e progressi restano sul
+# vero te; ciò che il mondo teme è una figura che non sa essere te.
+# ============================================================
+
+MASK_NAME = "Coltivatore Misterioso"
+
+
+def get_mask(conn: sqlite3.Connection, player_id: int = 1) -> dict:
+    r = conn.execute(
+        "SELECT mask_fame, mask_infamy, mask_suspicion FROM character_profiles "
+        "WHERE character_type='player' AND character_id=?;", (player_id,)).fetchone()
+    if r is None:
+        return {"fame": 0, "infamy": 0, "suspicion": 0}
+    return {"fame": r["mask_fame"] or 0, "infamy": r["mask_infamy"] or 0,
+            "suspicion": r["mask_suspicion"] or 0}
+
+
+def adjust_mask(conn: sqlite3.Connection, player_id: int = 1, *,
+                fame: int = 0, infamy: int = 0, suspicion: int = 0) -> dict:
+    cur = get_mask(conn, player_id)
+    nf = max(0, min(CAP, cur["fame"] + fame))
+    ni = max(0, min(CAP, cur["infamy"] + infamy))
+    ns = max(0, min(CAP, cur["suspicion"] + suspicion))
+    conn.execute(
+        "UPDATE character_profiles SET mask_fame=?, mask_infamy=?, mask_suspicion=? "
+        "WHERE character_type='player' AND character_id=?;", (nf, ni, ns, player_id))
+    return {"fame": nf, "infamy": ni, "suspicion": ns}
+
+
+def apply_deed(conn: sqlite3.Connection, player_id: int = 1, *,
+               fame: int = 0, infamy: int = 0, suspicion: int = 0,
+               mask_leak: int = 0) -> dict:
+    """Registra una malefatta/impresa ROUTANDOLA all'identità giusta.
+    - a volto scoperto: tutto ricade sul tuo nome (reputazione reale);
+    - mascherato: fama/infamia/sospetto vanno alla MASCHERA; solo una piccola
+      frazione di sospetto (`mask_leak`) trapela sul vero te — la maschera contiene,
+      non annulla l'impronta dell'Abisso.
+    Ritorna {'identity': 'real'|'mask', ...valori aggiornati...}.
+    """
+    if is_disguised(conn, player_id):
+        vals = adjust_mask(conn, player_id, fame=fame, infamy=infamy, suspicion=suspicion)
+        if mask_leak:
+            adjust(conn, player_id, suspicion=mask_leak)
+        return {"identity": "mask", **vals}
+    vals = adjust(conn, player_id, fame=fame, infamy=infamy, suspicion=suspicion)
+    return {"identity": "real", **vals}
+
+
+def mask_alignment_of(conn: sqlite3.Connection, player_id: int = 1) -> str:
+    r = get_mask(conn, player_id)
+    return alignment(r["fame"], r["infamy"], r["suspicion"])
+
+
+def mask_title(conn: sqlite3.Connection, player_id: int = 1) -> str | None:
+    r = get_mask(conn, player_id)
+    al = alignment(r["fame"], r["infamy"], r["suspicion"])
+    return {
+        "Eretico": "Lo Spettro dell'Abisso",
+        "Mostro": "Il Demone Mascherato",
+        "Temuto": "L'Ombra Temuta",
+        "Eroe": "L'Eroe Senza Volto",
+        "Onorevole": "Il Cavaliere Mascherato",
+    }.get(al)
+
+
+def mask_line(conn: sqlite3.Connection, player_id: int = 1) -> str | None:
+    """Riga qualitativa sull'identità mascherata (None se la maschera non ha storia)."""
+    r = get_mask(conn, player_id)
+    if not (r["fame"] or r["infamy"] or r["suspicion"]):
+        return None
+    al = alignment(r["fame"], r["infamy"], r["suspicion"])
+    t = mask_title(conn, player_id)
+    name = f'{MASK_NAME}' + (f' — "{t}"' if t else "")
+    extra = ""
+    sh = suspicion_hint(r["suspicion"])
+    if sh:
+        extra = " " + sh
+    return f"Identità mascherata ({name}): allineamento {al}.{extra}"
+
+
 def fame_talent_bonus(conn: sqlite3.Connection, player_id: int = 1) -> int:
     """La fama apre le porte: piccolo bonus al test del talento delle sette."""
     return min(8, get(conn, player_id)["fame"] // 80)

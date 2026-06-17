@@ -56,11 +56,15 @@ def _migrate(conn) -> None:
     for col in ("grow_strength", "grow_vitality", "grow_resistance", "grow_aura",
                 "grow_soul", "abs_beast", "abs_demon", "abs_spirit", "abs_human",
                 "fame", "infamy", "suspicion", "disguised",
+                "mask_fame", "mask_infamy", "mask_suspicion",
                 "dao_sessions", "cult_sessions"):
         if pcols and col not in pcols:
             conn.execute(f"ALTER TABLE character_profiles ADD COLUMN {col} INTEGER DEFAULT 0;")
     if pcols and "weapon" not in pcols:        # arma principale (TEXT, non INTEGER)
         conn.execute("ALTER TABLE character_profiles ADD COLUMN weapon TEXT;")
+    for col in ("weapon_tier", "weapon_rarity"):    # arma-oggetto: regno + rarità
+        if pcols and col not in pcols:
+            conn.execute(f"ALTER TABLE character_profiles ADD COLUMN {col} INTEGER DEFAULT 0;")
     if pcols and "qi_current" not in pcols:     # Qi per le mosse (-1 = pieno alla prima lettura)
         conn.execute("ALTER TABLE character_profiles ADD COLUMN qi_current INTEGER DEFAULT -1;")
     if pcols and "spirit_current" not in pcols:  # Spirito per le tecniche Dao (-1 = pieno)
