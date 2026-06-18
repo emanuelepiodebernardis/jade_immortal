@@ -55,6 +55,16 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
             base["attack"] += (p["grow_strength"] or 0) + (p["grow_aura"] or 0) * 0.5
             base["vitality"] += (p["grow_vitality"] or 0)
             base["defense"] += (p["grow_resistance"] or 0)
+        # i LIVELLI di coltivazione del giocatore alimentano la potenza (come per gli NPC):
+        # così salire Qi/Corpo/Anima/Dao aumenta SEMPRE il rating, mai il contrario.
+        from engine.simulation import cultivation as _cult
+        _rec = _cult.get_record(conn, "player", cid)
+        if _rec:
+            base["attack"] += ((_rec["qi_level"] or 0) * 0.20
+                               + (_rec["soul_level"] or 0) * 0.15
+                               + (_rec["dao_understanding"] or 0) * 0.10)
+            base["vitality"] += (_rec["body_level"] or 0) * 0.6
+            base["defense"] += (_rec["body_level"] or 0) * 0.2 + (_rec["soul_level"] or 0) * 0.05
         # qualità dell'arma equipaggiata (regno×rarità): amplifica l'attacco
         from engine.systems import weapons as _wp
         base["attack"] *= (1.0 + _wp.equipped_bonus(conn, cid))

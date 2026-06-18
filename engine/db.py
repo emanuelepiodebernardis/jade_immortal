@@ -43,9 +43,23 @@ def init_db(db_path: Path | str = DB_PATH, schema_path: Path | str = SCHEMA_PATH
 
 def _migrate(conn) -> None:
     """Aggiunge colonne nuove a tabelle preesistenti (salvataggi vecchi). Idempotente."""
+    # nuove tabelle (per salvataggi creati prima della loro introduzione)
+    conn.execute("CREATE TABLE IF NOT EXISTS pending_reports ("
+                 "id INTEGER PRIMARY KEY, player_id INTEGER NOT NULL, tick INTEGER NOT NULL, "
+                 "text TEXT NOT NULL, shown INTEGER DEFAULT 0);")
+    conn.execute("CREATE TABLE IF NOT EXISTS market_offers ("
+                 "id INTEGER PRIMARY KEY, player_id INTEGER NOT NULL, location_id INTEGER NOT NULL, "
+                 "day INTEGER NOT NULL, name TEXT NOT NULL, item_type TEXT NOT NULL, "
+                 "rarity TEXT NOT NULL, price INTEGER NOT NULL, effects TEXT NOT NULL, "
+                 "sold INTEGER DEFAULT 0);")
+    chcols = {r["name"] for r in conn.execute("PRAGMA table_info(sect_cohort);")}
+    if chcols and "talent" not in chcols:
+        conn.execute("ALTER TABLE sect_cohort ADD COLUMN talent INTEGER DEFAULT 50;")
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(cultivation_records);")}
     if "stage" not in cols:
         conn.execute("ALTER TABLE cultivation_records ADD COLUMN stage INTEGER DEFAULT 1;")
+    if "bt_failures" not in cols:
+        conn.execute("ALTER TABLE cultivation_records ADD COLUMN bt_failures INTEGER DEFAULT 0;")
     mcols = {r["name"] for r in conn.execute("PRAGMA table_info(sect_memberships);")}
     if mcols and "class_tier" not in mcols:
         conn.execute("ALTER TABLE sect_memberships ADD COLUMN class_tier INTEGER DEFAULT 1;")
@@ -57,6 +71,7 @@ def _migrate(conn) -> None:
                 "grow_soul", "abs_beast", "abs_demon", "abs_spirit", "abs_human",
                 "fame", "infamy", "suspicion", "disguised",
                 "mask_fame", "mask_infamy", "mask_suspicion",
+                "last_tribulation_defiance",
                 "dao_sessions", "cult_sessions"):
         if pcols and col not in pcols:
             conn.execute(f"ALTER TABLE character_profiles ADD COLUMN {col} INTEGER DEFAULT 0;")

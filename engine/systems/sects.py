@@ -32,6 +32,45 @@ SECT_TIER_NAMES = {
 }
 MAX_SECT_TIER = 6
 
+# Scala delle CATEGORIE di discepolo (dal basso all'alto). Vincere un torneo ti fa salire
+# di categoria; in cima (Giovane Patriarca) puoi guidare razzie/invasioni.
+RANK_LADDER = ["Servitore", "Discepolo Esterno", "Discepolo Interno", "Discepolo del Nucleo",
+               "Discepolo Centrale", "Re dei Discepoli", "Erede della Setta", "Giovane Patriarca"]
+
+
+def promote_rank(conn: sqlite3.Connection, player_id: int = 1) -> dict | None:
+    """Sale di una CATEGORIA di discepolo (premio per aver vinto un torneo)."""
+    m = get_membership(conn, player_id)
+    if not m:
+        return None
+    cur = m["rank"]
+    ladder = RANK_LADDER
+    i = ladder.index(cur) if cur in ladder else 0
+    new = ladder[min(i + 1, len(ladder) - 1)]
+    level = (m["rank_level"] or 1) + 1
+    conn.execute("UPDATE sect_memberships SET rank=?, rank_level=? WHERE player_id=?;",
+                 (new, level, player_id))
+    return {"rank": new, "level": level, "promoted": new != cur,
+            "top": new == ladder[-1]}
+
+# Oltre la Setta Celeste i livelli salgono all'infinito, con nomi generati.
+_HIGHER_SECT = [
+    "Setta Trascendente", "Dominio Primordiale", "Trono del Dao", "Reame Eterno",
+    "Corte delle Stelle", "Impero Celeste", "Origine Suprema", "Vetta dell'Universo",
+]
+
+
+def tier_name(tier: int | None) -> str:
+    tier = max(1, tier or 1)
+    if tier <= MAX_SECT_TIER:
+        return SECT_TIER_NAMES[tier]
+    from engine.generators.cultivation_gen import _roman
+    idx = tier - MAX_SECT_TIER - 1
+    cycle = idx // len(_HIGHER_SECT)
+    base = _HIGHER_SECT[idx % len(_HIGHER_SECT)]
+    return base if cycle == 0 else f"{base} {_roman(cycle + 1)}"
+
+
 # elemento -> moltiplicatore alla comprensione del Dao affine, da membro
 ELEMENT_BONUS = 1.5
 
@@ -39,10 +78,6 @@ _GREAT_PREFIX = ["Setta", "Ordine", "Palazzo", "Dinastia", "Santuario", "Corte"]
 _GREAT_SUFFIX = ["del Cielo Frantumato", "dell'Astro Eterno", "del Vuoto Primordiale",
                  "della Fenice d'Oro", "del Drago Ascendente", "delle Nove Nubi",
                  "della Fiamma Immortale", "dell'Abisso Stellare"]
-
-
-def tier_name(tier: int | None) -> str:
-    return SECT_TIER_NAMES.get(max(1, min(MAX_SECT_TIER, tier or 1)), "Setta")
 
 
 def _dao_display(conn: sqlite3.Connection, dao_key: str | None) -> str:
@@ -201,11 +236,10 @@ def generate_invitations(conn: sqlite3.Connection, tick: int, rng,
     if pending_invitations(conn, player_id):
         return pending_invitations(conn, player_id)
     cur_tier = max(1, current_sect_tier(conn, player_id))
-    if cur_tier >= MAX_SECT_TIER:
-        return []
-    elements = ["corpo", "fulmine", "spada", "anima"]
+    elements = ["corpo", "fulmine", "spada", "anima", "fuoco", "acqua",
+                "metallo", "vento", "luce", "oscurita", "spazio", "tempo"]
     for slot in range(1, 8):
-        t = min(MAX_SECT_TIER, cur_tier + rng.choices([1, 2, 3], weights=[5, 3, 1])[0])
+        t = cur_tier + rng.choices([1, 2, 3], weights=[5, 3, 1])[0]   # nessun tetto: si sale sempre
         el = rng.choice(elements)
         name = f"{rng.choice(_GREAT_PREFIX)} {rng.choice(_GREAT_SUFFIX)}"
         hint = f"{tier_name(t)} · affine al {_dao_display(conn, el)}"
@@ -227,9 +261,9 @@ def _create_greater_sect(conn, rng, name, tier, element, tick) -> int:
         (name, home, 60 + tier * 6, 60 + tier * 6,
          "Una setta superiore, lontana e potente.", tier, element))
     fid = cur.lastrowid
-    by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
-    lr_tier = min(8, 2 + tier)                    # maestri scalati al livello della setta
-    realm_id = by_tier.get(lr_tier, by_tier.get(1))
+    from engine.simulation import cultivation
+    lr_tier = 2 + tier                            # maestri scalati al livello (anche oltre l'8)
+    realm_id = cultivation.ensure_realm(conn, lr_tier)
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     lname = npc_gen._unique_name(rng, used)
     traits = npc_gen.roll_traits(rng, "patriarca")

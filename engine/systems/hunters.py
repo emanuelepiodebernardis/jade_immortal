@@ -179,14 +179,71 @@ def _confront(conn, tick, rng, player, hunter, observations) -> None:
 
 
 def on_hunter_defeated(conn, npc_id, player) -> str | None:
-    """Sconfiggere un cacciatore placa l'indagine: il sospetto cala (hai messo a tacere
-    un inseguitore). L'eventuale infamia per l'uccisione è gestita altrove."""
-    row = conn.execute("SELECT hunting FROM npcs WHERE id=?;", (npc_id,)).fetchone()
+    """Sconfiggere un inseguitore placa l'indagine. Se era un CAMPIONE di una specie
+    (bestia/demone/spirito) che ti dava la caccia, abbatterlo ti copre di gloria."""
+    row = conn.execute("SELECT hunting, kind, name FROM npcs WHERE id=?;", (npc_id,)).fetchone()
     if not row or not row["hunting"]:
         return None
     from engine.systems import reputation
+    if row["kind"] and row["kind"] != "human":
+        reputation.adjust(conn, player.id, fame=25, suspicion=-40, infamy=-10)
+        return (f"Hai abbattuto {row['name']}: la tua fama di flagello delle creature "
+                f"si diffonde, e le ombre sul tuo nome si diradano!")
     reputation.adjust(conn, player.id, suspicion=-120)
     return "Hai messo a tacere un cacciatore dell'Eretico: il sospetto su di te si attenua."
+
+
+# ============================================================
+# CACCIA TERRITORIALE — se stermini troppe creature di una specie, un loro CAMPIONE
+# si mette sulle tue tracce. Abbatterlo dà gloria; oppure rientra in zona sicura.
+# ============================================================
+
+SPECIES_KILL_THRESHOLD = 6
+_CHAMPION_NAME = {"beast": "Re Bestiale", "demon": "Signore Demoniaco", "spirit": "Antico Spirito"}
+_SPECIES_LABEL = {"beast": "delle Bestie", "demon": "dei Demoni", "spirit": "degli Spiriti"}
+
+
+def _nearby_spawn_loc(conn, start, rng, hops=2):
+    """Una location a qualche passo dal giocatore (il campione poi lo raggiunge)."""
+    cur = start
+    for _ in range(hops):
+        nbrs = [r["to_location_id"] for r in conn.execute(
+            "SELECT to_location_id FROM location_connections WHERE from_location_id=?;",
+            (cur,)).fetchall()]
+        if not nbrs:
+            break
+        cur = rng.choice(nbrs)
+    return cur if cur != start else None
+
+
+def record_creature_kill(conn, tick, rng, player, kind) -> str | None:
+    """Conta le uccisioni per specie; superata la soglia, evoca un campione che ti caccia."""
+    if kind not in ("beast", "demon", "spirit"):
+        return None
+    key = f"species_kills:{kind}"
+    row = conn.execute("SELECT value FROM game_state WHERE key=?;", (key,)).fetchone()
+    n = (int(row["value"]) if row else 0) + 1
+    if n < SPECIES_KILL_THRESHOLD:
+        conn.execute("INSERT INTO game_state (key, value) VALUES (?, ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value=excluded.value;", (key, str(n)))
+        return None
+    conn.execute("INSERT INTO game_state (key, value) VALUES (?, '0') "
+                 "ON CONFLICT(key) DO UPDATE SET value='0';", (key,))
+    return _spawn_champion(conn, tick, rng, player, kind)
+
+
+def _spawn_champion(conn, tick, rng, player, kind) -> str:
+    from engine.generators import creature_gen
+    from engine.simulation import cultivation
+    ptier = cultivation.realm_tier(conn, "player", player.id) or 1
+    tier = max(2, ptier + 1)
+    loc = _nearby_spawn_loc(conn, player.location_id, rng) or player.location_id
+    nid = creature_gen._spawn_one(conn, rng, kind, loc, tier, tier + 1)
+    cname = _CHAMPION_NAME.get(kind, "Campione")
+    conn.execute("UPDATE npcs SET hunting=1, name=? WHERE id=?;", (cname, nid))
+    return (f"⚠ Hai sterminato troppe creature: il {cname} {_SPECIES_LABEL.get(kind, '')} "
+            f"si mette sulle tue tracce! Affrontalo quando ti raggiunge, o rifugiati "
+            f"('home') finché non si placa.")
 
 
 def tick(conn, tick_no, rng, player, observations) -> int:

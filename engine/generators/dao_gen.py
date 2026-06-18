@@ -30,17 +30,27 @@ DAOS = [
     ("destino", "Dao del Destino", "deep", "La via che intravede ciò che sarà."),
     ("tempo", "Dao del Tempo", "deep", "La via che piega il fluire degli istanti."),
     ("spazio", "Dao dello Spazio", "deep", "La via che annulla le distanze."),
+    # --- Elementi base ---
+    ("fuoco", "Dao del Fuoco", "elemental", "La via che incenerisce ogni cosa."),
+    ("acqua", "Dao dell'Acqua", "elemental", "La via che scorre, erode e travolge."),
+    ("terra", "Dao della Terra", "elemental", "La via incrollabile della montagna."),
+    ("vento", "Dao del Vento", "elemental", "La via veloce e inafferrabile."),
+    ("metallo", "Dao del Metallo", "elemental", "La via tagliente e implacabile."),
+    ("legno", "Dao del Legno", "elemental", "La via che cresce, guarisce e avvolge."),
+    # --- Elementi superiori ---
+    ("luce", "Dao della Luce", "elemental", "La via radiante che nulla può nascondere."),
+    ("oscurita", "Dao dell'Oscurità", "elemental", "La via che divora ogni luce."),
 ]
 
 # Dao primario per archetipo NPC (pesato)
 _ARCH_DAO = {
-    "guardia": (["corpo", "spada", "fulmine"], [3, 2, 1]),
-    "discepolo": (["spada", "corpo", "anima"], [3, 2, 1]),
-    "patriarca": (["fulmine", "spada", "anima", "destino"], [3, 2, 2, 1]),
-    "anziano": (["anima", "destino", "corpo"], [3, 2, 1]),
-    "eremita": (["anima", "destino", "spazio"], [3, 2, 1]),
-    "vagabondo": (["spada", "corpo", "spazio"], [2, 2, 1]),
-    "mercante": (["corpo", "anima"], [2, 1]),
+    "guardia": (["corpo", "spada", "fulmine", "metallo"], [3, 2, 1, 1]),
+    "discepolo": (["spada", "corpo", "anima", "fuoco"], [3, 2, 1, 1]),
+    "patriarca": (["fulmine", "spada", "anima", "destino", "luce"], [3, 2, 2, 1, 1]),
+    "anziano": (["anima", "destino", "corpo", "oscurita"], [3, 2, 1, 1]),
+    "eremita": (["anima", "destino", "spazio", "acqua", "legno"], [3, 2, 1, 1, 1]),
+    "vagabondo": (["spada", "corpo", "spazio", "vento", "terra"], [2, 2, 1, 1, 1]),
+    "mercante": (["corpo", "anima", "metallo"], [2, 1, 1]),
 }
 
 
@@ -106,3 +116,10 @@ def list_character_daos(conn, ctype, cid) -> list[sqlite3.Row]:
         "WHERE cd.character_type=? AND cd.character_id=? ORDER BY cd.comprehension DESC;",
         (ctype, cid),
     ).fetchall()
+
+
+def bias_dominant(conn, ctype, cid, element, rng) -> None:
+    """Rende `element` il Dao DOMINANTE del personaggio (per le zone affini a una setta):
+    chi vive in quella zona porta soprattutto quel Dao, così assorbendolo lo ottieni."""
+    comp = rng.randint(25, 70)
+    _set_dao(conn, ctype, cid, element, 65, comp, 1)

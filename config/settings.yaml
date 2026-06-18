@@ -3,7 +3,7 @@
 
 llm:
   provider: ollama
-  model: "qwen3:8b"        # default; modificabile
+  model: "llama3.2:3b"        # default; modificabile
   host: "http://localhost:11434"
   enabled: true          # metti true (con Ollama attivo) per la narrativa LLM;
                            # se false o Ollama non raggiungibile, si usa il fallback testuale

@@ -19,7 +19,8 @@ from __future__ import annotations
 import random
 import sqlite3
 
-COMBAT_DAOS = {"corpo", "fulmine", "spada", "lancia", "sciabola", "arco", "pugno", "bastone"}
+COMBAT_DAOS = {"corpo", "fulmine", "spada", "lancia", "sciabola", "arco", "pugno", "bastone",
+               "fuoco", "acqua", "terra", "vento", "metallo", "legno", "luce", "oscurita"}
 
 # Progressione SENZA TETTO a soglie. Ogni soglia raggiunta dà:
 #   - un'etichetta di maestria
@@ -93,6 +94,9 @@ DAO_STAT = {
     "arco": "attack", "pugno": "attack", "tempo": "attack",
     "bastone": "defense", "destino": "defense", "spazio": "defense",
     "anima": "spirit",
+    # elementi: offensivi (fuoco/metallo/luce/oscurità/vento), difensivi/vitali (acqua/terra/legno)
+    "fuoco": "attack", "metallo": "attack", "luce": "attack", "oscurita": "attack",
+    "vento": "attack", "acqua": "defense", "terra": "vitality", "legno": "vitality",
 }
 
 

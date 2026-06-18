@@ -44,10 +44,15 @@ def setup_class(conn: sqlite3.Connection, tick: int, rng: random.Random,
     loc = hq["home_location_id"] if hq else None
 
     mates = _spawn_classmates(conn, rng, faction_id, loc, tier, CLASS_SIZE)
+    srow = conn.execute("SELECT tier FROM factions WHERE id=?;", (faction_id,)).fetchone()
+    sect_tier = (srow["tier"] if srow and srow["tier"] else 1)
     for nid in mates:
+        # TALENTO del compagno: nelle sette alte i rivali sono molto più dotati,
+        # quindi crescono più in fretta giorno dopo giorno.
+        talent = max(10, min(100, 35 + sect_tier * 8 + rng.randint(-12, 18)))
         conn.execute(
-            "INSERT OR IGNORE INTO sect_cohort (player_id, npc_id, faction_id, class_tier) "
-            "VALUES (?, ?, ?, ?);", (player_id, nid, faction_id, tier))
+            "INSERT OR IGNORE INTO sect_cohort (player_id, npc_id, faction_id, class_tier, talent) "
+            "VALUES (?, ?, ?, ?, ?);", (player_id, nid, faction_id, tier, talent))
 
     conn.execute("UPDATE sect_memberships SET class_tier=?, class_rank=NULL WHERE player_id=?;",
                  (tier, player_id))
@@ -149,64 +154,104 @@ def _run_tournament(conn, tick, rng, player_id, faction_id, kind, observer, obse
     cohort = [r["npc_id"] for r in conn.execute(
         "SELECT npc_id FROM sect_cohort WHERE player_id=? AND faction_id=?;",
         (player_id, faction_id)).fetchall()]
-    # solo compagni ancora vivi
     cohort = [n for n in cohort if conn.execute(
         "SELECT status FROM npcs WHERE id=?;", (n,)).fetchone()["status"] == "alive"]
 
+    # rating di torneo (con varianza: il favorito non vince sempre)
+    def rate(c):
+        return _rating(conn, c[0], c[1], rng)
     contenders = [("player", player_id)] + [("npc", n) for n in cohort]
-    scored = sorted(contenders, key=lambda c: _rating(conn, c[0], c[1], rng), reverse=True)
+    ratings = {c: rate(c) for c in contenders}
+    scored = sorted(contenders, key=lambda c: ratings[c], reverse=True)
     placement = {c: i + 1 for i, c in enumerate(scored)}
     player_rank = placement[("player", player_id)]
     total = len(scored)
 
-    # racconta gli incontri del giocatore contro ogni compagno
+    sect = conn.execute("SELECT name FROM factions WHERE id=?;", (faction_id,)).fetchone()["name"]
+    label = "Sfida di Classifica" if kind == "ranking_challenge" else "Torneo Mensile"
+
     from engine.systems import combat_narration as cn
-    match_lines = []
-    for n in cohort:
-        opp_name = conn.execute("SELECT name FROM npcs WHERE id=?;", (n,)).fetchone()["name"]
-        _, line = cn.match_line(conn, "Tu", opp_name, ("player", player_id), ("npc", n), rng)
-        match_lines.append("  " + line)
+    bar = "─" * 40
+    lines = [bar, f"⚔  {label.upper()} — {sect}", bar]
+
+    # gli incontri del GIOCATORE contro ogni compagno, raccontati
+    if cohort:
+        lines.append("I tuoi incontri:")
+        for n in cohort:
+            opp = conn.execute("SELECT name FROM npcs WHERE id=?;", (n,)).fetchone()["name"]
+            _, line = cn.match_line(conn, "Tu", opp, ("player", player_id), ("npc", n), rng)
+            lines.append(f"  • {line}")
+    # un paio di incontri fra rivali, per dare vita al tabellone
+    if len(cohort) >= 2:
+        a, b = rng.sample(cohort, 2)
+        na = conn.execute("SELECT name FROM npcs WHERE id=?;", (a,)).fetchone()["name"]
+        nb = conn.execute("SELECT name FROM npcs WHERE id=?;", (b,)).fetchone()["name"]
+        win = na if ratings[("npc", a)] >= ratings[("npc", b)] else nb
+        lose = nb if win == na else na
+        lines.append(f"  • Sugli altri tatami: {win} supera {lose}.")
+
+    # CLASSIFICA finale con premiazione
+    lines.append("Classifica finale:")
+    medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+    for c in scored:
+        pos = placement[c]
+        who = "Tu" if c == ("player", player_id) else conn.execute(
+            "SELECT name FROM npcs WHERE id=?;", (c[1],)).fetchone()["name"]
+        mark = medals.get(pos, f"{pos}°")
+        here = "  ◀ TU" if c == ("player", player_id) else ""
+        lines.append(f"  {mark} {who}{here}")
 
     conn.execute("UPDATE sect_memberships SET class_rank=? WHERE player_id=?;",
                  (player_rank, player_id))
     stones = REWARDS.get(player_rank, 10)
-    from engine.systems import sects
+    from engine.systems import sects, reputation
     sects.grant_resource(conn, "pietre_spirituali", stones, player_id)
-
-    # gloria pubblica: il piazzamento accresce la fama (reputazione sociale)
-    from engine.systems import reputation
     fame_gain = {1: 30, 2: 15, 3: 6}.get(player_rank, 0)
     if fame_gain:
         reputation.adjust(conn, player_id, fame=fame_gain)
-
-    sect = conn.execute("SELECT name FROM factions WHERE id=?;", (faction_id,)).fetchone()["name"]
-    label = "Sfida di Classifica" if kind == "ranking_challenge" else "Torneo Mensile"
     ordinal = {1: "1°", 2: "2°", 3: "3°", 4: "4°"}.get(player_rank, f"{player_rank}°")
-    summary = (f"{label} di {sect}: ti classifichi {ordinal} su {total}. "
-               f"Ricevi {stones} pietre spirituali.")
-    detail = summary + ("\n" + "\n".join(match_lines) if match_lines else "")
+    award = f"Premio: +{stones} pietre spirituali"
+    if fame_gain:
+        award += f", +{fame_gain} fama"
+    lines.append(f"Ti classifichi {ordinal} su {total}. {award}.")
+    if player_rank == 1:
+        lines.append("Sei salito sul gradino più alto: la tua setta ti acclama.")
+        promo = sects.promote_rank(conn, player_id)
+        if promo and promo["promoted"]:
+            lines.append(f"PROMOZIONE: sei ora {promo['rank']} della setta.")
+            if promo["top"]:
+                lines.append("Hai raggiunto la categoria più alta: puoi guidare una RAZZIA "
+                             "contro una setta rivale ('raid' alla sua sede).")
+    lines.append(bar)
+    report = "\n".join(lines)
 
+    # SEMPRE visibile: in coda (mostrato dal loop) e nelle osservazioni immediate
+    from engine.systems import reports
+    reports.push(conn, player_id, tick, report)
+    if observations is not None:
+        observations.append(report)
+
+    summary = f"{label} di {sect}: ti classifichi {ordinal} su {total} (+{stones} pietre)."
     loc = conn.execute("SELECT location_id FROM players WHERE id=?;", (player_id,)).fetchone()["location_id"]
     ev.log_event(
         conn, event_type="sect_tournament", tick=tick, location_id=loc,
-        title=f"{label} — {sect}",
-        summary=summary,
+        title=f"{label} — {sect}", summary=summary,
         participants=[ev.Participant("player", player_id, "competitor")]
                      + [ev.Participant("npc", n, "competitor") for n in cohort],
         consequences=[ev.Consequence("player", player_id, "class_rank",
                                      f"piazzamento {player_rank}/{total}",
                                      visibility="public", resolve_tick=tick)],
     )
-    if observations is not None:
-        observations.append(detail)
 
-    # vincere il torneo richiama i 7 rappresentanti delle sette superiori
+    # vincere il torneo richiama i rappresentanti delle sette superiori
     if player_rank == 1:
         invs = sects.generate_invitations(conn, tick, rng, player_id)
-        if invs and observations is not None:
-            observations.append(
-                "I tuoi exploit hanno richiamato i RAPPRESENTANTI di sette superiori: "
-                "usa 'invitations' per vederli e 'accept <numero>' per ascendere.")
+        if invs:
+            note = ("I tuoi exploit hanno richiamato i RAPPRESENTANTI di sette superiori: "
+                    "usa 'invitations' per vederli e 'accept <numero>' per ascendere.")
+            reports.push(conn, player_id, tick, note)
+            if observations is not None:
+                observations.append(note)
 
 
 # ---------- promozione di classe ----------
@@ -238,3 +283,45 @@ def classmates(conn, player_id=1) -> list[sqlite3.Row]:
         "SELECT n.id, n.name FROM sect_cohort c JOIN npcs n ON n.id=c.npc_id "
         "WHERE c.player_id=? AND n.status='alive';", (player_id,)
     ).fetchall()
+
+
+def daily_cohort_growth(conn, rng, player_id=1) -> int:
+    """Ogni giorno i compagni di classe COLTIVANO in base al loro talento: i più dotati
+    (tipici delle sette alte) migliorano in fretta, i mediocri lentamente. Ritorna quanti
+    hanno fatto un balzo notevole."""
+    rows = conn.execute(
+        "SELECT c.npc_id, c.talent FROM sect_cohort c JOIN npcs n ON n.id=c.npc_id "
+        "WHERE c.player_id=? AND n.status='alive';", (player_id,)).fetchall()
+    leaps = 0
+    for r in rows:
+        talent = r["talent"] or 50
+        nid = r["npc_id"]
+        # progresso giornaliero ~ talento; ogni tanto avanzano di strato
+        gain = (talent / 100.0) * rng.uniform(0.08, 0.22)
+        rec = conn.execute(
+            "SELECT id, progress, stage, qi_level, body_level, soul_level, dao_understanding "
+            "FROM cultivation_records WHERE character_type='npc' AND character_id=?;",
+            (nid,)).fetchone()
+        if rec is None:
+            continue
+        prog = (rec["progress"] or 0) + gain
+        stage = rec["stage"] or 1
+        leveled = False
+        while prog >= 1.0 and stage < 10:
+            prog -= 1.0
+            stage += 1
+            leveled = True
+        # i livelli salgono col talento (più talento = crescita più marcata)
+        bump = max(1, int(talent / 25))
+        conn.execute(
+            "UPDATE cultivation_records SET progress=?, stage=?, "
+            "qi_level=qi_level+?, body_level=body_level+?, soul_level=soul_level+?, "
+            "dao_understanding=dao_understanding+? WHERE id=?;",
+            (min(0.99, prog), stage, bump, bump, bump, max(1, bump // 2), rec["id"]))
+        # affinano anche il loro Dao
+        conn.execute(
+            "UPDATE character_daos SET comprehension=comprehension+? "
+            "WHERE character_type='npc' AND character_id=?;", (bump, nid))
+        if leveled:
+            leaps += 1
+    return leaps

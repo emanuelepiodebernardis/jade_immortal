@@ -84,3 +84,112 @@ def boon_list(conn: sqlite3.Connection, player_id: int = 1) -> list[str]:
         (player_id,)).fetchall()
     return [f"{BOONS[r['boon_key']][0]} (liv. {r['level']})"
             for r in rows if r["boon_key"] in BOONS]
+
+
+# ============================================================
+# TRIBOLAZIONE DIVINA — il prezzo della sfida al Cielo (heaven_defiance)
+# ------------------------------------------------------------
+# Quando padroneggi Spazio/Tempo/Destino il Cielo scaglia il castigo. Chi ha
+# affinità col FULMINE lo doma: ogni folgore assorbita dona benedizioni e, soprattutto,
+# RISVEGLIA poteri SPAZIALI; e l'intera prova PURIFICA l'Abisso, azzerando la corruzione.
+# Chi non regge resta scottato (ferite + arretramento), ma — di norma — non muore.
+# ============================================================
+
+def _ensure_dao(conn, dao_key, player_id) -> None:
+    row = conn.execute(
+        "SELECT 1 FROM character_daos WHERE character_type='player' AND character_id=? "
+        "AND dao_key=?;", (player_id, dao_key)).fetchone()
+    if row is None:
+        # affinità di base se il Dao non era nemmeno latente
+        conn.execute(
+            "INSERT INTO character_daos (character_type, character_id, dao_key, affinity, "
+            "comprehension, practiced) VALUES ('player', ?, ?, 60, 0, 1);",
+            (player_id, dao_key))
+    else:
+        conn.execute(
+            "UPDATE character_daos SET practiced=1 WHERE character_type='player' "
+            "AND character_id=? AND dao_key=?;", (player_id, dao_key))
+
+
+def _raise_space(conn, amount, player_id) -> int:
+    _ensure_dao(conn, "spazio", player_id)
+    conn.execute(
+        "UPDATE character_daos SET comprehension=comprehension+? "
+        "WHERE character_type='player' AND character_id=? AND dao_key='spazio';",
+        (amount, player_id))
+    r = conn.execute(
+        "SELECT comprehension FROM character_daos WHERE character_type='player' "
+        "AND character_id=? AND dao_key='spazio';", (player_id,)).fetchone()
+    return r["comprehension"] if r else amount
+
+
+def resolve_tribulation(conn: sqlite3.Connection, tick: int, rng: random.Random,
+                        power: int, player_id: int = 1) -> dict:
+    """Affronta una tribolazione divina di potenza `power`. Ritorna un esito narrativo."""
+    from engine.simulation import combat
+    from engine.systems import dao_powers, character
+    cp = combat.combat_power(conn, "player", player_id)
+    fulmine = _fulmine_comp(conn, player_id)
+    resist = fulmine_resistance(conn, player_id) + cp["defense"] * 0.5 + cp["vitality"] * 0.3
+    bolts = max(1, power // 25)
+    per_bolt = power / bolts
+    absorbed = 0
+    lines = []
+    boons = []
+    for _ in range(bolts):
+        if resist * rng.uniform(0.75, 1.25) >= per_bolt:
+            absorbed += 1
+            if fulmine > 0:
+                boons.append(grant_boon(conn, rng, player_id))   # il Fulmine ti appartiene
+    survived = absorbed >= (bolts + 1) // 2          # reggi almeno metà delle folgori
+
+    head = (f"⚡ TRIBOLAZIONE DIVINA (potenza {power}): {bolts} folgori si abbattono su di te. "
+            f"Ne assorbi {absorbed}.")
+    lines.append(head)
+
+    if survived:
+        space_line = ""
+        if fulmine > 0:
+            # affinità col Fulmine → la folgore RISVEGLIA poteri SPAZIALI
+            gain = 8 + power // 20
+            newc = _raise_space(conn, gain, player_id)
+            space_line = (f" Le folgori risvegliano in te il Dao dello Spazio "
+                          f"(+{gain}, ora comprensione {newc}).")
+        # PURIFICA l'Abisso: la corruzione da assorbimento torna a zero
+        prof = character.get_profile(conn, "player", player_id)
+        had_residue = (prof["soul_residue"] or 0) if prof else 0
+        conn.execute(
+            "UPDATE character_profiles SET soul_residue=0 "
+            "WHERE character_type='player' AND character_id=?;", (player_id,))
+        purge = (" Il tuono incenerisce la corruzione dell'Abisso: la tua anima torna limpida."
+                 if had_residue else "")
+        if boons:
+            lines.append("Folgori domate → benedizioni: " + ", ".join(boons) + ".")
+        lines.append("Hai DOMATO la tribolazione." + space_line + purge)
+        conn.execute(
+            "UPDATE character_profiles SET last_tribulation_defiance=? "
+            "WHERE character_type='player' AND character_id=?;",
+            (dao_powers.heaven_defiance(conn, player_id), player_id))
+        return {"status": "survived", "absorbed": absorbed, "bolts": bolts,
+                "boons": boons, "purified": bool(had_residue), "lines": lines}
+
+    # non hai retto: ferite + arretramento della coltivazione (ma niente morte di norma)
+    severity = max(2, min(10, int((per_bolt - resist) / max(1.0, per_bolt) * 10) + 3))
+    heal_tick = tick + severity * 15
+    conn.execute(
+        "INSERT INTO injuries (character_type, character_id, severity, description, "
+        "inflicted_tick, healed, heal_tick) VALUES ('player', ?, ?, ?, ?, 0, ?);",
+        (player_id, severity, "ustioni della tribolazione", tick, heal_tick))
+    conn.execute(
+        "UPDATE cultivation_records SET progress=MAX(0, progress-0.4) "
+        "WHERE character_type='player' AND character_id=?;", (player_id,))
+    if boons:
+        lines.append("Folgori parzialmente domate → benedizioni: " + ", ".join(boons) + ".")
+    lines.append(f"Il castigo ti travolge: ustioni gravi (gravità {severity}) e coltivazione "
+                 f"arretrata. Sopravvivi, ma il Cielo ti ha segnato.")
+    conn.execute(
+        "UPDATE character_profiles SET last_tribulation_defiance=? "
+        "WHERE character_type='player' AND character_id=?;",
+        (dao_powers.heaven_defiance(conn, player_id), player_id))
+    return {"status": "scorched", "absorbed": absorbed, "bolts": bolts,
+            "boons": boons, "severity": severity, "lines": lines}

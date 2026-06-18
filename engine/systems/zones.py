@@ -114,6 +114,20 @@ def _spawn_classed_npc(conn, rng, loc, klass, rating, tick) -> int:
     return nid
 
 
+_ZONE_ELEMENT_POOL = ["fuoco", "acqua", "terra", "vento", "metallo", "legno",
+                      "spada", "corpo", "fulmine", "anima", "luce", "oscurita"]
+
+
+def _zone_element(conn, location_id) -> str:
+    """Elemento affine della zona: quello della setta che vi caccia, o uno stabile per zona."""
+    r = conn.execute(
+        "SELECT element FROM factions WHERE hunt_zone_id=? AND element IS NOT NULL LIMIT 1;",
+        (location_id,)).fetchone()
+    if r and r["element"]:
+        return r["element"]
+    return _ZONE_ELEMENT_POOL[location_id % len(_ZONE_ELEMENT_POOL)]
+
+
 def populate_zone(conn, rng, location_id, tick, force=False) -> int:
     """Popola una zona tematica con un mix di classi/creature al suo rating (se serve)."""
     z = zone_of(conn, location_id)
@@ -130,14 +144,19 @@ def populate_zone(conn, rng, location_id, tick, force=False) -> int:
     spawned = 0
     keys = list(weights.keys())
     wts = [weights[k] for k in keys]
+    elem = _zone_element(conn, location_id)
     for _ in range(rng.randint(3, 5)):
         pick = rng.choices(keys, weights=wts, k=1)[0]
         if pick in ("beast", "demon", "spirit"):
             from engine.generators import creature_gen
             tier = _rating_to_tier(rating)
-            creature_gen._spawn_one(conn, rng, pick, location_id, max(1, tier - 1), tier)
+            nid = creature_gen._spawn_one(conn, rng, pick, location_id, max(1, tier - 1), tier)
         else:
-            _spawn_classed_npc(conn, rng, location_id, pick, rating, tick)
+            nid = _spawn_classed_npc(conn, rng, location_id, pick, rating, tick)
+        # affinità di zona: la maggior parte degli abitanti porta il Dao della zona
+        if elem and nid and rng.random() < 0.7:
+            from engine.generators import dao_gen
+            dao_gen.bias_dominant(conn, "npc", nid, elem, rng)
         spawned += 1
     conn.execute("UPDATE zone_themes SET populated_tick=? WHERE location_id=?;",
                  (tick, location_id))

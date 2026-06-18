@@ -24,6 +24,42 @@ REALMS = [
     (8, "Immortale di Giada"),
 ]
 
+# Oltre l'Immortale di Giada la via NON finisce: i regni salgono all'infinito e i loro
+# nomi sono generati automaticamente (titoli ascendenti + numerale quando si esauriscono).
+_ASCENDING_REALMS = [
+    "Sovrano Celeste", "Re degli Immortali", "Monarca del Dao", "Divinità Nascente",
+    "Divinità Suprema", "Antico Celeste", "Signore dell'Eternità", "Dao Vivente",
+    "Origine del Cielo", "Vuoto Primordiale",
+]
+
+_ROMAN = [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+          (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
+
+
+def _roman(n: int) -> str:
+    out = ""
+    for val, sym in _ROMAN:
+        while n >= val:
+            out += sym
+            n -= val
+    return out
+
+
+def realm_name_for_tier(tier: int) -> str:
+    """Nome del regno per un tier qualsiasi: tabellato fino all'Immortale di Giada (8),
+    poi generato all'infinito."""
+    if tier <= len(REALMS):
+        return REALMS[tier - 1][1]
+    idx = tier - len(REALMS) - 1            # 0-based oltre i regni tabellati
+    cycle = idx // len(_ASCENDING_REALMS)
+    base = _ASCENDING_REALMS[idx % len(_ASCENDING_REALMS)]
+    return base if cycle == 0 else f"{base} {_roman(cycle + 1)}"
+
+
+def requirements_for(tier: int) -> tuple[int, int, int, int]:
+    return (tier * 100, tier * 80, tier * 80, tier * 60)
+
+
 # range di tier iniziale per archetipo
 _ARCH_REALM = {
     "patriarca": (3, 5),

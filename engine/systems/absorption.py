@@ -178,13 +178,20 @@ def _absorb_human(conn, player_id, target_id, freshness, ptier, ttier, clean,
     l'integrazione è imperfetta i guadagni sono ridotti e la corruzione maggiore, ma
     qualcosa ottieni sempre — il progresso si deve sentire."""
     mult = 1.0 if clean else 0.5
-    s = max(1, int(yield_pts * 0.6 * mult))
-    v = max(1, int(yield_pts * 0.5 * mult))
-    so = max(1, int(yield_pts * 0.7 * mult))
+    s = max(1, int(yield_pts * 0.5 * mult))
+    v = max(1, int(yield_pts * 0.45 * mult))
+    so = max(1, int(yield_pts * 0.6 * mult))
     _grow(conn, player_id, "grow_strength", s)
     _grow(conn, player_id, "grow_vitality", v)
     _grow(conn, player_id, "grow_soul", so)
     parts = [f"+{s} forza", f"+{v} vitalità", f"+{so} anima"]
+
+    # la SETTA in cui milito scala il Dao assorbito: più la setta è alta, più i suoi
+    # avversari custodiscono Dao profondi (1-2 nelle sette basse, 3-4+ in quelle alte).
+    from engine.systems import sects
+    m = sects.get_membership(conn, player_id)
+    sect_tier = (m["sect_tier"] if m else 1) or 1
+    dao_scale = 1.0 + 0.6 * (sect_tier - 1)
 
     dao_key, dao_gain = None, 0
     tdao = conn.execute(
@@ -194,9 +201,13 @@ def _absorb_human(conn, player_id, target_id, freshness, ptier, ttier, clean,
     if tdao and tdao["comprehension"]:
         # assorbi anche un Dao che NON possiedi: ne carpisci un frammento (radici aliene)
         p_aff = dao_gen.player_dao_affinity(conn, tdao["dao_key"], player_id)
-        aff_factor = max(0.4, p_aff / 100.0)      # anche senza affinità, un'eco passa
-        dao_gain = max(1, int(tdao["comprehension"] * 0.18 * freshness * aff_factor * mult
-                              / (1 + max(0, ptier - ttier) * 0.2)))
+        aff_factor = max(0.5, p_aff / 100.0)      # anche senza affinità, un'eco passa
+        # il Dao è ciò che gli umani lasciano di più prezioso: resa generosa, con un
+        # minimo legato al regno del bersaglio così non scende mai a briciole
+        floor = max(1, ttier - 1)
+        dao_gain = max(floor, int(tdao["comprehension"] * 0.30 * freshness * aff_factor
+                                  * mult * dao_scale
+                                  / (1 + max(0, ptier - ttier) * 0.15)))
         _raise_comprehension(conn, tdao["dao_key"], dao_gain, player_id)
         dao_key = tdao["dao_key"]
         parts.append(f"+{dao_gain} Dao «{dao_key}»")

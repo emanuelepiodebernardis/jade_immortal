@@ -188,7 +188,8 @@ CREATE TABLE IF NOT EXISTS cultivation_records (
     body_level INTEGER DEFAULT 0,
     soul_level INTEGER DEFAULT 0,
     dao_understanding INTEGER DEFAULT 0,
-    breakthrough_tick INTEGER
+    breakthrough_tick INTEGER,
+    bt_failures INTEGER DEFAULT 0    -- fallimenti di breakthrough accumulati (tempra il corpo)
 );
 
 -- ============================================================
@@ -441,6 +442,7 @@ CREATE TABLE IF NOT EXISTS character_profiles (
     aff_combat INTEGER DEFAULT 50,
     anomaly TEXT,                        -- es. 'abisso_divoratore' (categoria a sé)
     soul_residue INTEGER DEFAULT 0,      -- accumulo da assorbimenti = CORRUZIONE dell'Abisso
+    last_tribulation_defiance INTEGER DEFAULT 0,  -- defiance all'ultima tribolazione divina
     grow_strength INTEGER DEFAULT 0,     -- crescita fisica da assorbimento (bestie)
     grow_vitality INTEGER DEFAULT 0,
     grow_resistance INTEGER DEFAULT 0,
@@ -568,7 +570,31 @@ CREATE TABLE IF NOT EXISTS sect_cohort (
     npc_id INTEGER NOT NULL REFERENCES npcs(id),
     faction_id INTEGER NOT NULL,
     class_tier INTEGER NOT NULL,
+    talent INTEGER DEFAULT 50,        -- talento del compagno: regola la crescita giornaliera
     UNIQUE(player_id, npc_id)
+);
+
+-- coda di REPORT differiti (es. tornei): mostrati al giocatore comunque sia passato il tempo
+CREATE TABLE IF NOT EXISTS pending_reports (
+    id INTEGER PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    tick INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    shown INTEGER DEFAULT 0
+);
+
+-- offerte del MERCATO: generate per (giocatore, città, giorno), acquistabili con pietre
+CREATE TABLE IF NOT EXISTS market_offers (
+    id INTEGER PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    location_id INTEGER NOT NULL,
+    day INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    item_type TEXT NOT NULL,
+    rarity TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    effects TEXT NOT NULL,
+    sold INTEGER DEFAULT 0
 );
 
 -- eventi di setta programmati nel tempo (sfide, tornei)

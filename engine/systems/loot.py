@@ -163,6 +163,10 @@ def _weapon_drop(conn, rng, npc_id: int, tier: int):
     if wtype is None:
         wtype = rng.choice(list(weapons.WEAPONS.keys()))
     rarity = _roll_rarity(rng, tier)
+    # Dao del Destino: la fortuna può elevare la classe dell'arma trovata
+    from engine.systems import dao_powers
+    if rng.random() < dao_powers.fate_loot_bonus(conn, 1):
+        rarity = min(weapons.RARITY_MAX, rarity + 1)
     label = weapons.describe_weapon(wtype, tier, rarity)
     return (label, "arma", _rarity_for_tier(tier),
             f"Un'arma da {weapons.weapon_label(wtype).lower()} forgiata per il suo regno.",

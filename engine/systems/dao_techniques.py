@@ -43,6 +43,22 @@ _MAIN_NAMES = {
                  "Destino Celeste", "Sentenza", "Legge del Destino", "Dao del Destino"],
     "anima":    ["Eco", "Pressione Spirituale", "Intento dell'Anima", "Dominio dello Spirito",
                  "Anima Celeste", "Sovrano dello Spirito", "Legge dell'Anima", "Dao dell'Anima"],
+    "fuoco":    ["Fiammata", "Lingua di Fuoco", "Intento del Fuoco", "Inferno Vivente",
+                 "Fuoco Celeste", "Sole Caduto", "Legge del Fuoco", "Dao del Fuoco"],
+    "acqua":    ["Ondata", "Flusso", "Intento dell'Acqua", "Marea Inarrestabile",
+                 "Acqua Celeste", "Oceano Senza Sponde", "Legge dell'Acqua", "Dao dell'Acqua"],
+    "terra":    ["Zolla", "Muro di Roccia", "Intento della Terra", "Montagna Vivente",
+                 "Terra Celeste", "Continente Immoto", "Legge della Terra", "Dao della Terra"],
+    "vento":    ["Folata", "Lama di Vento", "Intento del Vento", "Tempesta Danzante",
+                 "Vento Celeste", "Uragano Eterno", "Legge del Vento", "Dao del Vento"],
+    "metallo":  ["Scheggia", "Lama d'Acciaio", "Intento del Metallo", "Mille Spade",
+                 "Metallo Celeste", "Distruzione Affilata", "Legge del Metallo", "Dao del Metallo"],
+    "legno":    ["Germoglio", "Radice Avvolgente", "Intento del Legno", "Foresta Vivente",
+                 "Legno Celeste", "Albero del Mondo", "Legge del Legno", "Dao del Legno"],
+    "luce":     ["Bagliore", "Raggio", "Intento della Luce", "Aurora Folgorante",
+                 "Luce Celeste", "Alba della Creazione", "Legge della Luce", "Dao della Luce"],
+    "oscurita": ["Ombra", "Tenebra", "Intento dell'Oscurità", "Notte Divorante",
+                 "Oscurità Celeste", "Vuoto Senza Stelle", "Legge dell'Oscurità", "Dao dell'Oscurità"],
 }
 
 # Frase modificatrice quando un Dao è SECONDARIO.
@@ -51,6 +67,9 @@ _MODIFIERS = {
     "lancia": "Trafiggente", "arco": "Fulmineo", "pugno": "Frantumante",
     "bastone": "Inarrestabile", "corpo": "Corporeo", "tempo": "Istantaneo",
     "spazio": "Senza Distanza", "destino": "Ineluttabile", "anima": "Spirituale",
+    "fuoco": "Ardente", "acqua": "Travolgente", "terra": "Incrollabile",
+    "vento": "del Vento", "metallo": "d'Acciaio", "legno": "Vivente",
+    "luce": "Radiante", "oscurita": "Tenebroso",
 }
 
 _GRADE = ["", "iniziato", "adepto", "esperto", "maestro", "gran maestro", "dominatore", "legislatore"]
@@ -87,41 +106,98 @@ def _profile_mods(dao_key: str, idx: int, main_bonus: float, sec_bonus: float) -
     if dao_key == "fulmine":
         mods["attack_mult"] += 0.15
         mods["death_bonus"] = min(0.5, death + 0.08)
+    # elementi offensivi
+    if dao_key in ("fuoco", "luce", "metallo", "oscurita", "vento"):
+        mods["attack_mult"] += 0.10
+        if dao_key in ("metallo", "oscurita"):
+            mods["pierce"] = max(mods.get("pierce", 0.0), min(0.6, 0.07 * idx))
+        if dao_key in ("fuoco", "luce"):
+            mods["death_bonus"] = min(0.55, death + 0.06)
+        if dao_key == "vento":
+            mods["extra_strikes"] = mods.get("extra_strikes", 0) + (1 if idx >= 4 else 0)
+    # elementi difensivi/vitali
+    if dao_key in ("acqua", "terra", "legno"):
+        mods["taken_mult"] = min(mods.get("taken_mult", 1.0), max(0.45, 1.0 - 0.05 * idx))
     if idx >= 5 and "extra_strikes" not in mods:
         mods["extra_strikes"] = 1
     return mods
 
 
+def _secondary_contribution(dao_key: str, idx: int) -> dict:
+    """Quanto un Dao SECONDARIO aggiunge a una tecnica FUSA (additivo, scalato col Dao)."""
+    c = {"attack_mult": 0.05 + 0.02 * idx, "pierce": 0.0, "extra_strikes": 0,
+         "death_bonus": 0.0, "taken_mult": 0.0}
+    if dao_key in ("spada", "lancia", "arco", "metallo", "oscurita"):
+        c["pierce"] += min(0.4, 0.05 * idx)
+    if dao_key in ("sciabola", "pugno", "vento") and idx >= 4:
+        c["extra_strikes"] += 1
+    if dao_key in ("fulmine", "fuoco", "luce"):
+        c["death_bonus"] += min(0.2, 0.04 * idx)
+    if dao_key in ("corpo", "bastone", "acqua", "terra", "legno"):
+        c["taken_mult"] += min(0.25, 0.04 * idx)
+    return c
+
+
 def dao_techniques(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
-    """Tecniche Dao attualmente possedute dal giocatore (>= soglia 10 in un Dao).
-    Una tecnica-firma per Dao, che evolve di nome e potenza; il Dao secondario la modifica."""
+    """Tecniche Dao del giocatore. La tecnica DOMINANTE è una FUSIONE: ogni Dao che supera
+    la soglia (>=10) vi si unisce, aggiungendo nome ed effetto e rendendola più forte (3,
+    4, … Dao). Gli altri Dao mantengono la propria tecnica singola."""
     rows = conn.execute(
         "SELECT dao_key, comprehension FROM character_daos "
         "WHERE character_type='player' AND character_id=? AND comprehension>=10 "
         "ORDER BY comprehension DESC;", (player_id,)).fetchall()
     if not rows:
         return []
+    qualifying = [(r["dao_key"], r["comprehension"] or 0) for r in rows]
+    main_key, main_comp = qualifying[0]
+    main_idx = dt._tier_index(main_comp)
+    secondaries = [(k, c) for k, c in qualifying[1:]]
+
     out: list[dict] = []
-    for r in rows:
-        main = r["dao_key"]
-        comp = r["comprehension"] or 0
-        idx = dt._tier_index(comp)            # 1..7 (>=10)
-        # Dao secondario = il più alto OltreA questo, con una frase modificatrice
-        sec = next((s for s in rows if s["dao_key"] != main
-                    and s["dao_key"] in _MODIFIERS and (s["comprehension"] or 0) >= 10), None)
-        sec_key = sec["dao_key"] if sec else None
-        sec_comp = (sec["comprehension"] or 0) if sec else 0
-        name = _main_name(main, idx)
-        if sec_key:
-            name = f"{name} {_MODIFIERS[sec_key]}"
-        mods = _profile_mods(main, idx, dt.dao_combat_bonus(comp), dt.dao_combat_bonus(sec_comp))
-        spirit_cost = 18 + idx * 9 + (8 if sec_key else 0)
+
+    # ---- TECNICA FUSA (dominante + tutti i secondari) ----
+    sec_bonus0 = dt.dao_combat_bonus(secondaries[0][1]) if secondaries else 0.0
+    mods = dict(_profile_mods(main_key, main_idx,
+                              dt.dao_combat_bonus(main_comp), sec_bonus0))
+    mod_names = []
+    for k, c in secondaries:
+        contr = _secondary_contribution(k, dt._tier_index(c))
+        mods["attack_mult"] = mods.get("attack_mult", 1.0) + contr["attack_mult"]
+        if contr["pierce"]:
+            mods["pierce"] = min(0.9, mods.get("pierce", 0.0) + contr["pierce"])
+        if contr["extra_strikes"]:
+            mods["extra_strikes"] = mods.get("extra_strikes", 0) + contr["extra_strikes"]
+        if contr["death_bonus"]:
+            mods["death_bonus"] = min(0.7, mods.get("death_bonus", 0.0) + contr["death_bonus"])
+        if contr["taken_mult"]:
+            mods["taken_mult"] = max(0.3, mods.get("taken_mult", 1.0) - contr["taken_mult"])
+        if k in _MODIFIERS:
+            mod_names.append(_MODIFIERS[k])
+    name = _main_name(main_key, main_idx)
+    if mod_names:
+        name = name + " " + " ".join(mod_names[:3]) + (" …" if len(mod_names) > 3 else "")
+    fused_count = 1 + len(secondaries)
+    spirit_cost = 18 + main_idx * 9 + 6 * len(secondaries)
+    out.append({
+        "key": f"dao_{main_key}", "name": name, "cooldown": 2,
+        "spirit_cost": spirit_cost, "qi_cost": 0, "mods": mods,
+        "desc": (f"tecnica FUSA di {fused_count} Dao (affatica lo Spirito)"
+                 if fused_count > 1 else "tecnica del Dao (affatica lo Spirito)"),
+        "source": "dao", "fuel": "spirit", "main": main_key,
+        "mod": secondaries[0][0] if secondaries else None,
+        "fused": [main_key] + [k for k, _ in secondaries],
+        "grade": _GRADE[min(main_idx, 7)]})
+
+    # ---- tecniche SINGOLE dei Dao secondari (varietà) ----
+    for k, c in secondaries:
+        idx = dt._tier_index(c)
         out.append({
-            "key": f"dao_{main}", "name": name, "cooldown": 2,
-            "spirit_cost": spirit_cost, "qi_cost": 0, "mods": mods,
+            "key": f"dao_{k}", "name": _main_name(k, idx), "cooldown": 2,
+            "spirit_cost": 18 + idx * 9, "qi_cost": 0,
+            "mods": _profile_mods(k, idx, dt.dao_combat_bonus(c), 0.0),
             "desc": "tecnica del Dao (affatica lo Spirito)", "source": "dao",
-            "fuel": "spirit", "main": main, "mod": sec_key,
-            "grade": _GRADE[min(idx, 7)]})
+            "fuel": "spirit", "main": k, "mod": None,
+            "fused": [k], "grade": _GRADE[min(idx, 7)]})
     return out
 
 
@@ -129,7 +205,10 @@ def technique_list(conn: sqlite3.Connection, player_id: int = 1) -> list[str]:
     techs = dao_techniques(conn, player_id)
     lines = []
     for t in techs:
-        mod = f" + {_dao_label(t['mod'])}" if t["mod"] else ""
-        lines.append(f"{t['name']} [{_dao_label(t['main'])}{mod}] "
-                     f"— costa {t['spirit_cost']} Spirito")
+        fused = t.get("fused", [t["main"]])
+        if len(fused) > 1:
+            daos = " + ".join(_dao_label(k) for k in fused)
+            lines.append(f"{t['name']} [FUSIONE: {daos}] — costa {t['spirit_cost']} Spirito")
+        else:
+            lines.append(f"{t['name']} [{_dao_label(t['main'])}] — costa {t['spirit_cost']} Spirito")
     return lines
