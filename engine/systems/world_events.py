@@ -21,8 +21,17 @@ SPAWN_INTERVAL = 48          # finestra per una possibile nuova invasione (~2 gi
 SPAWN_CHANCE = 0.5
 DURATION = 36                # tick a disposizione per difendere prima della scadenza
 
-KIND_LABEL = {"beast_tide": "Marea di Bestie", "demon_incursion": "Incursione Demoniaca"}
-_KIND_CREATURE = {"beast_tide": "beast", "demon_incursion": "demon"}
+REINFORCE_INTERVAL = 8       # ogni quanti tick possono arrivare rinforzi se non respingi
+REINFORCE_CAP = 9            # tetto di creature in campo contemporaneamente
+LOCAL_DEFENSE_CHANCE = 0.35  # prob. per tick che i difensori locali abbattano un invasore
+CHAMPION_FROM_THREAT = 4     # da questa minaccia in su l'ondata ha un CAMPIONE
+
+KIND_LABEL = {"beast_tide": "Marea di Bestie", "demon_incursion": "Incursione Demoniaca",
+              "spirit_incursion": "Marea Spettrale"}
+_KIND_CREATURE = {"beast_tide": "beast", "demon_incursion": "demon",
+                  "spirit_incursion": "spirit"}
+_CHAMPION_NAME = {"beast_tide": "Bestia Alfa", "demon_incursion": "Generale Demoniaco",
+                  "spirit_incursion": "Spettro Ancestrale"}
 
 
 def active_event(conn: sqlite3.Connection) -> sqlite3.Row | None:
@@ -47,18 +56,29 @@ def maybe_spawn(conn: sqlite3.Connection, tick: int, rng, player, observations) 
     from engine.simulation import cultivation
     pr = cultivation.realm_tier(conn, "player", player.id) if player else 1
     threat = max(2, min(8, pr + rng.choice([-1, 0, 1])))
-    kind = rng.choices(["beast_tide", "demon_incursion"], weights=[3, 2])[0]
+    kind = rng.choices(["beast_tide", "demon_incursion", "spirit_incursion"],
+                       weights=[3, 2, 2])[0]
     wave = rng.randint(3, 5)
     cur = conn.execute(
         "INSERT INTO world_events (kind, location_id, threat, status, started_tick, "
-        "deadline_tick, wave_total, wave_remaining) VALUES (?, ?, ?, 'active', ?, ?, ?, ?);",
-        (kind, loc, threat, tick, tick + DURATION, wave, wave))
+        "deadline_tick, wave_total, wave_remaining, reinforce_tick) "
+        "VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?);",
+        (kind, loc, threat, tick, tick + DURATION, wave, wave, tick))
     eid = cur.lastrowid
     from engine.generators import creature_gen
     ck = _KIND_CREATURE[kind]
     for _ in range(wave):
         nid = creature_gen._spawn_one(conn, rng, ck, loc, max(1, threat - 1), min(8, threat + 1))
         conn.execute("UPDATE npcs SET event_id=? WHERE id=?;", (eid, nid))
+    # le invasioni forti sono guidate da un CAMPIONE: più tosto, e va abbattuto per vincere
+    champion_note = ""
+    if threat >= CHAMPION_FROM_THREAT:
+        cid = creature_gen._spawn_one(conn, rng, ck, loc, threat, min(9, threat + 2))
+        cname = _CHAMPION_NAME[kind]
+        conn.execute("UPDATE npcs SET event_id=?, name=? WHERE id=?;", (eid, cname, cid))
+        conn.execute("UPDATE world_events SET champion_id=?, wave_total=wave_total+1, "
+                     "wave_remaining=wave_remaining+1 WHERE id=?;", (cid, eid))
+        champion_note = f" A guidarle c'è {cname}: abbattilo per spezzare l'ondata."
     lname = conn.execute("SELECT name FROM locations WHERE id=?;", (loc,)).fetchone()["name"]
     from engine.simulation import event_system as ev
     ev.log_event(
@@ -71,7 +91,7 @@ def maybe_spawn(conn: sqlite3.Connection, tick: int, rng, player, observations) 
                                      resolve_tick=tick)])
     if observations is not None:
         observations.append(
-            f"⚠ {KIND_LABEL[kind]} a {lname}! ({wave} creature, soglia {DURATION} tick). "
+            f"⚠ {KIND_LABEL[kind]} a {lname}! ({wave} creature, soglia {DURATION} tick).{champion_note} "
             f"Usa 'events' per i dettagli; raggiungi il luogo e 'defend' per difenderlo.")
     return 1
 
@@ -87,9 +107,12 @@ def on_creature_killed(conn: sqlite3.Connection, npc_id: int, tick: int, player)
         return None
     rem = max(0, (ev["wave_remaining"] or 0) - 1)
     conn.execute("UPDATE world_events SET wave_remaining=? WHERE id=?;", (rem, ev["id"]))
+    champ_line = ""
+    if ev["champion_id"] and npc_id == ev["champion_id"]:
+        champ_line = "Hai abbattuto il campione dell'ondata! Le creature vacillano. "
     if rem > 0:
-        return f"Invasore abbattuto: ne restano {rem}."
-    return _repel(conn, ev, tick, player)
+        return f"{champ_line}Invasore abbattuto: ne restano {rem}."
+    return champ_line + _repel(conn, ev, tick, player)
 
 
 def _repel(conn: sqlite3.Connection, ev: sqlite3.Row, tick: int, player) -> str:
@@ -98,11 +121,22 @@ def _repel(conn: sqlite3.Connection, ev: sqlite3.Row, tick: int, player) -> str:
     lname = conn.execute("SELECT name FROM locations WHERE id=?;",
                          (ev["location_id"],)).fetchone()["name"]
     threat = ev["threat"] or 2
-    fame = threat * 20
-    stones = threat * 50
-    from engine.systems import reputation, sects
+    waves = ev["wave_total"] or 4
+    had_champion = bool(ev["champion_id"])
+    fame = threat * 20 + waves * 3 + (threat * 10 if had_champion else 0)
+    stones = threat * 50 + waves * 8 + (threat * 25 if had_champion else 0)
+    from engine.systems import reputation, sects, items
     reputation.adjust(conn, player.id, fame=fame)
     sects.grant_resource(conn, "pietre_spirituali", stones, player.id)
+    # i grandi assalti lasciano un bottino: un manuale o un tesoro per il difensore
+    loot_line = ""
+    if had_champion:
+        iid = items.create_item(
+            conn, f"Trofeo di {lname}", "tesoro", "prezioso",
+            "Ricompensa per aver salvato un insediamento.",
+            {"grow_strength": threat * 2, "grow_vitality": threat * 2, "stones": threat * 10})
+        items.grant(conn, "player", player.id, iid, 1)
+        loot_line = f" Ricevi un «Trofeo di {lname}» (nello zaino)."
     from engine.simulation import event_system as ev2
     ev2.log_event(
         conn, event_type="world_event_repelled", tick=tick, location_id=ev["location_id"],
@@ -114,7 +148,7 @@ def _repel(conn: sqlite3.Connection, ev: sqlite3.Row, tick: int, player) -> str:
                                       f"Difensore di {lname}", visibility="public",
                                       resolve_tick=tick)])
     return (f"★ Hai respinto la {KIND_LABEL[ev['kind']].lower()} su {lname}! "
-            f"La gente ti acclama. Fama +{fame}, +{stones} pietre spirituali.")
+            f"La gente ti acclama. Fama +{fame}, +{stones} pietre spirituali.{loot_line}")
 
 
 def resolve_overdue(conn: sqlite3.Connection, tick: int, rng, observations) -> int:
@@ -167,9 +201,77 @@ def resolve_overdue(conn: sqlite3.Connection, tick: int, rng, observations) -> i
     return 1
 
 
+def _alive_invaders(conn, eid, exclude_champion=None):
+    q = "SELECT id FROM npcs WHERE event_id=? AND status='alive'"
+    params = [eid]
+    if exclude_champion:
+        q += " AND id<>?"
+        params.append(exclude_champion)
+    return [r["id"] for r in conn.execute(q + ";", params).fetchall()]
+
+
+def escalate(conn: sqlite3.Connection, tick: int, rng, observations) -> int:
+    """Dà VITA all'invasione attiva: se tardi arrivano RINFORZI, e intanto i DIFENSORI
+    locali combattono per conto loro (ma non riescono ad abbattere il campione)."""
+    ev = active_event(conn)
+    if not ev or ev["status"] != "active":
+        return 0
+    loc = ev["location_id"]
+    lname = conn.execute("SELECT name FROM locations WHERE id=?;", (loc,)).fetchone()["name"]
+    n = 0
+
+    # 1) RINFORZI: a intervalli, se non hai ancora respinto, l'ondata si ingrossa
+    if tick - (ev["reinforce_tick"] or ev["started_tick"]) >= REINFORCE_INTERVAL:
+        alive = len(_alive_invaders(conn, ev["id"]))
+        if alive and alive < REINFORCE_CAP:
+            from engine.generators import creature_gen
+            ck = _KIND_CREATURE[ev["kind"]]
+            threat = ev["threat"] or 2
+            add = rng.randint(1, 2)
+            for _ in range(add):
+                nid = creature_gen._spawn_one(conn, rng, ck, loc,
+                                              max(1, threat - 1), min(8, threat + 1))
+                conn.execute("UPDATE npcs SET event_id=? WHERE id=?;", (ev["id"], nid))
+            conn.execute("UPDATE world_events SET wave_total=wave_total+?, "
+                         "wave_remaining=wave_remaining+? WHERE id=?;", (add, add, ev["id"]))
+            if observations is not None:
+                msg = (f"⚠ Rinforzi! Un'altra creatura si unisce all'assalto su {lname}."
+                       if add == 1 else
+                       f"⚠ Rinforzi! Altre {add} creature si uniscono all'assalto su {lname}.")
+                observations.append(msg)
+            n += 1
+        conn.execute("UPDATE world_events SET reinforce_tick=? WHERE id=?;", (tick, ev["id"]))
+
+    # 2) DIFENSORI LOCALI: il mondo reagisce: gli abitanti abbattono qualche invasore
+    #    (ma il CAMPIONE è troppo forte per loro: serve il giocatore)
+    if rng.random() < LOCAL_DEFENSE_CHANCE:
+        targets = _alive_invaders(conn, ev["id"], exclude_champion=ev["champion_id"])
+        if targets:
+            victim = rng.choice(targets)
+            conn.execute("UPDATE npcs SET status='dead', death_tick=? WHERE id=?;", (tick, victim))
+            rem = max(0, (ev["wave_remaining"] or 1) - 1)
+            conn.execute("UPDATE world_events SET wave_remaining=? WHERE id=?;", (rem, ev["id"]))
+            if observations is not None and rng.random() < 0.5:
+                observations.append(
+                    f"I difensori di {lname} resistono e abbattono un invasore "
+                    f"(ne restano {rem}).")
+            # se i locali ripuliscono tutto (senza campione), il luogo si salva da solo
+            still = _alive_invaders(conn, ev["id"])
+            if not still:
+                conn.execute("UPDATE world_events SET status='repelled', wave_remaining=0 "
+                             "WHERE id=?;", (ev["id"],))
+                if observations is not None:
+                    observations.append(
+                        f"✓ Senza il tuo aiuto, i difensori di {lname} hanno respinto l'ondata. "
+                        f"La gloria (e il bottino) va a loro.")
+            n += 1
+    return n
+
+
 def tick(conn: sqlite3.Connection, tick_no: int, rng, player, observations) -> int:
-    """Da chiamare nel world_tick: gestisce comparsa (a cadenza) e risoluzione scadute."""
+    """Da chiamare nel world_tick: gestisce comparsa, escalation e risoluzione scadute."""
     events = resolve_overdue(conn, tick_no, rng, observations)
+    events += escalate(conn, tick_no, rng, observations)
     if tick_no % SPAWN_INTERVAL == 0 and rng.random() < SPAWN_CHANCE:
         events += maybe_spawn(conn, tick_no, rng, player, observations)
     return events
@@ -184,6 +286,13 @@ def describe(conn: sqlite3.Connection, ev: sqlite3.Row, player_loc: int,
         (ev["id"],)).fetchone()["c"]
     lines = [f"{KIND_LABEL[ev['kind']]} a {lname} — minaccia di livello {ev['threat']}.",
              f"Creature ancora in campo: {remaining}."]
+    if ev["champion_id"]:
+        champ = conn.execute("SELECT name, status FROM npcs WHERE id=?;",
+                             (ev["champion_id"],)).fetchone()
+        if champ and champ["status"] == "alive":
+            lines.append(f"⚔ Campione in campo: {champ['name']} — abbattilo per spezzare l'ondata.")
+        else:
+            lines.append("Il campione dell'ondata è già caduto.")
     from engine.core import tick as tickmod
     now = tickmod.get_tick(conn)
     left = (ev["deadline_tick"] or 0) - now

@@ -655,7 +655,9 @@ CREATE TABLE IF NOT EXISTS world_events (
     started_tick INTEGER DEFAULT 0,
     deadline_tick INTEGER DEFAULT 0,
     wave_total INTEGER DEFAULT 0,
-    wave_remaining INTEGER DEFAULT 0
+    wave_remaining INTEGER DEFAULT 0,
+    champion_id INTEGER,                 -- creatura-campione che guida l'ondata (se presente)
+    reinforce_tick INTEGER DEFAULT 0     -- ultimo tick in cui sono arrivati rinforzi
 );
 
 

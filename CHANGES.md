@@ -270,3 +270,27 @@ Suite totale: **326 passati**, 1 rosso atteso (LLM).
 
 > Resta come polish futuro dare più "vita" alle invasioni mondiali (più varietà di ondate,
 > ricompense e reazioni del mondo), che oggi esistono ma sono essenziali.
+
+---
+
+## Aggiornamento 9 — Più vita alle invasioni mondiali
+
+Il sistema `world_events.py` era statico (una sola ondata fissa, due tipi, e se la ignoravi
+moriva gente e basta). Ora le invasioni sono VIVE:
+
+- **Terzo tipo: Marea Spettrale** (spiriti), oltre a Marea di Bestie e Incursione Demoniaca.
+- **Campione**: le invasioni forti (minaccia ≥4) sono guidate da un boss (Bestia Alfa /
+  Generale Demoniaco / Spettro Ancestrale), più tosto e con nome proprio. Abbatterlo è il
+  momento decisivo e dà ricompense extra.
+- **Rinforzi**: se tardi a difendere, ogni ~8 tick l'ondata si **ingrossa** (fino a un tetto),
+  con avviso. Ignorarla non è più gratis: peggiora.
+- **Difensori locali (il mondo reagisce)**: gli abitanti combattono da soli e abbattono
+  qualche invasore; se ripuliscono tutto **si salvano da soli** (gloria e bottino a loro!).
+  Ma il **campione è troppo forte per loro**: le invasioni con boss richiedono il giocatore.
+- **Ricompense scalate + bottino**: fama e pietre crescono con minaccia, numero di ondate e
+  presenza del campione; respingere un'invasione con boss lascia un **Trofeo** (oggetto utile).
+- **Descrizioni**: avvisi di comparsa, rinforzi e campione più ricchi; `events` mostra il
+  campione in campo.
+
+Nuove colonne `champion_id`, `reinforce_tick` su `world_events` (con migrazione difensiva).
+Nuovi test: `tests/test_invasions.py` (6). Suite totale: **334 passati**, 1 rosso atteso (LLM).

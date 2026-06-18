@@ -52,6 +52,11 @@ def _migrate(conn) -> None:
                  "day INTEGER NOT NULL, name TEXT NOT NULL, item_type TEXT NOT NULL, "
                  "rarity TEXT NOT NULL, price INTEGER NOT NULL, effects TEXT NOT NULL, "
                  "sold INTEGER DEFAULT 0);")
+    wecols = {r["name"] for r in conn.execute("PRAGMA table_info(world_events);")}
+    if wecols and "champion_id" not in wecols:
+        conn.execute("ALTER TABLE world_events ADD COLUMN champion_id INTEGER;")
+    if wecols and "reinforce_tick" not in wecols:
+        conn.execute("ALTER TABLE world_events ADD COLUMN reinforce_tick INTEGER DEFAULT 0;")
     chcols = {r["name"] for r in conn.execute("PRAGMA table_info(sect_cohort);")}
     if chcols and "talent" not in chcols:
         conn.execute("ALTER TABLE sect_cohort ADD COLUMN talent INTEGER DEFAULT 50;")
