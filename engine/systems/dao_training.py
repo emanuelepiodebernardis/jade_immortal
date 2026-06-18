@@ -16,8 +16,27 @@ giorno scegli come spendere le poche sessioni utili.
 
 from __future__ import annotations
 
+import math
 import random
 import sqlite3
+
+
+def dao_power(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
+    """POTENZA dei Dao: cresce col NUMERO di Dai e (super-linearmente) col loro livello.
+    Conoscere più Dao rende molto più forti, soprattutto ad alta comprensione.
+    Tarata sugli esempi: 2 Dao liv.10 → ~100, 3 → ~150; 1 Dao liv.100 → ~1000,
+    2 → ~3000, 3 → ~6000 (formula: 2.5·media(L^1.3)·N^(0.4+0.6·log10 L))."""
+    levels = [r["comprehension"] for r in conn.execute(
+        "SELECT comprehension FROM character_daos WHERE character_type=? AND character_id=? "
+        "AND comprehension>0;", (ctype, cid)).fetchall()]
+    n = len(levels)
+    if n == 0:
+        return 0.0
+    avg_l = max(1.0, sum(levels) / n)
+    e = 0.4 + 0.6 * math.log10(avg_l)
+    base = 2.5 * (sum(l ** 1.3 for l in levels) / n)
+    return base * (n ** e)
+
 
 COMBAT_DAOS = {"corpo", "fulmine", "spada", "lancia", "sciabola", "arco", "pugno", "bastone",
                "fuoco", "acqua", "terra", "vento", "metallo", "legno", "luce", "oscurita"}

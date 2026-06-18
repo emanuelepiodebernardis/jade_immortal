@@ -128,6 +128,26 @@ def _zone_element(conn, location_id) -> str:
     return _ZONE_ELEMENT_POOL[location_id % len(_ZONE_ELEMENT_POOL)]
 
 
+ZONE_RESPAWN = 24    # tick (~1 giorno): dopo aver ripulito una zona, si ripopola nel tempo
+
+
+def maybe_respawn(conn, rng, location_id, tick) -> int:
+    """Ripopola una zona di caccia: la prima volta sempre, poi RIGENERA nel tempo se è
+    stata ripulita (così puoi tornare a cacciare e accumulare punti per la setta)."""
+    z = zone_of(conn, location_id)
+    if not z:
+        return 0
+    here = conn.execute(
+        "SELECT COUNT(*) c FROM npcs WHERE location_id=? AND status='alive' AND kind<>'human';",
+        (location_id,)).fetchone()["c"]
+    last = z["populated_tick"] if z["populated_tick"] is not None else -1
+    if last < 0:
+        return populate_zone(conn, rng, location_id, tick)
+    if here < 3 and (tick - last) >= ZONE_RESPAWN:
+        return populate_zone(conn, rng, location_id, tick, force=True)
+    return 0
+
+
 def populate_zone(conn, rng, location_id, tick, force=False) -> int:
     """Popola una zona tematica con un mix di classi/creature al suo rating (se serve)."""
     z = zone_of(conn, location_id)

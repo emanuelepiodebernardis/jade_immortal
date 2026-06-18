@@ -99,6 +99,9 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     flat = progression.growth_bonuses(conn, ctype, cid)
     result = {k: max(1.0, v * rf * keep * caf * daf * tf) + flat.get(k, 0.0)
               for k, v in base.items()}
+    # POTENZA DEI DAO: contributo principale alla forza offensiva, che cresce molto col
+    # numero di Dao padroneggiati e col loro livello (vale per giocatore e NPC).
+    result["attack"] += dao_training.dao_power(conn, ctype, cid) * keep
     # linea evolutiva dell'Abisso (solo giocatore): moltiplicatori per statistica
     if ctype == "player":
         from engine.systems import absorption, tribulation

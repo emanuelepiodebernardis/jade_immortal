@@ -43,7 +43,9 @@ HELP = """Comandi disponibili:
   examine <nome>                — esamini un NPC presente (archetipo, indole, rapporto)
   greet <nome>                  — saluti un NPC: prima conoscenza / migliora il rapporto
   attack <nome> [mossa]         — attacchi un NPC (puoi morire!); mossa attiva opzionale
-  attack all                    — attacchi tutte le creature selvagge presenti, in sequenza
+  attack all                    — attacchi TUTTI i nemici presenti (creature e umani), in sequenza
+  attack humans                 — attacchi solo gli avversari umani presenti
+  attack creatures              — attacchi solo le creature selvagge presenti
   moves                         — le tue mosse attive in combattimento (cooldown)
   absorb <nome>                 — (Abisso Divoratore) divori i resti di un caduto
   absorb all                    — divori in sequenza tutti i resti presenti
@@ -56,6 +58,9 @@ HELP = """Comandi disponibili:
   war                           — guerra tra sette in corso: fronte, punteggio, tempo
   spare <nome>                  — al fronte: sottometti e risparmia un nemico (onore)
   home                          — torni direttamente alla sede della tua setta
+  warzone                       — ti porti direttamente al fronte di guerra più vicino
+  raidtarget                    — ti porti alla sede di una setta rivale (poi 'raid')
+  invade                        — (rango alto) GUIDI la tua setta a conquistare la setta rivale qui
   rating                        — il tuo profilo di potenza (Qi/Corpo/Anima/Dao), classe e zona
   map                           — uscite della location corrente con destinazioni
   factions                      — elenco delle fazioni (influenza, territori)
@@ -213,9 +218,8 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import zones
     _z = zones.zone_of(conn, loc.id)
     if _z:
-        if _z["populated_tick"] < 0:
-            now = tick.get_tick(conn)
-            zones.populate_zone(conn, random.Random(loc.id * 131 + now), loc.id, now)
+        now = tick.get_tick(conn)
+        zones.maybe_respawn(conn, random.Random(loc.id * 131 + now), loc.id, now)
         lines.append(zones.describe(conn, loc.id))
     return "\n".join(lines)
 
@@ -456,8 +460,13 @@ def _parse_attack_arg(conn, player, arg):
 def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
     if not arg:
         return "Attaccare chi? Usa: attack <nome> [tecnica]  (oppure 'attack all' per le creature)"
-    if arg.strip().lower() in ("all", "tutti", "tutto", "tutte"):
+    a = arg.strip().lower()
+    if a in ("all", "tutti", "tutto", "tutte"):
         return _attack_all(conn, player)
+    if a in ("humans", "umani", "all humans", "tutti umani", "tutti gli umani"):
+        return _attack_all(conn, player, only="human")
+    if a in ("creatures", "creature", "mostri", "beasts", "all creatures"):
+        return _attack_all(conn, player, only="creature")
     npc, forced, target = _parse_attack_arg(conn, player, arg)
     if npc is None:
         hint = _target_elsewhere_hint(conn, player, target)
@@ -485,36 +494,53 @@ def _target_elsewhere_hint(conn, player, frag) -> str | None:
     return f"{row['name']} si trova a {lname}, ma non trovo una via diretta da qui."
 
 
-def _attack_all(conn: sqlite3.Connection, player: entities.Player) -> str:
-    """Attacca in sequenza tutte le CREATURE (bestie/demoni/spiriti) nel luogo."""
+def _attack_all(conn: sqlite3.Connection, player: entities.Player, only: str | None = None) -> str:
+    """Attacca in sequenza TUTTI i nemici presenti nel luogo.
+    only=None → tutti (creature + umani); 'human' → solo umani; 'creature' → solo creature."""
+    if only == "human":
+        kinds = "AND kind='human'"
+        none_msg = "Non c'è nessun avversario umano da attaccare qui."
+        head_what = "gli avversari umani presenti"
+    elif only == "creature":
+        kinds = "AND kind IN ('beast','demon','spirit')"
+        none_msg = "Non c'è nessuna creatura selvaggia da attaccare qui."
+        head_what = "le creature presenti"
+    else:
+        kinds = "AND kind IN ('beast','demon','spirit','human')"
+        none_msg = "Non c'è nessuno da attaccare qui."
+        head_what = "tutti i nemici presenti"
     rows = conn.execute(
-        "SELECT id, name FROM npcs WHERE location_id=? AND status='alive' "
-        "AND kind IN ('beast','demon','spirit') ORDER BY id;", (player.location_id,)).fetchall()
+        f"SELECT id, name FROM npcs WHERE location_id=? AND status='alive' {kinds} "
+        f"AND id<>? ORDER BY id;", (player.location_id, player.id)).fetchall()
     if not rows:
-        return "Non c'è nessuna creatura selvaggia da attaccare qui."
-    out = [f"Ti scagli contro tutte le creature presenti ({len(rows)})!"]
+        return none_msg
+    out = [f"Ti scagli contro {head_what} ({len(rows)})!"]
     killed = 0
+    loc0 = player.location_id
     for r in rows:
         p = entities.get_player(conn, player.id)
         if p.status != "alive":
             out.append("Cadi prima di finire: non puoi più combattere.")
             break
+        # il bersaglio potrebbe essersi spostato a causa dell'avanzamento del tempo:
+        # lo richiamo sul posto così lo scontro (e il suo bottino/resti) avviene QUI.
+        conn.execute("UPDATE npcs SET location_id=? WHERE id=? AND status='alive';",
+                     (loc0, r["id"]))
         npc = entities.get_npc(conn, r["id"])
-        if npc is None:
+        if npc is None or npc.status != "alive":
             continue
         res = _attack_auto(conn, p, npc, None)
-        # rileva l'uccisione in TUTTO il resoconto (le righe di bottino stanno in fondo)
         if ("hai ucciso" in res) or ("★" in res):
             killed += 1
         lines_r = [ln for ln in res.split("\n") if ln.strip()]
         out.append(f"  • {r['name']}: {lines_r[-1].strip() if lines_r else '...'}")
-    out.append(f"Creature abbattute: {killed}/{len(rows)}.")
+    out.append(f"Nemici abbattuti: {killed}/{len(rows)}.")
     from engine.systems import loot as _loot
-    drops = _loot.drops_in_location(conn, player.location_id)
+    drops = _loot.drops_in_location(conn, loc0)
     if drops:
         out.append("⚑ Bottino sul terreno: " + ", ".join(d["name"] for d in drops)
                    + ". Usa 'loot' per raccoglierlo.")
-    corpses = entities.dead_npcs_in_location(conn, player.location_id)
+    corpses = entities.dead_npcs_in_location(conn, loc0)
     if corpses:
         out.append("Resti a terra: " + ", ".join(c.name for c in corpses)
                    + ". Usa 'absorb all' per divorarli.")
@@ -1300,6 +1326,16 @@ def cmd_use_item(conn: sqlite3.Connection, player: entities.Player, frag: str) -
     if res["status"] == "not_found":
         return f"Non hai nessun oggetto simile a '{frag}' nello zaino. Usa 'inventory'."
     return f"Usi {res['name']}.\n" + "\n".join(f"  {ln}" for ln in res["lines"])
+
+
+def cmd_invade(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    """Guida la tua setta all'invasione della setta rivale con sede qui (richiede rango alto)."""
+    from engine.systems import sect_invasion
+    t = tick.get_tick(conn)
+    res = sect_invasion.lead_invasion(conn, t, random.Random(t * 53 + player.id), player)
+    if res["status"] in ("conquered", "repelled"):
+        world_tick.advance(conn, 2)        # un'invasione è un evento, il mondo gira
+    return "\n".join(res["lines"])
 
 
 def cmd_raid(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
@@ -2097,6 +2133,78 @@ def cmd_spare(conn: sqlite3.Connection, player: entities.Player, arg: str) -> st
     return out
 
 
+def _hop_distance(conn, start, goal) -> int | None:
+    from collections import deque
+    if start == goal:
+        return 0
+    seen = {start}
+    q = deque([(start, 0)])
+    while q:
+        cur, d = q.popleft()
+        for r in conn.execute(
+            "SELECT to_location_id FROM location_connections WHERE from_location_id=?;",
+            (cur,)).fetchall():
+            nxt = r["to_location_id"]
+            if nxt in seen:
+                continue
+            if nxt == goal:
+                return d + 1
+            seen.add(nxt)
+            q.append((nxt, d + 1))
+    return None
+
+
+def _travel_to(conn, player, dest, arrive_msg) -> str:
+    if dest == player.location_id:
+        return "Sei già qui.\n" + render_location(conn, player)
+    entities.move_player(conn, player.id, dest)
+    obs = world_tick.advance(conn, tick.cost_of("move"))
+    moved = entities.get_player(conn, player.id)
+    out = f"Tick {tick.get_tick(conn)} — {arrive_msg}\n" + render_location(conn, moved)
+    if obs:
+        out += "\nNel frattempo:\n" + _format_observations(obs)
+    return out
+
+
+def cmd_to_war(conn: sqlite3.Connection, player: entities.Player) -> str:
+    """Ti porta direttamente al fronte di guerra attivo più vicino."""
+    rows = conn.execute(
+        "SELECT location_id, COUNT(*) c FROM npcs WHERE war_id IS NOT NULL AND status='alive' "
+        "AND location_id IS NOT NULL GROUP BY location_id;").fetchall()
+    if not rows:
+        return ("Nessuna guerra di setta in corso al momento. "
+                "(Le guerre nascono tra sette rivali: controlla 'events'.)")
+    best, bestd = None, 1e9
+    for r in rows:
+        d = _hop_distance(conn, player.location_id, r["location_id"])
+        if d is not None and d < bestd:
+            bestd, best = d, r["location_id"]
+    if best is None:
+        best = rows[0]["location_id"]
+    return _travel_to(conn, player, best, "raggiungi il fronte di guerra. Usa 'attack all' o 'attack <nome>'.")
+
+
+def cmd_to_raid(conn: sqlite3.Connection, player: entities.Player) -> str:
+    """Ti porta direttamente alla sede di una setta rivale, pronta per il 'raid'."""
+    from engine.systems import sects
+    m = sects.get_membership(conn, player.id)
+    my_fac = m["faction_id"] if m else -1
+    rows = conn.execute(
+        "SELECT id, name, home_location_id FROM factions WHERE status='active' "
+        "AND home_location_id IS NOT NULL AND id<>?;", (my_fac,)).fetchall()
+    if not rows:
+        return "Non ci sono sette rivali con una sede raggiungibile."
+    best, bestd = None, 1e9
+    for r in rows:
+        d = _hop_distance(conn, player.location_id, r["home_location_id"])
+        if d is not None and d < bestd:
+            bestd, best = d, r
+    if best is None:
+        best = rows[0]
+    return _travel_to(conn, player, best["home_location_id"],
+                      f"raggiungi la sede di {best['name']}. Usa 'raid' per attaccarla.")
+
+
 def cmd_home(conn: sqlite3.Connection, player: entities.Player) -> str:
     """Torna direttamente alla sede della tua setta (evita di perderti)."""
     from engine.systems import sects
@@ -2160,6 +2268,10 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_spare(conn, player, arg)
     if cmd in ("home", "base", "casa", "torna"):
         return cmd_home(conn, player)
+    if cmd in ("warzone", "warfront", "fronte", "vaiguerra") or (cmd == "go" and arg.strip().lower() in ("war", "guerra")):
+        return cmd_to_war(conn, player)
+    if cmd in ("raidtarget", "gotoraid", "vairaid") or (cmd == "go" and arg.strip().lower() in ("raid", "razzia")):
+        return cmd_to_raid(conn, player)
     if cmd in ("rating", "potenza", "classe", "class_power"):
         return cmd_rating(conn, player)
     if cmd == "look":
@@ -2184,6 +2296,8 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_market(conn, player)
     if cmd in ("raid", "razzia", "saccheggia_setta"):
         return cmd_raid(conn, player, arg)
+    if cmd in ("invade", "invadi", "invasione", "conquista", "conquer"):
+        return cmd_invade(conn, player, arg)
     if cmd in ("buy", "compra", "acquista"):
         return cmd_buy(conn, player, arg)
     if cmd == "map":

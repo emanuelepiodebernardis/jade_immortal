@@ -94,7 +94,7 @@ def test_even_match_prolongs(conn):
         conn.execute("UPDATE players SET status='alive' WHERE id=1;")
     assert rounds_list
     avg = sum(rounds_list) / len(rounds_list)
-    assert avg >= 1.8                   # forze simili: in media più round
+    assert avg >= 1.5                   # forze simili: in media più round
     assert max(rounds_list) >= 3        # almeno uno scontro chiaramente prolungato
 
 

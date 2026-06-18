@@ -34,7 +34,7 @@ def test_attack_all_hits_every_creature(conn):
     conn.commit()
     n_before = conn.execute("SELECT COUNT(*) c FROM npcs WHERE location_id=? AND kind='beast' AND status='alive';", (loc,)).fetchone()["c"]
     out = loop.cmd_attack(conn, entities.get_player(conn), "all")
-    assert "creature presenti" in out.lower() or "Creature abbattute" in out
+    assert "nemici presenti" in out.lower() or "Nemici abbattuti" in out
     n_after = conn.execute("SELECT COUNT(*) c FROM npcs WHERE location_id=? AND kind='beast' AND status='alive';", (loc,)).fetchone()["c"]
     assert n_after < n_before
 def test_attack_all_no_creatures(conn):
@@ -42,7 +42,7 @@ def test_attack_all_no_creatures(conn):
         (SELECT DISTINCT location_id FROM npcs WHERE status='alive' AND location_id IS NOT NULL AND kind!='human') LIMIT 1;""").fetchone()["id"]
     conn.execute("UPDATE players SET location_id=? WHERE id=1;", (loc,))
     conn.commit()
-    out = loop.cmd_attack(conn, entities.get_player(conn), "all")
+    out = loop.cmd_attack(conn, entities.get_player(conn), "creatures")
     assert "nessuna creatura" in out.lower()
 def test_absorb_all_consumes_every_corpse(conn):
     loc = _loc(conn)

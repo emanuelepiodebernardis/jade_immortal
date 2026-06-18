@@ -53,6 +53,25 @@ def maybe_spawn(conn: sqlite3.Connection, tick: int, rng, player, observations) 
     if not locs:
         return 0
     loc = rng.choice(locs)
+    retaliation = False
+    # ESPANSIONE → RITORSIONE: più la tua setta conquista, più i nemici colpiscono i TUOI
+    # territori. Con probabilità crescente l'invasione bersaglia una tua roccaforte.
+    if player:
+        from engine.systems import sect_invasion, sects
+        nconq = sect_invasion.conquests(conn)
+        m = sects.get_membership(conn, player.id)
+        if m and nconq > 0 and rng.random() < min(0.75, 0.18 * nconq):
+            mine = [r["id"] for r in conn.execute(
+                "SELECT id FROM locations WHERE owner_faction_id=?;",
+                (m["faction_id"],)).fetchall()]
+            home = conn.execute("SELECT home_location_id FROM factions WHERE id=?;",
+                                (m["faction_id"],)).fetchone()
+            if home and home["home_location_id"]:
+                mine.append(home["home_location_id"])
+            mine = [x for x in mine if x in locs] or mine
+            if mine:
+                loc = rng.choice(mine)
+                retaliation = True
     from engine.simulation import cultivation
     pr = cultivation.realm_tier(conn, "player", player.id) if player else 1
     threat = max(2, min(8, pr + rng.choice([-1, 0, 1])))
@@ -90,8 +109,10 @@ def maybe_spawn(conn: sqlite3.Connection, tick: int, rng, player, observations) 
                                      f"{lname} è sotto attacco", visibility="public",
                                      resolve_tick=tick)])
     if observations is not None:
+        prefix = ("⚔ RITORSIONE! La tua espansione provoca una controffensiva: "
+                  if retaliation else "⚠ ")
         observations.append(
-            f"⚠ {KIND_LABEL[kind]} a {lname}! ({wave} creature, soglia {DURATION} tick).{champion_note} "
+            f"{prefix}{KIND_LABEL[kind]} a {lname}! ({wave} creature, soglia {DURATION} tick).{champion_note} "
             f"Usa 'events' per i dettagli; raggiungi il luogo e 'defend' per difenderlo.")
     return 1
 
@@ -274,6 +295,13 @@ def tick(conn: sqlite3.Connection, tick_no: int, rng, player, observations) -> i
     events += escalate(conn, tick_no, rng, observations)
     if tick_no % SPAWN_INTERVAL == 0 and rng.random() < SPAWN_CHANCE:
         events += maybe_spawn(conn, tick_no, rng, player, observations)
+    # più la tua setta si espande, più spesso sei sotto attacco (controffensive)
+    elif player is not None:
+        from engine.systems import sect_invasion
+        nconq = sect_invasion.conquests(conn)
+        if nconq > 0 and tick_no % (SPAWN_INTERVAL // 2) == 0 \
+                and rng.random() < min(0.5, 0.12 * nconq):
+            events += maybe_spawn(conn, tick_no, rng, player, observations)
     return events
 
 

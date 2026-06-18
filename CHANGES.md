@@ -294,3 +294,76 @@ moriva gente e basta). Ora le invasioni sono VIVE:
 
 Nuove colonne `champion_id`, `reinforce_tick` su `world_events` (con migrazione difensiva).
 Nuovi test: `tests/test_invasions.py` (6). Suite totale: **334 passati**, 1 rosso atteso (LLM).
+
+---
+
+## Aggiornamento 10 — Fix dal playtest (loot, attack all, assorbimento, potenza Dao, zone, viaggi)
+
+### Bug del loot dopo `attack all` (RISOLTO — causa trovata)
+Durante `attack all`, l'avanzamento del tempo tra un'uccisione e l'altra faceva **vagare le
+creature ancora vive** in location adiacenti: il loop continuava a colpirle e il loro
+bottino/resti cadevano dove si erano spostate, non dove stavi tu. Ora: il bottino delle tue
+uccisioni si deposita SEMPRE **dove sei tu**, e durante la sequenza i bersagli vengono
+**richiamati sul posto** (così anche i resti per `absorb all` restano raccoglibili).
+
+### `attack all` ora colpisce TUTTI + nuovi filtri
+- `attack all` attacca **creature E umani** presenti (prima solo creature).
+- `attack humans` → solo gli avversari umani; `attack creatures` → solo le creature.
+
+### Assorbimento più ricco
+- **Qi**: divorando un coltivatore ne assorbi il qi → avanza la tua coltivazione.
+- **Più Dao, vari**: prima prendevi solo il Dao più alto (quasi sempre «spada»); ora assorbi
+  un frammento dei **Dao principali** del bersaglio (fino a 3), quindi vari e in linea con chi
+  divori. Chi ha più Dao ti arricchisce di più Dao.
+
+### Potenza dei Dao (nuova formula, come da tua specifica)
+La forza ora cresce molto col **numero** di Dao e (super-linearmente) col loro **livello**:
+`2.5·media(L^1.3)·N^(0.4+0.6·log10 L)`. Tarata sui tuoi esempi: 2 Dao liv.10→~100, 3→~150;
+1 Dao liv.100→~1000, 2→~3000, 3→~6000. Vale per giocatore e NPC ed è il contributo principale
+all'attacco. (Conseguenza voluta: gli scontri pesano di più sull'attacco — i numeri di
+combattimento andranno ritarati col tuo feedback.)
+
+### Zone di caccia che si RIGENERANO
+Bug: una zona si popolava **una volta sola** e mai più. Ora dopo averla ripulita si
+**ripopola nel tempo** (cooldown ~1 giorno), così puoi tornare a cacciare e accumulare punti
+setta.
+
+### Tribolazione da ASSORBIMENTO + Colpi della Tribolazione
+Divorare troppi cadaveri (oltre una soglia) ti fa crescere troppo in fretta: il Cielo ti
+reputa una minaccia e scaglia una **tribolazione**. La domi in base al tuo **Dao del Fulmine**
+(più è alto, più potere assorbi) e, sopravvivendo, sblocchi la **«Folgore della Tribolazione»**,
+un colpo più potente del Fulmine base.
+
+### Comandi di viaggio diretto
+- `warzone` → ti porta al **fronte di guerra** attivo più vicino.
+- `raidtarget` → ti porta alla **sede di una setta rivale**, pronta per il `raid`.
+
+Nuovi test: `tests/test_playtest_fixes.py` (8). Suite totale: **342 passati**, 1 rosso atteso (LLM).
+
+---
+
+## Aggiornamento 11 — Invasioni guidate + conseguenze dell'espansione + nuovo README
+
+### Invasioni guidate dal giocatore (Punto 1) — `engine/systems/sect_invasion.py`
+Al **rango alto** di discepolo (Erede della Setta / Giovane Patriarca) sblocchi `invade`:
+- **guidi la tua setta** contro la sede di una setta rivale, con **alleati** che combattono
+  con te (più rango = più seguito);
+- affronti TU i pezzi grossi (patriarca/anziano), gli alleati travolgono il resto;
+- vincendo **CONQUISTI** la sede: l'influenza rivale crolla (a zero → setta *soggiogata*), la
+  sede passa sotto il controllo della tua setta (`owner_faction_id`), razzii pietre, un
+  **tesoro di guerra** e un **manuale** rubato, la tua setta si espande, +fama.
+- Gate sul rango con messaggio chiaro se non sei abbastanza in alto.
+
+### Espansione = ritorsione (Punto 2) — `world_events.py`
+Più la tua setta conquista, più i nemici colpiscono i **tuoi** territori:
+- le invasioni mondiali bersagliano con probabilità crescente le **tue roccaforti**
+  (location controllate dalla tua setta + la tua sede), con avviso «⚔ RITORSIONE!»;
+- aumenta anche la **frequenza** degli attacchi con il numero di conquiste.
+
+### Nuovo README
+`README.md` riscritto da zero per GitHub: panoramica, avvio, elenco completo delle feature
+(coltivazione infinita, Dao e fusione, Dao profondi + Heaven's Defiance, tribolazioni,
+Abisso, sette/tornei/mercato, guerra/razzie/invasioni guidate, invasioni mondiali, caccia
+territoriale), riferimento dei comandi, architettura, test e note di bilanciamento.
+
+Nuovi test: `tests/test_invasion_lead.py` (3). Suite totale: **345 passati**, 1 rosso atteso (LLM).

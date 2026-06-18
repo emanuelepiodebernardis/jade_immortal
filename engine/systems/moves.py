@@ -99,6 +99,21 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
                     "mods": mods, "desc": desc, "source": "abisso"})
 
     # TECNICHE DAO (Guerriero Dao): nascono dai Dao e affaticano lo Spirito, non il Qi
+    # COLPI DELLA TRIBOLAZIONE: sbloccati domando la tribolazione da assorbimento con
+    # affinità Fulmine. Contengono il potere del castigo: più forti del Fulmine base.
+    ts = conn.execute("SELECT value FROM game_state WHERE key='trib_strikes';").fetchone()
+    if ts and int(ts["value"]) > 0:
+        from engine.systems import dao_training as _dt
+        fidx = _dt._tier_index(int(ts["value"]))
+        out.append({
+            "key": "trib_strike", "name": "Folgore della Tribolazione",
+            "cooldown": 3, "qi_cost": 30 + fidx * 10, "spirit_cost": 0, "fuel": "qi",
+            "mods": {"attack_mult": 1.8 + 0.4 * fidx, "pierce": min(0.7, 0.1 * fidx),
+                     "death_bonus": min(0.6, 0.1 + 0.06 * fidx),
+                     "extra_strikes": 1 if fidx >= 4 else 0},
+            "desc": "colpo intriso del potere della tribolazione (più forte del Fulmine base)",
+            "source": "tribolazione"})
+
     from engine.systems import dao_techniques
     out.extend(dao_techniques.dao_techniques(conn, player_id))
 

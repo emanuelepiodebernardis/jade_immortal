@@ -119,7 +119,44 @@ def absorb(conn: sqlite3.Connection, tick: int, rng: random.Random,
     outcome["residue"] = new_residue
     outcome["kind"] = kind
     outcome["summary"] = summary
+    # TRIBOLAZIONE DA ASSORBIMENTO: divorare troppi cadaveri ti fa crescere troppo in fretta;
+    # il Cielo ti percepisce come una minaccia e scaglia il castigo.
+    if outcome.get("status") != "shattered":
+        trib = _absorption_tribulation(conn, tick, rng, player_id)
+        if trib:
+            outcome["summary"] = summary + "\n" + trib
+            outcome["tribulation"] = trib
     return outcome
+
+
+ABSORB_TRIB_THRESHOLD = 12      # cadaveri divorati prima che il Cielo intervenga
+
+
+def _absorption_tribulation(conn, tick, rng, player_id) -> str | None:
+    key = "abs_since_trib"
+    row = conn.execute("SELECT value FROM game_state WHERE key=?;", (key,)).fetchone()
+    n = (int(row["value"]) if row else 0) + 1
+    if n < ABSORB_TRIB_THRESHOLD:
+        conn.execute("INSERT INTO game_state (key, value) VALUES (?, ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value=excluded.value;", (key, str(n)))
+        return None
+    conn.execute("INSERT INTO game_state (key, value) VALUES (?, '0') "
+                 "ON CONFLICT(key) DO UPDATE SET value='0';", (key,))
+    from engine.systems import tribulation
+    from engine.simulation import cultivation
+    tier = cultivation.realm_tier(conn, "player", player_id) or 1
+    power = tier * 10 + n * 4
+    res = tribulation.resolve_tribulation(conn, tick, rng, power, player_id)
+    # sopravvivendo con affinità Fulmine sblocchi i COLPI DELLA TRIBOLAZIONE
+    if res.get("status") == "survived":
+        fcomp = tribulation._fulmine_comp(conn, player_id)
+        if fcomp > 0:
+            cur = conn.execute("SELECT value FROM game_state WHERE key='trib_strikes';").fetchone()
+            lvl = max(int(cur["value"]) if cur else 0, fcomp)
+            conn.execute("INSERT INTO game_state (key, value) VALUES ('trib_strikes', ?) "
+                         "ON CONFLICT(key) DO UPDATE SET value=excluded.value;", (str(lvl),))
+    return ("⚡ Hai divorato troppi cadaveri: il Cielo ti reputa una minaccia e scaglia "
+            "una TRIBOLAZIONE!\n" + "\n".join(res["lines"]))
 
 
 def _bump_count(conn, player_id, col) -> None:
@@ -186,31 +223,43 @@ def _absorb_human(conn, player_id, target_id, freshness, ptier, ttier, clean,
     _grow(conn, player_id, "grow_soul", so)
     parts = [f"+{s} forza", f"+{v} vitalità", f"+{so} anima"]
 
+    # QI: divorando un coltivatore ne assorbi anche il qi, che fa avanzare la TUA coltivazione
+    trec = conn.execute(
+        "SELECT qi_level FROM cultivation_records WHERE character_type='npc' AND character_id=?;",
+        (target_id,)).fetchone()
+    if trec and (trec["qi_level"] or 0) > 0:
+        qi = max(1, int(yield_pts * 0.25 * mult))
+        conn.execute(
+            "UPDATE cultivation_records SET qi_level=qi_level+?, progress=progress+? "
+            "WHERE character_type='player' AND character_id=?;",
+            (qi, min(0.2, qi * 0.01), player_id))
+        parts.append(f"+{qi} qi")
+
     # la SETTA in cui milito scala il Dao assorbito: più la setta è alta, più i suoi
-    # avversari custodiscono Dao profondi (1-2 nelle sette basse, 3-4+ in quelle alte).
+    # avversari custodiscono Dao profondi.
     from engine.systems import sects
     m = sects.get_membership(conn, player_id)
     sect_tier = (m["sect_tier"] if m else 1) or 1
     dao_scale = 1.0 + 0.6 * (sect_tier - 1)
 
+    # assorbi un FRAMMENTO DI OGNI Dao del bersaglio (non solo il più alto): chi divori
+    # con più Dao ti arricchisce di più Dao → tecniche fuse più potenti. Variato per natura.
     dao_key, dao_gain = None, 0
-    tdao = conn.execute(
+    tdaos = conn.execute(
         "SELECT dao_key, comprehension FROM character_daos "
-        "WHERE character_type='npc' AND character_id=? ORDER BY comprehension DESC LIMIT 1;",
-        (target_id,)).fetchone()
-    if tdao and tdao["comprehension"]:
-        # assorbi anche un Dao che NON possiedi: ne carpisci un frammento (radici aliene)
-        p_aff = dao_gen.player_dao_affinity(conn, tdao["dao_key"], player_id)
-        aff_factor = max(0.5, p_aff / 100.0)      # anche senza affinità, un'eco passa
-        # il Dao è ciò che gli umani lasciano di più prezioso: resa generosa, con un
-        # minimo legato al regno del bersaglio così non scende mai a briciole
+        "WHERE character_type='npc' AND character_id=? AND comprehension>0 "
+        "ORDER BY comprehension DESC LIMIT 3;", (target_id,)).fetchall()
+    for i, td in enumerate(tdaos):
+        share = 1.0 if i == 0 else (0.6 if i == 1 else 0.4)    # il dominante rende di più
+        p_aff = dao_gen.player_dao_affinity(conn, td["dao_key"], player_id)
+        aff_factor = max(0.5, p_aff / 100.0)
         floor = max(1, ttier - 1)
-        dao_gain = max(floor, int(tdao["comprehension"] * 0.30 * freshness * aff_factor
-                                  * mult * dao_scale
-                                  / (1 + max(0, ptier - ttier) * 0.15)))
-        _raise_comprehension(conn, tdao["dao_key"], dao_gain, player_id)
-        dao_key = tdao["dao_key"]
-        parts.append(f"+{dao_gain} Dao «{dao_key}»")
+        g = max(floor, int(td["comprehension"] * 0.30 * freshness * aff_factor * mult
+                           * dao_scale * share / (1 + max(0, ptier - ttier) * 0.15)))
+        _raise_comprehension(conn, td["dao_key"], g, player_id)
+        parts.append(f"+{g} Dao «{td['dao_key']}»")
+        if i == 0:
+            dao_key, dao_gain = td["dao_key"], g
 
     if rng.random() < (0.5 if clean else 0.25):
         conn.execute(

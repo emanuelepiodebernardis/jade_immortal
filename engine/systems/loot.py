@@ -139,10 +139,12 @@ def on_player_kill(conn: sqlite3.Connection, tick: int, rng: random.Random,
             if wdrop:
                 drops.append(wdrop)
 
-    # deponi a terra
+    # deponi a terra DOVE SI TROVA IL GIOCATORE (il nemico potrebbe essersi spostato
+    # tra un colpo e l'altro: il bottino deve restare dove combatti, raccoglibile con 'loot')
+    deposit_loc = getattr(player, "location_id", None) or loc
     for nm, itype, rar, desc, eff in drops:
         iid = items.create_item(conn, nm, itype, rar, desc, eff)
-        items.grant(conn, GROUND, loc, iid, 1)
+        items.grant(conn, GROUND, deposit_loc, iid, 1)
 
     lines = [f"⚑ {name} lascia un'eredità sul terreno ({len(drops)} oggetti). "
              f"Usa 'loot' per raccoglierla."]
