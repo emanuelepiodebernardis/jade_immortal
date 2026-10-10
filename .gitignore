@@ -3,3 +3,4 @@ __pycache__/
 database/world.db
 saves/*.json
 .pytest_cache/
+database/saves/

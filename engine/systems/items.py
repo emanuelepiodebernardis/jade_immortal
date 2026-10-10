@@ -169,6 +169,9 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
     if pf:
         from engine.systems import formations
         lines.append(formations.place(conn, player_id, pf["kind"], int(pf.get("level", 1))))
+    if effects.get("purify"):
+        from engine.systems import dao_heart
+        lines.append(dao_heart.purify(conn, float(effects["purify"])))
     if effects.get("bloodline"):
         from engine.systems import bloodlines
         lines.append("Raffini l'essenza e la lasci scorrere nelle vene…")
@@ -277,7 +280,18 @@ def use_item(conn: sqlite3.Connection, tick: int, rng: random.Random,
         effects = json.loads(row["effects"]) if row["effects"] else {}
     except Exception:
         effects = {}
+    if effects.get("egg"):
+        from engine.systems import beast_eggs
+        why = beast_eggs.can_incubate(conn, player_id)
+        if why:
+            return {"status": "used", "name": row["name"], "lines": [why + " (l'uovo resta nello zaino)"]}
+        lines = beast_eggs.incubate(conn, player_id, effects["egg"])
+        _consume_one(conn, row["inv_id"])
+        return {"status": "used", "name": row["name"], "lines": lines}
     lines = apply_effects(conn, tick, rng, player_id, effects)
+    if row["item_type"] == "pillola" and effects.get("cultivation_progress"):
+        from engine.systems import dao_heart
+        lines += dao_heart.on_pill(conn, player_id, float(effects["cultivation_progress"]))
     _consume_one(conn, row["inv_id"])
     return {"status": "used", "name": row["name"], "lines": lines}
 

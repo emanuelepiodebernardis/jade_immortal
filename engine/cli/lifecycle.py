@@ -100,8 +100,11 @@ def create_character() -> None:
         destinies.set_rival_level(conn, rivals)
         conn.execute("UPDATE players SET name=? WHERE id=1;", (name,))
         print(f"\nSei {name}. Hai scelto: {applied['name']}, destino «{d['name']}».")
+        from engine.systems import constitutions
+        for ln in constitutions.roll_at_birth(conn, random.Random(), origin):
+            print(ln)
         print(character.describe_profile(conn))
-        print("Ogni origine porta con sé una storia: 'goals' per seguirla.\n")
+        print("Ogni origine porta con sé una storia: 'goals' per seguirla. Prima volta? Scrivi 'tutorial'.\n")
 
 
 def handle_death() -> bool:

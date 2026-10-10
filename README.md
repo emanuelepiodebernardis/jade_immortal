@@ -53,6 +53,10 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 - **Lignaggi di sangue** delle bestie leggendarie: manifestazioni ibride, trasformazione
   completa, fusione in sangui ibridi (Drago-Fenice di Fuoco e Ghiaccio…).
 - **Armi vive** che si temprano con il tempo e l'uso, si risvegliano e crescono senza tetto.
+- **Costituzioni speciali**, **cuore del Dao** (deviazione del Qi), **tossine delle pillole**,
+  **tribolazioni del fulmine** a ogni regno da assorbire e controllare.
+- **Prodigi** che crescono senza di te, **uova e allevamento** di bestie ibride, **incarichi a catena**.
+- Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.
 
@@ -151,6 +155,8 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Talento | `radici`, `gongfa`, `giura`, `proponi`, `chiama` |
 | Arma | `weapon <arma>`, `arma`, `arma nome <nome>` |
 | Sangue | `sangue`, `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
+| Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
+| Interfaccia | `tutorial`, `mappa`, `codex`, `salva`, `carica`, `salvataggi`, `colori` |
 | Pilota automatico | `auto`, `auto <giorni>`, `auto imposta ...` |
 | Guerra | `raid`, `invade` |
 | Stato | `status`, `rating`, `inventory`, `use <oggetto>`, `use all`, `techniques` |

@@ -221,6 +221,10 @@ def _after_arrival(conn: sqlite3.Connection, player: entities.Player) -> str:
         from engine.systems import oaths
         from engine.systems import auction, sect_politics
         sect_politics.on_arrival(conn, player)
+        from engine.systems import npc_quests
+        _qa = npc_quests.on_arrival(conn, player)
+        if _qa:
+            out += "\n" + _qa
         sw = (oaths.on_arrival(conn, player) or auction.on_arrival(conn, player)
               or sect_politics.on_arrival_scene(conn, player))
         if sw:
@@ -423,9 +427,15 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     _mat = professions.on_creature_kill(conn, player.id, npc.id, _vk["kind"] if _vk else None)
     if _mat:
         lines.append(_mat)
+    from engine.systems import npc_quests
+    lines += npc_quests.check(conn, player)
+    if _vk and _vk["kind"] in ("beast", "demon", "spirit"):
+        from engine.systems import qol
+        qol.note(conn, "bestie", npc.name.rstrip("0123456789 ").strip())
     if _vk and _vk["kind"] == "beast":
-        from engine.systems import bloodlines
+        from engine.systems import bloodlines, beast_eggs
         lines += bloodlines.on_beast_kill(conn, t, rng, player, npc.id)
+        lines += beast_eggs.drop_egg(conn, rng, player, npc.id)
     _ws = weapon_spirit.on_kill(conn, rng, player)
     if _ws:
         lines.append(_ws)
@@ -927,6 +937,9 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
     ratio = perception.strength_ratio(conn, player.id, npc.id)
     from engine.systems import dao_superiori
     dao_superiori.on_win(conn, wfrac)          # vittorie sull'orlo della morte
+    if wfrac < 0.15:
+        from engine.systems import constitutions
+        lines += constitutions.on_near_death_win(conn, rng)
     # una vittoria decisa è un'uccisione: se lo abbatti in fretta restando in forze,
     # non si rialza. Solo gli scontri tirati lasciano al nemico la fuga da ferito.
     decisive = (rounds <= 2 and wfrac >= 0.6) or (rounds <= 1)
@@ -989,6 +1002,8 @@ def _auto_end_player(conn, t, rng, player, npc, rounds, lines) -> str:
         lines.append(f"Cadi sotto i colpi di {npc.name}. ({rounds} round)")
     else:
         lines.append(f"Sei sopraffatto e ti accasci, ferito ma vivo. ({rounds} round)")
+        from engine.systems import dao_heart
+        lines += dao_heart.adjust(conn, -3, "sconfitta")
         from engine.systems import weapon_spirit as _wsp
         lines += _wsp.on_fight(conn, rng, player, False, npc.name, 1.0)
         from engine.systems import bonds as _bonds
@@ -1085,6 +1100,10 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
         line += "\nSei sfinito: conviene riposare ('wait') o dedicarti ad altro."
     if res["ready"]:
         line += "\nSei al colmo dello Strato 10: prova 'breakthrough' per salire di regno (rischioso!)."
+    from engine.systems import dao_heart
+    _dh = dao_heart.on_cultivate(conn, t, rng, player)
+    if _dh:
+        line += "\n" + "\n".join(_dh)
     return line
 
 
@@ -1119,6 +1138,12 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
         out = f"Il tuo regno si squarcia e si ricompone: ora sei {res['realm']}!{extra}"
         from engine.systems import lifespan
         out += "\n" + lifespan.on_realm_up(conn, player.id)
+        from engine.systems import constitutions, dao_heart, heaven_trib
+        _cl = constitutions.on_realm_up(conn, random.Random(t * 13 + player.id)) + dao_heart.on_breakthrough(conn)
+        _cl += heaven_trib.on_realm_up(conn, t, random.Random(t * 17 + player.id), entities.get_player(conn),
+                                       cultivation.realm_tier(conn, "player", player.id) or 1)
+        if _cl:
+            out += "\n" + "\n".join(_cl)
         # sfondare ATTIRA il castigo del Cielo se sfidi le sue leggi (Spazio/Tempo/Destino)
         from engine.systems import dao_powers, tribulation
         power = dao_powers.tribulation_due(conn, player.id)
@@ -1958,6 +1983,13 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     lines += ["  " + ln for ln in face.daily(conn, t, random.Random(t * 73 + day), player)]
     from engine.systems import weapon_spirit as _wsp
     lines += ["  " + ln for ln in _wsp.on_days(conn, player, 1)]
+    from engine.systems import constitutions, dao_heart, prodigies
+    lines += ["  " + ln for ln in constitutions.daily(conn, t, random.Random(t * 79 + day), player)]
+    lines += ["  " + ln for ln in prodigies.daily(conn, t, random.Random(t * 83 + day), player)]
+    from engine.systems import beast_eggs, qol
+    lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]
+    qol.autosave(conn, day)
+    dao_heart.daily(conn, t, None, player)
     from engine.systems import lifespan
     lines += ["  " + ln for ln in lifespan.daily_check(conn, player, t)]
     return "\n".join(lines)
@@ -2285,6 +2317,12 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
     _wl = _wsp.describe(conn, player.id)
     if _wl:
         path_line += _wl + "\n"
+    from engine.systems import constitutions as _cst, dao_heart as _dh
+    _cl = _cst.describe_line(conn)
+    if _cl:
+        path_line += _cl + "\n"
+    path_line += (f"Cuore del Dao: {_dh.heart(conn)}/100 ({_dh.heart_label(_dh.heart(conn))}) · "
+                  f"Tossine: {_dh.toxin_label(_dh.toxin(conn))}\n")
     if _prf.profession(conn, player.id):
         path_line += (f"Arte: {_prf.PROFESSIONS[_prf.profession(conn, player.id)]} "
                       f"(livello {_prf.level(conn, player.id)})\n")
@@ -2627,18 +2665,37 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
     return f"Comando sconosciuto: '{cmd}'. Scrivi 'help'."
 
 
+_COLORS_ON = True
+
+
+def _say(text: str) -> None:
+    """Stampa (a colori, se attivi e se il terminale li supporta)."""
+    import sys
+    global _COLORS_ON
+    try:
+        with transaction() as c:
+            from engine.systems import qol
+            _COLORS_ON = qol.colors_on(c)
+    except Exception:
+        pass
+    if _COLORS_ON and sys.stdout.isatty():
+        from engine.systems import qol
+        text = qol.colorize(text)
+    print(text)
+
+
 def _intro() -> None:
     from engine.cli import story_cmds
     with transaction() as conn:
         player = entities.get_player(conn)
         banner = _day_banner(conn, player)
         if banner:
-            print(banner)
+            _say(banner)
         print(render_location(conn, player))
         print("(scrivi 'help' per i comandi, 'goals' per i tuoi obiettivi)")
         tail = story_cmds.after_command(conn, player)
         if tail:
-            print(tail)
+            _say(tail)
 
 
 def run() -> None:
@@ -2659,21 +2716,21 @@ def run() -> None:
             print("A presto, coltivatore.")
             return
         if output:
-            print(output)
+            _say(output)
         # banner di nuovo giorno (se il tempo è avanzato oltre la mezzanotte)
         with transaction() as conn:
             p0 = entities.get_player(conn)
             if p0 is not None:
                 banner = _day_banner(conn, p0)
                 if banner:
-                    print(banner)
+                    _say(banner)
         # report differiti (es. TORNEI): mostrati sempre, comunque sia passato il tempo
         with transaction() as conn:
             p0 = entities.get_player(conn)
             if p0 is not None:
                 from engine.systems import reports
                 for rep in reports.drain(conn, p0.id):
-                    print(rep)
+                    _say(rep)
         # il mondo può averti ucciso (scontro o minaccia autonoma)
         with transaction() as conn:
             p = entities.get_player(conn)
@@ -2687,4 +2744,4 @@ def run() -> None:
         with transaction() as conn:
             tail = story_cmds.after_command(conn, p)
         if tail:
-            print(tail)
+            _say(tail)

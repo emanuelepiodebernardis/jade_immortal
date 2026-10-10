@@ -147,6 +147,8 @@ def on_kill(conn, t: int, player, npc_id: int) -> list[str]:
         if state.grant_title(conn, "Spergiuro"):
             out.append("✧ Il mondo ti marchia: «Spergiuro» ✧")
         out.append("Hai versato il sangue di chi aveva giurato di morire con te. Il Cielo ha visto.")
+        from engine.systems import dao_heart
+        out += dao_heart.adjust(conn, -20)
     if "dao_partner" in kinds:
         bonds.end_bond(conn, player.id, npc_id, "dao_partner", "ucciso")
         karma.adjust_karma(conn, "player", player.id, -100, "assassinio del compagno del Dao", t)
@@ -181,6 +183,8 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
                 relations.adjust(conn, req["npc_id"], -80, t, player.id)
                 out.append(f"Non sei venuto. {row['name']} è sopravvissuto da solo, e ha bruciato il "
                            "vostro giuramento. Il karma ricorda.")
+                from engine.systems import dao_heart
+                out += dao_heart.adjust(conn, -10)
         return out
     rows = [r for r in sworn(conn, player.id) if r["location_id"] and r["location_id"] != player.location_id]
     if rows and day - state.get_int(conn, "sworn_req_day", 0) >= 20 and rng.random() < 0.08:
@@ -208,7 +212,7 @@ def on_arrival(conn, player) -> str | None:
         "text": f"{name} è a terra, accerchiato. Il capo degli aggressori, {{npc}}, si volta verso di te.",
         "spawn": {"archetype": "vagabondo", "tier_offset": 0, "stage": 8, "traits": {"compassion": 5}},
         "choices": [
-            {"label": "Ti getti nella mischia", "effects": {"karma": 15},
+            {"label": "Ti getti nella mischia", "effects": {"karma": 15, "heart": 5},
              "command": "attack {npc}"},
             {"label": "Tratti: offri pietre per la sua vita", "effects": {"stones": -150, "karma": 5,
                                                                           "npc_leaves": True,

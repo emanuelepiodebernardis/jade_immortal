@@ -199,6 +199,8 @@ def tame(conn, t: int, rng: random.Random, player, npc) -> tuple[str, str | None
     p = base + (soul - 50) / 250 + int(destinies.flag_value(conn, "tamer", player.id, 0)) / 100
     p -= RARITY_TAME_PENALTY.get(tr["rarity"], 0.0)
     p += classes.tame_bonus(conn, player.id)
+    from engine.systems import beast_eggs
+    p += beast_eggs.tame_bonus(conn, npc.id)
     wounded = conn.execute("SELECT 1 FROM injuries WHERE character_type='npc' AND character_id=? "
                            "AND healed=0;", (npc.id,)).fetchone()
     if wounded:

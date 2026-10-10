@@ -70,7 +70,7 @@ def scene(conn: sqlite3.Connection, pid: int, tier: int) -> dict:
              "success": {"bt_bonus": 0.20, "aff_soul": 1,
                          "text": "Il demone si dissolve. La via davanti a te è sgombra.",
                          "command": "breakthrough !"},
-             "failure": {"bt_bonus": -0.15, "inner_demon": True,
+             "failure": {"bt_bonus": -0.15, "inner_demon": True, "heart": -10,
                          "text": "Il demone ti travolge e si stacca da te, ridendo. Sfondi "
                                  "comunque, ma a fatica.",
                          "command": "breakthrough !"}},

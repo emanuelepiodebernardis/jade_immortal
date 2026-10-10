@@ -170,6 +170,53 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("chiama", "call"):
         from engine.systems import oaths
         return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("salva", "save"):
+        from engine.systems import qol
+        return qol.save(conn, arg)
+    if cmd in ("carica", "load"):
+        from engine.systems import qol
+        return qol.load(conn, arg)
+    if cmd in ("salvataggi", "saves", "slot"):
+        from engine.systems import qol
+        return qol.list_saves()
+    if cmd in ("mappa", "carta", "worldmap"):
+        from engine.systems import qol
+        return qol.map_text(conn, player)
+    if cmd in ("colori", "colors"):
+        return _toggle(conn, "ui_colors", arg, "Colori")
+    if cmd in ("codex", "enciclopedia", "scoperte"):
+        from engine.systems import qol
+        return qol.codex(conn, player, arg)
+    if cmd in ("tutorial", "guida"):
+        from engine.systems import qol
+        return qol.tutorial(conn, player)
+    if cmd in ("tribolazioni", "fulmine_celeste", "tribolazione_celeste"):
+        from engine.systems import heaven_trib
+        return heaven_trib.describe(conn, player)
+    if cmd in ("richieste", "requests"):
+        from engine.systems import npc_quests
+        return npc_quests.describe_offers(conn, player)
+    if cmd in ("incarico", "accept_request") and arg.strip().isdigit():
+        from engine.systems import npc_quests
+        return npc_quests.accept(conn, player, int(arg.strip()))
+    if cmd in ("incarichi", "quests", "incarico"):
+        from engine.systems import npc_quests
+        return npc_quests.describe(conn, player)
+    if cmd in ("consegna", "deliver"):
+        from engine.systems import npc_quests
+        return npc_quests.deliver(conn, player)
+    if cmd in ("uova", "eggs", "cova"):
+        from engine.systems import beast_eggs
+        return beast_eggs.describe(conn, player)
+    if cmd in ("alleva", "breed", "accoppia"):
+        from engine.systems import beast_eggs
+        return beast_eggs.breed(conn, player, arg)
+    if cmd in ("prodigi", "rivali", "generazione", "prodigies"):
+        from engine.systems import prodigies
+        return prodigies.describe(conn, player)
+    if cmd in ("corpo", "costituzione", "cuore", "tossine", "body"):
+        from engine.systems import dao_heart
+        return dao_heart.describe(conn, player)
     if cmd in ("arma", "miaarma", "spirito_arma"):
         from engine.systems import weapon_spirit
         return weapon_spirit.command(conn, player, arg)

@@ -60,6 +60,8 @@ def illumination(conn, t: int, rng: random.Random, player, source: str,
     if dao_key:
         eff.update({"dao_key": dao_key, "dao_gain": 8 + 4 * tier + rng.randint(0, 6)})
     lines += items.apply_effects(conn, t, rng, player.id, eff)
+    from engine.systems import constitutions, dao_heart
+    lines += constitutions.on_illumination(conn, rng) + dao_heart.adjust(conn, 2)
     n = state.get_int(conn, "illuminations", 0) + 1
     state.set(conn, "illuminations", str(n))
     if n in (1, 5, 20, 100):
@@ -79,6 +81,8 @@ def on_upset_win(conn, t: int, rng: random.Random, player, npc_name: str, ratio:
     n = state.get_int(conn, "upset_wins", 0) + 1
     state.set(conn, "upset_wins", str(n))
     lines.append(f"Hai sconfitto {npc_name}, più forte di te: chi ha visto non lo dimenticherà.")
+    from engine.systems import dao_heart
+    lines += dao_heart.adjust(conn, 3)
     titles = {1: "Sfidante dei Cieli", 10: "Colui che Rovescia il Destino",
               50: "Flagello dei Più Forti", 200: "Leggenda Contro Corrente"}
     if n in titles and state.grant_title(conn, titles[n]):
@@ -171,8 +175,9 @@ def retreat(conn: sqlite3.Connection, player, arg: str) -> str:
     lines += events
     age = lifespan.age_years(conn, player.id)
     lines.append(f"Hai ora {int(age)} anni (su {lifespan.max_years(conn, player.id)}).")
-    from engine.systems import weapon_spirit
+    from engine.systems import weapon_spirit, dao_heart
     lines += weapon_spirit.on_days(conn, entities.get_player(conn), done)
+    lines += dao_heart.on_retreat_days(conn, done)
     from engine.systems import qi as qimod, spirit as spmod
     qimod.restore_full(conn, player.id)
     spmod.restore_full(conn, player.id)

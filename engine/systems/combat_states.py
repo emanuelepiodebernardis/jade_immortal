@@ -148,6 +148,17 @@ class FightCtx:
         # LIGNAGGI DI SANGUE: manifestazioni, tecnica innata, doni, trasformazione
         from engine.systems import bloodlines
         self.lines_intro += bloodlines.combat(conn, player_id, self)
+        from engine.systems import prodigies, heaven_trib
+        self.lines_intro += prodigies.enemy_bonus(conn, npc_id, self)
+        self.lines_intro += heaven_trib.combat(conn, self)
+        # COSTITUZIONE SPECIALE
+        from engine.systems import constitutions
+        self.lines_intro += constitutions.combat(conn, self)
+        _c = constitutions.get(conn)
+        if _c and _c["key"] == "ombra" and conn.execute(
+                "SELECT 1 FROM character_daos WHERE character_type='npc' AND character_id=? AND dao_key='luce' "
+                "AND comprehension>0;", (npc_id,)).fetchone():
+            self.e.atk_mult *= 1.2                 # la luce brucia il Corpo dell'Ombra
         # extra (spirito dell'arma, bestia): aggiunti dal chiamante via add_proc
         if "nullify" in pr["special"]:
             self.e.procs = [x for x in self.e.procs if STATES.get(x[0], ("", "nemico"))[1] != "sé"]

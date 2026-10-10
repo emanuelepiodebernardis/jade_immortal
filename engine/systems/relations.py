@@ -48,6 +48,14 @@ def adjust(conn: sqlite3.Connection, npc_id: int, delta: int, tick: int,
           player_id: int = 1) -> Disposition:
     """Crea/aggiorna la disposizione di un NPC verso il player. Clampa -100..100."""
     current = get_disposition(conn, npc_id, player_id)
+    if delta > 0:
+        try:
+            from engine.systems import constitutions
+            c = constitutions.get(conn)
+            if c and c["key"] == "veleno":
+                delta = max(1, int(delta * 0.7))        # il Corpo dei Cento Veleni mette paura
+        except Exception:
+            pass
     new_score = max(-100, min(100, current.score + delta))
     new_type = _classify(new_score)
     conn.execute(

@@ -332,6 +332,15 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     if any(k in eff for k in ("face_duel", "face_humiliate", "feud_end", "feud_win")):
         from engine.systems import face
         lines += face.apply(conn, t, rng, player, eff, ctx)
+    if eff.get("quest_done"):
+        from engine.systems import npc_quests
+        npc_quests.mark_done(conn, int(eff["quest_done"]))
+    if eff.get("quest_target") and ctx.get("npc_id"):
+        from engine.systems import npc_quests
+        npc_quests.set_target(conn, int(eff["quest_target"]), ctx["npc_id"])
+    if eff.get("heart"):
+        from engine.systems import dao_heart
+        lines += dao_heart.adjust(conn, int(eff["heart"]))
     if eff.get("sect_influence"):
         from engine.systems import own_sect
         own_sect.add_influence(conn, int(eff["sect_influence"]))

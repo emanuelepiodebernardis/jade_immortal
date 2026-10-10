@@ -90,8 +90,17 @@ def absorb(conn: sqlite3.Connection, tick: int, rng: random.Random,
         _bump_count(conn, player_id, "abs_human")
         summary = outcome.pop("_summary", f"Divori l'eredità di {name}.")
 
+    from engine.systems import constitutions, dao_heart
+    _c = constitutions.get(conn)
+    if _c and _c["key"] == "giada":
+        dao_heart.adjust(conn, -4)
+        summary_extra = "Il tuo Corpo di Giada si ribella: il cuore si incrina."
+    else:
+        summary_extra = ""
     from engine.systems import spirit_roots
     _roots_line = spirit_roots.devour(conn, player_id, target_id, freshness, clean)
+    if summary_extra:
+        _roots_line = (_roots_line + "\n" if _roots_line else "") + summary_extra
     if _roots_line:
         summary += "\n" + _roots_line
     if kind == "beast":

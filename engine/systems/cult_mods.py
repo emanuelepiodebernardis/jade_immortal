@@ -32,6 +32,10 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = bonds.dao_partner_mult(conn, pid, location_id)
     if m != 1.0:
         out.append((m, lbl))
+    from engine.systems import constitutions, dao_heart
+    for m, lbl in (constitutions.cultivation_mult(conn), dao_heart.cultivation_mult(conn)):
+        if m != 1.0:
+            out.append((m, lbl))
     from engine.systems import formations
     m, lbl = formations.cultivation_mult(conn, location_id)
     if m != 1.0:
@@ -54,4 +58,6 @@ def cultivation_mult(conn: sqlite3.Connection, pid: int, location_id: int | None
 
 def dao_mult(conn: sqlite3.Connection, pid: int, dao_key: str) -> float:
     from engine.systems import spirit_roots, bloodlines
-    return spirit_roots.dao_mult(conn, "player", pid, dao_key) * bloodlines.dao_mult(conn, dao_key)
+    from engine.systems import constitutions
+    return (spirit_roots.dao_mult(conn, "player", pid, dao_key) * bloodlines.dao_mult(conn, dao_key)
+            * constitutions.dao_mult(conn, dao_key))

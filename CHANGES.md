@@ -662,3 +662,43 @@ L'arma ora cresce con il **tempo** e con l'**uso** (`engine/systems/weapon_spiri
   illustri abbattuti.
 
 Nuovi test: `tests/test_weapon_growth.py` (5). Suite totale: **456 passati**.
+
+---
+
+## Aggiornamento 19 — Corpo, cuore e mondo vivo
+
+- **Costituzioni speciali** (`constitutions.py`): undici corpi divini con doni e maledizioni.
+  - Si nasce con uno raramente (più spesso i geni, sempre con il nuovo destino «Corpo Divino»).
+  - Il corpo nasce sigillato e si risveglia a stadi senza fine: con i nuovi regni, le vittorie
+    sull'orlo della morte, le illuminazioni.
+  - Le Vene Yin uccidono a 20 anni se non trovi un Fuoco Yang. I Meridiani Spezzati
+    dimezzano la coltivazione finché non si risvegliano, poi la raddoppiano.
+- **Cuore del Dao** (0-100) e **deviazione del Qi** (`dao_heart.py`).
+  - Sale con vittorie difficili, illuminazioni, giuramenti mantenuti e ritiri; scende con
+    sconfitte, tradimenti, demoni interiori e sfondamenti troppo ravvicinati.
+  - Sotto 30 meditare può farti deviare (ferite, esperienza persa, uno strato perduto).
+    Sopra 80 arrivano più illuminazioni e sfondamenti più sicuri.
+- **Tossine delle pillole**: ogni pillola di coltivazione lascia scorie che rallentano la
+  coltivazione. Si smaltiscono col tempo, in ritiro, nelle tribolazioni o con la nuova
+  Pillola di Purificazione. Gli alchimisti esperti ne assorbono meno.
+- **Prodigi** (`prodigies.py`, `prodigi`): i rivali della tua generazione crescono da soli,
+  trovano fortune (reami, sangue sacro, maestri, metodi) e ti superano se resti fermo. Le
+  cronache raccontano nuovi geni, matrimoni tra sette e declini.
+- **Uova e allevamento** (`beast_eggs.py`): le bestie rare lasciano uova da covare nella
+  stalla della dimora (`use uovo`, `uova`). Con `alleva` il Domatore esperto ottiene uova ibride.
+- **Incarichi a catena** (`npc_quests.py`: `richieste`, `incarico <n>`, `incarichi`, `consegna`):
+  vendetta, scorta, recupero, guarigione e consegna, in catene di 3-5 passi con un grande dono finale.
+- **Tribolazioni del fulmine celeste** (`heaven_trib.py`, `tribolazioni`): a ogni regno dal
+  terzo in su, con più ondate e più forti ogni volta.
+  - Dao del Fulmine sotto 30: le folgori ti feriscono.
+  - Da 30: le folgori temprano il corpo e lo purificano.
+  - Da 100: ne assorbi una parte crescente; cresce il fulmine (Dao, radice, affinità) e ne
+    trattieni cariche da scatenare in battaglia. Tecniche speciali alla 1ª, 3ª, 6ª e 9ª.
+- **Qualità di vita** (`qol.py`):
+  - salvataggi in slot (`salva`, `carica`, `salvataggi`) più tre automatici ogni 5 giorni;
+  - `mappa` della regione;
+  - colori nel terminale (`colori`);
+  - `codex` delle scoperte;
+  - `tutorial` con i primi passi.
+
+Nuovi test: `tests/test_body_world_qol.py` (11). Suite totale: **467 passati**.

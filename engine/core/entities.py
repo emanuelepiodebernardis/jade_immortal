@@ -187,6 +187,13 @@ def move_player(conn: sqlite3.Connection, player_id: int, new_location_id: int) 
     # il compagno di viaggio (se c'è) si sposta con te
     from engine.systems import bonds
     bonds.follow_player(conn, player_id, new_location_id)
+    try:
+        from engine.systems import qol
+        r = conn.execute("SELECT name FROM locations WHERE id=?;", (new_location_id,)).fetchone()
+        if r:
+            qol.note(conn, "luoghi", r["name"])
+    except Exception:
+        pass
 
 
 # ---------- Fazioni ----------

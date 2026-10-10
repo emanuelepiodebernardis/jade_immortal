@@ -43,12 +43,15 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "dao                           — i Dao che pratichi e la loro comprensione",
         "comprehend <nome>             — affini un Dao (i Dao da combattimento ti rendono più forte)",
         "tribulation                   — sfida al Cielo (heaven defiance) e tribolazione divina",
+        "tribolazioni                  — le TRIBOLAZIONI DEL FULMINE a ogni regno: tempra, assorbimento, cariche di fulmine",
         "inventory                     — il tuo zaino (oggetti raccolti)",
         "use <oggetto> | use all       — usi un oggetto dello zaino (o tutti in sequenza)",
         "radici                        — le tue RADICI SPIRITUALI: punteggi, talenti, combinazioni",
+        "corpo                         — costituzione speciale, CUORE DEL DAO (deviazione del Qi) e tossine delle pillole",
         "gongfa [pratica <n>|setta]    — i metodi di coltivazione: quale pratichi, cambiarlo, quello della setta",
         "ritiro <giorni> [dao]         — RITIRO a porte chiuse (montagna, rovine, sede, dimora): giorni di coltivazione",
         "classifica [giovani|sette]    — Classifica del Cielo, Lista del Drago Nascente, classifica delle sette",
+        "prodigi                       — i PRODIGI della tua generazione: crescono e trovano fortune anche senza di te",
     ]),
     ("mondo", "Reami segreti, Assemblea, aste, mondi superiori", [
         "realm                         — il reame segreto aperto ora (dove, quanto resta) — 'realm esci' per uscire",
@@ -108,6 +111,9 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "disciple <nome>               — chiedi a un anziano/eremita di farti da maestro",
         "bonds                         — i tuoi legami: compagni, maestro, rivali e nemesi",
         "masters                       — i MAESTRI SEGRETI: chi hai incontrato e cosa serve per il prossimo",
+        "richieste                     — chi, qui, ha un incarico per te (catene di 3-5 passi con un grande dono finale)",
+        "incarico <n> | incarichi      — accetti una richiesta | i tuoi incarichi in corso e dove andare",
+        "consegna                      — consegni erbe o pillole per un incarico di guarigione",
         "giura <nome>                  — giuri fratellanza (rapporto ≥ 70) — 'chiama <nome>' per chiamarlo",
         "proponi <nome>                — diventate compagni del Dao (rapporto ≥ 80): doppia coltivazione",
     ]),
@@ -116,6 +122,8 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "beast                         — la tua bestia, il suo talento e gli avvistamenti di bestie rare",
         "feed                          — nutri la tua bestia con un nucleo (cresce)",
         "release                       — liberi la tua bestia",
+        "uova                          — le uova in cova nella stalla della dimora ('use uovo' a casa per covarne uno)",
+        "alleva <bestia> <bestia>      — (Domatore liv. 4) fai accoppiare due tue bestie: nasce un uovo ibrido",
         "sangue                        — i tuoi LIGNAGGI DI SANGUE: gradi, manifestazioni, trasformazione",
         "use essenza                   — assorbi un'essenza di sangue lasciata da una bestia d'alto livello",
         "fondi_sangue <n> <m> [...]    — fondi due o più lignaggi Puri in un sangue ibrido",
@@ -159,6 +167,11 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
     ]),
     ("sistema", "Interfaccia", [
         "help [categoria|tutto]        — aiuto (anche 'h')",
+        "tutorial                      — i primi passi, con ciò che ti resta da provare",
+        "salva [nome] | carica <nome>  — salvataggi in slot (più 3 automatici ogni 5 giorni) — 'salvataggi' per l'elenco",
+        "mappa                         — mappa della regione intorno a te",
+        "codex [sezione]               — luoghi, bestie, Dao, lignaggi, maestri e titoli scoperti",
+        "colori <on|off>               — colori nel terminale",
         "hud <on|off>                  — mostra/nasconde la riga di stato dopo ogni comando",
         "suggest <on|off>              — mostra/nasconde le azioni suggerite numerate",
         "quit / exit                   — esci",
@@ -181,7 +194,8 @@ _ALIASES = {
     "autopilota": "auto", "pilota": "auto", "etereo": "auto",
 }
 
-ESSENTIALS = """Comandi essenziali:
+ESSENTIALS = """Nuovo? Scrivi 'tutorial'.
+Comandi essenziali:
   look · move <n|s|e|w> · cultivate · attack <nome> · status · goals · auto <giorni>
   Dopo ogni comando trovi delle AZIONI SUGGERITE numerate: scrivi il numero per eseguirle.
   Quando capita un INCONTRO, scegli scrivendo il numero dell'opzione.

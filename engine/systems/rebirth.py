@@ -392,6 +392,8 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
         from engine.systems import destinies
         d = destinies.apply(conn, destiny, player_id)
         lines.append(f"Il tuo destino: {d['name']}.")
+    from engine.systems import constitutions
+    lines += constitutions.roll_at_birth(conn, rng, origin_key)
     inherit = inherit or {"key": "none"}
     if inherit["key"] == "dao":
         conn.execute(

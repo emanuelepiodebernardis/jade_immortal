@@ -87,6 +87,10 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
                     (player.id,)).fetchone():
         _add(out, "Assorbi l'essenza di sangue che hai raccolto", "use essenza")
 
+    from engine.systems import npc_quests
+    if len(npc_quests.active(conn)) < npc_quests.MAX_ACTIVE and npc_quests._offers_here(conn, player):
+        _add(out, "Ascolta chi, qui, ha un incarico per te", "richieste")
+
     # 2) ciò che è a terra
     if loot.drops_in_location(conn, loc):
         _add(out, "Raccogli il bottino", "loot")
