@@ -170,6 +170,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("chiama", "call"):
         from engine.systems import oaths
         return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("arma", "miaarma", "spirito_arma"):
+        from engine.systems import weapon_spirit
+        return weapon_spirit.command(conn, player, arg)
     if cmd in ("auto", "autopilota", "pilota", "etereo", "autopilot"):
         from engine.systems import autopilot
         return autopilot.command(conn, player, arg)

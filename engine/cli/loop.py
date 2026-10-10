@@ -957,6 +957,8 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         lines.append(f"{fin} ({rounds} round)")
         if ratio < 0.87:
             lines += seclusion.on_upset_win(conn, t, rng, player, npc.name, ratio)
+        from engine.systems import weapon_spirit as _wsp
+        lines += _wsp.on_fight(conn, rng, player, True, npc.name, ratio)
         lines += _after_player_kill(conn, t, rng, player, npc, chosen)
     else:
         lines.append(rng.choice([
@@ -965,6 +967,8 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
             f"{npc.name} arretra, troppo malconcio per continuare. ({rounds} round)"]))
         if ratio < 0.87:
             lines += seclusion.on_upset_win(conn, t, rng, player, npc.name, ratio)
+        from engine.systems import weapon_spirit as _wsp
+        lines += _wsp.on_fight(conn, rng, player, True, npc.name, ratio)
         from engine.systems import bonds as _bonds
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
@@ -985,6 +989,8 @@ def _auto_end_player(conn, t, rng, player, npc, rounds, lines) -> str:
         lines.append(f"Cadi sotto i colpi di {npc.name}. ({rounds} round)")
     else:
         lines.append(f"Sei sopraffatto e ti accasci, ferito ma vivo. ({rounds} round)")
+        from engine.systems import weapon_spirit as _wsp
+        lines += _wsp.on_fight(conn, rng, player, False, npc.name, 1.0)
         from engine.systems import bonds as _bonds
         msg = _bonds.on_player_defeated(conn, t, rng, player, npc)
         if msg:
@@ -1316,6 +1322,9 @@ def _weapon_drop_message(res: dict) -> str:
     if s == "equipped":
         return (f"⚔ Impugni {res['found']}: è superiore alla tua {res['old']}. "
                 f"Equipaggiata! (+{int(res['bonus']*100)}% attacco)")
+    if s == "bonded":
+        return (f"Il caduto impugnava {res['found']}, più forte della tua {res['mine']}… ma {res['name']} "
+                f"vibra nella tua mano: un'arma viva non si abbandona. La lasci.")
     if s == "weaker":
         return (f"L'arma del caduto ({res['found']}) non è all'altezza della tua "
                 f"{res['mine']}: la lasci.")
@@ -1947,6 +1956,8 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     from engine.systems import sect_politics, face
     lines += ["  " + ln for ln in sect_politics.daily(conn, t, random.Random(t * 71 + day), player)]
     lines += ["  " + ln for ln in face.daily(conn, t, random.Random(t * 73 + day), player)]
+    from engine.systems import weapon_spirit as _wsp
+    lines += ["  " + ln for ln in _wsp.on_days(conn, player, 1)]
     from engine.systems import lifespan
     lines += ["  " + ln for ln in lifespan.daily_check(conn, player, t)]
     return "\n".join(lines)
@@ -2104,6 +2115,12 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
         line += f"\n★ Hai sbloccato una tecnica: {res['unlocked']}!"
     elif res.get("tier_up"):
         line += f"\nLa tua maestria si eleva: ora sei {res['label']}."
+    from engine.systems import weapons as _wpn, weapon_spirit as _wsp
+    _wk = _wpn.get_weapon(conn, player.id)
+    if _wk and _wpn.WEAPONS[_wk][0] == d["dao_key"]:
+        _wl = _wsp.on_weapon_dao(conn, player)
+        if _wl:
+            line += "\n" + "\n".join(_wl)
     if y <= 0.15:
         line += "\nSei sfinito: conviene riposare ('wait') o dedicarti ad altro."
     return line

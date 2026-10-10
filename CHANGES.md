@@ -637,3 +637,28 @@ Suite totale: **434 passati**.
 
 Nuovi test: `tests/test_bloodlines.py` (11) e `tests/test_autopilot.py` (6).
 Suite totale: **451 passati**.
+
+---
+
+## Aggiornamento 18 — L'arma viva
+
+L'arma ora cresce con il **tempo** e con l'**uso** (`engine/systems/weapon_spirit.py`, comando `arma`).
+- **Esperienza** da molte fonti: vittorie (molta di più contro chi è più forte di te), sconfitte,
+  sessioni sul Dao d'arma e ogni giorno passato con l'arma in pugno, anche in ritiro o in stato
+  etereo. Più è lungo il **legame**, più cresce in fretta (fino al doppio dopo un anno insieme).
+- **Tempra automatica**: l'arma sale da sola di rarità (comune → raffinata → pregiata →
+  divina) e poi di regno, tenendo il passo con te ma senza mai superarti.
+- **Risveglio per qualunque arma**: le divine si risvegliano in fretta, le comuni dopo una lunga
+  strada insieme. Forgia e maestri segreti possono ancora risvegliarla subito.
+- **Spirito senza tetto**, a gradi: Desto, Senziente, Maturo, Celeste, Primordiale, poi
+  Spirito dell'Origine I, II…
+  - da **Senziente** l'arma si dà un nome (`arma nome <nome>` per sceglierlo tu) e sprigiona
+    la sua tecnica;
+  - da **Matura** para un colpo mortale in ogni scontro;
+  - da **Celeste** lo spirito prende forma e combatte al tuo fianco.
+- Un'**arma viva non si abbandona**: un'arma più forte trovata sul campo non la sostituisce
+  più in automatico. Cambiare arma azzera spirito e legame.
+- `arma` mostra la qualità, il legame, la prossima tempra, lo spirito, i poteri e i nemici
+  illustri abbattuti.
+
+Nuovi test: `tests/test_weapon_growth.py` (5). Suite totale: **456 passati**.

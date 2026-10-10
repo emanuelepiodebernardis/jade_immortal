@@ -171,6 +171,8 @@ def retreat(conn: sqlite3.Connection, player, arg: str) -> str:
     lines += events
     age = lifespan.age_years(conn, player.id)
     lines.append(f"Hai ora {int(age)} anni (su {lifespan.max_years(conn, player.id)}).")
+    from engine.systems import weapon_spirit
+    lines += weapon_spirit.on_days(conn, entities.get_player(conn), done)
     from engine.systems import qi as qimod, spirit as spmod
     qimod.restore_full(conn, player.id)
     spmod.restore_full(conn, player.id)

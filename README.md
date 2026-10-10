@@ -52,6 +52,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 - **Mondi superiori** infiniti oltre il nono regno; origine **Trasmigratore col Sistema**.
 - **Lignaggi di sangue** delle bestie leggendarie: manifestazioni ibride, trasformazione
   completa, fusione in sangui ibridi (Drago-Fenice di Fuoco e Ghiaccio…).
+- **Armi vive** che si temprano con il tempo e l'uso, si risvegliano e crescono senza tetto.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.
 
@@ -148,6 +149,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Mondo | `realm`, `enter`, `delve`, `assemblea`, `asta`, `classifica`, `ascendi_mondo`, `mondi`, `sistema` |
 | Dimora e setta | `dimora`, `ritiro <giorni>`, `accogli`, `insegna`, `discepoli`, `fonda`, `setta`, `anziani`, `missioni` |
 | Talento | `radici`, `gongfa`, `giura`, `proponi`, `chiama` |
+| Arma | `weapon <arma>`, `arma`, `arma nome <nome>` |
 | Sangue | `sangue`, `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
 | Pilota automatico | `auto`, `auto <giorni>`, `auto imposta ...` |
 | Guerra | `raid`, `invade` |

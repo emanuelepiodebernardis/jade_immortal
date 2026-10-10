@@ -77,6 +77,8 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "class                         — compagni di classe, classifica, prossima sfida/torneo",
         "challenge                     — sfidi un discepolo di rango superiore: se vinci, sali di categoria",
         "weapon <arma>                 — scegli l'arma principale (sblocca il Dao d'arma)",
+        "arma                          — la tua ARMA VIVA: esperienza, tempra, spirito, nemici illustri",
+        "arma nome <nome>              — dai un nome all'arma (quando lo spirito è senziente)",
         "huntzone                      — la zona di caccia della tua setta (mostri = merito)",
         "techniques                    — tecniche segrete della setta e merito disponibile",
         "learn <n>                     — impari una tecnica segreta spendendo merito",

@@ -165,7 +165,14 @@ def try_equip_drop(conn, player_id: int, wtype: str | None,
                 "found_type": weapon_label(wtype), "mine": eq["label"]}
     mine = describe_weapon(eq["type"], eq["tier"], eq["rarity"])
     if weapon_score(tier, rarity) > weapon_score(eq["tier"], eq["rarity"]):
+        from engine.systems import weapon_spirit
+        ws = weapon_spirit.get(conn, player_id)
+        if ws.get("awakened"):
+            # un'arma viva non si abbandona: si tempera da sola fino a superare questa
+            return {"status": "bonded", "found": found, "mine": mine,
+                    "name": weapon_spirit.weapon_name(ws) or ws.get("name", "lo spirito")}
         _set_equipped(conn, player_id, tier, rarity)
+        weapon_spirit.on_new_weapon(conn)
         return {"status": "equipped", "found": found, "old": mine,
                 "bonus": weapon_bonus(tier, rarity)}
     return {"status": "weaker", "found": found, "mine": mine}

@@ -196,7 +196,7 @@ def test_weapon_spirit_awakens_with_kills(conn):
     character_profiles = "UPDATE character_profiles SET weapon='spada', weapon_tier=1, weapon_rarity=3 " \
                          "WHERE character_type='player' AND character_id=1;"
     conn.execute(character_profiles)
-    msgs = [weapon_spirit.on_kill(conn, random.Random(i), _player(conn)) for i in range(weapon_spirit.AWAKEN_KILLS)]
+    msgs = [weapon_spirit.on_kill(conn, random.Random(i), _player(conn)) for i in range(60)]
     assert any(m and "risveglia" in m for m in msgs)
     assert weapon_spirit.level(weapon_spirit.get(conn, 1)) >= 1
 
