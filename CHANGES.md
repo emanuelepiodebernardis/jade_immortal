@@ -702,3 +702,52 @@ Nuovi test: `tests/test_weapon_growth.py` (5). Suite totale: **456 passati**.
   - `tutorial` con i primi passi.
 
 Nuovi test: `tests/test_body_world_qol.py` (11). Suite totale: **467 passati**.
+
+---
+
+## Aggiornamento 20 — I poteri dei protagonisti
+
+Tutto si coltiva senza fine: ogni sistema ha livelli, gradi o cicli che continuano a salire.
+
+- **Retaggio spezzato** (`lost_legacy.py`, comando `retaggio`; compare anche in `goals`).
+  - All'inizio di ogni vita una parte del tuo talento ti è stata tolta: Osso Supremo
+    strappato, Anima Primordiale frantumata, Vene Celesti sigillate, Pupilla Doppia
+    strappata, Fortuna rubata, Memorie della vita precedente o Seme del Dao spezzato.
+  - Salendo di regno, i custodi dei frammenti si fanno avanti. Ogni frammento ripreso ti
+    restituisce potere (e, nel caso delle memorie, una tecnica).
+  - Ripresi tutti e cinque, il retaggio rinasce più forte e comincia un nuovo ciclo, senza fine.
+- **Maestro nell'anello** (`mentor_ring.py`, `anello`): l'anima di un antico maestro trovata
+  in rovine o zone proibite.
+  - Ti consiglia, migliora coltivazione e arti, e ti presta la sua forza in battaglia.
+  - Lo nutri con i nuclei e si risveglia a livelli infiniti.
+  - Al livello 6 il suo traditore viene a cercarlo: vendicarlo sblocca la sua eredità.
+- **Spazio interiore** (`inner_space.py`, `spazio`): dalla bottiglietta di giada (campo con
+  raccolto moltiplicato) al **Mondo Interiore** dal livello 5 (coltivazione più rapida ovunque).
+  Si trova nei reami segreti e si risveglia da solo al quinto regno.
+- **Cloni** (`clones.py`, `clone`): dal quarto regno, con una sola coltivazione condivisa.
+  - Puoi dividere i compiti: uno lavora e si allena, un altro esplora e caccia, un altro
+    combatte al tuo fianco.
+  - I cloni crescono di livello senza fine. Se muori, un clone si sacrifica e la tua anima
+    vi si trasferisce.
+- **Elementi celesti** (`celestial_elements.py`, `elementi`): nove elementi, ciascuno con la
+  sua classifica di essenze, che nascono nel mondo sorvegliate da un guardiano.
+  - Assorbirli dà vantaggi propri dell'elemento e cresce senza fine (più ne assorbi, più
+    salgono di grado).
+  - Elementi diversi si armonizzano tra loro: due, cinque o tutti e nove.
+- **Famiglia** (`family.py`, `famiglia`): genitori e fratelli nella città d'origine.
+  - Visitarli calma il cuore del Dao; il clan cresce di livello con i tuoi regni e con i doni.
+  - Va difeso quando lo minacciano; dal settimo regno puoi riportare in vita un familiare
+    caduto, pagando con anni della tua vita.
+- **Senso divino e livello nascosto** (`divine_sense.py`: `scruta`, `cela`): leggi chi hai
+  davanti senza farti notare. Se nascondi la tua forza attiri i prepotenti, e umiliarli vale
+  il doppio della fama.
+- **Marionette e tesori legati al sangue** (`puppets.py`): marionette da combattimento (Forgia
+  o Formazioni 3) e spade volanti, scudi, campane… nutriti col tuo sangue, a livelli infiniti.
+- **Gu** (`gu.py`, `gu`): insetti spirituali da nutrire ogni giorno e da raffinare a gradi
+  infiniti. Il rarissimo Gu della Primavera e dell'Autunno riavvolge il tempo alla morte.
+- **Battaglie dell'anima e Bandiera delle Anime** (`soul_war.py`): anime antiche tentano di
+  impossessarsi di chi divora i potenti; la bandiera raccoglie le anime degli uccisi.
+- Il pilota automatico si ferma anche per gli elementi celesti, le minacce alla famiglia e i
+  frammenti del retaggio.
+
+Nuovi test: `tests/test_protagonist_features.py` (10). Suite totale: **477 passati**.

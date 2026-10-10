@@ -78,7 +78,8 @@ def describe(conn, player) -> str:
     if not r:
         nxt = INTERVAL_DAYS - ((tick_mod.get_tick(conn) // 120) - state.get_int(conn, "secret_realm_day", -999))
         return ("Nessun reame segreto è aperto ora." +
-                (f" Il prossimo dovrebbe aprirsi tra circa {max(1, nxt)} giorni." if nxt < 99 else ""))
+                (f" Il prossimo dovrebbe aprirsi tra circa {max(1, nxt)} giorn{'o' if max(1, nxt) == 1 else 'i'}."
+                 if nxt < 99 else ""))
     lname = conn.execute("SELECT name FROM locations WHERE id=?;", (r["loc"],)).fetchone()["name"]
     days = max(0, (r["close_tick"] - tick_mod.get_tick(conn)) // 120)
     ru = run(conn)
@@ -138,6 +139,8 @@ def _floor_scene(conn, rng, player, r: dict, floor: int) -> dict:
                 {"label": "Una fiala di vita antica",
                  "effects": {"lifespan_years": 20 + 15 * tier, "cultivation_progress": 0.5,
                              "realm_done": True}},
+                {"label": "Una bottiglietta di giada verde, piena di terra",
+                 "effects": {"inner_space": True, "realm_done": True}},
             ]}
     kind = rng.choice(["guardiano", "scrigno", "rivali", "pozza", "guardiano", "scrigno"])
     base = {"title": f"{r['name']} — piano {floor}/{r['floors']}", "event_type": "fortune", "sticky": True}

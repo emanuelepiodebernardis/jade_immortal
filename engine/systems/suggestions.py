@@ -87,6 +87,18 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
                     (player.id,)).fetchone():
         _add(out, "Assorbi l'essenza di sangue che hai raccolto", "use essenza")
 
+    from engine.systems import celestial_elements, family, lost_legacy
+    cev = celestial_elements.current_event(conn)
+    if cev and cev["loc"] == loc and not cev.get("taken") and cev.get("guard") is not None:
+        _add(out, f"Assorbi il {cev['name']}", "elementi assorbi")
+    fam = family.get(conn)
+    if fam and fam.get("threat") and fam["home"] == loc:
+        _add(out, "Difendi la tua famiglia", "famiglia difendi")
+    lg = lost_legacy.get(conn)
+    if lg and lg.get("holder"):
+        hr = conn.execute("SELECT name, location_id FROM npcs WHERE id=? AND status='alive';", (lg["holder"],)).fetchone()
+        if hr and hr["location_id"] == loc:
+            _add(out, f"Riprenditi il frammento da {hr['name']}", f"attack {hr['name']}")
     from engine.systems import npc_quests
     if len(npc_quests.active(conn)) < npc_quests.MAX_ACTIVE and npc_quests._offers_here(conn, player):
         _add(out, "Ascolta chi, qui, ha un incarico per te", "richieste")

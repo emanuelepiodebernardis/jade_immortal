@@ -221,6 +221,13 @@ def _after_arrival(conn: sqlite3.Connection, player: entities.Player) -> str:
         from engine.systems import oaths
         from engine.systems import auction, sect_politics
         sect_politics.on_arrival(conn, player)
+        from engine.systems import celestial_elements, mentor_ring
+        _ce = celestial_elements.on_arrival(conn, player)
+        if _ce:
+            return out + "\n\n" + _ce
+        _mr = mentor_ring.offer_scene(conn, random.Random(tick.get_tick(conn) * 3 + player.id), player)
+        if _mr:
+            return out + "\n\n" + _mr
         from engine.systems import npc_quests
         _qa = npc_quests.on_arrival(conn, player)
         if _qa:
@@ -427,8 +434,15 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     _mat = professions.on_creature_kill(conn, player.id, npc.id, _vk["kind"] if _vk else None)
     if _mat:
         lines.append(_mat)
-    from engine.systems import npc_quests
+    from engine.systems import npc_quests, soul_war, lost_legacy
     lines += npc_quests.check(conn, player)
+    lines += soul_war.on_kill(conn, t, player, _vk["kind"] if _vk else None)
+    _fl = soul_war.maybe_find_flag(conn, rng, player)
+    if _fl:
+        lines.append(_fl)
+    _lg = lost_legacy.get(conn)
+    if _lg and _lg.get("holder") == npc.id:
+        lines += lost_legacy.recover(conn, t, rng, player)
     if _vk and _vk["kind"] in ("beast", "demon", "spirit"):
         from engine.systems import qol
         qol.note(conn, "bestie", npc.name.rstrip("0123456789 ").strip())
@@ -436,6 +450,14 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
         from engine.systems import bloodlines, beast_eggs
         lines += bloodlines.on_beast_kill(conn, t, rng, player, npc.id)
         lines += beast_eggs.drop_egg(conn, rng, player, npc.id)
+        from engine.systems import gu as _gu, puppets as _pp, beasts as _bs
+        _g = _gu.maybe_drop(conn, rng, player)
+        if _g:
+            lines.append(_g)
+        if (_bs.traits(conn, npc.id)["rarity"] or "comune") != "comune":
+            _tr = _pp.maybe_drop_treasure(conn, rng, player)
+            if _tr:
+                lines.append(_tr)
     _ws = weapon_spirit.on_kill(conn, rng, player)
     if _ws:
         lines.append(_ws)
@@ -1140,6 +1162,8 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
         out += "\n" + lifespan.on_realm_up(conn, player.id)
         from engine.systems import constitutions, dao_heart, heaven_trib
         _cl = constitutions.on_realm_up(conn, random.Random(t * 13 + player.id)) + dao_heart.on_breakthrough(conn)
+        from engine.systems import family as _fam
+        _cl += _fam.on_realm_up(conn)
         _cl += heaven_trib.on_realm_up(conn, t, random.Random(t * 17 + player.id), entities.get_player(conn),
                                        cultivation.realm_tier(conn, "player", player.id) or 1)
         if _cl:
@@ -1928,6 +1952,16 @@ def cmd_bounties(conn: sqlite3.Connection, player: entities.Player) -> str:
     return "\n".join(lines)
 
 
+def state_flag(conn, key: str) -> bool:
+    from engine.systems import state as _st
+    return _st.flag(conn, key, False)
+
+
+def _set_flag(conn, key: str) -> None:
+    from engine.systems import state as _st
+    _st.set(conn, key, "1")
+
+
 def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None:
     """Mostra 'GIORNO N' quando inizia un nuovo giorno, con i giorni all'evento."""
     from engine.systems import training, sect_life, sects
@@ -1986,6 +2020,17 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     from engine.systems import constitutions, dao_heart, prodigies
     lines += ["  " + ln for ln in constitutions.daily(conn, t, random.Random(t * 79 + day), player)]
     lines += ["  " + ln for ln in prodigies.daily(conn, t, random.Random(t * 83 + day), player)]
+    from engine.systems import (mentor_ring, inner_space, clones, celestial_elements, family, divine_sense, gu,
+                                lost_legacy)
+    _rng2 = random.Random(t * 97 + day)
+    if not family.get(conn) and not state_flag(conn, "family_init"):
+        lines += ["  " + ln for ln in family.create(conn, _rng2, player)]
+        _set_flag(conn, "family_init")
+    if not lost_legacy.get(conn) and not state_flag(conn, "legacy_init"):
+        lines += ["  " + ln for ln in lost_legacy.assign(conn, _rng2)]
+        _set_flag(conn, "legacy_init")
+    for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense):
+        lines += ["  " + ln for ln in _mod.daily(conn, t, _rng2, entities.get_player(conn))]
     from engine.systems import beast_eggs, qol
     lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]
     qol.autosave(conn, day)

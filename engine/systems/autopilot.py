@@ -17,7 +17,7 @@ quando succede qualcosa che vale la pena giocare.
   auto imposta sfonda <si|no>           tenta da solo lo sfondamento quando sei al colmo (rischioso!)
   auto imposta condotta <virtuosa|prudente|opportunista|spietata>
                                         come comportarti negli incontri casuali minori
-  auto imposta fermati <reame|assemblea|asta|invasione> <si|no>
+  auto imposta fermati <reame|assemblea|asta|invasione|elemento> <si|no>
                                         quali occasioni meritano una sosta (le altre restano nel resoconto)
 
 Si ferma per: capitoli della storia, maestri segreti, scene importanti (nemesi, demone
@@ -43,8 +43,9 @@ _WILD = ("mountain", "ruin", "forbidden_zone")
 DEFAULT = {"attivita": {"coltiva": 3, "dao": 2, "caccia": 2, "raccolta": 1, "lavoro": 1, "insegna": 1},
            "bersagli": "bestie", "assorbi": False, "loot": True, "oggetti": True, "sfonda": False,
            "condotta": "prudente",
-           "fermate": {"reame": True, "assemblea": True, "asta": False, "invasione": True}}
-_STOP_KEY = {"realm": "reame", "assembly": "assemblea", "auction": "asta", "event": "invasione"}
+           "fermate": {"reame": True, "assemblea": True, "asta": False, "invasione": True, "elemento": True}}
+_STOP_KEY = {"realm": "reame", "assembly": "assemblea", "auction": "asta", "event": "invasione",
+             "celestial": "elemento"}
 
 
 # ============================================================
@@ -310,7 +311,25 @@ def _snapshot(conn, pid: int) -> dict:
             "event": _near_event(conn, pid),
             "war": bool(war and m and m["faction_id"] in (war["player_faction_id"], war["enemy_faction_id"]))
             if war and "player_faction_id" in war.keys() else bool(war),
-            "life": state.get_int(conn, "life_warned", 0)}
+            "life": state.get_int(conn, "life_warned", 0),
+            "celestial": bool(_celestial(conn)),
+            "family": bool((_family(conn) or {}).get("threat")),
+            "legacy": bool((_legacy(conn) or {}).get("holder"))}
+
+
+def _celestial(conn):
+    from engine.systems import celestial_elements
+    return celestial_elements.current_event(conn)
+
+
+def _family(conn):
+    from engine.systems import family
+    return family.get(conn)
+
+
+def _legacy(conn):
+    from engine.systems import lost_legacy
+    return lost_legacy.get(conn)
 
 
 def _near_event(conn, pid: int):
@@ -349,7 +368,9 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
     labels = {"realm": "si è aperto un reame segreto", "assembly": "è convocata la Grande Assemblea",
               "auction": "ha aperto la casa d'aste", "threat": "la tua setta è sotto assalto",
               "sworn": "un fratello giurato chiede aiuto", "event": "un'invasione di mostri minaccia questa regione",
-              "war": "è scoppiata una guerra tra sette", "life": "la vecchiaia si avvicina"}
+              "war": "è scoppiata una guerra tra sette", "life": "la vecchiaia si avvicina",
+              "celestial": "è nato un Elemento Celeste", "family": "la tua famiglia è minacciata",
+              "legacy": "un frammento del tuo retaggio si è mostrato"}
     stops = (cfg or DEFAULT)["fermate"]
     for k, lab in labels.items():
         if k in _STOP_KEY and not stops.get(_STOP_KEY[k], True):

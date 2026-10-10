@@ -277,7 +277,12 @@ def claim_tombs(conn, player) -> list[str]:
 
 
 def try_phoenix(conn, player) -> str | None:
-    """Corpo della Fenice: una volta per vita, risorgi dalle ceneri invece di morire."""
+    """Corpo della Fenice: una volta per vita, risorgi dalle ceneri invece di morire.
+    (Prima ancora: un clone che si sacrifica, o il Gu che riavvolge il tempo.)"""
+    from engine.systems import clones, gu
+    saved = clones.try_save(conn, player) or gu.try_rewind(conn, player)
+    if saved:
+        return saved
     from engine.systems import destinies
     if not destinies.flag_value(conn, "phoenix", player.id, False):
         return None

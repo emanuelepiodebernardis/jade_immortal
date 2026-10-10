@@ -56,6 +56,9 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 - **Costituzioni speciali**, **cuore del Dao** (deviazione del Qi), **tossine delle pillole**,
   **tribolazioni del fulmine** a ogni regno da assorbire e controllare.
 - **Prodigi** che crescono senza di te, **uova e allevamento** di bestie ibride, **incarichi a catena**.
+- **Poteri dei protagonisti**: retaggio spezzato da ricomporre, maestro nell'anello, spazio
+  interiore, cloni, elementi celesti, famiglia, senso divino, marionette e tesori, Gu,
+  bandiera delle anime: tutto coltivabile senza fine.
 - Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.
@@ -156,6 +159,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Arma | `weapon <arma>`, `arma`, `arma nome <nome>` |
 | Sangue | `sangue`, `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
 | Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
+| Eredità | `retaggio`, `anello`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
 | Interfaccia | `tutorial`, `mappa`, `codex`, `salva`, `carica`, `salvataggi`, `colori` |
 | Pilota automatico | `auto`, `auto <giorni>`, `auto imposta ...` |
 | Guerra | `raid`, `invade` |

@@ -84,6 +84,9 @@ def absorb(conn: sqlite3.Connection, tick: int, rng: random.Random,
         _bump_count(conn, player_id, "abs_spirit")
         summary = f"Divori l'essenza di {name}: la tua anima si amplia."
     else:  # human / coltivatore
+        from engine.systems import soul_war
+        from engine.core import entities as _e2
+        _pos = soul_war.maybe_possession(conn, rng, _e2.get_player(conn, player_id), ttier, ptier)
         outcome, residue_gain = _absorb_human(conn, player_id, target_id, freshness,
                                               ptier, ttier, clean, overreach, consequences,
                                               tick, rng, name, yield_pts)

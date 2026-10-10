@@ -71,7 +71,8 @@ def on_realm_up(conn, t: int, rng: random.Random, player, new_tier: int) -> list
     cp = combat.combat_power(conn, "player", player.id)
     resist = cp["defense"] * 0.5 + cp["vitality"] * 0.3 + comp * 0.6
     resist *= 1.0 + 0.05 * sum(1 for _ in tribulation.boon_list(conn, player.id))
-    frac = absorb_fraction(comp)
+    from engine.systems import celestial_elements
+    frac = min(0.95, absorb_fraction(comp) + (celestial_elements.tribulation_bonus(conn) if comp >= 100 else 0.0))
     lines = [f"⚡ TRIBOLAZIONE DEL FULMINE CELESTE (la {n}ª): il cielo si oscura, {bolts} folgori si "
              f"preparano a cadere su di te."]
     absorbed = endured = failed = 0

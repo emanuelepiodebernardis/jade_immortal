@@ -26,7 +26,8 @@ from engine.systems import relations, state
 
 KINDS_IT = {"companion": "compagno di viaggio", "master": "maestro",
             "rival": "rivale", "nemesis": "nemesi", "beast": "bestia spirituale",
-            "disciple": "discepolo", "sworn": "fratello giurato", "dao_partner": "compagno del Dao"}
+            "disciple": "discepolo", "sworn": "fratello giurato", "dao_partner": "compagno del Dao",
+            "family": "famiglia"}
 RECRUIT_MIN = 40              # rapporto minimo per chiedere a qualcuno di seguirti
 MASTER_MIN = 50               # rapporto minimo per diventare discepolo
 MAX_NEMESES = 2
@@ -96,7 +97,7 @@ def protected_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
     try:
         return {r["npc_id"] for r in conn.execute(
             "SELECT npc_id FROM bonds WHERE player_id=? AND status='active' "
-            "AND kind IN ('companion','master','beast','disciple','sworn','dao_partner');", (player_id,))}
+            "AND kind IN ('companion','master','beast','disciple','sworn','dao_partner','family');", (player_id,))}
     except sqlite3.OperationalError:
         return set()
 
@@ -691,6 +692,9 @@ def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     w = weapon_spirit.combat_ally(conn, player_id, fx)
     if w:
         out.append(w)
+    from engine.systems import clones, puppets
+    out += clones.combat_allies(conn, player_id)
+    out += puppets.combat_allies(conn, player_id, fx)
     from engine.systems import oaths
     out += oaths.combat_allies(conn, player_id, npc_id)
     return out

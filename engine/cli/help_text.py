@@ -154,6 +154,19 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "narrate                       — rendi la scena attuale come prosa (LLM o fallback)",
         "chronicle                     — un breve passo di cronaca del mondo",
     ]),
+    ("eredita", "Eredità e poteri dei protagonisti", [
+        "retaggio                      — il talento che ti è stato tolto: frammenti ritrovati e dove cercare il prossimo",
+        "anello [nutri <n>|forza]      — il MAESTRO NELL'ANELLO: consigli, risveglio infinito, ti presta la sua forza",
+        "spazio [semina <n>|raccogli|espandi] — lo SPAZIO INTERIORE: campo accelerato, poi Mondo Interiore",
+        "clone [crea|lavora|esplora|riposa] — i CLONI: una sola coltivazione, compiti divisi",
+        "elementi [assorbi]            — gli ELEMENTI CELESTI: nascono nel mondo, assorbili e falli crescere",
+        "famiglia [visita|difendi|dona <pietre>|resuscita <nome>] — la tua famiglia e il tuo clan",
+        "scruta [nome] | cela <on|off> — SENSO DIVINO e nascondere il proprio livello",
+        "marionetta crea|potenzia <n>  — MARIONETTE da combattimento (Forgia o Formazioni 3)",
+        "tesoro forgia <tipo>|nutri <n> — TESORI LEGATI AL SANGUE ('marionette' / 'tesori' per vederli)",
+        "gu [raffina <tipo>]           — i GU nella tua apertura: nutrirli, raffinarli",
+        "bandiera                      — la BANDIERA DELLE ANIME (arte demoniaca)",
+    ]),
     ("auto", "Pilota automatico (stato etereo)", [
         "auto                          — la configurazione del pilota automatico",
         "auto <giorni>                 — i giorni scorrono da soli (max 60); si ferma agli eventi importanti",
@@ -163,7 +176,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "auto imposta loot <si|no> | oggetti <si|no> — raccogli il bottino | usa pillole ed essenze",
         "auto imposta sfonda <si|no>   — tenta da solo il breakthrough quando sei al colmo (rischioso!)",
         "auto imposta condotta <virtuosa|prudente|opportunista|spietata> — scelte negli incontri minori",
-        "auto imposta fermati <reame|assemblea|asta|invasione> <si|no> — per quali occasioni fermarsi",
+        "auto imposta fermati <reame|assemblea|asta|invasione|elemento> <si|no> — per quali occasioni fermarsi",
     ]),
     ("sistema", "Interfaccia", [
         "help [categoria|tutto]        — aiuto (anche 'h')",
@@ -191,7 +204,8 @@ _ALIASES = {
     "reame": "mondo", "reami": "mondo", "assemblea": "mondo", "aste": "mondo", "asta": "mondo",
     "casa": "dimora", "discepoli": "dimora", "grotta": "dimora", "radici": "coltivazione",
     "formazioni": "arti", "domatore": "arti", "sangue": "bestie", "lignaggi": "bestie",
-    "autopilota": "auto", "pilota": "auto", "etereo": "auto",
+    "autopilota": "auto", "pilota": "auto", "etereo": "auto", "anello": "eredita", "cloni": "eredita",
+    "famiglia": "eredita", "gu": "eredita", "elementi": "eredita", "retaggio": "eredita",
 }
 
 ESSENTIALS = """Nuovo? Scrivi 'tutorial'.

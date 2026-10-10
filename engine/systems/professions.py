@@ -301,7 +301,9 @@ def craft(conn, t: int, rng: random.Random, player, raw: str) -> str:
     from engine.simulation import world_tick
     from engine.core import tick as tick_mod
     world_tick.advance(conn, tick_mod.cost_of("short_rest"))
-    p_ok = min(0.97, 0.6 + 0.07 * (lv - need) + 0.05 * home_lv)
+    from engine.systems import mentor_ring, celestial_elements
+    p_ok = min(0.97, 0.6 + 0.07 * (lv - need) + 0.05 * home_lv + mentor_ring.craft_bonus(conn)
+               + celestial_elements.craft_bonus(conn))
     if rng.random() >= p_ok:
         out = "Il tentativo fallisce: i materiali vanno perduti. (Esperienza +1)"
     else:

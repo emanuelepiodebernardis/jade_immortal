@@ -83,6 +83,11 @@ def dismiss_if_moved(conn: sqlite3.Connection, player: entities.Player) -> str |
 # Prove
 # ============================================================
 
+def _extra_fortune(conn) -> int:
+    from engine.systems import lost_legacy, gu
+    return lost_legacy.fortune_bonus(conn) + gu.fortune_bonus(conn)
+
+
 def stat_value(conn: sqlite3.Connection, player_id: int, stat: str) -> int:
     from engine.systems import character, karma, dao_powers
     from engine.simulation import cultivation
@@ -97,7 +102,8 @@ def stat_value(conn: sqlite3.Connection, player_id: int, stat: str) -> int:
         from engine.systems import destinies
         k = karma.get_karma(conn, "player", player_id)
         return int(45 + dao_powers.fate_idx(conn, player_id) * 12 + max(-30, min(30, k // 10))
-                   + int(destinies.flag_value(conn, "fortune", player_id, 0)))
+                   + int(destinies.flag_value(conn, "fortune", player_id, 0))
+                   + _extra_fortune(conn))
     if stat == "karma":
         return int(50 + max(-50, min(50, karma.get_karma(conn, "player", player_id) // 4)))
     if stat == "potenza":
@@ -332,6 +338,24 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     if any(k in eff for k in ("face_duel", "face_humiliate", "feud_end", "feud_win")):
         from engine.systems import face
         lines += face.apply(conn, t, rng, player, eff, ctx)
+    if eff.get("mentor_ring"):
+        from engine.systems import mentor_ring
+        lines += mentor_ring.awaken(conn, rng)
+    if eff.get("inner_space"):
+        from engine.systems import inner_space
+        if inner_space.get(conn):
+            d = inner_space.get(conn)
+            d["level"] += 1
+            inner_space._save(conn, d)
+            lines.append(f"La terra della bottiglietta si fonde col tuo spazio interiore: livello {d['level']}.")
+        else:
+            lines.append(inner_space.grant(conn))
+    if eff.get("celestial_guard") and ctx.get("npc_id"):
+        from engine.systems import celestial_elements
+        celestial_elements.set_guard(conn, ctx["npc_id"])
+    if eff.get("celestial_free"):
+        from engine.systems import celestial_elements
+        celestial_elements.set_free(conn)
     if eff.get("quest_done"):
         from engine.systems import npc_quests
         npc_quests.mark_done(conn, int(eff["quest_done"]))

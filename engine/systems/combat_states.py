@@ -151,6 +151,9 @@ class FightCtx:
         from engine.systems import prodigies, heaven_trib
         self.lines_intro += prodigies.enemy_bonus(conn, npc_id, self)
         self.lines_intro += heaven_trib.combat(conn, self)
+        from engine.systems import mentor_ring, celestial_elements, lost_legacy, gu, soul_war
+        for _m in (mentor_ring, celestial_elements, lost_legacy, gu, soul_war):
+            self.lines_intro += _m.combat(conn, self)
         # COSTITUZIONE SPECIALE
         from engine.systems import constitutions
         self.lines_intro += constitutions.combat(conn, self)

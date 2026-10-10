@@ -81,6 +81,8 @@ def on_upset_win(conn, t: int, rng: random.Random, player, npc_name: str, ratio:
     n = state.get_int(conn, "upset_wins", 0) + 1
     state.set(conn, "upset_wins", str(n))
     lines.append(f"Hai sconfitto {npc_name}, più forte di te: chi ha visto non lo dimenticherà.")
+    from engine.systems import divine_sense
+    lines += divine_sense.on_upset(conn, player, npc_name)
     from engine.systems import dao_heart
     lines += dao_heart.adjust(conn, 3)
     titles = {1: "Sfidante dei Cieli", 10: "Colui che Rovescia il Destino",

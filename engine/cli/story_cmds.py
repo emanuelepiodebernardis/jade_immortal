@@ -170,6 +170,55 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("chiama", "call"):
         from engine.systems import oaths
         return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("anello", "ring", "maestro_anello"):
+        from engine.systems import mentor_ring
+        return mentor_ring.command(conn, player, arg)
+    if cmd in ("spazio", "mondo_interiore", "bottiglia"):
+        from engine.systems import inner_space
+        return inner_space.command(conn, player, arg)
+    if cmd in ("clone", "cloni", "clones"):
+        from engine.systems import clones
+        return clones.command(conn, player, arg)
+    if cmd in ("elementi", "celesti", "elementi_celesti"):
+        from engine.systems import celestial_elements
+        return celestial_elements.command(conn, player, arg)
+    if cmd in ("famiglia", "family", "clan"):
+        from engine.systems import family
+        return family.command(conn, player, arg)
+    if cmd in ("scruta", "senso", "scan"):
+        from engine.systems import divine_sense
+        return divine_sense.scan(conn, player, arg)
+    if cmd in ("cela", "nascondi", "conceal"):
+        from engine.systems import divine_sense
+        return divine_sense.toggle(conn, arg)
+    if cmd in ("marionette", "tesori", "puppets", "treasures"):
+        from engine.systems import puppets
+        return puppets.describe(conn, player)
+    if cmd in ("marionetta", "puppet"):
+        from engine.systems import puppets
+        parts = arg.split(maxsplit=1)
+        if parts and parts[0].lower() in ("crea", "create"):
+            return puppets.create_puppet(conn, player)
+        if parts and parts[0].lower() in ("potenzia", "upgrade"):
+            return puppets.upgrade_puppet(conn, player, parts[1] if len(parts) > 1 else "")
+        return puppets.describe(conn, player)
+    if cmd in ("tesoro", "treasure"):
+        from engine.systems import puppets
+        parts = arg.split(maxsplit=1)
+        if parts and parts[0].lower() in ("forgia", "forge"):
+            return puppets.forge_treasure(conn, player, parts[1] if len(parts) > 1 else "")
+        if parts and parts[0].lower() in ("nutri", "feed"):
+            return puppets.feed(conn, player, parts[1] if len(parts) > 1 else "")
+        return puppets.describe(conn, player)
+    if cmd in ("retaggio", "legacy", "frammenti"):
+        from engine.systems import lost_legacy
+        return lost_legacy.describe(conn, player)
+    if cmd in ("gu", "insetti"):
+        from engine.systems import gu
+        return gu.command(conn, player, arg)
+    if cmd in ("bandiera", "soulflag"):
+        from engine.systems import soul_war
+        return soul_war.describe(conn, player)
     if cmd in ("salva", "save"):
         from engine.systems import qol
         return qol.save(conn, arg)
