@@ -72,6 +72,7 @@ HELP = """Comandi disponibili:
   hunt <nome>                   — localizza un ricercato e ti indica dove andare
   join                          — test d'ingresso e iscrizione alla setta locale
   class                         — compagni di classe, classifica, prossima sfida/torneo
+  challenge                     — sfidi un discepolo di rango superiore: se vinci, sali di categoria
   invitations                   — inviti delle sette superiori (dopo aver vinto un torneo)
   accept <n>                    — accetti un invito e ascendi a una setta superiore
   huntzone                      — la zona di caccia della tua setta (mostri = merito)
@@ -1328,6 +1329,63 @@ def cmd_use_item(conn: sqlite3.Connection, player: entities.Player, frag: str) -
     return f"Usi {res['name']}.\n" + "\n".join(f"  {ln}" for ln in res["lines"])
 
 
+def _rank_duel(conn, rng, player, opp_name, idx) -> tuple[bool, list[str]]:
+    """Duello di rango (NON letale): il tuo potere REALE contro la soglia attesa per il rango
+    superiore. Se sei sovra-allenato per il tuo rango, lo travolgi; se sei acerbo, perdi."""
+    from engine.simulation import cultivation
+    pcp = combat.combat_power(conn, "player", player.id)
+    power = pcp["attack"] + pcp["defense"] * 0.5 + pcp["vitality"] * 0.4
+    realm = cultivation.realm_tier(conn, "player", player.id) or 1
+    # soglia del rango successivo: cresce col regno e (di più) col rango da scalare
+    baseline = (realm * 70 + (idx + 1) * 60) * (1.0 + 0.06 * idx)
+    score = power * rng.uniform(0.8, 1.2)
+    win = score >= baseline
+    margin = score / max(1.0, baseline)
+    lines = [f"⚔ SFIDA DI RANGO — affronti {opp_name}, un anziano un gradino sopra di te!"]
+    if win:
+        lines.append("Lo travolgi scambio dopo scambio." if margin > 1.4
+                     else "Lotta serrata, ma alla fine lo pieghi.")
+    else:
+        lines.append("La sua esperienza superiore ti respinge." if margin < 0.75
+                     else "Per un soffio non basta: ti manca ancora qualcosa.")
+    return win, lines
+
+
+def cmd_challenge(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    """Sfida un discepolo di rango superiore: se vinci, ne prendi il posto (sali di categoria)."""
+    from engine.systems import sects, reputation, training
+    m = sects.get_membership(conn, player.id)
+    if not m:
+        return "Non appartieni a nessuna setta: non c'è nessun rango da scalare."
+    ladder = sects.RANK_LADDER
+    cur = m["rank"] if m["rank"] in ladder else ladder[0]
+    idx = ladder.index(cur)
+    if idx >= len(ladder) - 1:
+        return f"Sei già al rango massimo della tua setta («{cur}»): non c'è nessuno sopra di te."
+    nxt = ladder[idx + 1]
+    # cooldown: una sfida al giorno
+    day = training.current_day(tick.get_tick(conn))
+    cd = conn.execute("SELECT value FROM game_state WHERE key='challenge_day';").fetchone()
+    if cd and int(cd["value"]) == day:
+        return "Hai già lanciato una sfida di rango oggi. Riprova domani (riposa o allenati)."
+    conn.execute("INSERT INTO game_state (key, value) VALUES ('challenge_day', ?) "
+                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value;", (str(day),))
+
+    opp_name = f"Anziano «{nxt}»"
+    win, lines = _rank_duel(conn, random.Random(tick.get_tick(conn) * 7 + player.id),
+                            player, opp_name, idx)
+    world_tick.advance(conn, tick.cost_of("move"))
+    if win:
+        promo = sects.promote_rank(conn, player.id)
+        reputation.adjust(conn, player.id, fame=15)
+        lines.append(f"★ Hai SCONFITTO {opp_name}! Ne prendi il posto: ora sei «{promo['rank']}». (+15 fama)")
+        if promo.get("top"):
+            lines.append("Sei in cima alla tua setta: ora puoi guidare un'invasione ('invade').")
+    else:
+        lines.append(f"Vieni respinto da {opp_name}: non sei ancora pronto. Allenati e riprova domani.")
+    return "\n".join(lines)
+
+
 def cmd_invade(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
     """Guida la tua setta all'invasione della setta rivale con sede qui (richiede rango alto)."""
     from engine.systems import sect_invasion
@@ -2298,6 +2356,8 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_raid(conn, player, arg)
     if cmd in ("invade", "invadi", "invasione", "conquista", "conquer"):
         return cmd_invade(conn, player, arg)
+    if cmd in ("challenge", "sfida", "sfidarango", "duello"):
+        return cmd_challenge(conn, player, arg)
     if cmd in ("buy", "compra", "acquista"):
         return cmd_buy(conn, player, arg)
     if cmd == "map":

@@ -367,3 +367,24 @@ Abisso, sette/tornei/mercato, guerra/razzie/invasioni guidate, invasioni mondial
 territoriale), riferimento dei comandi, architettura, test e note di bilanciamento.
 
 Nuovi test: `tests/test_invasion_lead.py` (3). Suite totale: **345 passati**, 1 rosso atteso (LLM).
+
+---
+
+## Aggiornamento 12 — Fix tribolazione del Cielo + Sfida di rango
+
+### Tribolazione del Cielo: ora parte DA SOLA (bug di calibrazione risolto)
+Prima la tribolazione legata alla **Sfida al Cielo** (`heaven_defiance`) veniva controllata
+**solo** al breakthrough riuscito o digitando `tribulation` a mano: così potevi arrivare a
+defiance altissima (es. 1139 «assoluta») senza che il castigo arrivasse mai. Ora il controllo
+è agganciato allo **scorrere del tempo** (`world_tick`): superata una nuova soglia, la
+tribolazione **scatta automaticamente** ed è sempre mostrata (coda report). Verificato:
+defiance 1139 → folgore entro pochi tick.
+
+### Nuova via di promozione: `challenge` (sfida di rango)
+Oltre ai tornei, ora puoi salire di categoria **sfidando un anziano di rango superiore**:
+`challenge` (alias `sfida`) lancia un duello **non letale** col tuo potere reale contro la
+soglia attesa del rango successivo. Se sei sovra-allenato per il tuo rango **lo travolgi e ne
+prendi il posto** (+fama); se sei acerbo, vieni respinto. Una sfida al giorno (cooldown).
+Al rango massimo sblocchi l'invasione guidata (`invade`).
+
+Nuovi test: `tests/test_tribulation_and_challenge.py` (5). Suite totale: **350 passati**, 1 rosso atteso (LLM).

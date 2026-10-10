@@ -64,7 +64,8 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 - Test d'ingresso sul talento, ranghi di discepolo, **economia giornaliera** di sessioni.
 - **Livelli di setta infiniti** (nomi auto-generati).
 - **Tornei mensili giocati**: combattimenti coi compagni, classifica, premiazione e
-  **promozione di categoria**; i **compagni di classe crescono ogni giorno** in base al
+  **promozione di categoria** (in alternativa, `challenge` sfida un anziano di rango
+  superiore: se vinci, ne prendi il posto); i **compagni di classe crescono ogni giorno** in base al
   talento (più alto nelle sette potenti).
 - **Mercato delle pietre** in città: pillole, essenze, nuclei, manuali — assortimento e
   potenza scalati col livello della setta, stock giornaliero.
@@ -104,7 +105,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Combattimento | `attack <nome>`, `attack all`, `attack humans`, `attack creatures`, `moves`, `defend` |
 | Abisso | `absorb <nome>`, `absorb all`, `loot` |
 | Coltivazione | `cultivate`, `comprehend <dao>`, `breakthrough`, `dao`, `tribulation` |
-| Sette | `join`, `class`, `market`, `buy <n>`, `invitations`, `accept <n>` |
+| Sette | `join`, `class`, `challenge`, `market`, `buy <n>`, `invitations`, `accept <n>` |
 | Guerra | `raid`, `invade` |
 | Stato | `status`, `rating`, `inventory`, `use <oggetto>`, `use all`, `techniques` |
 | Sistema | `help`, `save`/auto, `quit` |

@@ -182,6 +182,17 @@ def advance(conn: sqlite3.Connection, n: int, player_id: int = 1,
         if tick_no % 24 == 0:
             from engine.systems import absorption
             events += absorption.maybe_tribulation(c, tick_no, rng, player, observations)
+        # tribolazione del CIELO: quando la Sfida (Spazio+Tempo+Destino) supera una nuova
+        # soglia, il castigo arriva DA SOLO (non serve più sfondare o invocarlo a mano).
+        if tick_no % 12 == 0 and player is not None:
+            from engine.systems import dao_powers, tribulation, reports
+            _pw = dao_powers.tribulation_due(c, player.id)
+            if _pw > 0:
+                _tr = tribulation.resolve_tribulation(c, tick_no, rng, _pw, player.id)
+                reports.push(c, player.id, tick_no,
+                             "\n".join(["⚡ Il Cielo non tollera più la tua sfida alle sue leggi!"]
+                                       + _tr["lines"]))
+                events += 1
         # guerre tra sette: una setta rivale può dichiarare guerra alla tua
         from engine.systems import sect_war
         events += sect_war.tick(c, tick_no, rng, player, observations)
