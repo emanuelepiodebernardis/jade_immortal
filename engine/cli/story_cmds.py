@@ -108,6 +108,116 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("masters", "maestri"):
         from engine.systems import secret_masters
         return secret_masters.describe(conn, player)
+    if cmd in ("realm", "reame", "reami", "secretrealm"):
+        from engine.systems import secret_realms
+        if arg.strip().lower() in ("leave", "esci", "exit"):
+            return secret_realms.leave(conn)
+        return secret_realms.describe(conn, player)
+    if cmd in ("enter", "entra"):
+        from engine.systems import secret_realms
+        return secret_realms.enter(conn, player)
+    if cmd in ("delve", "scendi", "esplora_reame"):
+        from engine.systems import secret_realms
+        return secret_realms.delve(conn, player)
+    if cmd in ("giura", "swear", "fratellanza", "proponi", "compagno_dao", "daopartner"):
+        from engine.systems import oaths
+        npc = _find_here(conn, player, arg)
+        if npc is None:
+            return (f"Usa: {cmd} <nome>" if not arg.strip() else f"Non vedi nessuno di nome '{arg}' qui.")
+        t = tick.get_tick(conn)
+        if cmd in ("giura", "swear", "fratellanza"):
+            return oaths.swear(conn, t, player, npc)
+        return oaths.propose(conn, t, player, npc)
+    if cmd in ("up", "down", "su", "giu", "giù") and not arg.strip():
+        from engine.cli import loop
+        return loop.cmd_move(conn, player, cmd)
+    if cmd in ("ascendi_mondo", "ascensione", "porta_celeste"):
+        from engine.systems import ascension
+        return ascension.ascend(conn, player)
+    if cmd in ("mondi", "worlds", "strati"):
+        from engine.systems import ascension
+        return ascension.describe(conn, player)
+    if cmd in ("classe_arte", "miaclasse", "vocazione", "via_arte"):
+        from engine.systems import classes
+        return classes.describe(conn, player)
+    if cmd in ("sintonia", "attune", "sintonizza"):
+        from engine.systems import classes
+        return classes.attune(conn, player, arg)
+    if cmd in ("formazioni", "formations", "arrays"):
+        from engine.systems import formations
+        return formations.describe(conn, player)
+    if cmd in ("teletrasporto", "teleport", "tp"):
+        from engine.systems import formations
+        return formations.teleport(conn, player, arg)
+    if cmd in ("anziani", "elders"):
+        from engine.systems import sect_politics
+        return sect_politics.describe_elders(conn, player)
+    if cmd in ("servi", "serve"):
+        from engine.systems import sect_politics
+        return sect_politics.serve(conn, player, arg)
+    if cmd in ("missioni", "missions", "bacheca"):
+        from engine.systems import sect_politics
+        return sect_politics.missions(conn, player, arg)
+    if cmd in ("asta", "aste", "auction"):
+        from engine.systems import auction
+        return auction.command(conn, player, arg)
+    if cmd in ("gongfa", "metodo", "metodi", "method"):
+        from engine.systems import gongfa
+        return gongfa.command(conn, player, arg)
+    if cmd in ("radici", "roots", "radice", "linggen"):
+        from engine.systems import spirit_roots
+        return spirit_roots.describe(conn, player)
+    if cmd in ("chiama", "call"):
+        from engine.systems import oaths
+        return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("sistema", "system", "ding"):
+        from engine.systems import system_quest
+        return system_quest.command(conn, player, arg)
+    if cmd in ("assemblea", "assembly", "torneo_mondiale", "alleanza"):
+        from engine.systems import assembly
+        return assembly.command(conn, player, arg)
+    if cmd in ("ritiro", "retreat", "seclusion", "clausura"):
+        from engine.systems import seclusion
+        return seclusion.retreat(conn, player, arg)
+    if cmd in ("dimora", "abode", "grotta"):
+        from engine.systems import cave_abode
+        return cave_abode.command(conn, player, arg)
+    if cmd in ("classifica", "classifiche", "ranking", "rankings", "lista"):
+        from engine.systems import rankings
+        return rankings.describe(conn, player, arg)
+    if cmd in ("discepoli", "disciples"):
+        from engine.systems import own_sect
+        return own_sect.describe_disciples(conn, player)
+    if cmd in ("fonda", "found"):
+        from engine.systems import own_sect
+        return own_sect.found(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("setta", "mysect", "lamiasetta"):
+        from engine.systems import own_sect
+        t = tick.get_tick(conn)
+        sub = arg.strip().lower()
+        if sub in ("riscuoti", "collect", "tributi"):
+            return own_sect.collect(conn, player)
+        if sub in ("recluta", "recruit"):
+            return own_sect.recruit(conn, t, random.Random(t * 53 + player.id), player)
+        if sub in ("difendi", "defend", "difesa"):
+            return own_sect.defend(conn, t, random.Random(t * 59 + player.id), player)
+        return own_sect.describe(conn, player)
+    if cmd in ("accogli", "prendi_discepolo", "adotta", "insegna", "teach",
+               "congeda_discepolo", "espelli"):
+        from engine.systems import own_sect
+        t = tick.get_tick(conn)
+        name, _, rest = arg.strip().partition(" ")
+        npc = _find_here(conn, player, name)
+        if npc is None:
+            return (f"Usa: {cmd} <nome>" if not name else f"Non vedi nessuno di nome '{name}' qui.")
+        if cmd in ("insegna", "teach"):
+            return own_sect.teach(conn, t, random.Random(t * 61 + npc.id), player, npc, rest)
+        if cmd in ("congeda_discepolo", "espelli"):
+            return own_sect.dismiss_disciple(conn, player, npc)
+        return own_sect.accept(conn, t, player, npc)
+    if cmd in ("leave", "lascia", "esci") and arg.strip().lower() in ("realm", "reame", "il reame"):
+        from engine.systems import secret_realms
+        return secret_realms.leave(conn)
 
     social = {"talk": "talk", "parla": "talk", "chat": "talk",
               "gift": "gift", "dona": "gift", "regala": "gift",
@@ -154,6 +264,9 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import dao_superiori
     out += dao_superiori.check_awakenings(conn, player.id)
     ch = storyline.maybe_advance(conn, player)
+    if not ch:
+        from engine.systems import world_arcs
+        ch = world_arcs.maybe_advance(conn, player)
     if ch:
         out.append(ch)
     else:

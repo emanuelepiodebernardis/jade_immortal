@@ -90,6 +90,10 @@ def absorb(conn: sqlite3.Connection, tick: int, rng: random.Random,
         _bump_count(conn, player_id, "abs_human")
         summary = outcome.pop("_summary", f"Divori l'eredità di {name}.")
 
+    from engine.systems import spirit_roots
+    _roots_line = spirit_roots.devour(conn, player_id, target_id, freshness, clean)
+    if _roots_line:
+        summary += "\n" + _roots_line
     # catastrofe rara: anima debole + bersaglio molto superiore
     if overreach >= 3 and soul < 60 and rng.random() < 0.20:
         conn.execute("UPDATE players SET status='dead' WHERE id=?;", (player_id,))

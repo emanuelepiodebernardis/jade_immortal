@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS factions (
     tier INTEGER DEFAULT 1,               -- livello della setta (1 Regionale .. 6 Celeste)
     element TEXT,                          -- Dao affine: chi vi appartiene lo comprende più in fretta
     hunt_zone_id INTEGER REFERENCES locations(id),  -- zona di caccia (mostri scalati al livello)
-    status TEXT DEFAULT 'active'
+    status TEXT DEFAULT 'active',
+    alignment TEXT                         -- ortodossa | eterodossa | demoniaca
 );
 
 CREATE TABLE IF NOT EXISTS faction_relations (
@@ -723,4 +724,13 @@ CREATE TABLE IF NOT EXISTS beast_traits (
     talent TEXT DEFAULT 'comune',        -- comune | dotata | rara | prodigio | divina
     elements TEXT,                       -- es. "fuoco,fulmine"
     ability TEXT                         -- es. rinascita, drago
+);
+
+-- RADICI SPIRITUALI: un punteggio (senza tetto) per elemento
+CREATE TABLE IF NOT EXISTS spirit_roots (
+    character_type TEXT NOT NULL,
+    character_id INTEGER NOT NULL,
+    element TEXT NOT NULL,
+    score REAL NOT NULL DEFAULT 0,
+    PRIMARY KEY (character_type, character_id, element)
 );

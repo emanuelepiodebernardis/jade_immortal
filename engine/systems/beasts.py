@@ -82,6 +82,12 @@ def traits(conn, npc_id: int, rng: random.Random | None = None) -> sqlite3.Row:
     return conn.execute("SELECT * FROM beast_traits WHERE npc_id=?;", (npc_id,)).fetchone()
 
 
+def pets(conn, player_id: int = 1) -> list:
+    from engine.systems import bonds
+    bonds.ensure_table(conn)
+    return [r for r in bonds._active(conn, player_id, "beast") if r["npc_status"] == "alive"]
+
+
 def pet(conn, player_id: int = 1) -> sqlite3.Row | None:
     try:
         return conn.execute(
@@ -113,6 +119,9 @@ def spawn_rare(conn, rng: random.Random, player, species: tuple | None = None) -
     ptier = cultivation.realm_tier(conn, "player", player.id) or 1
     if species is None:
         pool = [s for s in RARE_SPECIES if s[3] <= ptier]
+        if not pool:
+            lo = min(s[3] for s in RARE_SPECIES)
+            pool = [s for s in RARE_SPECIES if s[3] == lo]
         weights = [{"rara": 6, "leggendaria": 3, "ibrida": 1}[s[1]] for s in pool]
         species = rng.choices(pool, weights=weights)[0]
     name, rarity, els, _min, ability = species
@@ -177,8 +186,10 @@ def tame(conn, t: int, rng: random.Random, player, npc) -> tuple[str, str | None
     if k not in ("beast", "spirit"):
         return ("Solo bestie e spiriti possono essere domati." if k == "demon"
                 else f"{npc.name} non è una creatura da domare."), None
-    if pet(conn, player.id):
-        return "Hai già una bestia con te ('release' per liberarla).", None
+    from engine.systems import classes
+    if len(pets(conn, player.id)) >= classes.max_beasts(conn, player.id):
+        return ("Hai già tutte le bestie che sai guidare ('release' per liberarne una; "
+                "un Domatore di Bestie esperto può tenerne di più)."), None
     tr = traits(conn, npc.id, rng)
     rel = perception.relative_strength(conn, player.id, npc.id)
     base = {"molto più debole di te": 0.75, "più debole di te": 0.55, "circa alla tua pari": 0.35,
@@ -187,6 +198,7 @@ def tame(conn, t: int, rng: random.Random, player, npc) -> tuple[str, str | None
     soul = (prof["aff_soul"] or 50) if prof else 50
     p = base + (soul - 50) / 250 + int(destinies.flag_value(conn, "tamer", player.id, 0)) / 100
     p -= RARITY_TAME_PENALTY.get(tr["rarity"], 0.0)
+    p += classes.tame_bonus(conn, player.id)
     wounded = conn.execute("SELECT 1 FROM injuries WHERE character_type='npc' AND character_id=? "
                            "AND healed=0;", (npc.id,)).fetchone()
     if wounded:
@@ -252,10 +264,19 @@ def describe(conn, player) -> str:
 # In combattimento
 # ============================================================
 
-def combat_ally(conn, player_id: int, npc_id: int, fx) -> dict | None:
+def combat_allies(conn, player_id: int, npc_id: int, fx) -> list[dict]:
+    out = []
+    for pt in pets(conn, player_id):
+        a = combat_ally(conn, player_id, npc_id, fx, pt)
+        if a:
+            out.append(a)
+    return out
+
+
+def combat_ally(conn, player_id: int, npc_id: int, fx, pt=None) -> dict | None:
     from engine.simulation import combat
-    from engine.systems import combat_states
-    pt = pet(conn, player_id)
+    from engine.systems import combat_states, classes
+    pt = pt or pet(conn, player_id)
     if not pt or pt["npc_id"] == npc_id:
         return None
     p = entities.get_player(conn, player_id)
@@ -263,7 +284,8 @@ def combat_ally(conn, player_id: int, npc_id: int, fx) -> dict | None:
         return None
     tr = traits(conn, pt["npc_id"])
     mult = TALENT_MULT.get(tr["talent"], 1.0)
-    atk = combat.combat_power(conn, "npc", pt["npc_id"])["attack"] * 0.55 * mult
+    atk = (combat.combat_power(conn, "npc", pt["npc_id"])["attack"] * 0.55 * mult
+           * classes.tamer_mult(conn, player_id, tr["elements"]))
     for el in (tr["elements"] or "").split(","):
         st = combat_states.STATE_OF_DAO.get(el)
         if st:

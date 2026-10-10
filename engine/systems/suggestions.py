@@ -56,6 +56,32 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     if wev and wev["location_id"] == loc:
         _add(out, "Respingi l'invasione che minaccia questo luogo", "defend")
 
+    # 1b) occasioni a tempo: reame segreto, Assemblea, setta assaltata, Sistema
+    from engine.systems import secret_realms, assembly, own_sect, system_quest, cave_abode
+    rr = secret_realms.current(conn)
+    if rr:
+        if secret_realms.run(conn):
+            _add(out, "Scendi al piano successivo del reame segreto", "delve")
+        elif rr["loc"] == loc:
+            _add(out, f"Entra nel reame segreto «{rr['name']}»", "enter")
+    asm = assembly.current(conn)
+    if asm and asm["loc"] == loc:
+        if not asm["joined"]:
+            _add(out, "Iscriviti alla Grande Assemblea", "assemblea iscriviti")
+        elif not asm["done"]:
+            _add(out, "Combatti il tuo incontro all'Assemblea (assalto)", "assemblea 1")
+    osct = own_sect.get(conn)
+    if osct and osct.get("threat") and osct["loc"] == loc:
+        _add(out, "Difendi la tua setta dall'assalto", "setta difendi")
+    if system_quest.active(conn):
+        d = system_quest.today(conn, player.id)
+        if any(not q["done"] and system_quest._progress(conn, player.id, q) >= q["need"]
+               for q in d["quests"]):
+            _add(out, "[Ding!] Riscuoti le missioni del Sistema", "sistema riscuoti")
+    ab = cave_abode.get(conn, player.id)
+    if ab and ab["loc"] == loc and any(v > 0 for v in (ab.get("stock") or {}).values()):
+        _add(out, "Raccogli la produzione della tua dimora", "dimora raccogli")
+
     # 2) ciò che è a terra
     if loot.drops_in_location(conn, loc):
         _add(out, "Raccogli il bottino", "loot")

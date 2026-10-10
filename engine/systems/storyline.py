@@ -313,6 +313,58 @@ ARCS: dict[str, dict] = {
              "choices": [{"label": "Prosegui",
                           "effects": {"title": "Signore dell'Abisso", "grow_soul": 6}}]}},
     ]},
+    "trasmigratore": {"title": "La voce nella testa", "chapters": [
+        {"goal": "Sopravvivi al tuo primo giorno in questo mondo.",
+         "cond": {"day_min": 1},
+         "scene": {"title": "[Ding!] Il Sistema si attiva", "text": (
+             "Una schermata azzurra ti si apre davanti agli occhi: «Sistema del Coltivatore Supremo "
+             "collegato. Ospite: tu. Missione iniziale: sopravvivere.» Nessun altro sembra vederla."),
+             "choices": [
+                 {"label": "Accetti il pacchetto del principiante",
+                  "effects": {"cultivation_progress": 0.4, "stones": 100,
+                              "text": "«Pacchetto del principiante aperto.» Qualcosa si deposita nel tuo dantian."}},
+                 {"label": "Chiedi al Sistema chi l'ha creato",
+                  "effects": {"aff_soul": 2, "flags": ["domanda_sistema"],
+                              "text": "«Informazione non disponibile al tuo livello.» Per un istante, la voce esita."}}]}},
+        {"goal": "Raggiungi il secondo regno di coltivazione.",
+         "cond": {"tier_min": 2},
+         "scene": {"title": "Un altro ospite", "text": (
+             "{npc} ti fissa in mezzo alla folla e sussurra una parola che in questo mondo non esiste: "
+             "«…Wi-Fi?». Anche lui ha un Sistema. E il suo vuole il tuo."), "choices": [
+                 {"label": "Lo affronti: il Sistema promette una ricompensa",
+                  "effects": {"spawn": {"archetype": "vagabondo", "tier_offset": 0, "role": "ospite_rivale"}},
+                  "command": "attack {npc}"},
+                 {"label": "Proponi un'alleanza tra trasmigratori",
+                  "check": {"stat": "anima", "dc": 60},
+                  "success": {"spawn": {"archetype": "vagabondo", "tier_offset": 0, "role": "ospite_rivale"},
+                              "relation": 45, "text": "Ride, sollevato: «Finalmente qualcuno con cui parlare.»"},
+                  "failure": {"spawn": {"archetype": "vagabondo", "tier_offset": 0, "role": "ospite_rivale"},
+                              "bond": "rival", "bond_reason": "ospite di un Sistema rivale"}}]}},
+        {"goal": "Raggiungi il terzo regno di coltivazione.",
+         "cond": {"tier_min": 3},
+         "scene": {"title": "[Ding!] Errore di sistema", "text": (
+             "La schermata sfarfalla. Per un attimo leggi righe che non dovresti: «Ospite n° 7. "
+             "Raccolta del Qi al 3%. Al 100%: trasferimento al Creatore.» Poi tutto torna normale."),
+             "choices": [
+                 {"label": "Fingi di non aver visto e continui a usarlo",
+                  "effects": {"cultivation_progress": 0.6, "flags": ["sistema_sospetto"]}},
+                 {"label": "Inizi a nascondere al Sistema parte del tuo Qi",
+                  "check": {"stat": "anima", "dc": 66},
+                  "success": {"aff_soul": 3, "dao_key": "anima", "dao_gain": 8, "flags": ["sistema_ingannato"]},
+                  "failure": {"injury": 4, "text": "Una scarica ti attraversa: «Comportamento anomalo rilevato.»"}}]}},
+        {"goal": "Raggiungi il quinto regno di coltivazione.",
+         "cond": {"tier_min": 5},
+         "scene": {"title": "Il Creatore del Sistema", "text": (
+             "Una presenza antichissima ti parla attraverso la schermata: «Sei maturo, ospite. "
+             "Consegnami il tuo Qi, e ti darò un posto accanto a me.»"), "choices": [
+                 {"label": "Spezzi il Sistema e lo divori: la tua Via è tua",
+                  "check": {"stat": "anima", "dc": 72},
+                  "success": {"title": "Colui che Spezzò il Sistema", "grow_soul": 8, "dao_key": "destino",
+                              "dao_gain": 15, "lifespan_years": 100},
+                  "failure": {"injury": 6, "title": "Colui che Spezzò il Sistema", "grow_soul": 4}},
+                 {"label": "Stringi un patto: il Sistema resta, ma alle tue condizioni",
+                  "effects": {"title": "Socio del Creatore", "bt_bonus": 0.3, "karma": -20}}]}},
+    ]},
 }
 
 
@@ -433,6 +485,8 @@ def goals(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import sects, sect_life, bonds, bounties, training
     t = tick_mod.get_tick(conn)
     lines = []
+    from engine.systems import world_arcs
+    wa = world_arcs.goals(conn)
     arc = arc_for(conn, player.id)
     if arc:
         idx = chapter(conn)
@@ -482,6 +536,17 @@ def goals(conn: sqlite3.Connection, player: entities.Player) -> str:
     for r in beasts.active_rare(conn):
         lines.append(f"  · Avvistata una bestia {r['rarity']}: {r['name']} a {r['loc'] or '?'} ('tame').")
     lines.append(f"  · Età: {lifespan.label(conn, player.id)} — sfondare al regno successivo raddoppia la vita.")
+    lines += wa
+    from engine.systems import secret_realms, assembly, auction, own_sect
+    if secret_realms.current(conn):
+        lines.append("  · Un reame segreto è aperto: 'realm'.")
+    if assembly.current(conn):
+        lines.append("  · La Grande Assemblea dell'Alleanza Marziale è in corso: 'assemblea'.")
+    if auction.current(conn):
+        lines.append("  · Il Padiglione di Giada tiene un'asta: 'asta'.")
+    s = own_sect.get(conn)
+    if s and s.get("threat"):
+        lines.append(f"  · ⚠ La tua setta è sotto attacco: 'setta difendi' nella sede.")
     tl = state.titles(conn)
     if tl:
         lines.append(f"Titoli: {', '.join(tl)}")

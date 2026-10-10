@@ -62,6 +62,14 @@ ORIGINS = {
         "flags": {"hunted": True},
         "daos": {"practiced": ["spada", "corpo"], "latent": []},
     },
+    "trasmigratore": {
+        "name": "Trasmigratore col Sistema",
+        "desc": "Vieni da un altro mondo, e nella tua testa parla una voce: il SISTEMA. "
+                "Missioni ogni giorno, punti, un negozio miracoloso. Ma chi l'ha messo lì, e perché?",
+        "start_tier": 1, "age": 16,
+        "aff": {"cultivation": 62, "body": 50, "qi": 58, "soul": 70, "combat": 52},
+        "flags": {"system": True},
+    },
     "divoratore": {
         "name": "Portatore dell'Abisso Divoratore",
         "desc": "Un'anomalia rarissima e il talento più alto di tutti: puoi divorare "

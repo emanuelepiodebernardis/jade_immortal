@@ -207,7 +207,8 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     # effetti "da oggetto" (riusa items.apply_effects: progressi, Dao, corpo, tecniche, pietre)
     gift = {}
     for k in ("cultivation_progress", "dao_key", "dao_gain", "grow_strength", "grow_vitality",
-              "grow_resistance", "grow_aura", "grow_soul", "aff_cultivation", "learn_technique"):
+              "grow_resistance", "grow_aura", "grow_soul", "aff_cultivation", "learn_technique",
+              "gongfa", "root_gain"):
         if k in eff:
             gift[k] = eff[k]
     if gift.get("dao_key") == "random":
@@ -313,7 +314,9 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     if eff.get("lifespan_years"):
         from engine.systems import lifespan
         lifespan.add_bonus_years(conn, int(eff["lifespan_years"]))
-        lines.append(f"La tua vita si allunga di {int(eff['lifespan_years'])} anni.")
+        _y = int(eff['lifespan_years'])
+        lines.append(f"La tua vita si allunga di {_y} anni." if _y > 0
+                     else f"La tua vita si accorcia di {-_y} anni.")
     if npc and eff.get("end_bond"):
         bonds.end_bond(conn, player.id, npc.id, eff["end_bond"], "riconciliata")
     if npc and eff.get("bond_delay"):
@@ -326,6 +329,16 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     if npc and eff.get("npc_leaves"):
         conn.execute("UPDATE npcs SET location_id=NULL WHERE id=?;", (npc.id,))
 
+    if any(k in eff for k in ("face_duel", "face_humiliate", "feud_end", "feud_win")):
+        from engine.systems import face
+        lines += face.apply(conn, t, rng, player, eff, ctx)
+    if eff.get("sect_influence"):
+        from engine.systems import own_sect
+        own_sect.add_influence(conn, int(eff["sect_influence"]))
+    if eff.get("realm_done"):
+        from engine.systems import secret_realms
+        secret_realms.on_done(conn)
+        lines.append("Il reame ha dato ciò che aveva da dare: la corrente ti riporta in superficie.")
     for fl in eff.get("flags", []) or []:
         from engine.systems import storyline
         storyline.set_flag(conn, fl)

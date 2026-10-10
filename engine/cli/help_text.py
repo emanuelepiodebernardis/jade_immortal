@@ -45,6 +45,31 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "tribulation                   — sfida al Cielo (heaven defiance) e tribolazione divina",
         "inventory                     — il tuo zaino (oggetti raccolti)",
         "use <oggetto> | use all       — usi un oggetto dello zaino (o tutti in sequenza)",
+        "radici                        — le tue RADICI SPIRITUALI: punteggi, talenti, combinazioni",
+        "gongfa [pratica <n>|setta]    — i metodi di coltivazione: quale pratichi, cambiarlo, quello della setta",
+        "ritiro <giorni> [dao]         — RITIRO a porte chiuse (montagna, rovine, sede, dimora): giorni di coltivazione",
+        "classifica [giovani|sette]    — Classifica del Cielo, Lista del Drago Nascente, classifica delle sette",
+    ]),
+    ("mondo", "Reami segreti, Assemblea, aste, mondi superiori", [
+        "realm                         — il reame segreto aperto ora (dove, quanto resta) — 'realm esci' per uscire",
+        "enter                         — entri nel reame segreto (devi essere all'ingresso)",
+        "delve                         — scendi al piano successivo del reame (in fondo, la Sala dell'Eredità)",
+        "assemblea [iscriviti|1|2|3]   — la GRANDE ASSEMBLEA dell'Alleanza Marziale: iscrizione e incontri",
+        "asta [offri <lotto> <pietre>] — la casa d'aste (in città, quando è aperta)",
+        "ascendi_mondo                 — (regno 9, poi 12, 15…) apri la Porta Celeste verso un mondo superiore",
+        "mondi                         — gli strati di mondo raggiunti — 'up'/'down' per attraversare le porte",
+        "sistema [riscuoti|negozio|compra <n>] — (Trasmigratore) missioni e negozio del Sistema",
+    ]),
+    ("dimora", "Grotta-dimora, discepoli e la tua setta", [
+        "dimora                        — la tua grotta-dimora (o come ottenerne una)",
+        "dimora reclama                — reclami il luogo selvaggio in cui sei come dimora",
+        "dimora potenzia <ala>         — erbe · qi · ritiro · alchimia · difesa · stalla (livelli infiniti)",
+        "dimora raccogli | dimora torna — raccogli la produzione | torni a casa",
+        "accogli <nome>                — (regno 3+) prendi un discepolo che ti stima ed è più debole",
+        "insegna <nome> [dao]          — una lezione al giorno: lui cresce, tu comprendi meglio il Dao",
+        "discepoli                     — i tuoi discepoli — 'congeda_discepolo <nome>' per congedarne uno",
+        "fonda <nome>                  — (regno 4, dimora, 3 discepoli, 2000 pietre) fondi la tua setta",
+        "setta [riscuoti|recluta|difendi] — pannello della tua setta, tributi, reclutamento, difesa",
     ]),
     ("setta", "Sette, guerra e mercato", [
         "sects                         — sette a cui iscriversi e dove hanno sede",
@@ -58,6 +83,9 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "invitations                   — inviti delle sette superiori (dopo aver vinto un torneo)",
         "accept <n>                    — accetti un invito e ascendi a una setta superiore",
         "leave                         — lascia la tua setta",
+        "anziani                       — gli anziani della tua setta e il loro favore",
+        "servi <anziano>               — una giornata al servizio di un anziano (favore, merito)",
+        "missioni [accetta <n>|completa] — la bacheca delle missioni di setta",
         "market                        — (in città) il mercato: oggetti da comprare con le pietre",
         "buy <n>                       — compri l'oggetto n dal mercato",
         "war                           — guerra tra sette in corso: fronte, punteggio, tempo",
@@ -78,6 +106,8 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "disciple <nome>               — chiedi a un anziano/eremita di farti da maestro",
         "bonds                         — i tuoi legami: compagni, maestro, rivali e nemesi",
         "masters                       — i MAESTRI SEGRETI: chi hai incontrato e cosa serve per il prossimo",
+        "giura <nome>                  — giuri fratellanza (rapporto ≥ 70) — 'chiama <nome>' per chiamarlo",
+        "proponi <nome>                — diventate compagni del Dao (rapporto ≥ 80): doppia coltivazione",
     ]),
     ("bestie", "Bestie spirituali", [
         "tame <creatura>               — provi a domare una creatura (ferirla prima aiuta)",
@@ -85,11 +115,15 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "feed                          — nutri la tua bestia con un nucleo (cresce)",
         "release                       — liberi la tua bestia",
     ]),
-    ("arti", "Professioni: alchimia, talismani, forgia", [
-        "profession <alchimia|talismani|forgia> — scegli (o vedi) la tua arte",
+    ("arti", "Professioni: alchimia, talismani, forgia, formazioni, domatore", [
+        "profession <arte>             — alchimia · talismani · forgia · formazioni · domatore",
         "gather                        — raccogli erbe, minerali e nuclei nelle zone selvagge",
         "recipes                       — le ricette della tua arte e i materiali che hai",
         "craft <n>                     — crei la ricetta n (pillole, talismani, armi)",
+        "sintonia <elemento> [...]     — leghi la tua arte agli elementi delle tue radici: nasce la tua CLASSE",
+        "classe_arte                   — la tua classe (arte × elementi) e cosa fa",
+        "formazioni                    — (Formazioni) le formazioni piazzate nel mondo ('use' il disco per piazzarne)",
+        "teletrasporto [n]             — viaggi all'istante tra le tue formazioni di teletrasporto",
     ]),
     ("storia", "Storia, destino e memoria", [
         "goals                         — i tuoi obiettivi: la tua storia personale e i traguardi vicini",
@@ -124,6 +158,9 @@ _ALIASES = {
     "beast": "bestie", "pet": "bestie", "professioni": "arti", "alchimia": "arti",
     "talismani": "arti", "forgia": "arti", "maestri": "legami",
     "ui": "sistema", "interfaccia": "sistema",
+    "reame": "mondo", "reami": "mondo", "assemblea": "mondo", "aste": "mondo", "asta": "mondo",
+    "casa": "dimora", "discepoli": "dimora", "grotta": "dimora", "radici": "coltivazione",
+    "formazioni": "arti", "domatore": "arti",
 }
 
 ESSENTIALS = """Comandi essenziali:

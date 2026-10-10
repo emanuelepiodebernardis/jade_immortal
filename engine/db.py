@@ -58,6 +58,8 @@ def _migrate(conn) -> None:
     rebirth.ensure_table(conn)
     from engine.systems import beasts
     beasts.ensure_table(conn)
+    from engine.systems import spirit_roots
+    spirit_roots.ensure_table(conn)
     if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='daos';").fetchone():
         from engine.generators import dao_gen
         dao_gen.seed_daos(conn)          # nuovi Dao (es. superiori) anche nei vecchi mondi
@@ -115,6 +117,8 @@ def _migrate(conn) -> None:
         conn.execute("ALTER TABLE factions ADD COLUMN element TEXT;")
     if fcols and "hunt_zone_id" not in fcols:
         conn.execute("ALTER TABLE factions ADD COLUMN hunt_zone_id INTEGER;")
+    if fcols and "alignment" not in fcols:
+        conn.execute("ALTER TABLE factions ADD COLUMN alignment TEXT;")
     mcols = {r["name"] for r in conn.execute("PRAGMA table_info(sect_memberships);")}
     if mcols and "merit" not in mcols:
         conn.execute("ALTER TABLE sect_memberships ADD COLUMN merit INTEGER DEFAULT 0;")

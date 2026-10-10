@@ -136,6 +136,43 @@ MASTERS = [
      "text": "Una fucina sospesa sopra le nuvole, alimentata da una stella. «Le armi degli "
              "immortali le ho forgiate io. Ora tocca a te.»",
      "teach": {"name": "Forgia della Stella Caduta", "magnitude": 0.20, "bonus": {"prof_xp": 50, "weapon_rarity": 2}}},
+    # ---------------- FORMAZIONI ----------------
+    {"key": "formazioni_1", "path": "Formazioni", "tier": 1, "req": [("prof", "formazioni", 3)],
+     "where": ["ruin", "mountain"], "name": "Il Vecchio delle Bandiere Spezzate",
+     "text": "Tra le rovine, un vecchio sposta sassi e bastoncini: all'improvviso la nebbia ti chiude "
+             "in un labirinto. Ride. «Hai camminato dentro la mia formazione per un'ora. Siediti.»",
+     "teach": {"name": "Labirinto delle Otto Porte", "magnitude": 0.07,
+               "proc": ("confusione", 0.12, 1.0), "bonus": {"prof_xp": 20}}},
+    {"key": "formazioni_2", "path": "Formazioni", "tier": 2, "req": [("prof", "formazioni", 6)],
+     "where": ["forbidden_zone", "mountain"], "name": "La Signora delle Stelle Incise",
+     "text": "Su un altopiano, mille pietre formano una mappa del cielo. Una donna le sposta di un "
+             "dito, e le stelle sopra di voi si muovono. «Una formazione è una legge che obbedisce a te.»",
+     "teach": {"name": "Formazione dei Cinque Elementi Rotanti", "magnitude": 0.15,
+               "proc": ("ustione", 0.15, 1.5), "bonus": {"prof_xp": 35}}},
+    {"key": "formazioni_3", "path": "Formazioni", "tier": 3, "req": [("prof", "formazioni", 9)],
+     "where": ["mountain"], "name": "L'Architetto del Grande Sigillo Celeste",
+     "text": "Una montagna intera è una formazione, e tu ci sei dentro da giorni senza saperlo. "
+             "In cima, un uomo senza età: «Chi sigilla i cieli può sigillare chiunque.»",
+     "teach": {"name": "Grande Formazione che Sigilla il Cielo", "magnitude": 0.22,
+               "proc": ("pressione", 0.20, 2.0), "bonus": {"prof_xp": 50}}},
+    # ---------------- DOMATORI DI BESTIE ----------------
+    {"key": "domatore_1", "path": "Domatore", "tier": 1, "req": [("prof", "domatore", 3)],
+     "where": ["mountain", "forbidden_zone"], "name": "La Ragazza che Parla ai Lupi",
+     "text": "Un branco di lupi spirituali ti circonda… e si siede. Dietro di loro, una ragazza "
+             "scalza ride: «Ti hanno annusato e dicono che hai buon cuore per le bestie.»",
+     "teach": {"name": "Canto del Branco", "magnitude": 0.06, "bonus": {"prof_xp": 20, "beast_stages": 3}}},
+    {"key": "domatore_2", "path": "Domatore", "tier": 2, "req": [("prof", "domatore", 6)],
+     "where": ["forbidden_zone"], "name": "Il Vecchio dell'Isola delle Diecimila Bestie",
+     "text": "Una tartaruga grande come un'isola emerge dal lago. Sul guscio, un vecchio pesca. "
+             "«Le bestie non si domano. Si diventa loro fratelli di sangue.»",
+     "teach": {"name": "Patto di Sangue delle Diecimila Bestie", "magnitude": 0.12,
+               "bonus": {"prof_xp": 35, "beast_talent": 1}}},
+    {"key": "domatore_3", "path": "Domatore", "tier": 3, "req": [("prof", "domatore", 9)],
+     "where": ["mountain"], "name": "Il Pastore dei Draghi",
+     "text": "Sulla vetta, draghi e fenici dormono intorno a un uomo che suona il flauto. "
+             "«Anche loro furono cuccioli, un tempo. Ti insegnerò a far nascere una stirpe.»",
+     "teach": {"name": "Flauto che Risveglia le Stirpi Antiche", "magnitude": 0.18,
+               "bonus": {"prof_xp": 50, "beast_talent": 2, "beast_stages": 5}}},
     # ---------------- FULMINE / CORPO / ANIMA ----------------
     {"key": "fulmine_1", "path": "Fulmine", "tier": 1, "req": [("dao", "fulmine", 100)], "where": ["mountain"],
      "name": "L'Eremita che Beve i Fulmini",
@@ -211,13 +248,15 @@ _ROLE = {
     "Alchimia": "Il Venerabile delle Pillole", "Talismani": "Il Maestro dei Sigilli",
     "Forgia": "Il Fabbro Celeste", "Fulmine": "Il Signore del Tuono", "Corpo": "Il Corpo Immortale",
     "Anima": "Lo Spirito Antico", "Giustizia": "Il Giusto Sovrano", "Bestie": "Il Re delle Bestie",
-    "Abisso": "L'Eco dell'Abisso",
+    "Abisso": "L'Eco dell'Abisso", "Formazioni": "Il Gran Maestro delle Formazioni",
+    "Domatore": "Il Sovrano delle Diecimila Bestie",
 }
 # radice delle tecniche generate per via
 _TECH_STEM = {
     "Spada": "Spada", "Demoniaca": "Arte Proibita", "Alchimia": "Fiamma Alchemica",
     "Talismani": "Sigillo", "Forgia": "Martello", "Fulmine": "Folgore", "Corpo": "Corpo",
     "Anima": "Intento dell'Anima", "Giustizia": "Palmo", "Bestie": "Patto", "Abisso": "Fauci",
+    "Formazioni": "Formazione", "Domatore": "Patto delle Stirpi",
 }
 _EPITHETS = ["dell'Eternità", "del Firmamento", "dei Nove Cieli", "del Vuoto Primordiale",
              "delle Diecimila Ere", "dell'Origine", "oltre il Cielo", "senza Nome", "della Fine dei Tempi"]

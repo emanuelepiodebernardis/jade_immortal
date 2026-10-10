@@ -148,6 +148,62 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
             "UPDATE character_profiles SET aff_cultivation=MIN(100, aff_cultivation+?) "
             "WHERE character_type='player' AND character_id=?;", (aff, player_id))
         lines.append("Le tue radici spirituali si affinano.")
+        from engine.systems import spirit_roots
+        spirit_roots.refine_all(conn, player_id, 0.01 * aff)
+
+    rg = effects.get("root_gain")
+    if rg:
+        from engine.systems import spirit_roots
+        el, amt = rg.get("element", "all"), float(rg.get("amount", 5))
+        if el == "all":
+            spirit_roots.refine_all(conn, player_id, amt / 100.0)
+            lines.append(f"Tutte le tue radici spirituali si affinano (+{amt:g}%).")
+        else:
+            if el == "random":
+                el = rng.choice(spirit_roots.ELEMENTS)
+            sc = spirit_roots.add(conn, "player", player_id, el, amt)
+            lines.append(f"La tua radice di {spirit_roots.LABEL[el]} cresce (+{amt:g}, ora {sc:.0f}: "
+                         f"{spirit_roots.grade_name(sc)}).")
+
+    pf = effects.get("place_formation")
+    if pf:
+        from engine.systems import formations
+        lines.append(formations.place(conn, player_id, pf["kind"], int(pf.get("level", 1))))
+    if effects.get("beast_lure"):
+        from engine.systems import beasts
+        from engine.core import entities as _ent
+        nid, lname = beasts.spawn_rare(conn, rng, _ent.get_player(conn, player_id))
+        nm = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
+        lines.append(f"L'odore dell'esca si spande nel vento… {nm} è stato avvistato a {lname}.")
+    if effects.get("beast_stages") or effects.get("beast_talent") or effects.get("beast_element"):
+        from engine.systems import beasts, npc_factory, classes
+        pts = beasts.pets(conn, player_id)
+        if not pts:
+            lines.append("Non hai bestie su cui usarlo: l'effetto si disperde.")
+        for pt in pts:
+            if effects.get("beast_stages"):
+                npc_factory.raise_npc(conn, pt["npc_id"], int(effects["beast_stages"]))
+                lines.append(f"{pt['name']} cresce di {int(effects['beast_stages'])} strati.")
+            if effects.get("beast_talent"):
+                tr = beasts.traits(conn, pt["npc_id"])
+                names = [x[0] for x in beasts.TALENTS]
+                new = names[min(len(names) - 1, names.index(tr["talent"]) + int(effects["beast_talent"]))]
+                conn.execute("UPDATE beast_traits SET talent=? WHERE npc_id=?;", (new, pt["npc_id"]))
+                lines.append(f"{pt['name']} risveglia la sua stirpe: talento «{new}».")
+            if effects.get("beast_element"):
+                tr = beasts.traits(conn, pt["npc_id"])
+                els = [e for e in (tr["elements"] or "").split(",") if e]
+                for e in classes.attunement(conn, player_id):
+                    if e not in els:
+                        els.append(e)
+                conn.execute("UPDATE beast_traits SET elements=? WHERE npc_id=?;", (",".join(els), pt["npc_id"]))
+                lines.append(f"{pt['name']} ora porta in sé: {', '.join(els)}.")
+
+    gf = effects.get("gongfa")
+    if gf:
+        from engine.systems import gongfa
+        m = gf if gf.get("name") else gongfa.generate(rng, int(gf.get("grade", 1)), gf.get("element"))
+        lines.append(gongfa.learn(conn, player_id, m))
 
     # tecnica segreta insegnata da un manuale/eredità (bonus di potenza permanente)
     learn = effects.get("learn_technique")

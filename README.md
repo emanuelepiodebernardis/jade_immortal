@@ -41,6 +41,16 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
   (alchimia, talismani, forgia), **spirito dell'arma**, **durata della vita** che
   raddoppia a ogni regno, **maestri segreti infiniti** che ti accompagnano fino alle vette più alte.
 
+### Il mondo del coltivatore 🏯
+- **Reami segreti** che si aprono e si richiudono, **ritiro a porte chiuse**, illuminazioni.
+- **Grotta-dimora** da potenziare, **discepoli**, e la **tua setta** da fondare e difendere.
+- **Classifiche del Cielo**, **Grande Assemblea** dell'Alleanza Marziale, **casa d'aste**.
+- Sette **ortodosse, eterodosse e demoniache**, politica interna, faide d'onore.
+- **Fratellanza giurata** e **compagno del Dao** (doppia coltivazione).
+- **Radici spirituali** a punteggio infinito con effetti per **ogni combinazione**,
+  metodi di coltivazione, **classi** arte × elemento (Formazioni, Domatore…).
+- **Mondi superiori** infiniti oltre il nono regno; origine **Trasmigratore col Sistema**.
+
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.
 - **Nessun tetto**: oltre l'*Immortale di Giada* (regno 8) i regni si generano da soli con
@@ -130,7 +140,10 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Legami | `talk`, `gift <nome> <pietre>`, `spar`, `recruit`, `dismiss`, `disciple`, `bonds` |
 | Storia | `<numero>` (scelte), `goals`, `encounter`, `lives`, `titles`, `masters` |
 | Bestie | `tame <creatura>`, `beast`, `feed`, `release` |
-| Arti | `profession <alchimia\|talismani\|forgia>`, `gather`, `recipes`, `craft <n>` |
+| Arti | `profession <alchimia\|talismani\|forgia\|formazioni\|domatore>`, `gather`, `recipes`, `craft <n>`, `sintonia`, `formazioni` |
+| Mondo | `realm`, `enter`, `delve`, `assemblea`, `asta`, `classifica`, `ascendi_mondo`, `mondi`, `sistema` |
+| Dimora e setta | `dimora`, `ritiro <giorni>`, `accogli`, `insegna`, `discepoli`, `fonda`, `setta`, `anziani`, `missioni` |
+| Talento | `radici`, `gongfa`, `giura`, `proponi`, `chiama` |
 | Guerra | `raid`, `invade` |
 | Stato | `status`, `rating`, `inventory`, `use <oggetto>`, `use all`, `techniques` |
 | Sistema | `help [categoria\|tutto]`, `hud on/off`, `suggest on/off`, save automatico, `quit` |
@@ -154,7 +167,7 @@ jade_immortal/
 │   │                       #   invasioni mondiali, invasioni guidate, caccia, reputazione,
 │   │                       #   suggestions, encounters, bonds, storyline, rebirth…
 │   └── cli/                # loop.py (dispatch), story_cmds.py, lifecycle.py, hud.py, help_text.py
-└── tests/                  # ~400 test (pytest)
+└── tests/                  # ~430 test (pytest)
 ```
 
 I dati di gioco vivono in un singolo file **SQLite**. Le migrazioni sono idempotenti: i

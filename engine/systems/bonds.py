@@ -25,7 +25,8 @@ from engine.core import entities, tick as tick_mod
 from engine.systems import relations, state
 
 KINDS_IT = {"companion": "compagno di viaggio", "master": "maestro",
-            "rival": "rivale", "nemesis": "nemesi", "beast": "bestia spirituale"}
+            "rival": "rivale", "nemesis": "nemesi", "beast": "bestia spirituale",
+            "disciple": "discepolo", "sworn": "fratello giurato", "dao_partner": "compagno del Dao"}
 RECRUIT_MIN = 40              # rapporto minimo per chiedere a qualcuno di seguirti
 MASTER_MIN = 50               # rapporto minimo per diventare discepolo
 MAX_NEMESES = 2
@@ -95,7 +96,7 @@ def protected_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
     try:
         return {r["npc_id"] for r in conn.execute(
             "SELECT npc_id FROM bonds WHERE player_id=? AND status='active' "
-            "AND kind IN ('companion','master','beast');", (player_id,))}
+            "AND kind IN ('companion','master','beast','disciple','sworn','dao_partner');", (player_id,))}
     except sqlite3.OperationalError:
         return set()
 
@@ -106,7 +107,8 @@ def pinned_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
         t = tick_mod.get_tick(conn)
         return {r["npc_id"] for r in conn.execute(
             "SELECT npc_id FROM bonds WHERE player_id=? AND status='active' AND "
-            "(kind IN ('companion','beast') OR (kind='nemesis' AND ready_tick<=?));", (player_id, t))}
+            "(kind IN ('companion','beast','disciple','dao_partner') OR (kind='nemesis' AND ready_tick<=?));",
+            (player_id, t))}
     except sqlite3.OperationalError:
         return set()
 
@@ -163,7 +165,7 @@ def follow_player(conn: sqlite3.Connection, player_id: int, location_id: int) ->
     try:
         conn.execute(
             "UPDATE npcs SET location_id=? WHERE status='alive' AND id IN ("
-            "SELECT npc_id FROM bonds WHERE player_id=? AND kind IN ('companion','beast') "
+            "SELECT npc_id FROM bonds WHERE player_id=? AND kind IN ('companion','beast','dao_partner') "
             "AND status='active');",
             (location_id, player_id))
     except sqlite3.OperationalError:
@@ -421,6 +423,24 @@ def take_master(conn, t, player, npc) -> str:
             f"imparerai qualcosa del tuo Dao.")
 
 
+def dao_partner(conn, player_id: int = 1):
+    try:
+        rows = [r for r in _active(conn, player_id, "dao_partner") if r["npc_status"] == "alive"]
+    except sqlite3.OperationalError:
+        return None
+    return rows[0] if rows else None
+
+
+def dao_partner_mult(conn, player_id: int, location_id) -> tuple[float, str]:
+    """Doppia coltivazione: col compagno del Dao accanto, il Qi circola tra due corpi."""
+    dp = dao_partner(conn, player_id)
+    if not dp or dp["location_id"] != location_id:
+        return 1.0, ""
+    from engine.simulation import cultivation
+    tier = cultivation.realm_tier(conn, "npc", dp["npc_id"]) or 1
+    return 1.25 + 0.05 * min(tier, 10), f"la doppia coltivazione con {dp['name']}"
+
+
 def cultivation_bonus(conn, player_id: int = 1) -> float:
     return MASTER_CULTIVATION_BONUS if master(conn, player_id) else 0.0
 
@@ -667,10 +687,10 @@ def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     dell'arma. Possono anche aggiungere stati al contesto di combattimento `fx`."""
     out: list[dict] = []
     from engine.systems import beasts, weapon_spirit
-    b = beasts.combat_ally(conn, player_id, npc_id, fx)
-    if b:
-        out.append(b)
+    out += beasts.combat_allies(conn, player_id, npc_id, fx)
     w = weapon_spirit.combat_ally(conn, player_id, fx)
     if w:
         out.append(w)
+    from engine.systems import oaths
+    out += oaths.combat_allies(conn, player_id, npc_id)
     return out

@@ -23,6 +23,7 @@ import sqlite3
 # stato: (nome mostrato, bersaglio 'nemico'|'sé', durata in round)
 STATES = {
     "ustione":       ("Ustione", "nemico", 3),
+    "veleno":        ("Veleno", "nemico", 5),
     "gelo":          ("Gelo", "nemico", 1),
     "emorragia":     ("Emorragia", "nemico", 4),
     "stordimento":   ("Stordimento", "nemico", 1),
@@ -50,7 +51,7 @@ STATE_OF_DAO = {
     "yinyang": "equilibrio", "caos": "caos", "sangue": "drenaggio", "illusione": "confusione",
     "stelle": "accecamento", "vuoto": "pressione", "creazione": "scudo",
 }
-_NEGATIVE = {"ustione", "gelo", "emorragia", "stordimento", "accecamento", "pressione",
+_NEGATIVE = {"veleno", "ustione", "gelo", "emorragia", "stordimento", "accecamento", "pressione",
              "terrore", "confusione"}
 _SELF_BUFFS = {"rigenerazione", "scudo", "velocita"}
 _CAOS_POOL = ["ustione", "gelo", "emorragia", "stordimento", "accecamento", "pressione"]
@@ -134,6 +135,16 @@ class FightCtx:
         # tecniche dei MAESTRI SEGRETI: ognuna porta uno stato
         for st, ch, pw, nm in gstate.get_json(conn, "master_procs", []) or []:
             self.p.procs.append((st, ch, pw, nm))
+        # RADICI SPIRITUALI: talenti (stati elementali) e combinazioni
+        from engine.systems import spirit_roots
+        rp = spirit_roots.combat_profile(conn, "player", player_id)
+        self.p.procs += rp["procs"]
+        self.p.atk_mult *= 1.0 + rp["attack"] + rp["strike"] * 0.5
+        if rp["taken"]:
+            pr["taken"] = pr.get("taken", 0.0) + rp["taken"]
+        # CLASSE (arte + elementi): formazioni mobili/piazzate, aure elementali
+        from engine.systems import classes
+        self.lines_intro += classes.combat(conn, player_id, npc_id, self)
         # extra (spirito dell'arma, bestia): aggiunti dal chiamante via add_proc
         if "nullify" in pr["special"]:
             self.e.procs = [x for x in self.e.procs if STATES.get(x[0], ("", "nemico"))[1] != "sé"]
@@ -171,6 +182,10 @@ class FightCtx:
                     side.hp -= dmg
                     out.append("  ↳ Le fiamme ti bruciano." if side is self.p
                                else f"  ↳ {side.name} brucia.")
+                elif st == "veleno":
+                    side.hp -= side.max * 0.03 * data["power"]
+                    out.append("  ↳ Il veleno ti scorre nelle vene." if side is self.p
+                               else f"  ↳ Il veleno consuma {side.name}.")
                 elif st == "emorragia":
                     side.hp -= side.max * 0.025 * data["stacks"] * data["power"]
                     if data["stacks"] >= 3:

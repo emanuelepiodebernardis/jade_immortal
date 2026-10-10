@@ -21,9 +21,13 @@ from engine.systems import state
 
 MATERIALS = {"erbe": "erbe spirituali", "minerali": "minerali", "nuclei": "nuclei di bestia",
              "nuclei_rari": "nuclei rari"}
-PROFESSIONS = {"alchimia": "Alchimia", "talismani": "Talismani", "forgia": "Forgia"}
+PROFESSIONS = {"alchimia": "Alchimia", "talismani": "Talismani", "forgia": "Forgia",
+               "formazioni": "Formazioni", "domatore": "Addomesticamento delle Bestie"}
 _ALIASES = {"alchemy": "alchimia", "alchimista": "alchimia", "talisman": "talismani",
-            "talismano": "talismani", "fulu": "talismani", "forge": "forgia", "fabbro": "forgia"}
+            "talismano": "talismani", "fulu": "talismani", "forge": "forgia", "fabbro": "forgia",
+            "formazione": "formazioni", "array": "formazioni", "arrays": "formazioni", "formation": "formazioni",
+            "formations": "formazioni", "domatore": "domatore", "domatori": "domatore", "tamer": "domatore",
+            "bestie": "domatore", "addomesticatore": "domatore"}
 XP_LEVELS = [0, 3, 8, 15, 25, 40, 60, 85, 115, 150]     # xp minima per i livelli 1..10 (poi cresce)
 
 
@@ -87,12 +91,16 @@ def choose(conn, pid: int, raw: str) -> str:
     cur = profession(conn, pid)
     if not key:
         if cur:
-            return (f"La tua arte: {PROFESSIONS[cur]} (livello {level(conn, pid)}). "
-                    f"{materials_line(conn, pid)}\n'recipes' per le ricette.")
-        return ("Non pratichi ancora un'arte. Scegline una: 'profession alchimia' (pillole), "
-                "'profession talismani' (buff di battaglia) o 'profession forgia' (armi).")
+            from engine.systems import classes
+            return (f"La tua arte: {PROFESSIONS[cur]} (livello {level(conn, pid)}) — classe: "
+                    f"{classes.class_name(conn, pid)}. {materials_line(conn, pid)}\n"
+                    "'recipes' per le ricette, 'sintonia <elemento>' per la classe, 'vocazione' per i dettagli.")
+        return ("Non pratichi ancora un'arte. Scegline una: 'profession alchimia' (pillole e veleni), "
+                "'profession talismani' (buff di battaglia), 'profession forgia' (armi), "
+                "'profession formazioni' (formazioni elementali) o 'profession domatore' (bestie).\n"
+                "Con 'sintonia <elemento>' l'arte diventa una classe: es. Maestro delle Formazioni della Fiamma.")
     if key not in PROFESSIONS:
-        return "Arti disponibili: alchimia, talismani, forgia."
+        return "Arti disponibili: alchimia, talismani, forgia, formazioni, domatore."
     if cur == key:
         return f"Pratichi già l'arte: {PROFESSIONS[key]}."
     if cur and xp(conn, pid) > 0:
@@ -101,7 +109,7 @@ def choose(conn, pid: int, raw: str) -> str:
     else:
         msg = f"Scegli l'arte: {PROFESSIONS[key]}."
     state.set(conn, "profession", key)
-    return msg + " 'recipes' per vedere cosa puoi creare."
+    return msg + " 'recipes' per vedere cosa puoi creare; 'sintonia <elemento>' per la tua classe."
 
 
 # ============================================================
@@ -125,6 +133,7 @@ def gather(conn, t: int, rng: random.Random, player) -> str:
         n = rng.randint(lo, hi) + (bonus if rng.random() < 0.5 else 0)
         if n > 0:
             give(conn, player.id, k, n)
+            state.set(conn, "sys_gathered", str(state.get_int(conn, "sys_gathered", 0) + n))
             got.append(f"{n} {MATERIALS[k]}")
     from engine.simulation import world_tick
     from engine.core import tick as tick_mod
@@ -164,6 +173,14 @@ def _pill(name, eff, desc, rarity="non_comune"):
     return {"item": {"name": name, "item_type": "pillola", "rarity": rarity, "desc": desc, "effects": eff}}
 
 
+def _formation(kind, lv):
+    from engine.systems import formations
+    nm = "Disco della " + formations.KINDS[kind]
+    return {"item": {"name": nm, "item_type": "formazione", "rarity": "raro",
+                     "desc": "Si piazza nel luogo in cui ti trovi ('use').",
+                     "effects": {"place_formation": {"kind": kind, "level": lv}}}}
+
+
 def _talisman(name, buff, desc):
     return {"item": {"name": name, "item_type": "talismano", "rarity": "non_comune", "desc": desc,
                      "effects": {"combat_buff": buff}}}
@@ -201,6 +218,36 @@ RECIPES = [
                                                            "state": "rigenerazione", "power": 3.0,
                                                            "lethal_save": True},
                                 "Rigenera e salva da un colpo mortale.")),
+    ("alchimia", 2, "Veleno del Serpente di Giada", {"erbe": 2, "nuclei": 1},
+     lambda c, p, lv: _talisman("Veleno del Serpente di Giada", {"name": "Veleno del Serpente di Giada",
+                                                               "state": "veleno", "power": 1.0 + 0.2 * lv},
+                                "Unta sulla lama: avvelena il nemico a inizio scontro.")),
+    ("alchimia", 6, "Polvere dei Sette Passi", {"erbe": 4, "nuclei_rari": 1},
+     lambda c, p, lv: _talisman("Polvere dei Sette Passi", {"name": "Polvere dei Sette Passi",
+                                                           "state": "veleno", "power": 2.5 + 0.3 * lv},
+                                "Un veleno leggendario: sette passi e si cade.")),
+    # ---- FORMAZIONI (si piazzano con 'use' nel luogo in cui ti trovi) ----
+    ("formazioni", 1, "Disco della Formazione di Raccolta del Qi", {"minerali": 3},
+     lambda c, p, lv: _formation("raccolta", lv)),
+    ("formazioni", 2, "Disco della Formazione Difensiva", {"minerali": 3, "erbe": 1},
+     lambda c, p, lv: _formation("difesa", lv)),
+    ("formazioni", 4, "Disco della Formazione d'Uccisione", {"minerali": 4, "nuclei": 1},
+     lambda c, p, lv: _formation("uccisione", lv)),
+    ("formazioni", 6, "Disco della Formazione di Teletrasporto", {"minerali": 6, "nuclei_rari": 1},
+     lambda c, p, lv: _formation("teletrasporto", lv)),
+    # ---- ADDOMESTICAMENTO ----
+    ("domatore", 1, "Esca Spirituale", {"erbe": 2, "nuclei": 1},
+     lambda c, p, lv: _pill("Esca Spirituale", {"beast_lure": True},
+                            "Attira una bestia rara nei dintorni.", "raro")),
+    ("domatore", 2, "Pillola del Sangue Bestiale", {"erbe": 2, "nuclei": 2},
+     lambda c, p, lv: _pill("Pillola del Sangue Bestiale", {"beast_stages": 1 + lv // 2},
+                            "Fa crescere le tue bestie.")),
+    ("domatore", 5, "Rito del Risveglio della Stirpe", {"nuclei": 3, "nuclei_rari": 1},
+     lambda c, p, lv: _pill("Rito del Risveglio della Stirpe", {"beast_talent": 1},
+                            "Risveglia il talento della tua bestia.", "prezioso")),
+    ("domatore", 8, "Rito della Fusione delle Stirpi", {"nuclei_rari": 2},
+     lambda c, p, lv: _pill("Rito della Fusione delle Stirpi", {"beast_element": True},
+                            "Infonde nella tua bestia gli elementi della tua sintonia.", "prezioso")),
     ("forgia", 1, "Forgia un'arma del tuo regno", {"minerali": 4},
      lambda c, p, lv: {"forge": "tier"}),
     ("forgia", 3, "Raffina l'arma (rarità +1)", {"minerali": 5, "nuclei": 1},
@@ -245,11 +292,13 @@ def craft(conn, t: int, rng: random.Random, player, raw: str) -> str:
     if not spend(conn, player.id, cost):
         return f"Ti mancano i materiali per «{name}». {materials_line(conn, player.id)}"
     before = lv
-    state.set(conn, "profession_xp", str(xp(conn, player.id) + 1 + need // 3))
+    from engine.systems import cave_abode
+    home_lv = cave_abode.craft_level(conn, player.id, player.location_id)
+    state.set(conn, "profession_xp", str(xp(conn, player.id) + (1 + need // 3) * (2 if home_lv else 1)))
     from engine.simulation import world_tick
     from engine.core import tick as tick_mod
     world_tick.advance(conn, tick_mod.cost_of("short_rest"))
-    p_ok = min(0.95, 0.6 + 0.07 * (lv - need))
+    p_ok = min(0.97, 0.6 + 0.07 * (lv - need) + 0.05 * home_lv)
     if rng.random() >= p_ok:
         out = "Il tentativo fallisce: i materiali vanno perduti. (Esperienza +1)"
     else:

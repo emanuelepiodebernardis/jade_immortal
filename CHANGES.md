@@ -535,3 +535,60 @@ vette più alte:
 
 `masters` mostra per ogni via quanti maestri hai incontrato e chi sarà il prossimo.
 Nuovi test (3). Suite totale: **410 passati**.
+
+---
+
+## Aggiornamento 16 — Il mondo del coltivatore: reami segreti, dimore, sette proprie, radici spirituali, mondi superiori
+
+Tutto ciò che mancava rispetto ai temi classici del genere, in tre fasce.
+
+### Fascia 1 — la vita del coltivatore
+- **Reami segreti** (`secret_realms.py`): ogni ~12 giorni se ne apre uno in un luogo
+  selvaggio per 3 giorni. `realm`, `enter`, `delve`: piani con guardiani, scrigni sigillati,
+  discepoli rivali, pozze di Qi; in fondo la **Sala dell'Eredità** (tecnica, frammento di
+  Dao o anni di vita). Scalato al tuo regno.
+- **Ritiro a porte chiuse** (`seclusion.py`): `ritiro <giorni> [dao]` in montagna, rovine,
+  sede o dimora; giorni di coltivazione senza fatica, gli anni passano davvero, a volte
+  qualcuno ti disturba. **Illuminazioni improvvise** (balzi nel Dao) e **vittorie contro
+  chi è più forte** (fama, titoli, illuminazione).
+- **Classifiche del Cielo** (`rankings.py`): `classifica [giovani|sette]`, con premi e
+  titoli quando sali oltre le soglie (in classifiche abbastanza affollate).
+- **Grotta-dimora** (`cave_abode.py`): `dimora reclama/potenzia/raccogli/torna`; ali con
+  livelli infiniti: campo di erbe, raccolta del Qi, stanza del ritiro, alchimia, formazione
+  difensiva, stalla delle bestie.
+- **Discepoli e setta propria** (`own_sect.py`): `accogli`, `insegna`, `discepoli`;
+  dal regno 4 `fonda <nome>`: tributi, reclutamento, aspiranti attratti dalla fama, assalti
+  delle altre sette da respingere (`setta difendi`).
+
+### Fascia 2 — società, talento e mondo
+- **Vie delle sette** (`alignment.py`): ortodosse, eterodosse, demoniache, con regole
+  d'ingresso, premi per le uccisioni e l'emissario demoniaco per chi ha molta infamia.
+- **Grande Assemblea dell'Alleanza Marziale** (`assembly.py`): torneo a 8 ogni ~45 giorni,
+  incontri non letali con tre stili; il vincitore è **Capo dell'Alleanza Marziale**.
+- **Fratellanza giurata e compagno del Dao** (`oaths.py`): `giura`, `chiama`, `proponi`;
+  combattono con te, il fratello in pericolo va salvato (o il giuramento si spezza),
+  doppia coltivazione col compagno del Dao, lutto e Spergiuro.
+- **Radici spirituali** (`spirit_roots.py`, `radici`): 9 elementi con punteggio senza tetto
+  e gradi infiniti; ogni radice forte genera un talento; **tutte le 511 combinazioni** hanno
+  un effetto (generazione, distruzione con elemento-ponte, coppie speciali, armonia di N
+  radici, Corpo dei Cinque Elementi, Radice del Caos). Il **Divoratore** si nutre delle
+  radici delle vittime e migliora all'infinito.
+- **Metodi di coltivazione** (`gongfa.py`), **casa d'aste** (`auction.py`) con offerte
+  contro limiti nascosti, **archi del mondo** di metà partita (`world_arcs.py`).
+
+### Fascia 3 — oltre
+- **Ascensione ai mondi superiori** (`ascension.py`): dal regno 9 (poi 12, 15…) apri la
+  Porta Celeste verso un nuovo continente generato; strati di mondo infiniti.
+- **Politica di setta** (`sect_politics.py`): anziani e loro favore, bacheca delle
+  missioni, protettori e false accuse. **Faccia e onore** (`face.py`): sfide pubbliche e
+  faide di clan che crescono senza fine.
+- **Formazioni e Domatore di Bestie** (`formations.py`, `classes.py`): due nuove arti;
+  `sintonia <elementi>` lega l'arte agli elementi delle radici e crea la tua **classe**
+  (es. Maestro delle Formazioni della Fiamma); formazioni piazzabili (raccolta, difesa,
+  uccisione, teletrasporto); stato **veleno**; nuove vie di maestri segreti.
+- **Origine «Trasmigratore col Sistema»** (`system_quest.py`): missioni quotidiane, punti
+  e negozio del Sistema (`sistema`), e un arco d'origine in 4 capitoli.
+
+Aiuto (`help mondo`, `help dimora`, …), azioni suggerite e obiettivi aggiornati.
+Nuovi test: `tests/test_world_features.py`, `tests/test_world_features2.py`.
+Suite totale: **434 passati**.

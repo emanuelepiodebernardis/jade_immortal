@@ -27,6 +27,8 @@ DIRECTIONS = {
     "south": "south", "s": "south",
     "east": "east", "e": "east",
     "west": "west", "w": "west",
+    "up": "up", "su": "up", "porta": "up",
+    "down": "down", "giu": "down", "giù": "down",
 }
 
 from engine.cli.help_text import HELP, help_for  # noqa: E402  (testo d'aiuto per categorie)
@@ -189,7 +191,7 @@ def _format_observations(obs: list[str]) -> str:
 def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
     direction = DIRECTIONS.get(arg.lower())
     if direction is None:
-        return f"Direzione non valida: '{arg}'. Usa north/south/east/west."
+        return f"Direzione non valida: '{arg}'. Usa north/south/east/west (o up/down per le Porte Celesti)."
     exits = entities.get_exits(conn, player.location_id)
     if direction not in exits:
         return f"Non puoi andare a {direction} da qui."
@@ -216,6 +218,13 @@ def _after_arrival(conn: sqlite3.Connection, player: entities.Player) -> str:
     if gone:
         out += "\n" + gone
     if player.status == "alive":
+        from engine.systems import oaths
+        from engine.systems import auction, sect_politics
+        sect_politics.on_arrival(conn, player)
+        sw = (oaths.on_arrival(conn, player) or auction.on_arrival(conn, player)
+              or sect_politics.on_arrival_scene(conn, player))
+        if sw:
+            return out + "\n\n" + sw
         sc = encounters.maybe_trigger(conn, player)
         if sc:
             out += "\n\n" + sc
@@ -367,6 +376,9 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
         if claim["status"] == "claimed":
             lines.append(f"Era un ricercato: hai fatto giustizia. Taglia riscossa: "
                          f"+{claim['reward']} pietre spirituali.")
+    from engine.systems import alignment, oaths
+    lines += oaths.on_kill(conn, t, player, npc.id)
+    lines += alignment.on_kill(conn, t, player, npc.id)
     rep_line = _kill_reputation(conn, player, npc, was_outlaw)
     if rep_line:
         lines.append(rep_line)
@@ -908,6 +920,8 @@ def _attack_auto(conn, player, npc, forced) -> str:
 def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
                     crit_any, mods, chosen, lines) -> str:
     wfrac = hp_p / max(1.0, pmax)
+    from engine.systems import perception, seclusion
+    ratio = perception.strength_ratio(conn, player.id, npc.id)
     from engine.systems import dao_superiori
     dao_superiori.on_win(conn, wfrac)          # vittorie sull'orlo della morte
     # una vittoria decisa è un'uccisione: se lo abbatti in fretta restando in forze,
@@ -938,12 +952,16 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
                 f"★ {npc.name} barcolla e crolla: lo hai ucciso!",
                 f"★ Il colpo decisivo va a segno: hai ucciso {npc.name}."])
         lines.append(f"{fin} ({rounds} round)")
+        if ratio < 0.87:
+            lines += seclusion.on_upset_win(conn, t, rng, player, npc.name, ratio)
         lines += _after_player_kill(conn, t, rng, player, npc, chosen)
     else:
         lines.append(rng.choice([
             f"{npc.name} è gravemente ferito e si ritira dallo scontro. ({rounds} round)",
             f"Sanguinante, {npc.name} rinuncia e fugge. ({rounds} round)",
             f"{npc.name} arretra, troppo malconcio per continuare. ({rounds} round)"]))
+        if ratio < 0.87:
+            lines += seclusion.on_upset_win(conn, t, rng, player, npc.name, ratio)
         from engine.systems import bonds as _bonds
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
@@ -1031,8 +1049,10 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
     tmult = dao_powers.time_cultivation_mult(conn, player.id)   # Dao del Tempo: accelera
     from engine.systems import bonds as _bonds
     mbonus = _bonds.cultivation_bonus(conn, player.id)          # un maestro ti guida
+    from engine.systems import cult_mods
+    xmult, xlabels = cult_mods.cultivation_mult(conn, player.id, player.location_id)
     res = cultivation.cultivate(conn, "player", player.id, t, rng,
-                                multiplier=y * (1 + bonus + mbonus) * tmult)
+                                multiplier=y * (1 + bonus + mbonus) * tmult * xmult)
     world_tick.advance(conn, tick.cost_of("cultivate"))
     from engine.systems import qi as qimod, progression
     qimod.restore_fraction(conn, 0.5, player.id)       # meditare ristora il Qi
@@ -1050,6 +1070,8 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
         line += f" Il Dao del Tempo accelera la tua coltivazione (×{tmult:.2f})."
     if mbonus:
         line += " La guida del tuo maestro rende la meditazione più fruttuosa."
+    if xlabels:
+        line += " Ti favoriscono: " + ", ".join(xlabels) + "."
     if y <= 0.15:
         line += "\nSei sfinito: conviene riposare ('wait') o dedicarti ad altro."
     if res["ready"]:
@@ -1551,7 +1573,10 @@ def cmd_sects(conn: sqlite3.Connection, player: entities.Player) -> str:
         here = " ← sei qui" if r["home_location_id"] == player.location_id else ""
         mine = " [la tua setta]" if m and m["faction_id"] == r["id"] else ""
         el = f", affine al {sects._dao_display(conn, r['element'])}" if r["element"] else ""
-        lines.append(f"  · {r['name']} — {sects.tier_name(r['tier'])}{el} — sede: {r['hq_name']}{here}{mine}")
+        from engine.systems import alignment
+        al = alignment.label(conn, r["id"])
+        al = f" [{al}]" if al else ""
+        lines.append(f"  · {r['name']}{al} — {sects.tier_name(r['tier'])}{el} — sede: {r['hq_name']}{here}{mine}")
     if m:
         tn = sects.tier_name(m["sect_tier"])
         lines.append(f"\nSei {m['rank']} di {m['sect_name']} ({m['grade']}) — {tn}.")
@@ -1563,6 +1588,12 @@ def cmd_sects(conn: sqlite3.Connection, player: entities.Player) -> str:
 def cmd_join(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import sects
     t = tick.get_tick(conn)
+    here = sects.sect_at_location(conn, player.location_id)
+    if here and not sects.get_membership(conn, player.id):
+        from engine.systems import alignment
+        ok, why = alignment.can_join(conn, player.id, here["id"])
+        if not ok:
+            return why
     res = sects.join_sect(conn, t, player.id)
     s = res["status"]
     if s == "no_sect_here":
@@ -1767,6 +1798,8 @@ def cmd_use_all(conn: sqlite3.Connection, player: entities.Player) -> str:
     total = sum(r["quantity"] for r in inv)
     out = [f"Usi tutto ciò che hai nello zaino ({total} oggetti):"]
     for r in list(inv):
+        if r["item_type"] in ("formazione", "talismano"):
+            continue                  # da usare con criterio: nel luogo / prima dello scontro giusto
         for _ in range(r["quantity"]):
             res = items.use_item(conn, t, rng, player.id, r["name"])
             if res["status"] == "used":
@@ -1892,6 +1925,25 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     lines += ["  " + ln for ln in _bonds.daily(conn, t, random.Random(t * 29 + day), player)]
     from engine.systems import beasts
     lines += ["  " + ln for ln in beasts.daily(conn, t, random.Random(t * 31 + day), player)]
+    from engine.systems import secret_realms, cave_abode, own_sect, rankings
+    lines += ["  " + ln for ln in secret_realms.daily(conn, t, random.Random(t * 37 + day), player)]
+    lines += ["  " + ln for ln in cave_abode.daily(conn, t, random.Random(t * 41 + day), player)]
+    lines += ["  " + ln for ln in own_sect.daily(conn, t, random.Random(t * 43 + day), player)]
+    lines += ["  " + ln for ln in rankings.daily(conn, t, random.Random(t * 47 + day), player)]
+    from engine.systems import alignment
+    alignment.ensure(conn)
+    lines += ["  " + ln for ln in alignment.daily(conn, t, random.Random(t * 53 + day), player)]
+    from engine.systems import assembly
+    lines += ["  " + ln for ln in assembly.daily(conn, t, random.Random(t * 59 + day), player)]
+    from engine.systems import system_quest
+    lines += ["  " + ln for ln in system_quest.daily(conn, t, random.Random(t * 61 + day), player)]
+    from engine.systems import oaths
+    lines += ["  " + ln for ln in oaths.daily(conn, t, random.Random(t * 61 + day), player)]
+    from engine.systems import auction
+    lines += ["  " + ln for ln in auction.daily(conn, t, random.Random(t * 67 + day), player)]
+    from engine.systems import sect_politics, face
+    lines += ["  " + ln for ln in sect_politics.daily(conn, t, random.Random(t * 71 + day), player)]
+    lines += ["  " + ln for ln in face.daily(conn, t, random.Random(t * 73 + day), player)]
     from engine.systems import lifespan
     lines += ["  " + ln for ln in lifespan.daily_check(conn, player, t)]
     return "\n".join(lines)
@@ -2025,7 +2077,10 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
     from engine.systems import dao_powers
     y *= dao_powers.time_cultivation_mult(conn, player.id)   # il Tempo accelera anche i Dao
     rng = random.Random(t * 53 + player.id)
-    res = dao_training.comprehend(conn, t, rng, d["dao_key"], multiplier=y, player_id=player.id)
+    from engine.systems import cult_mods
+    res = dao_training.comprehend(conn, t, rng, d["dao_key"],
+                                  multiplier=y * cult_mods.dao_mult(conn, player.id, d["dao_key"]),
+                                  player_id=player.id)
     world_tick.advance(conn, tick.cost_of("cultivate"))
     if res["status"] == "locked":
         return f"Il {d['name']} è solo un'affinità latente: devi prima risvegliarlo (assorbendo)."

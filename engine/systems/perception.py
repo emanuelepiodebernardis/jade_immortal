@@ -77,6 +77,13 @@ def _overall(p: dict) -> float:
     return p["attack"] + p["defense"] * 0.6 + p["vitality"] * 0.4
 
 
+def strength_ratio(conn: sqlite3.Connection, player_id: int, npc_id: int) -> float:
+    """Tua forza / sua forza (>1 = sei più forte)."""
+    from engine.simulation import combat
+    return _overall(combat.combat_power(conn, "player", player_id)) / \
+        max(1.0, _overall(combat.combat_power(conn, "npc", npc_id)))
+
+
 def relative_strength(conn: sqlite3.Connection, player_id: int, npc_id: int) -> str:
     from engine.simulation import combat
     r = _overall(combat.combat_power(conn, "player", player_id)) / \

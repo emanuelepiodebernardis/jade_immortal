@@ -73,4 +73,7 @@ def daily_check(conn: sqlite3.Connection, player, t: int) -> list[str]:
 
 def on_realm_up(conn: sqlite3.Connection, pid: int = 1) -> str:
     state.set(conn, "life_warned", "0")
-    return f"La tua durata di vita raddoppia: ora puoi vivere fino a {max_years(conn, pid)} anni."
+    from engine.systems import spirit_roots
+    spirit_roots.refine_all(conn, pid, 0.10)
+    return (f"La tua durata di vita raddoppia: ora puoi vivere fino a {max_years(conn, pid)} anni. "
+            "Le tue radici spirituali si affinano (+10%).")
