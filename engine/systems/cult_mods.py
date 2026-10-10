@@ -53,5 +53,5 @@ def cultivation_mult(conn: sqlite3.Connection, pid: int, location_id: int | None
 
 
 def dao_mult(conn: sqlite3.Connection, pid: int, dao_key: str) -> float:
-    from engine.systems import spirit_roots
-    return spirit_roots.dao_mult(conn, "player", pid, dao_key)
+    from engine.systems import spirit_roots, bloodlines
+    return spirit_roots.dao_mult(conn, "player", pid, dao_key) * bloodlines.dao_mult(conn, dao_key)

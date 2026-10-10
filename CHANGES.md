@@ -592,3 +592,48 @@ Tutto ciò che mancava rispetto ai temi classici del genere, in tre fasce.
 Aiuto (`help mondo`, `help dimora`, …), azioni suggerite e obiettivi aggiornati.
 Nuovi test: `tests/test_world_features.py`, `tests/test_world_features2.py`.
 Suite totale: **434 passati**.
+
+---
+
+## Aggiornamento 17 — Lignaggi di sangue e pilota automatico
+
+### Lignaggi di sangue (`engine/systems/bloodlines.py`, comando `sangue`)
+- **Come si ottengono**: le bestie d'alto livello e quelle rare lasciano un'**Essenza di
+  Sangue** (`use essenza`); le leggendarie e le ibride a volte anche un Nucleo Antico. Il
+  **Divoratore** beve il sangue direttamente quando divora una bestia (×1,5). Per eredità:
+  destino «Sangue di Drago» o «Corpo della Fenice», un sangue di famiglia per l'origine di
+  clan, e alla reincarnazione un quarto del lignaggio più forte.
+- **Concentrazione senza tetto**, a gradi: Tracce, Risvegliato, Concentrato, Puro, Ancestrale,
+  Sacro, Primordiale, poi Sangue del Caos I, II, III…
+- **Manifestazioni ibride**: a ogni grado una parte del corpo muta. Occhi (critici), artigli
+  (attacco), squame/piume/guscio (danni ridotti), ali (schivata), corna/coda (perforazione;
+  al Primordiale un colpo in più). Dal grado Puro si sblocca la **tecnica innata**, cioè lo
+  stato del suo elemento. Ogni famiglia ha un **dono**: la Fenice rialza dalla morte, il Drago
+  schiaccia, la Tartaruga indurisce, il Qilin acceca… Le stirpi longeve allungano la vita.
+- **Trasformazione completa** (`trasformati`, dal grado Sacro): nello scontro successivo
+  diventi la bestia sacra. Costa spirito e richiede qualche giorno di riposo.
+- **Fusione** (`fondi_sangue <n> <m> [...]`): due o più lignaggi Puri diventano un sangue
+  ibrido, per esempio «Drago-Fenice di Fuoco e Ghiaccio», con elementi e manifestazioni di
+  entrambi. Si può fondere ancora, e il sangue nuovo delle specie fuse confluisce lì.
+- **Sangue in rivolta**: lignaggi non fusi con elementi in conflitto possono ribellarsi
+  (ferite, una crepa nel cuore). Fonderli o praticare l'arte del Domatore li calma.
+- Nuova via di **maestri segreti: Sangue Antico**, infinita come le altre.
+
+### Pilota automatico (`engine/systems/autopilot.py`, comando `auto`)
+- `auto <giorni>` (al massimo 60) fa vivere i giorni al personaggio da solo, con i comandi
+  veri del gioco. Alla fine mostra un **resoconto**: coltivazione, uccisioni, pietre, Dao,
+  livelli dell'arte, età e momenti salienti.
+- Si imposta prima di partire:
+  - **attività** con pesi: coltiva, dao, caccia, raccolta, lavoro, insegna;
+  - **bersagli**: nessuno, bestie, ricercati, deboli o tutti. Non attacca mai chi è più
+    forte, e chi è alla pari solo con «tutti»;
+  - **assorbi**, **loot**, **oggetti** (pillole ed essenze) e **sfonda** (breakthrough da solo);
+  - **condotta** negli incontri casuali minori: virtuosa, prudente, opportunista o spietata;
+  - **fermate** facoltative: reame, assemblea, asta, invasione.
+- **Si ferma da solo** davanti a ciò che va giocato: capitoli della storia, maestri, scene
+  importanti (nemesi, demone interiore, emissari…), tornei e sfide di setta imminenti,
+  invasioni vicine, guerre, assalti alla tua setta, fratelli in pericolo, sfondamento pronto,
+  ferite gravi, vecchiaia, morte. Ctrl+C lo interrompe salvando ciò che è stato fatto.
+
+Nuovi test: `tests/test_bloodlines.py` (11) e `tests/test_autopilot.py` (6).
+Suite totale: **451 passati**.

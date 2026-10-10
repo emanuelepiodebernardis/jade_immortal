@@ -163,6 +163,8 @@ def apply(conn: sqlite3.Connection, key: str, player_id: int = 1) -> dict:
     if eff.get("stones"):
         from engine.systems import sects
         sects.grant_resource(conn, "pietre_spirituali", int(eff["stones"]), player_id)
+    from engine.systems import bloodlines
+    bloodlines.on_destiny(conn, key)
     return d
 
 

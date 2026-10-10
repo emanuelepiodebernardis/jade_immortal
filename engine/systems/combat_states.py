@@ -145,6 +145,9 @@ class FightCtx:
         # CLASSE (arte + elementi): formazioni mobili/piazzate, aure elementali
         from engine.systems import classes
         self.lines_intro += classes.combat(conn, player_id, npc_id, self)
+        # LIGNAGGI DI SANGUE: manifestazioni, tecnica innata, doni, trasformazione
+        from engine.systems import bloodlines
+        self.lines_intro += bloodlines.combat(conn, player_id, self)
         # extra (spirito dell'arma, bestia): aggiunti dal chiamante via add_proc
         if "nullify" in pr["special"]:
             self.e.procs = [x for x in self.e.procs if STATES.get(x[0], ("", "nemico"))[1] != "sé"]
@@ -236,6 +239,8 @@ class FightCtx:
 
     def missed(self, who: str, rng: random.Random) -> bool:
         side = self.p if who == "p" else self.e
+        if who == "e" and rng.random() < self.p.prof.get("evade", 0.0):
+            return True                       # le ali del sangue: schivi
         return "accecamento" in side.states and rng.random() < 0.45
 
     def extra_strikes(self, who: str) -> int:

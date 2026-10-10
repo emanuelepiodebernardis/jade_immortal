@@ -423,6 +423,9 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     _mat = professions.on_creature_kill(conn, player.id, npc.id, _vk["kind"] if _vk else None)
     if _mat:
         lines.append(_mat)
+    if _vk and _vk["kind"] == "beast":
+        from engine.systems import bloodlines
+        lines += bloodlines.on_beast_kill(conn, t, rng, player, npc.id)
     _ws = weapon_spirit.on_kill(conn, rng, player)
     if _ws:
         lines.append(_ws)

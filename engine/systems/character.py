@@ -193,6 +193,9 @@ def apply_origin(conn: sqlite3.Connection, origin_key: str, rng: random.Random,
 
     # trade-off: nemici iniziali
     _apply_enemy_flags(conn, origin["flags"], rng, player_id)
+    # sangue ereditario (clan)
+    from engine.systems import bloodlines
+    bloodlines.on_new_life(conn, origin_key, rng)
     return origin
 
 

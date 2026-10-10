@@ -169,6 +169,10 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
     if pf:
         from engine.systems import formations
         lines.append(formations.place(conn, player_id, pf["kind"], int(pf.get("level", 1))))
+    if effects.get("bloodline"):
+        from engine.systems import bloodlines
+        lines.append("Raffini l'essenza e la lasci scorrere nelle vene…")
+        lines += bloodlines.use_essence(conn, tick, rng, player_id, effects["bloodline"])
     if effects.get("beast_lure"):
         from engine.systems import beasts
         from engine.core import entities as _ent

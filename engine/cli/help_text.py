@@ -109,11 +109,15 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "giura <nome>                  — giuri fratellanza (rapporto ≥ 70) — 'chiama <nome>' per chiamarlo",
         "proponi <nome>                — diventate compagni del Dao (rapporto ≥ 80): doppia coltivazione",
     ]),
-    ("bestie", "Bestie spirituali", [
+    ("bestie", "Bestie spirituali e lignaggi di sangue", [
         "tame <creatura>               — provi a domare una creatura (ferirla prima aiuta)",
         "beast                         — la tua bestia, il suo talento e gli avvistamenti di bestie rare",
         "feed                          — nutri la tua bestia con un nucleo (cresce)",
         "release                       — liberi la tua bestia",
+        "sangue                        — i tuoi LIGNAGGI DI SANGUE: gradi, manifestazioni, trasformazione",
+        "use essenza                   — assorbi un'essenza di sangue lasciata da una bestia d'alto livello",
+        "fondi_sangue <n> <m> [...]    — fondi due o più lignaggi Puri in un sangue ibrido",
+        "trasformati [n]               — (grado Sacro) nel prossimo scontro assumi la forma della bestia sacra",
     ]),
     ("arti", "Professioni: alchimia, talismani, forgia, formazioni, domatore", [
         "profession <arte>             — alchimia · talismani · forgia · formazioni · domatore",
@@ -140,6 +144,17 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "narrate                       — rendi la scena attuale come prosa (LLM o fallback)",
         "chronicle                     — un breve passo di cronaca del mondo",
     ]),
+    ("auto", "Pilota automatico (stato etereo)", [
+        "auto                          — la configurazione del pilota automatico",
+        "auto <giorni>                 — i giorni scorrono da soli (max 60); si ferma agli eventi importanti",
+        "auto imposta attivita coltiva=3 dao=2 caccia=2 raccolta=1 lavoro=1 insegna=1 — pesi delle attività",
+        "auto imposta bersagli <nessuno|bestie|ricercati|deboli|tutti> — chi attaccare (mai i più forti)",
+        "auto imposta assorbi <si|no>  — (Divoratore) divora i caduti",
+        "auto imposta loot <si|no> | oggetti <si|no> — raccogli il bottino | usa pillole ed essenze",
+        "auto imposta sfonda <si|no>   — tenta da solo il breakthrough quando sei al colmo (rischioso!)",
+        "auto imposta condotta <virtuosa|prudente|opportunista|spietata> — scelte negli incontri minori",
+        "auto imposta fermati <reame|assemblea|asta|invasione> <si|no> — per quali occasioni fermarsi",
+    ]),
     ("sistema", "Interfaccia", [
         "help [categoria|tutto]        — aiuto (anche 'h')",
         "hud <on|off>                  — mostra/nasconde la riga di stato dopo ogni comando",
@@ -149,7 +164,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
 ]
 
 _ALIASES = {
-    "esplora": "esplorazione", "viaggio": "esplorazione", "mondo": "esplorazione",
+    "esplora": "esplorazione", "viaggio": "esplorazione",
     "combat": "combattimento", "lotta": "combattimento", "abisso": "combattimento",
     "coltiva": "coltivazione", "dao": "coltivazione", "cultivation": "coltivazione",
     "sette": "setta", "sect": "setta", "guerra": "setta", "mercato": "setta",
@@ -160,11 +175,12 @@ _ALIASES = {
     "ui": "sistema", "interfaccia": "sistema",
     "reame": "mondo", "reami": "mondo", "assemblea": "mondo", "aste": "mondo", "asta": "mondo",
     "casa": "dimora", "discepoli": "dimora", "grotta": "dimora", "radici": "coltivazione",
-    "formazioni": "arti", "domatore": "arti",
+    "formazioni": "arti", "domatore": "arti", "sangue": "bestie", "lignaggi": "bestie",
+    "autopilota": "auto", "pilota": "auto", "etereo": "auto",
 }
 
 ESSENTIALS = """Comandi essenziali:
-  look · move <n|s|e|w> · cultivate · attack <nome> · status · goals
+  look · move <n|s|e|w> · cultivate · attack <nome> · status · goals · auto <giorni>
   Dopo ogni comando trovi delle AZIONI SUGGERITE numerate: scrivi il numero per eseguirle.
   Quando capita un INCONTRO, scegli scrivendo il numero dell'opzione.
 

@@ -373,6 +373,8 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
     old = entities.get_player(conn, player_id)
     prev = conn.execute("SELECT * FROM past_lives WHERE life_no=?;", (life_no(conn),)).fetchone()
     n_next = life_no(conn) + 1
+    from engine.systems import bloodlines
+    _blood = bloodlines.legacy(conn)
     _purge_player(conn, player_id)
     t = tick_mod.get_tick(conn)
     loc = _rebirth_location(conn, rng, prev["tomb_location_id"] if prev else None)
@@ -385,6 +387,7 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
     state.set(conn, "life_no", str(n_next))
     state.set(conn, "life_start_tick", str(t))
     lines = [f"Rinasci come {origin['name']}."]
+    lines += bloodlines.inherit(conn, _blood)
     if destiny:
         from engine.systems import destinies
         d = destinies.apply(conn, destiny, player_id)

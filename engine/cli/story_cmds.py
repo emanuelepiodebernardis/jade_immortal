@@ -170,6 +170,18 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("chiama", "call"):
         from engine.systems import oaths
         return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("auto", "autopilota", "pilota", "etereo", "autopilot"):
+        from engine.systems import autopilot
+        return autopilot.command(conn, player, arg)
+    if cmd in ("sangue", "lignaggi", "bloodline", "bloodlines", "lignaggio"):
+        from engine.systems import bloodlines
+        return bloodlines.describe(conn, player)
+    if cmd in ("fondi_sangue", "fondisangue", "fusione_sangue"):
+        from engine.systems import bloodlines
+        return bloodlines.fuse(conn, player, arg)
+    if cmd in ("trasformati", "transform", "trasformazione"):
+        from engine.systems import bloodlines
+        return bloodlines.transform(conn, player, arg)
     if cmd in ("sistema", "system", "ding"):
         from engine.systems import system_quest
         return system_quest.command(conn, player, arg)

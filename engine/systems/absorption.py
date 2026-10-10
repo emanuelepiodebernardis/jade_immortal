@@ -94,6 +94,12 @@ def absorb(conn: sqlite3.Connection, tick: int, rng: random.Random,
     _roots_line = spirit_roots.devour(conn, player_id, target_id, freshness, clean)
     if _roots_line:
         summary += "\n" + _roots_line
+    if kind == "beast":
+        from engine.systems import bloodlines
+        from engine.core import entities as _ents
+        _bl = bloodlines.on_devour_beast(conn, tick, rng, _ents.get_player(conn, player_id), target_id)
+        if _bl:
+            summary += "\n" + "\n".join(_bl)
     # catastrofe rara: anima debole + bersaglio molto superiore
     if overreach >= 3 and soul < 60 and rng.random() < 0.20:
         conn.execute("UPDATE players SET status='dead' WHERE id=?;", (player_id,))

@@ -173,6 +173,25 @@ MASTERS = [
              "«Anche loro furono cuccioli, un tempo. Ti insegnerò a far nascere una stirpe.»",
      "teach": {"name": "Flauto che Risveglia le Stirpi Antiche", "magnitude": 0.18,
                "bonus": {"prof_xp": 50, "beast_talent": 2, "beast_stages": 5}}},
+    # ---------------- SANGUE ANTICO (lignaggi) ----------------
+    {"key": "sangue_1", "path": "Sangue Antico", "tier": 1, "req": [("blood", 30)],
+     "where": ["forbidden_zone", "mountain"], "name": "La Vecchia dagli Occhi di Serpente",
+     "text": "Una vecchia ti annusa il polso e sorride con pupille verticali. «Sangue che non è tuo, "
+             "e che non sai usare. Siediti: ti insegno ad ascoltarlo.»",
+     "teach": {"name": "Respiro del Sangue Antico", "magnitude": 0.07,
+               "proc": ("emorragia", 0.12, 1.2), "bonus": {"blood_conc": 25}}},
+    {"key": "sangue_2", "path": "Sangue Antico", "tier": 2, "req": [("blood", 200)],
+     "where": ["forbidden_zone"], "name": "Il Re delle Chimere",
+     "text": "Ha le corna di un drago, le ali di una fenice e gli occhi di un uomo stanco. «Ho fuso "
+             "nove lignaggi. Tu quanti ne reggerai?»",
+     "teach": {"name": "Arte dei Nove Sangui", "magnitude": 0.14,
+               "proc": ("terrore", 0.15, 1.5), "bonus": {"blood_conc": 120}}},
+    {"key": "sangue_3", "path": "Sangue Antico", "tier": 3, "req": [("blood", 1200)],
+     "where": ["mountain"], "name": "L'Antenato delle Bestie Sacre",
+     "text": "La montagna respira. Poi apre un occhio grande come un lago: non era una montagna. "
+             "«Piccolo parente. Il tuo sangue ha chiamato, e io ho risposto.»",
+     "teach": {"name": "Ritorno alla Forma Ancestrale", "magnitude": 0.22,
+               "proc": ("pressione", 0.20, 2.0), "bonus": {"blood_conc": 600, "lifespan_years": 200}}},
     # ---------------- FULMINE / CORPO / ANIMA ----------------
     {"key": "fulmine_1", "path": "Fulmine", "tier": 1, "req": [("dao", "fulmine", 100)], "where": ["mountain"],
      "name": "L'Eremita che Beve i Fulmini",
@@ -249,14 +268,14 @@ _ROLE = {
     "Forgia": "Il Fabbro Celeste", "Fulmine": "Il Signore del Tuono", "Corpo": "Il Corpo Immortale",
     "Anima": "Lo Spirito Antico", "Giustizia": "Il Giusto Sovrano", "Bestie": "Il Re delle Bestie",
     "Abisso": "L'Eco dell'Abisso", "Formazioni": "Il Gran Maestro delle Formazioni",
-    "Domatore": "Il Sovrano delle Diecimila Bestie",
+    "Domatore": "Il Sovrano delle Diecimila Bestie", "Sangue Antico": "L'Antenato del Sangue",
 }
 # radice delle tecniche generate per via
 _TECH_STEM = {
     "Spada": "Spada", "Demoniaca": "Arte Proibita", "Alchimia": "Fiamma Alchemica",
     "Talismani": "Sigillo", "Forgia": "Martello", "Fulmine": "Folgore", "Corpo": "Corpo",
     "Anima": "Intento dell'Anima", "Giustizia": "Palmo", "Bestie": "Patto", "Abisso": "Fauci",
-    "Formazioni": "Formazione", "Domatore": "Patto delle Stirpi",
+    "Formazioni": "Formazione", "Domatore": "Patto delle Stirpi", "Sangue Antico": "Forma del Sangue",
 }
 _EPITHETS = ["dell'Eternità", "del Firmamento", "dei Nove Cieli", "del Vuoto Primordiale",
              "delle Diecimila Ere", "dell'Origine", "oltre il Cielo", "senza Nome", "della Fine dei Tempi"]
@@ -294,6 +313,8 @@ def _scale_req(req: tuple, k: int):
         return ("absorbed", int(req[1] * (1.6 ** k)))
     if kind == "beast":
         return ("beast_tier", 3 + 2 * k)
+    if kind == "blood":
+        return ("blood", int(req[1] * (2.5 ** k)))
     return req
 
 
@@ -332,6 +353,8 @@ def master_for(path: str, tier: int) -> dict | None:
     if "beast_talent" in b or "beast_stages" in b:
         b["beast_stages"] = 5 + 3 * k
         b.pop("beast_talent", None)
+    if "blood_conc" in b:
+        b["blood_conc"] = int(b["blood_conc"] * (2.5 ** k))
     if "residue" in b:
         b["residue"] = int(b["residue"] * (1.5 ** k))
     if b:
@@ -401,6 +424,11 @@ def _progress(conn, pid: int, req: tuple) -> tuple[bool, str]:
         from engine.generators.cultivation_gen import realm_name_for_tier
         v = cultivation.realm_tier(conn, "player", pid) or 1
         return v >= req[1], f"regno {realm_name_for_tier(req[1])}"
+    if kind == "blood":
+        from engine.systems import bloodlines
+        o = bloodlines.ordered(conn)
+        v = int(o[0][1]["conc"]) if o else 0
+        return v >= req[1], f"lignaggio di sangue {v}/{req[1]}"
     if kind == "beast_tier":
         from engine.systems import npc_factory
         pt = beasts.pet(conn, pid)
@@ -535,6 +563,12 @@ def learn(conn: sqlite3.Connection, t: int, player, key: str, gift: dict | None 
             if b.get("beast_stages"):
                 npc_factory.raise_npc(conn, pt["npc_id"], b["beast_stages"])
             lines.append(f"{pt['name']} risveglia il suo vero talento: ora è «{new}».")
+    if b.get("blood_conc"):
+        from engine.systems import bloodlines
+        o = bloodlines.ordered(conn)
+        if o:
+            lines += bloodlines.gain(conn, t, random.Random(t + 7), player, o[0][1]["species"],
+                                     o[0][1]["elements"], float(b["blood_conc"]))
     if b.get("residue"):
         conn.execute("UPDATE character_profiles SET soul_residue=MAX(0, soul_residue+?) "
                       "WHERE character_type='player' AND character_id=?;", (b["residue"], player.id))

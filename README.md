@@ -50,6 +50,10 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 - **Radici spirituali** a punteggio infinito con effetti per **ogni combinazione**,
   metodi di coltivazione, **classi** arte × elemento (Formazioni, Domatore…).
 - **Mondi superiori** infiniti oltre il nono regno; origine **Trasmigratore col Sistema**.
+- **Lignaggi di sangue** delle bestie leggendarie: manifestazioni ibride, trasformazione
+  completa, fusione in sangui ibridi (Drago-Fenice di Fuoco e Ghiaccio…).
+- **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
+  solo le parti monotone e si ferma davanti agli eventi importanti.
 
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.
@@ -144,6 +148,8 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Mondo | `realm`, `enter`, `delve`, `assemblea`, `asta`, `classifica`, `ascendi_mondo`, `mondi`, `sistema` |
 | Dimora e setta | `dimora`, `ritiro <giorni>`, `accogli`, `insegna`, `discepoli`, `fonda`, `setta`, `anziani`, `missioni` |
 | Talento | `radici`, `gongfa`, `giura`, `proponi`, `chiama` |
+| Sangue | `sangue`, `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
+| Pilota automatico | `auto`, `auto <giorni>`, `auto imposta ...` |
 | Guerra | `raid`, `invade` |
 | Stato | `status`, `rating`, `inventory`, `use <oggetto>`, `use all`, `techniques` |
 | Sistema | `help [categoria\|tutto]`, `hud on/off`, `suggest on/off`, save automatico, `quit` |

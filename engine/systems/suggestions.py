@@ -82,6 +82,11 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     if ab and ab["loc"] == loc and any(v > 0 for v in (ab.get("stock") or {}).values()):
         _add(out, "Raccogli la produzione della tua dimora", "dimora raccogli")
 
+    if conn.execute("SELECT 1 FROM inventories v JOIN items i ON i.id=v.item_id WHERE v.owner_type='player' "
+                    "AND v.owner_id=? AND v.quantity>0 AND i.item_type='essenza' LIMIT 1;",
+                    (player.id,)).fetchone():
+        _add(out, "Assorbi l'essenza di sangue che hai raccolto", "use essenza")
+
     # 2) ciò che è a terra
     if loot.drops_in_location(conn, loc):
         _add(out, "Raccogli il bottino", "loot")
