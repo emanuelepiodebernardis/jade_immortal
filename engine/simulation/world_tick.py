@@ -74,6 +74,9 @@ def simulate_tick(conn: sqlite3.Connection, tick_no: int, scope: set[int],
     # gli invasori legati a un evento mondiale presidiano il luogo: non vagano
     pinned = {r["id"] for r in conn.execute(
         "SELECT id FROM npcs WHERE event_id IS NOT NULL AND status='alive';")}
+    # il compagno ti segue e le nemesi in caccia si muovono da sé: non vagano a caso
+    from engine.systems import bonds
+    pinned |= bonds.pinned_ids(conn)
 
     for npc in npcs:
         # tutti gli NPC attivi sono "simulati" a questo tick
@@ -193,6 +196,9 @@ def advance(conn: sqlite3.Connection, n: int, player_id: int = 1,
                              "\n".join(["⚡ Il Cielo non tollera più la tua sfida alle sue leggi!"]
                                        + _tr["lines"]))
                 events += 1
+        # nemesi: tornano più forti e ti danno la caccia (scena a scelta quando ti trovano)
+        from engine.systems import bonds
+        events += bonds.tick(c, tick_no, rng, player, observations)
         # guerre tra sette: una setta rivale può dichiarare guerra alla tua
         from engine.systems import sect_war
         events += sect_war.tick(c, tick_no, rng, player, observations)

@@ -20,6 +20,18 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 
 ## ✨ Caratteristiche
 
+### Una storia che è tua 🎴
+- **Azioni suggerite** numerate dopo ogni comando: scrivi `1`, `2`, `3`… per agire senza
+  ricordare 70 comandi (restano tutti disponibili).
+- **Incontri a scelta**: mini-scene con prove sulle tue qualità reali e la probabilità di
+  riuscita mostrata prima di scegliere.
+- **Storia personale** in 4 capitoli per ogni origine, con il diario `goals`.
+- **Legami**: compagni che combattono con te, un maestro, rivali e **nemesi** che tornano
+  più forti.
+- **Reincarnazione**: alla morte un epilogo, una tomba con i tuoi tesori e una nuova vita
+  nello stesso mondo, con un frammento della precedente.
+- **Riga di stato** sempre visibile e aiuto per categorie.
+
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.
 - **Nessun tetto**: oltre l'*Immortale di Giada* (regno 8) i regni si generano da soli con
@@ -106,9 +118,11 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Abisso | `absorb <nome>`, `absorb all`, `loot` |
 | Coltivazione | `cultivate`, `comprehend <dao>`, `breakthrough`, `dao`, `tribulation` |
 | Sette | `join`, `class`, `challenge`, `market`, `buy <n>`, `invitations`, `accept <n>` |
+| Legami | `talk`, `gift <nome> <pietre>`, `spar`, `recruit`, `dismiss`, `disciple`, `bonds` |
+| Storia | `<numero>` (scelte), `goals`, `encounter`, `lives`, `titles` |
 | Guerra | `raid`, `invade` |
 | Stato | `status`, `rating`, `inventory`, `use <oggetto>`, `use all`, `techniques` |
-| Sistema | `help`, `save`/auto, `quit` |
+| Sistema | `help [categoria\|tutto]`, `hud on/off`, `suggest on/off`, save automatico, `quit` |
 
 (La lista completa e aggiornata è sempre in `help`.)
 
@@ -126,9 +140,10 @@ jade_immortal/
 │   ├── generators/         # mondo, NPC, Dao, creature, regni di coltivazione
 │   ├── simulation/         # combat, cultivation, world_tick, faction_engine, eventi
 │   ├── systems/            # sette, mercato, assorbimento, dao_powers, tribolazione,
-│   │                       #   invasioni mondiali, invasioni guidate, caccia, reputazione…
-│   └── cli/loop.py         # dispatch dei comandi + resa testuale
-└── tests/                  # ~345 test (pytest)
+│   │                       #   invasioni mondiali, invasioni guidate, caccia, reputazione,
+│   │                       #   suggestions, encounters, bonds, storyline, rebirth…
+│   └── cli/                # loop.py (dispatch), story_cmds.py, lifecycle.py, hud.py, help_text.py
+└── tests/                  # ~375 test (pytest)
 ```
 
 I dati di gioco vivono in un singolo file **SQLite**. Le migrazioni sono idempotenti: i
@@ -146,8 +161,8 @@ python -m pytest -q
 La suite copre combattimento, coltivazione, Dao/fusione, assorbimento, sette/tornei, mercato,
 invasioni (mondiali e guidate), caccia territoriale e i fix di gameplay.
 
-> Nota: un singolo test (`test_fallback_render_produces_prose`) può risultare *rosso*
-> **solo** se è attivo un LLM locale: presume il fallback testuale. Non è un bug di gioco.
+> I test forzano la narrazione LLM spenta (`tests/conftest.py`), quindi l'esito è lo
+> stesso con o senza Ollama attivo.
 
 ---
 

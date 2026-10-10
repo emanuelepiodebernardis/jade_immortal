@@ -52,6 +52,10 @@ def _migrate(conn) -> None:
                  "day INTEGER NOT NULL, name TEXT NOT NULL, item_type TEXT NOT NULL, "
                  "rarity TEXT NOT NULL, price INTEGER NOT NULL, effects TEXT NOT NULL, "
                  "sold INTEGER DEFAULT 0);")
+    # legami (compagni/maestro/rivali/nemesi) e vite passate (reincarnazione)
+    from engine.systems import bonds, rebirth
+    bonds.ensure_table(conn)
+    rebirth.ensure_table(conn)
     wecols = {r["name"] for r in conn.execute("PRAGMA table_info(world_events);")}
     if wecols and "champion_id" not in wecols:
         conn.execute("ALTER TABLE world_events ADD COLUMN champion_id INTEGER;")

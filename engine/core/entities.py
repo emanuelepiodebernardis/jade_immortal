@@ -184,6 +184,9 @@ def move_player(conn: sqlite3.Connection, player_id: int, new_location_id: int) 
         "UPDATE players SET location_id = ? WHERE id = ?;",
         (new_location_id, player_id),
     )
+    # il compagno di viaggio (se c'è) si sposta con te
+    from engine.systems import bonds
+    bonds.follow_player(conn, player_id, new_location_id)
 
 
 # ---------- Fazioni ----------

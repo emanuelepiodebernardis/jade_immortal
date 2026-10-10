@@ -202,7 +202,7 @@ def generate(conn: sqlite3.Connection, cfg: WorldGenConfig | None = None) -> Non
     # Step 10 — Player
     conn.execute(
         "INSERT INTO players (id, name, location_id, status, created_tick) "
-        "VALUES (1, 'Wanderer', ?, 'alive', 0);",
+        "VALUES (1, 'Viandante', ?, 'alive', 0);",
         (start_location_id,),
     )
 

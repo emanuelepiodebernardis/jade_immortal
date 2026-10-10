@@ -29,70 +29,7 @@ DIRECTIONS = {
     "west": "west", "w": "west",
 }
 
-HELP = """Comandi disponibili:
-  move <north|south|east|west>  (abbrev: n/s/e/w)  — ti sposti, +1 tick
-  wait                          — attendi (il mondo avanza, osservi i dintorni)
-  sleep                         — dormi fino all'alba del giorno seguente
-  cultivate (o 'c')             — mediti per accumulare progresso nel tuo regno
-  dao                           — i Dao che pratichi e la loro comprensione
-  tribulation                   — sfida al Cielo (heaven defiance) e tribolazione divina
-  comprehend <nome>             — affini un Dao (i Dao da combattimento ti rendono più forte)
-  breakthrough                  — tenti di salire di regno (può fallire o ucciderti!)
-  look                          — osservi la location corrente
-  look <dir>                    — sbirci la location adiacente in quella direzione
-  examine <nome>                — esamini un NPC presente (archetipo, indole, rapporto)
-  greet <nome>                  — saluti un NPC: prima conoscenza / migliora il rapporto
-  attack <nome> [mossa]         — attacchi un NPC (puoi morire!); mossa attiva opzionale
-  attack all                    — attacchi TUTTI i nemici presenti (creature e umani), in sequenza
-  attack humans                 — attacchi solo gli avversari umani presenti
-  attack creatures              — attacchi solo le creature selvagge presenti
-  moves                         — le tue mosse attive in combattimento (cooldown)
-  absorb <nome>                 — (Abisso Divoratore) divori i resti di un caduto
-  absorb all                    — divori in sequenza tutti i resti presenti
-  loot                          — raccogli l'eredità dei caduti (le armi della TUA via si equipaggiano da sé)
-  inventory                     — il tuo zaino (oggetti raccolti)
-  market                        — (in città) il mercato: oggetti da comprare con le pietre
-  buy <n>                       — compri l'oggetto n dal mercato
-  raid                          — (alla sede di una setta rivale) la assalti da solo e la saccheggi
-  use <oggetto> | use all       — usi un oggetto dello zaino (o tutti in sequenza)
-  war                           — guerra tra sette in corso: fronte, punteggio, tempo
-  spare <nome>                  — al fronte: sottometti e risparmia un nemico (onore)
-  home                          — torni direttamente alla sede della tua setta
-  warzone                       — ti porti direttamente al fronte di guerra più vicino
-  raidtarget                    — ti porti alla sede di una setta rivale (poi 'raid')
-  invade                        — (rango alto) GUIDI la tua setta a conquistare la setta rivale qui
-  rating                        — il tuo profilo di potenza (Qi/Corpo/Anima/Dao), classe e zona
-  map                           — uscite della location corrente con destinazioni
-  factions                      — elenco delle fazioni (influenza, territori)
-  faction <nome>                — dettaglio di una fazione (territori, relazioni)
-  sects                         — sette a cui iscriversi e dove hanno sede
-  bounties                      — ricercati da cacciare (taglie e missioni)
-  events                        — invasioni mondiali in corso (difendi un luogo)
-  defend                        — difendi il luogo invaso (abbatti l'ondata)
-  hunt <nome>                   — localizza un ricercato e ti indica dove andare
-  join                          — test d'ingresso e iscrizione alla setta locale
-  class                         — compagni di classe, classifica, prossima sfida/torneo
-  challenge                     — sfidi un discepolo di rango superiore: se vinci, sali di categoria
-  invitations                   — inviti delle sette superiori (dopo aver vinto un torneo)
-  accept <n>                    — accetti un invito e ascendi a una setta superiore
-  huntzone                      — la zona di caccia della tua setta (mostri = merito)
-  weapon <arma>                 — scegli l'arma principale (sblocca il Dao d'arma)
-  techniques                    — tecniche segrete della setta e merito disponibile
-  learn <n>                     — impari una tecnica segreta spendendo merito
-  leave                         — lascia la tua setta
-  log [n]                       — cronache recenti note al giocatore
-  memories                      — ciò che il tuo personaggio ricorda (memoria attiva)
-  narrate                       — rendi la scena attuale come prosa (LLM o fallback)
-  chronicle                     — un breve passo di cronaca del mondo
-  status                        — il tuo stato e il tick globale
-  reputation                    — fama, infamia, allineamento percepito, sospetto
-  mask <on|off>                 — indossi/togli la maschera (agisci in incognito)
-  profilo                       — origine, età e affinità (descrizione qualitativa)
-  where                         — nome e pericolo della location corrente
-  help                          — questo messaggio (anche 'h')
-  quit / exit                   — esci
-  (con Ollama attivo puoi anche scrivere in linguaggio naturale, es. "esamina il vecchio")
-"""
+from engine.cli.help_text import HELP, help_for  # noqa: E402  (testo d'aiuto per categorie)
 
 
 def _npc_tag(conn: sqlite3.Connection, npc: entities.NPC) -> str:
@@ -103,6 +40,14 @@ def _npc_tag(conn: sqlite3.Connection, npc: entities.NPC) -> str:
         parts.append(npc.archetype)
     if traits:
         parts.append(npc_gen.dominant_descriptor(traits))
+    # chi è PER TE: ricercati, compagni, maestro, nemesi (decisivo prima di attaccare)
+    from engine.systems import bounties, bonds
+    ow = bounties.get_outlaw(conn, npc.id)
+    if ow:
+        parts.append(f"RICERCATO, taglia {ow['reward']}")
+    btag = bonds.tag(conn, npc.id)
+    if btag:
+        parts.append(btag)
     return ", ".join(parts)
 
 
@@ -110,7 +55,7 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
     loc = entities.get_location(conn, player.location_id)
     if loc is None:
         return "Sei nel vuoto. (location mancante)"
-    lines = [f"You are in: {loc.name} {_danger_tag(loc.danger_level)}"]
+    lines = [f"Ti trovi a: {loc.name} {_danger_tag(loc.danger_level)}"]
     if loc.description:
         lines.append(loc.description)
     owner = entities.location_owner_name(conn, loc.id)
@@ -126,7 +71,7 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
 
     npcs = entities.npcs_in_location(conn, loc.id)
     if npcs:
-        lines.append("You see:")
+        lines.append("Presenti:")
         for n in npcs:
             tag = _npc_tag(conn, n)
             suffix = f" ({tag})" if tag else ""
@@ -178,7 +123,7 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
                      f"{zone_note}")
 
     exits = entities.get_exits(conn, loc.id)
-    lines.append("Exits: " + (", ".join(sorted(exits.keys())) if exits else "none"))
+    lines.append("Uscite: " + (", ".join(sorted(exits.keys())) if exits else "nessuna"))
     corpses = entities.dead_npcs_in_location(conn, loc.id)
     if corpses:
         lines.append("Resti a terra: " + ", ".join(c.name for c in corpses))
@@ -213,6 +158,10 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
             lines.append(f"Qui ha sede la setta {hq['name']}.")
         else:
             lines.append(f"Qui ha sede la setta {hq['name']} — puoi 'join' per il test d'ingresso.")
+    from engine.systems import rebirth as _rb
+    _tl = _rb.tomb_line(conn, loc.id)
+    if _tl:
+        lines.append(_tl)
     from engine.systems import market as _mk
     if _mk.is_market_here(conn, loc.id):
         lines.append("C'è un mercato qui: usa 'market' per vedere cosa comprare con le pietre.")
@@ -256,6 +205,20 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     out = f"Tick {new_tick}\n" + render_location(conn, moved)
     if obs:
         out += "\nNel frattempo:\n" + _format_observations(obs)
+    return out + _after_arrival(conn, moved)
+
+
+def _after_arrival(conn: sqlite3.Connection, player: entities.Player) -> str:
+    """Dopo uno spostamento: l'incontro lasciato indietro svanisce, e a volte ne capita uno."""
+    from engine.systems import encounters
+    out = ""
+    gone = encounters.dismiss_if_moved(conn, player)
+    if gone:
+        out += "\n" + gone
+    if player.status == "alive":
+        sc = encounters.maybe_trigger(conn, player)
+        if sc:
+            out += "\n\n" + sc
     return out
 
 
@@ -441,6 +404,8 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
         lines.append(absorb_hint)
     from engine.systems import loot
     lines += loot.on_player_kill(conn, t, rng, player, npc)
+    from engine.systems import bonds as _bonds
+    lines += _bonds.on_npc_killed(conn, t, rng, player, npc.id)
     return lines
 
 
@@ -510,9 +475,12 @@ def _attack_all(conn: sqlite3.Connection, player: entities.Player, only: str | N
         kinds = "AND kind IN ('beast','demon','spirit','human')"
         none_msg = "Non c'è nessuno da attaccare qui."
         head_what = "tutti i nemici presenti"
-    rows = conn.execute(
+    from engine.systems import bonds as _bonds
+    _prot = _bonds.protected_ids(conn, player.id)      # compagno e maestro non si toccano
+    rows = [r for r in conn.execute(
         f"SELECT id, name FROM npcs WHERE location_id=? AND status='alive' {kinds} "
         f"AND id<>? ORDER BY id;", (player.location_id, player.id)).fetchall()
+        if r["id"] not in _prot]
     if not rows:
         return none_msg
     out = [f"Ti scagli contro {head_what} ({len(rows)})!"]
@@ -763,6 +731,10 @@ def _attack_auto(conn, player, npc, forced) -> str:
                      f"le difese di {npc.name} contano sempre meno.")
     if _t_evasion > 0:
         lines.append("Il Tempo rallenta attorno a te: anticipi e schivi i colpi.")
+    from engine.systems import bonds as _bonds
+    _ally = _bonds.companion_assist(conn, player.id, npc.id)   # (nome, potenza) o None
+    if _ally:
+        lines.append(f"{_ally[0]} si mette al tuo fianco: combatterete insieme.")
     local_cd: dict[str, int] = {}     # cooldown della tecnica entro lo scontro (in round)
     rounds = 0
     last_crit = False
@@ -823,6 +795,14 @@ def _attack_auto(conn, player, npc, forced) -> str:
                 break
         lines.append("  " + _hit_desc(dealt, emax, npc.name, crit_any, rng))
         last_crit = crit_any
+        if _ally and hp_e > 0:
+            adm, _ac = combat._strike(_ally[1]["attack"] * 0.6, pd["defense"], rng)
+            hp_e -= adm
+            if rounds == 1 or rng.random() < 0.3:
+                lines.append(f"  {_ally[0]} " + rng.choice(
+                    ("incalza dal fianco e lo colpisce.", "approfitta dell'apertura e affonda.",
+                     "gli taglia la ritirata con un colpo secco.", "lo costringe a dividere la guardia."))
+                    )
 
         if hp_e <= 0:
             return _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
@@ -835,6 +815,9 @@ def _attack_auto(conn, player, npc, forced) -> str:
             edmg *= 1.5
         edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge) * fear_mult \
             * (_eprof.get("dmg_mult", 1.0) if _eprof else 1.0) * (1.0 - _t_evasion)
+        if _ally and rng.random() < 0.15:
+            edmg *= 0.5
+            lines.append(f"  {_ally[0]} si frappone e devia metà del colpo!")
         if paralyzed:
             edmg = 0.0
         hp_p -= edmg
@@ -899,6 +882,10 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
             f"{npc.name} è gravemente ferito e si ritira dallo scontro. ({rounds} round)",
             f"Sanguinante, {npc.name} rinuncia e fugge. ({rounds} round)",
             f"{npc.name} arretra, troppo malconcio per continuare. ({rounds} round)"]))
+        from engine.systems import bonds as _bonds
+        nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
+        if nem:
+            lines.append(nem)
     return "\n".join(lines)
 
 
@@ -915,6 +902,10 @@ def _auto_end_player(conn, t, rng, player, npc, rounds, lines) -> str:
         lines.append(f"Cadi sotto i colpi di {npc.name}. ({rounds} round)")
     else:
         lines.append(f"Sei sopraffatto e ti accasci, ferito ma vivo. ({rounds} round)")
+        from engine.systems import bonds as _bonds
+        msg = _bonds.on_player_defeated(conn, t, rng, player, npc)
+        if msg:
+            lines.append(msg)
     return "\n".join(lines)
 
 def _devour_on_kill(conn, t, rng, player, npc) -> str | None:
@@ -976,8 +967,10 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
     bonus = training.location_bonus(conn, player.id, player.location_id)
     from engine.systems import dao_powers
     tmult = dao_powers.time_cultivation_mult(conn, player.id)   # Dao del Tempo: accelera
+    from engine.systems import bonds as _bonds
+    mbonus = _bonds.cultivation_bonus(conn, player.id)          # un maestro ti guida
     res = cultivation.cultivate(conn, "player", player.id, t, rng,
-                                multiplier=y * (1 + bonus) * tmult)
+                                multiplier=y * (1 + bonus + mbonus) * tmult)
     world_tick.advance(conn, tick.cost_of("cultivate"))
     from engine.systems import qi as qimod, progression
     qimod.restore_fraction(conn, 0.5, player.id)       # meditare ristora il Qi
@@ -993,6 +986,8 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
         line += " Le formazioni della tua setta amplificano il qi."
     if tmult > 1.0:
         line += f" Il Dao del Tempo accelera la tua coltivazione (×{tmult:.2f})."
+    if mbonus:
+        line += " La guida del tuo maestro rende la meditazione più fruttuosa."
     if y <= 0.15:
         line += "\nSei sfinito: conviene riposare ('wait') o dedicarti ad altro."
     if res["ready"]:
@@ -1241,6 +1236,10 @@ def cmd_loot(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     import json as _json
     from engine.systems import loot, items, weapons
     drops = loot.drops_in_location(conn, player.location_id)
+    from engine.systems import rebirth
+    tomb_lines = rebirth.claim_tombs(conn, player)
+    if not drops and tomb_lines:
+        return "\n".join(tomb_lines)
     if not drops:
         return ("Non c'è nulla da raccogliere qui. Il bottino lo lasciano i caduti "
                 "importanti (patriarchi, anziani, avversari di alto regno) e le bestie mitiche.")
@@ -1267,7 +1266,7 @@ def cmd_loot(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
         lines += item_lines
         lines.append("Tutto riposto nello zaino. Usa 'inventory' per vederlo, "
                      "'use <oggetto>' per servirtene.")
-    return "\n".join(lines)
+    return "\n".join(tomb_lines + lines)
 
 
 def cmd_market(conn: sqlite3.Connection, player: entities.Player) -> str:
@@ -1814,6 +1813,8 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
             label = ("Sfida di Classifica" if nxt["kind"] == "ranking_challenge"
                      else "Torneo Mensile")
             lines.append(f"  {label}: {'oggi!' if days == 0 else f'tra {days} giorni'}")
+    from engine.systems import bonds as _bonds
+    lines += ["  " + ln for ln in _bonds.daily(conn, t, random.Random(t * 29 + day), player)]
     return "\n".join(lines)
 
 
@@ -2129,9 +2130,16 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
         boons = tribulation.boon_list(conn, player.id)
         if boons:
             abyss_line += f"Doni del Fulmine: {', '.join(boons)}.\n"
+    from engine.systems import state as _state, rebirth as _rb
+    _tl = _state.titles(conn)
+    title_line = f"Titoli: {', '.join(_tl)}\n" if _tl else ""
+    life = _rb.life_no(conn)
+    life_line = f"Vita n.{life} (le precedenti: 'lives')\n" if life > 1 else ""
     return (
-        f"Name: {player.name}\n"
+        f"Nome: {player.name}\n"
+        f"{life_line}"
         f"{origin_line}"
+        f"{title_line}"
         f"{sect_line}"
         f"{res_line}"
         f"{rep_line}"
@@ -2139,9 +2147,9 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
         f"{spirit_line}"
         f"{path_line}"
         f"{abyss_line}"
-        f"Status: {player.status}\n"
+        f"Stato: {'vivo' if player.status == 'alive' else player.status}\n"
         f"Coltivazione: {realm} (esperienza {prog})\n"
-        f"Location: {loc.name if loc else '?'}\n"
+        f"Luogo: {loc.name if loc else '?'}\n"
         f"{wound_line}\n"
         f"Tick: {t}"
     )
@@ -2221,7 +2229,7 @@ def _travel_to(conn, player, dest, arrive_msg) -> str:
     out = f"Tick {tick.get_tick(conn)} — {arrive_msg}\n" + render_location(conn, moved)
     if obs:
         out += "\nNel frattempo:\n" + _format_observations(obs)
-    return out
+    return out + _after_arrival(conn, moved)
 
 
 def cmd_to_war(conn: sqlite3.Connection, player: entities.Player) -> str:
@@ -2283,7 +2291,7 @@ def cmd_home(conn: sqlite3.Connection, player: entities.Player) -> str:
            + render_location(conn, moved))
     if obs:
         out += "\nNel frattempo:\n" + _format_observations(obs)
-    return out
+    return out + _after_arrival(conn, moved)
 
 
 def cmd_rating(conn: sqlite3.Connection, player: entities.Player) -> str:
@@ -2318,8 +2326,12 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
 
     if cmd in ("quit", "exit"):
         return None
-    if cmd in ("help", "h", "?", "comandi"):
-        return HELP
+    from engine.cli import story_cmds
+    _res = story_cmds.handle(conn, player, cmd, arg)
+    if _res is not None:
+        return _res
+    if cmd in ("help", "h", "?", "comandi", "aiuto"):
+        return help_for(arg)
     if cmd in ("war", "guerra"):
         return cmd_war(conn, player)
     if cmd in ("spare", "risparmia"):
@@ -2441,13 +2453,25 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
     return f"Comando sconosciuto: '{cmd}'. Scrivi 'help'."
 
 
-def run() -> None:
+def _intro() -> None:
+    from engine.cli import story_cmds
     with transaction() as conn:
-        t = tick.get_tick(conn)
         player = entities.get_player(conn)
-        print(f"Tick {t}")
+        banner = _day_banner(conn, player)
+        if banner:
+            print(banner)
         print(render_location(conn, player))
-        print("(scrivi 'help' per i comandi)")
+        print("(scrivi 'help' per i comandi, 'goals' per i tuoi obiettivi)")
+        tail = story_cmds.after_command(conn, player)
+        if tail:
+            print(tail)
+
+
+def run() -> None:
+    from engine.cli import lifecycle, story_cmds
+    if lifecycle.player_is_dead() and not lifecycle.handle_death():
+        return
+    _intro()
 
     while True:
         try:
@@ -2480,6 +2504,13 @@ def run() -> None:
         with transaction() as conn:
             p = entities.get_player(conn)
         if p is None or p.status != "alive":
-            print("\nLe tue ferite hanno avuto la meglio. Il mondo prosegue senza di te.")
-            print("(fine partita)")
-            return
+            print("\nLe tue ferite hanno avuto la meglio.")
+            if not lifecycle.handle_death():
+                return
+            _intro()
+            continue
+        # capitolo della storia, riga di stato e azioni suggerite
+        with transaction() as conn:
+            tail = story_cmds.after_command(conn, p)
+        if tail:
+            print(tail)

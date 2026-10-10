@@ -17,37 +17,29 @@ import sqlite3
 from engine.core import entities
 from engine.narrative import llm
 
-# verbi-comando riconosciuti dal motore (prima parola)
-KNOWN_COMMANDS = {
-    "move", "look", "map", "wait", "rest", "examine", "greet", "attack",
-    "cultivate", "meditate", "breakthrough", "factions", "faction", "log",
-    "news", "memories", "recall", "narrate", "scene", "story", "chronicle",
-    "tale", "status", "where", "help", "quit", "exit",
+from engine.cli import help_text
+
+# verbi-comando riconosciuti dal motore (prima parola): derivati dall'aiuto, così il
+# traduttore conosce SEMPRE tutti i comandi (prima ne conosceva solo una parte).
+KNOWN_COMMANDS = help_text.command_words() | {
+    "meditate", "rest", "news", "recall", "scene", "story", "tale", "exit",
 }
 
-SYSTEM_PROMPT = """Sei un interprete di comandi per un gioco testuale xianxia.
+_COMMAND_LIST = "\n".join("- " + ln for ln in help_text.command_lines()
+                          if not ln.startswith("<"))
+
+SYSTEM_PROMPT = f"""Sei un interprete di comandi per un gioco testuale xianxia.
 Converti la frase del giocatore in UN SOLO comando tra quelli permessi.
 
-Comandi permessi (e loro argomento):
-- move <north|south|east|west>   (spostarsi; usa SEMPRE le direzioni in inglese)
-- look | map | where             (osservare il luogo)
-- wait                           (far passare il tempo)
-- examine <nome>                 (esaminare un personaggio presente)
-- greet <nome>                   (salutare un personaggio)
-- attack <nome>                  (attaccare un personaggio)
-- cultivate                      (meditare/coltivare)
-- breakthrough                   (tentare di salire di regno)
-- factions | faction <nome>      (informazioni sulle fazioni)
-- log | memories                 (cronache e ricordi)
-- narrate | chronicle            (rendere la scena/cronaca come prosa)
-- status | help                  (stato del personaggio / aiuto)
+Comandi permessi (comando, argomento — significato):
+{_COMMAND_LIST}
 
 REGOLE:
 - Scegli il nome del personaggio dalla lista dei presenti, se la frase si riferisce a qualcuno.
 - Le direzioni vanno sempre in inglese: north, south, east, west.
 - Se la frase non corrisponde a nessun comando, usa "command": "help".
 - Rispondi SOLO con un oggetto JSON, senza testo aggiuntivo:
-  {"command": "<comando>", "arg": "<argomento o stringa vuota>"}
+  {{"command": "<comando>", "arg": "<argomento o stringa vuota>"}}
 """
 
 

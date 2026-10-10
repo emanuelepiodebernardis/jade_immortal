@@ -388,3 +388,66 @@ prendi il posto** (+fama); se sei acerbo, vieni respinto. Una sfida al giorno (c
 Al rango massimo sblocchi l'invasione guidata (`invade`).
 
 Nuovi test: `tests/test_tribulation_and_challenge.py` (5). Suite totale: **350 passati**, 1 rosso atteso (LLM).
+
+---
+
+## Aggiornamento 13 — Storia, scelte, legami e reincarnazione
+
+Ispirato a *OOC: The Playable Anime* (scelte suggerite, statistiche visibili, finali
+sbloccati da condizioni, memoria degli obiettivi, *Return by Death*) e ai giochi di
+coltivazione (*Tale of Immortal*: incontri fortuiti, NPC con vite e rancori). Regola
+mantenuta: **il motore decide, il DB è l'unica verità**; l'LLM resta opzionale.
+
+### Rifiniture
+- Interfaccia tutta in italiano (`Ti trovi a`, `Presenti`, `Uscite`, `Nome/Stato/Luogo`).
+- Scelta del **nome** alla creazione del personaggio (default «Viandante»).
+- **Riga di stato** dopo ogni comando (giorno/ora, regno, Qi, Spirito, ferite, pietre,
+  compagno). `hud off` per nasconderla.
+- **Aiuto per categorie** (`help`, `help legami`, `help tutto`): l'essenziale prima,
+  il resto su richiesta. Testo in `engine/cli/help_text.py`.
+- I **ricercati** e i tuoi legami sono segnalati in `look` (prima un ricercato sembrava
+  un innocuo «mercante»).
+- Il traduttore in linguaggio naturale ora conosce **tutti** i comandi (li ricava
+  dall'aiuto; prima ne conosceva circa 25 su 60).
+- I test forzano l'LLM spento (`tests/conftest.py`): niente più test «rosso atteso».
+
+### Azioni suggerite (`engine/systems/suggestions.py`)
+Dopo ogni comando 2–4 azioni numerate e sensate per la situazione (minacce, bottino,
+breakthrough pronto, taglie alla tua portata, setta, persone, ritmo della giornata,
+esplorazione *alla tua portata*). Scrivi il numero per eseguirla. Non suggerisce scontri
+con chi è più forte di te né zone troppo pericolose. `suggest off` per nasconderle.
+
+### Incontri a scelta (`engine/systems/encounters.py` + `encounter_data.py`)
+18 mini-scene (il vecchio morente, il Frutto Spirituale, la caverna sigillata, il patto
+demoniaco, il Giovane Maestro, la bisca, la tempesta viola…), con prove sulle tue qualità
+reali (Corpo, Anima, Qi, Talento, Istinto, Fortuna, Karma, Potenza). Prima di scegliere
+vedi quanto è probabile riuscire (*sicura / favorevole / incerta / rischiosa /
+disperata*) e, per gli scontri, quanto ti sembra forte l'avversario. Capitano viaggiando;
+se te ne vai, l'occasione svanisce.
+
+### Legami (`engine/systems/bonds.py`)
+- Nuovi comandi: `talk`, `gift <nome> <pietre>`, `spar`, `recruit`, `dismiss`,
+  `disciple`, `bonds`.
+- **Compagno di viaggio**: ti segue, combatte al tuo fianco, cresce ogni giorno; se la
+  tua fama si fa oscura e lui è onorevole, se ne va.
+- **Maestro**: +25% alla coltivazione e, parlandogli, insegnamenti sul tuo Dao.
+- **Rivali e NEMESI**: chi ti sfugge umiliato, o chi giura vendetta per un amico che hai
+  ucciso, si ritira ad allenarsi e **torna più forte** a cercarti. Quando ti trova si
+  apre una scena: combattere, placarlo a parole o fuggire. Ucciderla chiude il conto.
+- `attack all` non colpisce mai compagno e maestro.
+
+### Storia personale e obiettivi (`engine/systems/storyline.py`)
+Ogni origine ha un arco in 4 capitoli (*Il villaggio di cenere*, *Il peso del nome*,
+*L'invidia del Cielo*, *Due anime*, *L'eredità contesa*, *La fame dell'Abisso*) che si
+apre da solo al momento giusto (giorni vissuti, regno, un nemico abbattuto). Il comando
+`goals` mostra capitolo in corso e traguardi vicini. Titoli: `titles`.
+
+### Morte → epilogo → reincarnazione (`engine/systems/rebirth.py`, `engine/cli/lifecycle.py`)
+La morte non chiude più la partita. Ricevi un **epilogo** scelto dalle tue statistiche
+(11 destini, dall'«Immortale di Giada» a «Una Foglia nel Vento»), nel luogo della morte
+sorge la tua **tomba** (metà delle pietre + una reliquia con la tua tecnica, si reclama
+con `loot`), e puoi **rinascere nello stesso mondo** con una nuova origine e un
+frammento ereditato (un Dao, la memoria del regno, o radici temprate). `lives` elenca le
+vite passate. Con l'LLM attivo l'epitaffio può essere narrato, sempre sui soli fatti.
+
+Nuovi test: `tests/test_story_systems.py` (26). Suite totale: **377 passati**.

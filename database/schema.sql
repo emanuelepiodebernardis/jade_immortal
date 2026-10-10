@@ -671,3 +671,46 @@ CREATE TABLE IF NOT EXISTS outlaws (
     resolved INTEGER DEFAULT 0,
     UNIQUE(npc_id)
 );
+
+-- ============================================================
+-- LEGAMI: compagni di viaggio, maestro, rivali, nemesi (vedi engine/systems/bonds.py)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS bonds (
+    id INTEGER PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    npc_id INTEGER NOT NULL,
+    kind TEXT NOT NULL,                  -- companion | master | rival | nemesis
+    status TEXT DEFAULT 'active',        -- active | ended | morto | vendicata | ...
+    since_tick INTEGER DEFAULT 0,
+    grudge INTEGER DEFAULT 0,            -- nemesi: quante volte è tornata
+    ready_tick INTEGER DEFAULT 0,        -- nemesi: quando tornerà a cercarti
+    reason TEXT,
+    UNIQUE(player_id, npc_id, kind)
+);
+
+-- ============================================================
+-- VITE PASSATE: epilogo, tomba e frammenti ereditabili (vedi engine/systems/rebirth.py)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS past_lives (
+    id INTEGER PRIMARY KEY,
+    life_no INTEGER NOT NULL,
+    name TEXT,
+    origin TEXT,
+    realm_tier INTEGER,
+    realm_label TEXT,
+    epilogue_key TEXT,
+    epilogue_title TEXT,
+    epilogue_text TEXT,
+    cause TEXT,
+    death_tick INTEGER,
+    days_lived INTEGER,
+    tomb_location_id INTEGER,
+    tomb_stones INTEGER DEFAULT 0,
+    tomb_relic TEXT,
+    tomb_claimed INTEGER DEFAULT 0,
+    best_dao TEXT,
+    best_dao_comp INTEGER DEFAULT 0,
+    best_affinity TEXT,
+    titles TEXT,
+    UNIQUE(life_no)
+);

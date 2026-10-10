@@ -63,7 +63,7 @@ def _seed(conn: sqlite3.Connection) -> None:
     # Player nel villaggio
     conn.execute(
         "INSERT INTO players (id, name, location_id, status, created_tick) "
-        "VALUES (1, 'Wanderer', 1, 'alive', 0);"
+        "VALUES (1, 'Viandante', 1, 'alive', 0);"
     )
 
     # 2 NPC statici (Fase 0: esistono ma non agiscono)

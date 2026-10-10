@@ -34,6 +34,10 @@ IMPORTANCE = {
     "breakthrough_failure": 5,
     "faction_expand": 4,
     "encounter": 3,
+    "fortune": 7,          # incontri a scelta (奇遇)
+    "story": 8,            # capitoli della storia personale
+    "bond": 7,             # nemesi e legami
+    "rebirth": 10,
     "faction_capture": 6,
     "npc_move": 1,
 }
