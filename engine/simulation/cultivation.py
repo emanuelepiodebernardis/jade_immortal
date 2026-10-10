@@ -164,9 +164,13 @@ def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
     if ctype == "player":
         from engine.systems import dao_powers
         fate_succ, fate_death = dao_powers.fate_breakthrough(conn, cid)   # Dao del Destino
+    extra = 0.0
+    if ctype == "player":
+        from engine.systems import heart_demon
+        extra = heart_demon.take_bonus(conn)      # demone interiore, pillole di fondazione
     p_success = max(0.05, min(0.97,
                               0.5 + (rec["progress"] - 1.0) + dao * 0.003 - tier * 0.04
-                              + aff_bonus - residue_penalty + fail_bonus + fate_succ))
+                              + aff_bonus - residue_penalty + fail_bonus + fate_succ + extra))
     name = _char_name(conn, ctype, cid)
     loc = _char_location(conn, ctype, cid)
 

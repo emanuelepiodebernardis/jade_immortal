@@ -56,6 +56,11 @@ def _migrate(conn) -> None:
     from engine.systems import bonds, rebirth
     bonds.ensure_table(conn)
     rebirth.ensure_table(conn)
+    from engine.systems import beasts
+    beasts.ensure_table(conn)
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='daos';").fetchone():
+        from engine.generators import dao_gen
+        dao_gen.seed_daos(conn)          # nuovi Dao (es. superiori) anche nei vecchi mondi
     wecols = {r["name"] for r in conn.execute("PRAGMA table_info(world_events);")}
     if wecols and "champion_id" not in wecols:
         conn.execute("ALTER TABLE world_events ADD COLUMN champion_id INTEGER;")

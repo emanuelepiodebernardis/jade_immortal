@@ -76,6 +76,38 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return bonds.describe(conn, player)
     if cmd in ("dismiss", "congeda"):
         return bonds.dismiss(conn, tick.get_tick(conn), player)
+    from engine.systems import beasts, professions
+    t = tick.get_tick(conn)
+    rng = random.Random(t * 101 + player.id)
+    if cmd in ("beast", "bestia", "bestie", "beasts"):
+        return beasts.describe(conn, player)
+    if cmd in ("release", "libera"):
+        return beasts.release(conn, t, player)
+    if cmd in ("feed", "nutri"):
+        return beasts.feed(conn, player)
+    if cmd in ("tame", "doma", "addomestica"):
+        npc = _find_here(conn, player, arg)
+        if npc is None:
+            return "Domare chi? Usa: tame <nome> (su una creatura presente)."
+        text, follow = beasts.tame(conn, t, rng, player, npc)
+        if follow:
+            from engine.cli import loop
+            text += "\n" + (loop.dispatch(conn, follow, allow_nl=False) or "")
+        else:
+            from engine.simulation import world_tick
+            world_tick.advance(conn, tick.cost_of("short_rest"))
+        return text
+    if cmd in ("profession", "professione", "arte"):
+        return professions.choose(conn, player.id, arg)
+    if cmd in ("gather", "raccolta", "harvest", "erbe"):
+        return professions.gather(conn, t, rng, player)
+    if cmd in ("recipes", "ricette"):
+        return professions.describe_recipes(conn, player.id)
+    if cmd in ("craft", "crea", "forgia", "distilla"):
+        return professions.craft(conn, t, rng, player, arg)
+    if cmd in ("masters", "maestri"):
+        from engine.systems import secret_masters
+        return secret_masters.describe(conn, player)
 
     social = {"talk": "talk", "parla": "talk", "chat": "talk",
               "gift": "gift", "dona": "gift", "regala": "gift",
@@ -119,9 +151,17 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     out = []
     if player.status != "alive":
         return ""
+    from engine.systems import dao_superiori
+    out += dao_superiori.check_awakenings(conn, player.id)
     ch = storyline.maybe_advance(conn, player)
     if ch:
         out.append(ch)
+    else:
+        from engine.systems import secret_masters
+        ms = secret_masters.maybe_meet(conn, player)
+        if ms:
+            out.append(ms)
+            ch = ms
     if hud.enabled(conn):
         out.append(hud.hud_line(conn, player))
     pend = encounters.pending(conn)

@@ -49,7 +49,9 @@ def setup_class(conn: sqlite3.Connection, tick: int, rng: random.Random,
     for nid in mates:
         # TALENTO del compagno: nelle sette alte i rivali sono molto più dotati,
         # quindi crescono più in fretta giorno dopo giorno.
-        talent = max(10, min(100, 35 + sect_tier * 8 + rng.randint(-12, 18)))
+        from engine.systems import destinies
+        talent = max(10, min(100, int((35 + sect_tier * 8 + rng.randint(-12, 18))
+                                      * destinies.rival_mult(conn))))
         conn.execute(
             "INSERT OR IGNORE INTO sect_cohort (player_id, npc_id, faction_id, class_tier, talent) "
             "VALUES (?, ?, ?, ?, ?);", (player_id, nid, faction_id, tier, talent))
@@ -297,7 +299,8 @@ def daily_cohort_growth(conn, rng, player_id=1) -> int:
         talent = r["talent"] or 50
         nid = r["npc_id"]
         # progresso giornaliero ~ talento; ogni tanto avanzano di strato
-        gain = (talent / 100.0) * rng.uniform(0.08, 0.22)
+        from engine.systems import destinies
+        gain = (talent / 100.0) * rng.uniform(0.08, 0.22) * destinies.rival_mult(conn)
         rec = conn.execute(
             "SELECT id, progress, stage, qi_level, body_level, soul_level, dao_understanding "
             "FROM cultivation_records WHERE character_type='npc' AND character_id=?;",

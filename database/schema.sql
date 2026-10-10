@@ -714,3 +714,13 @@ CREATE TABLE IF NOT EXISTS past_lives (
     titles TEXT,
     UNIQUE(life_no)
 );
+
+-- BESTIE SPIRITUALI: talento, rarità, elementi (vedi engine/systems/beasts.py)
+CREATE TABLE IF NOT EXISTS beast_traits (
+    npc_id INTEGER PRIMARY KEY,
+    species TEXT,
+    rarity TEXT DEFAULT 'comune',        -- comune | rara | leggendaria | ibrida
+    talent TEXT DEFAULT 'comune',        -- comune | dotata | rara | prodigio | divina
+    elements TEXT,                       -- es. "fuoco,fulmine"
+    ability TEXT                         -- es. rinascita, drago
+);

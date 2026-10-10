@@ -46,7 +46,9 @@ def power_profile(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     # asse DAO = Dao d'arma/intento (spada, lancia, ..., fulmine, tempo, spazio, destino);
     # il Dao del CORPO nutre l'asse Corpo, il Dao dell'ANIMA l'asse Anima.
     dao_axis_keys = {"spada", "lancia", "sciabola", "arco", "pugno", "bastone",
-                     "fulmine", "tempo", "spazio", "destino"}
+                     "fulmine", "tempo", "spazio", "destino",
+                     "karma", "massacro", "vita_morte", "samsara", "yinyang", "caos",
+                     "sangue", "illusione", "stelle", "vuoto", "creazione"}
     dao_power = sum((d["comprehension"] or 0) for d in daos if d["dao_key"] in dao_axis_keys)
     corpo_dao = sum((d["comprehension"] or 0) for d in daos if d["dao_key"] == "corpo")
     anima_dao = sum((d["comprehension"] or 0) for d in daos if d["dao_key"] == "anima")

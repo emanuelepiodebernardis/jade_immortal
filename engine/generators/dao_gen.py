@@ -40,6 +40,18 @@ DAOS = [
     # --- Elementi superiori ---
     ("luce", "Dao della Luce", "elemental", "La via radiante che nulla può nascondere."),
     ("oscurita", "Dao dell'Oscurità", "elemental", "La via che divora ogni luce."),
+    # --- Dao SUPERIORI: non si scelgono, si RISVEGLIANO (vedi engine/systems/dao_superiori.py) ---
+    ("karma", "Dao del Karma", "superior", "La via di causa ed effetto: ogni azione torna a chi la compie."),
+    ("massacro", "Dao del Massacro", "superior", "La via di chi ha tolto troppe vite per tornare indietro."),
+    ("vita_morte", "Dao della Vita e della Morte", "superior", "La via di chi ha camminato sul confine."),
+    ("samsara", "Dao della Reincarnazione", "superior", "La ruota delle vite: ciò che muore ritorna."),
+    ("yinyang", "Dao dello Yin-Yang", "superior", "Il Taiji: luce e ombra che si generano a vicenda."),
+    ("caos", "Dao del Caos", "superior", "Il Wuji: il nulla primordiale da cui nascono i Cinque Elementi."),
+    ("sangue", "Dao del Sangue", "superior", "La via proibita che si nutre della vita altrui."),
+    ("illusione", "Dao dell'Illusione", "superior", "La via del sogno: ciò che vedi non è ciò che è."),
+    ("stelle", "Dao delle Stelle", "superior", "La via che legge il cielo e colpisce dove il fato è debole."),
+    ("vuoto", "Dao del Vuoto", "superior", "La via del nulla: annulla difese, doni e leggi altrui."),
+    ("creazione", "Dao della Creazione", "superior", "La via che plasma: guarisce, protegge, forgia."),
 ]
 
 # Dao primario per archetipo NPC (pesato)
@@ -55,11 +67,13 @@ _ARCH_DAO = {
 
 
 def seed_daos(conn: sqlite3.Connection) -> None:
-    if conn.execute("SELECT COUNT(*) c FROM daos;").fetchone()["c"] > 0:
-        return
+    """Idempotente: aggiunge anche i Dao nuovi ai salvataggi esistenti."""
+    have = {r[0] for r in conn.execute("SELECT dao_key FROM daos;")}
     for key, name, level, desc in DAOS:
+        if key in have:
+            continue
         conn.execute(
-            "INSERT INTO daos (dao_key, name, level, description) VALUES (?, ?, ?, ?);",
+            "INSERT OR IGNORE INTO daos (dao_key, name, level, description) VALUES (?, ?, ?, ?);",
             (key, name, level, desc),
         )
 

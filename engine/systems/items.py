@@ -174,6 +174,27 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
         total = sects.grant_resource(conn, "pietre_spirituali", stones, player_id)
         lines.append(f"+{stones} pietre spirituali (totale: {total}).")
 
+    # --- effetti degli oggetti ARTIGIANALI (alchimia, talismani) ---
+    if effects.get("heal_injuries"):
+        n = conn.execute("UPDATE injuries SET healed=1 WHERE character_type='player' "
+                         "AND character_id=? AND healed=0;", (player_id,)).rowcount
+        lines.append("Le tue ferite si richiudono." if n else "Non hai ferite da curare.")
+    if effects.get("bt_bonus"):
+        from engine.systems import heart_demon
+        heart_demon.add_bonus(conn, float(effects["bt_bonus"]))
+        lines.append("Le tue fondamenta si consolidano: il prossimo breakthrough sarà più sicuro.")
+    if effects.get("lifespan_years"):
+        from engine.systems import lifespan
+        lifespan.add_bonus_years(conn, int(effects["lifespan_years"]))
+        lines.append(f"Il tempo rallenta nelle tue vene: +{int(effects['lifespan_years'])} anni di vita.")
+    if effects.get("combat_buff"):
+        from engine.systems import state
+        buffs = state.get_json(conn, "combat_buffs", []) or []
+        buffs.append(effects["combat_buff"])
+        state.set_json(conn, "combat_buffs", buffs)
+        lines.append(f"Prepari il talismano: si attiverà all'inizio del prossimo scontro "
+                     f"({effects['combat_buff'].get('name', 'talismano')}).")
+
     if not lines:
         lines.append("Lo osservi a lungo, ma non ne ricavi nulla di tangibile.")
     return lines

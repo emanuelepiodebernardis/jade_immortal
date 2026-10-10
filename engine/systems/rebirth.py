@@ -125,6 +125,10 @@ _EPILOGUES = [
      lambda f: bool(f["cause"]) and "deviazione" in (f["cause"] or "").lower(),
      "Hai inseguito il regno successivo più in fretta di quanto il tuo corpo potesse reggere. "
      "Il Qi, ribelle, ti ha reclamato."),
+    ("vecchiaia", "Colui che Visse Fino in Fondo",
+     lambda f: bool(f["cause"]) and "vecchiaia" in (f["cause"] or "").lower(),
+     "Nessuna spada, nessun fulmine: è stato il tempo a chiudere i tuoi occhi, come per i "
+     "mortali. Hai visto passare intere generazioni."),
     ("foglia", "Una Foglia nel Vento",
      lambda f: f["days"] <= 3,
      "La tua via è stata breve come un respiro. Il mondo quasi non si è accorto di te — "
@@ -272,6 +276,21 @@ def claim_tombs(conn, player) -> list[str]:
     return out
 
 
+def try_phoenix(conn, player) -> str | None:
+    """Corpo della Fenice: una volta per vita, risorgi dalle ceneri invece di morire."""
+    from engine.systems import destinies
+    if not destinies.flag_value(conn, "phoenix", player.id, False):
+        return None
+    if destinies.flag_value(conn, "phoenix_used", player.id, False):
+        return None
+    destinies.set_flag(conn, "phoenix_used", True, player.id)
+    conn.execute("UPDATE players SET status='alive' WHERE id=?;", (player.id,))
+    conn.execute("UPDATE injuries SET healed=1 WHERE character_type='player' AND character_id=?;",
+                 (player.id,))
+    return ("🔥 Il tuo corpo si fa cenere… e dalla cenere RINASCI. Il Corpo della Fenice ti ha "
+            "salvato — ma solo per questa volta.")
+
+
 def describe_lives(conn) -> str:
     rows = lives(conn)
     if not rows:
@@ -344,7 +363,8 @@ def _rebirth_location(conn, rng, avoid: int | None) -> int:
 
 
 def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
-                name: str | None, inherit: dict | None, player_id: int = 1) -> list[str]:
+                name: str | None, inherit: dict | None, player_id: int = 1,
+                destiny: str | None = None) -> list[str]:
     """Fa rinascere il giocatore nello stesso mondo. Ritorna le righe da mostrare."""
     from engine.generators import cultivation_gen
     from engine.simulation import cultivation
@@ -365,6 +385,10 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
     state.set(conn, "life_no", str(n_next))
     state.set(conn, "life_start_tick", str(t))
     lines = [f"Rinasci come {origin['name']}."]
+    if destiny:
+        from engine.systems import destinies
+        d = destinies.apply(conn, destiny, player_id)
+        lines.append(f"Il tuo destino: {d['name']}.")
     inherit = inherit or {"key": "none"}
     if inherit["key"] == "dao":
         conn.execute(

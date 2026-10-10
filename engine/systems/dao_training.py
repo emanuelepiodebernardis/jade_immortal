@@ -39,7 +39,10 @@ def dao_power(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
 
 
 COMBAT_DAOS = {"corpo", "fulmine", "spada", "lancia", "sciabola", "arco", "pugno", "bastone",
-               "fuoco", "acqua", "terra", "vento", "metallo", "legno", "luce", "oscurita"}
+               "fuoco", "acqua", "terra", "vento", "metallo", "legno", "luce", "oscurita",
+               # Dao superiori
+               "karma", "massacro", "vita_morte", "samsara", "yinyang", "caos", "sangue",
+               "illusione", "stelle", "vuoto", "creazione"}
 
 # Progressione SENZA TETTO a soglie. Ogni soglia raggiunta dà:
 #   - un'etichetta di maestria
@@ -116,6 +119,10 @@ DAO_STAT = {
     # elementi: offensivi (fuoco/metallo/luce/oscurità/vento), difensivi/vitali (acqua/terra/legno)
     "fuoco": "attack", "metallo": "attack", "luce": "attack", "oscurita": "attack",
     "vento": "attack", "acqua": "defense", "terra": "vitality", "legno": "vitality",
+    # superiori
+    "karma": "attack", "massacro": "attack", "vita_morte": "vitality", "samsara": "vitality",
+    "yinyang": "defense", "caos": "attack", "sangue": "attack", "illusione": "spirit",
+    "stelle": "attack", "vuoto": "attack", "creazione": "vitality",
 }
 
 

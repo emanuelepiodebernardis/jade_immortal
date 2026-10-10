@@ -451,3 +451,69 @@ frammento ereditato (un Dao, la memoria del regno, o radici temprate). `lives` e
 vite passate. Con l'LLM attivo l'epitaffio può essere narrato, sempre sui soli fatti.
 
 Nuovi test: `tests/test_story_systems.py` (26). Suite totale: **377 passati**.
+
+---
+
+## Aggiornamento 14 — Elementi, stati, fusioni, Dao superiori, destini, bestie, arti, maestri segreti e durata della vita
+
+Ispirato a *Tale of Immortal* (destini, campi, emorragie), *Amazing Cultivation Simulator* e
+*Yi Xian* (Cinque Elementi, professioni), ai Duo Boon di *Hades* e ai topoi wuxia/xianxia
+(maestri nascosti, tombe delle spade, arti demoniache dal prezzo terribile, l'alchimista
+nell'anello).
+
+### 0. Scontri più lunghi
+La vitalità usata nello scontro si moltiplica (fino a ×16) quando gli avversari si
+equivalgono, e torna normale quando il divario è enorme (`combat.duel_scale`): tra pari
+3-6 round, i massacri restano immediati.
+
+### 1-4. Ciclo dei Cinque Elementi, stati, fusioni leggendarie, domini
+- `engine/systems/elements.py`: generazione Legno→Fuoco→Terra→Metallo→Acqua; **catene di
+  2, 3, 4 e 5 elementi** con nome (es. «Vulcano Vivente», «Ciclo Perfetto dei Cinque
+  Elementi») e bonus crescenti; distruzione contro il Dao dominante del nemico (+25%);
+  conflitti interni senza l'elemento-ponte; **22 fusioni leggendarie** a 2-3 Dao (anche
+  superiori); **Dominio** a comprensione 500.
+- `engine/systems/combat_states.py`: ustione, gelo, emorragia (cumuli), stordimento,
+  accecamento, pressione, terrore, confusione, rigenerazione, scudo, velocità, drenaggio…
+  Valgono anche per i nemici. `dao` e `techniques` mostrano catene, fusioni attive e quelle a portata.
+
+### Dao superiori (`engine/systems/dao_superiori.py`)
+11 nuovi Dao che si **risvegliano** con imprese: Karma (|karma| ≥ 300), Massacro (60 vite),
+Vita e Morte (3 vittorie sull'orlo della morte), Reincarnazione (terza vita), Yin-Yang
+(Luce e Oscurità ≥ 50), Caos (tutti i 5 elementi ≥ 25), Sangue, Illusione, Stelle,
+Vuoto, Creazione. Ognuno ha stato, nomi delle tecniche e fusioni proprie.
+
+### 5. Destini alla nascita e talento dei rivali (`engine/systems/destinies.py`)
+Alla creazione: origine + **destino** (mano di 6 con rarità, 2 rimescolate; i leggendari
+dalla seconda vita) + **talento dei rivali** (facile/normale/difficile/leggendario).
+Il Portatore dell'Abisso ha ora **sempre** il talento più alto.
+
+### 6. Demone interiore (`engine/systems/heart_demon.py`)
+Prima del breakthrough (una volta per regno) il passato prende forma: affrontarlo,
+accettarlo o rimandare. Perdere genera una nemesi: il Demone del Cuore.
+
+### 7. Bestie spirituali (`engine/systems/beasts.py`)
+`tame`, `beast`, `feed`, `release`. Talenti (comune → divina), elementi, avvistamenti di
+bestie **rare** (dal regno 3), **leggendarie** (Fenice, Drago, dal 5) e **ibride**
+(Drago-Fenice, Qilin del Tuono, Fenice di Ghiaccio… dal 6).
+
+### 8. Professioni (`engine/systems/professions.py`)
+Alchimia, Talismani, Forgia: `profession`, `gather`, `recipes`, `craft`. Materiali da
+raccolta e caccia; livelli 1-10; pillole (anche di longevità), talismani da battaglia,
+armi riforgiate.
+
+### 9. Spirito dell'arma (`engine/systems/weapon_spirit.py`)
+Un'arma pregiata si risveglia dopo 25 vittorie (o alla forgia): elemento, livelli, stato.
+
+### 10. Durata della vita (`engine/systems/lifespan.py`)
+80 anni di base (senza malattie); ogni breakthrough di regno la **raddoppia**; destini e
+elisir la modificano; si può morire di vecchiaia (epilogo dedicato).
+
+### 11. Maestri segreti (`engine/systems/secret_masters.py`)
+27 maestri in 11 vie (Spada, Demoniaca, Alchimia, Talismani, Forgia, Fulmine, Corpo,
+Anima, Giustizia, Bestie, Abisso), a livelli: il successivo appare solo dopo aver appreso
+dal precedente e superato una soglia più alta (es. Spada 50 → 250 → 1000; vite tolte
+10 → 100 → 1000). Insegnano tecniche con stati propri; alcune hanno un prezzo (karma,
+infamia, anni di vita). `masters` mostra i progressi.
+
+Nuovi test: `tests/test_elements_states.py` (12), `tests/test_progression_systems.py` (18).
+Suite totale: **407 passati**.

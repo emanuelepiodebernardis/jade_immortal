@@ -406,6 +406,14 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     lines += loot.on_player_kill(conn, t, rng, player, npc)
     from engine.systems import bonds as _bonds
     lines += _bonds.on_npc_killed(conn, t, rng, player, npc.id)
+    from engine.systems import dao_superiori, professions, weapon_spirit
+    dao_superiori.on_kill(conn, _vk["kind"] if _vk else None)
+    _mat = professions.on_creature_kill(conn, player.id, npc.id, _vk["kind"] if _vk else None)
+    if _mat:
+        lines.append(_mat)
+    _ws = weapon_spirit.on_kill(conn, rng, player)
+    if _ws:
+        lines.append(_ws)
     return lines
 
 
@@ -530,7 +538,7 @@ _ENEMY_VERBS = ("risponde", "contrattacca", "ti colpisce di rimando",
                 "reagisce con ferocia", "ti affonda un colpo",
                 "rilancia l'offensiva", "ti incalza a sua volta",
                 "para e risponde fulmineo", "cerca la tua guardia")
-_MAX_AUTO_ROUNDS = 14
+_MAX_AUTO_ROUNDS = 24
 
 # colore ambientale durante gli scontri prolungati
 _COMBAT_FLAVOR = (
@@ -704,7 +712,9 @@ def _attack_auto(conn, player, npc, forced) -> str:
     pclass, nclass = power.class_of(conn, "player", player.id), power.class_of(conn, "npc", npc.id)
     style_bonus = power.matchup_bonus(pclass, nclass)
     wlabel = weapons.weapon_label(weapons.get_weapon(conn, player.id))
-    hp_p, hp_e = pa["vitality"], pd["vitality"]
+    _scale = combat.duel_scale(pa, pd)     # riserva da duello: tra pari, scontri di più round
+    hp_p = pa["vitality"] * _scale
+    hp_e = pd["vitality"] * _scale
     pmax, emax = hp_p, hp_e
 
     lines = [(f"Impugni la tua {wlabel.lower()} e affronti {npc.name}."
@@ -735,13 +745,31 @@ def _attack_auto(conn, player, npc, forced) -> str:
     _ally = _bonds.companion_assist(conn, player.id, npc.id)   # (nome, potenza) o None
     if _ally:
         lines.append(f"{_ally[0]} si mette al tuo fianco: combatterete insieme.")
+    # stati, elementi, fusioni, domini, talismani, spirito dell'arma, bestia
+    from engine.systems import combat_states
+    fx = combat_states.FightCtx(conn, player.id, npc.id, "Tu", npc.name,
+                                hp_p, hp_e, pa["attack"], pd["attack"])
+    _extra_allies = _bonds.extra_fighters(conn, player.id, npc.id, fx)   # bestia, spirito dell'arma
+    lines += fx.lines_intro
+    for _al in _extra_allies:
+        lines.append(_al["intro"])
     local_cd: dict[str, int] = {}     # cooldown della tecnica entro lo scontro (in round)
     rounds = 0
     last_crit = False
     last_mods: dict = {}
 
-    while hp_p > 0 and hp_e > 0 and rounds < _MAX_AUTO_ROUNDS:
+    while fx.p.hp > 0 and fx.e.hp > 0 and rounds < _MAX_AUTO_ROUNDS:
         rounds += 1
+        lines += fx.round_start(rng)
+        if fx.e.hp <= 0:
+            return _auto_end_enemy(conn, t, rng, player, npc, rounds, fx.p.hp, pmax,
+                                   False, {}, None, lines)
+        if fx.p.hp <= 0:
+            save = fx.lethal("p")
+            if save:
+                lines.append(save)
+            else:
+                return _auto_end_player(conn, t, rng, player, npc, rounds, lines)
         usable = [m for m in pool
                   if (spmod.can_afford(conn, m["spirit_cost"], player.id)
                       if m.get("fuel") == "spirit"
@@ -749,94 +777,126 @@ def _attack_auto(conn, player, npc, forced) -> str:
                   and local_cd.get(m["key"], 0) <= rounds]
         # non sprecare tecniche se un colpo normale basterebbe ad atterrarlo
         normal_dmg = max(1.0, pa["attack"] - pd["defense"] * 0.5)
-        quick_kill = hp_e <= normal_dmg * 1.2
+        quick_kill = fx.e.hp <= normal_dmg * 1.2
         chosen = None
-        if quick_kill:
-            chosen = None
-        elif forced and rounds == 1 and any(m["key"] == forced["key"] for m in usable):
-            chosen = next(m for m in usable if m["key"] == forced["key"])
-        elif usable and rng.random() < _use_prob(hp_e, emax):
-            chosen = max(usable, key=lambda m: m["mods"].get("attack_mult", 1.0)
-                         + (0.3 if m["mods"].get("extra_strikes") else 0.0))
         mods = {}
-        if chosen:
-            if chosen.get("fuel") == "spirit":
-                spmod.spend(conn, chosen["spirit_cost"], player.id)
-            else:
-                qimod.spend(conn, chosen["qi_cost"], player.id)
-            local_cd[chosen["key"]] = rounds + 3
-            mods = chosen["mods"]
-            strikes = 1 + int(mods.get("extra_strikes", 0)) + _space["extra_strikes"]
-            if chosen["source"] == "dao":
-                lines.append(f"◈ {_dao_tech_line(chosen, rng)} "
-                             f"(Spirito {spmod.get_spirit(conn, player.id)}/"
-                             f"{spmod.max_spirit(conn, player.id)})")
-            else:
-                lines.append(f"⚔ Scateni {chosen['name']}! "
-                             f"(Qi {qimod.get_qi(conn, player.id)}/{qimod.max_qi(conn, player.id)})")
-        else:
-            strikes = 1 + _space["extra_strikes"]
-            lines.append(_player_normal_line(wlabel, rng))
-        last_mods = mods
-
-        a_attack = pa["attack"] * mods.get("attack_mult", 1.0) * (1.0 + edge * 0.5) * (1.0 + style_bonus)
-        d_def = pd["defense"] * (1.0 - min(0.95, mods.get("pierce", 0.0) + _space["pierce"]))
-        dealt = 0.0
         crit_any = False
-        for _ in range(strikes):
-            dmg, crit = combat._strike(a_attack, d_def, rng)
-            if not crit and _space["crit"] and rng.random() < _space["crit"]:
-                dmg *= 1.5            # colpo spaziale: appare già sul bersaglio
-                crit = True
-            hp_e -= dmg
-            dealt += dmg
-            crit_any = crit_any or crit
-            if hp_e <= 0:
-                break
-        lines.append("  " + _hit_desc(dealt, emax, npc.name, crit_any, rng))
-        last_crit = crit_any
-        if _ally and hp_e > 0:
+        blocked = fx.blocked("p", rng)
+        if blocked:
+            lines.append(blocked)
+        else:
+            if quick_kill:
+                chosen = None
+            elif forced and rounds == 1 and any(m["key"] == forced["key"] for m in usable):
+                chosen = next(m for m in usable if m["key"] == forced["key"])
+            elif usable and rng.random() < _use_prob(fx.e.hp, emax):
+                chosen = max(usable, key=lambda m: m["mods"].get("attack_mult", 1.0)
+                             + (0.3 if m["mods"].get("extra_strikes") else 0.0))
+            if chosen:
+                if chosen.get("fuel") == "spirit":
+                    spmod.spend(conn, chosen["spirit_cost"], player.id)
+                else:
+                    qimod.spend(conn, chosen["qi_cost"], player.id)
+                local_cd[chosen["key"]] = rounds + 3
+                mods = chosen["mods"]
+                strikes = 1 + int(mods.get("extra_strikes", 0)) + _space["extra_strikes"]
+                if chosen["source"] == "dao":
+                    lines.append(f"◈ {_dao_tech_line(chosen, rng)} "
+                                 f"(Spirito {spmod.get_spirit(conn, player.id)}/"
+                                 f"{spmod.max_spirit(conn, player.id)})")
+                else:
+                    lines.append(f"⚔ Scateni {chosen['name']}! "
+                                 f"(Qi {qimod.get_qi(conn, player.id)}/{qimod.max_qi(conn, player.id)})")
+            else:
+                strikes = 1 + _space["extra_strikes"]
+                lines.append(_player_normal_line(wlabel, rng))
+            strikes += fx.extra_strikes("p")
+            last_mods = mods
+
+            if fx.missed("p", rng):
+                lines.append(f"  Accecato, manchi {npc.name}.")
+            else:
+                a_attack = (pa["attack"] * mods.get("attack_mult", 1.0) * (1.0 + edge * 0.5)
+                            * (1.0 + style_bonus) * fx.attack_factor("p"))
+                d_def = pd["defense"] * (1.0 - min(0.95, mods.get("pierce", 0.0) + _space["pierce"]
+                                                    + fx.pierce("p")))
+                dealt = 0.0
+                for _ in range(strikes):
+                    dmg, crit = combat._strike(a_attack, d_def, rng)
+                    if not crit and (_space["crit"] + fx.crit_bonus("p")) and \
+                            rng.random() < _space["crit"] + fx.crit_bonus("p"):
+                        dmg *= 1.5            # colpo spaziale/stellare: appare già sul bersaglio
+                        crit = True
+                    dmg = fx.absorb("e", dmg)
+                    fx.e.hp -= dmg
+                    dealt += dmg
+                    crit_any = crit_any or crit
+                    if fx.e.hp <= 0:
+                        break
+                lines.append("  " + _hit_desc(dealt, emax, npc.name, crit_any, rng))
+                if fx.e.hp > 0:
+                    lines += fx.on_hit("p", rng, dealt)
+            last_crit = crit_any
+        # alleati: compagno di viaggio, bestia, spirito dell'arma
+        if _ally and fx.e.hp > 0:
             adm, _ac = combat._strike(_ally[1]["attack"] * 0.6, pd["defense"], rng)
-            hp_e -= adm
+            fx.e.hp -= fx.absorb("e", adm)
             if rounds == 1 or rng.random() < 0.3:
                 lines.append(f"  {_ally[0]} " + rng.choice(
                     ("incalza dal fianco e lo colpisce.", "approfitta dell'apertura e affonda.",
                      "gli taglia la ritirata con un colpo secco.", "lo costringe a dividere la guardia."))
                     )
+        for _al in _extra_allies:
+            if fx.e.hp > 0 and _al.get("attack"):
+                adm, _ac = combat._strike(_al["attack"], pd["defense"], rng)
+                fx.e.hp -= fx.absorb("e", adm)
+                if rounds == 1 or rng.random() < 0.3:
+                    lines.append(f"  {_al['line']}")
 
-        if hp_e <= 0:
-            return _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
+        if fx.e.hp <= 0:
+            return _auto_end_enemy(conn, t, rng, player, npc, rounds, fx.p.hp, pmax,
                                    crit_any, mods, chosen, lines)
 
-        edef = pa["defense"] * (1.0 - (_eprof.get("pierce", 0.0) if _eprof else 0.0))
-        edmg, ecrit = combat._strike(pd["attack"], edef, rng)
-        if _eprof and _eprof.get("crit") and rng.random() < _eprof["crit"]:
-            ecrit = True
-            edmg *= 1.5
-        edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge) * fear_mult \
-            * (_eprof.get("dmg_mult", 1.0) if _eprof else 1.0) * (1.0 - _t_evasion)
-        if _ally and rng.random() < 0.15:
-            edmg *= 0.5
-            lines.append(f"  {_ally[0]} si frappone e devia metà del colpo!")
-        if paralyzed:
-            edmg = 0.0
-        hp_p -= edmg
+        eblocked = fx.blocked("e", rng)
         if paralyzed:
             lines.append(f"  {npc.name}, pietrificato dal terrore, non oppone resistenza.")
+        elif eblocked:
+            lines.append("  " + eblocked)
+        elif fx.missed("e", rng):
+            lines.append(f"  {npc.name}, accecato, colpisce a vuoto.")
         else:
+            edef = pa["defense"] * (1.0 - (_eprof.get("pierce", 0.0) if _eprof else 0.0))
+            edmg, ecrit = combat._strike(pd["attack"] * fx.attack_factor("e"), edef, rng)
+            if _eprof and _eprof.get("crit") and rng.random() < _eprof["crit"]:
+                ecrit = True
+                edmg *= 1.5
+            edmg *= mods.get("taken_mult", 1.0) * (1.0 - edge) * fear_mult \
+                * (_eprof.get("dmg_mult", 1.0) if _eprof else 1.0) * (1.0 - _t_evasion) \
+                * fx.taken_mult("p")
+            if _ally and rng.random() < 0.15:
+                edmg *= 0.5
+                lines.append(f"  {_ally[0]} si frappone e devia metà del colpo!")
+            edmg = fx.absorb("p", edmg)
+            fx.p.hp -= edmg
             lines.append("  " + _enemy_class_line(nclass, npc.name, edmg, pmax, ecrit, rng))
+            if fx.p.hp > 0:
+                lines += fx.on_hit("e", rng, edmg)
 
-        if hp_p <= 0:
-            return _auto_end_player(conn, t, rng, player, npc, rounds, lines)
+        if fx.p.hp <= 0:
+            save = fx.lethal("p")
+            if save:
+                lines.append(save)
+            else:
+                return _auto_end_player(conn, t, rng, player, npc, rounds, lines)
 
-        if rounds in (4, 8, 12):
-            lines.append(f"  ({npc.name}: {_state_desc(hp_e, emax)}; tu: {_state_desc(hp_p, pmax)})")
+        if rounds % 4 == 0:
+            lines.append(f"  ({npc.name}: {_state_desc(fx.e.hp, emax)}; tu: {_state_desc(fx.p.hp, pmax)})")
             if rng.random() < 0.6:
                 lines.append("  " + rng.choice(_COMBAT_FLAVOR))
 
     # round massimi raggiunti: scontro lunghissimo, decide chi sta meglio
     world_tick.advance(conn, 1)
-    if (hp_p / pmax) >= (hp_e / emax):
+    if (fx.p.hp / pmax) >= (fx.e.hp / emax):
         lines.append(f"Dopo un lungo, estenuante scontro {npc.name} cede e si ritira. "
                      f"Resti ferito. ({rounds} round)")
     else:
@@ -848,6 +908,8 @@ def _attack_auto(conn, player, npc, forced) -> str:
 def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
                     crit_any, mods, chosen, lines) -> str:
     wfrac = hp_p / max(1.0, pmax)
+    from engine.systems import dao_superiori
+    dao_superiori.on_win(conn, wfrac)          # vittorie sull'orlo della morte
     # una vittoria decisa è un'uccisione: se lo abbatti in fretta restando in forze,
     # non si rialza. Solo gli scontri tirati lasciano al nemico la fuga da ferito.
     decisive = (rounds <= 2 and wfrac >= 0.6) or (rounds <= 1)
@@ -995,9 +1057,18 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
     return line
 
 
-def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player) -> str:
+def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str = "") -> str:
     t = tick.get_tick(conn)
     rng = random.Random(t * 131 + player.id)
+    # il DEMONE INTERIORE può sbarrarti la strada (una volta per regno)
+    rec = cultivation.get_record(conn, "player", player.id)
+    if arg.strip() != "!" and rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0:
+        from engine.systems import heart_demon, encounters
+        tier = cultivation.realm_tier(conn, "player", player.id) or 1
+        if not encounters.pending(conn) and heart_demon.should_trigger(conn, player.id, tier, rng):
+            txt = encounters.start_scene(conn, player, heart_demon.scene(conn, player.id, tier))
+            if txt:
+                return txt
     res = cultivation.attempt_breakthrough(conn, "player", player.id, t, rng,
                                            observer=player.location_id, observations=[])
     world_tick.advance(conn, 1)
@@ -1015,6 +1086,8 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player) -> str:
             ag = sect_life.agenda_line(conn, t, player.id)
             extra = f"\nLa setta ti promuove alla classe successiva. {ag or ''}"
         out = f"Il tuo regno si squarcia e si ricompone: ora sei {res['realm']}!{extra}"
+        from engine.systems import lifespan
+        out += "\n" + lifespan.on_realm_up(conn, player.id)
         # sfondare ATTIRA il castigo del Cielo se sfidi le sue leggi (Spazio/Tempo/Destino)
         from engine.systems import dao_powers, tribulation
         power = dao_powers.tribulation_due(conn, player.id)
@@ -1725,6 +1798,8 @@ def cmd_techniques(conn: sqlite3.Connection, player: entities.Player) -> str:
         out.append(f"Tecniche del Dao (Guerriero Dao) — Spirito: {spmod.spirit_label(conn, player.id)}:")
         out += [f"  ◈ {ln}" for ln in dao_list]
         out.append("  Nascono dai tuoi Dao (≥10) ed evolvono a soglie; affaticano lo Spirito, non il Qi.")
+        from engine.systems import elements
+        out += ["  " + ln for ln in elements.describe(conn, player.id)]
     m = sects.get_membership(conn, player.id)
     if not m:
         if not dao_list:
@@ -1815,6 +1890,10 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
             lines.append(f"  {label}: {'oggi!' if days == 0 else f'tra {days} giorni'}")
     from engine.systems import bonds as _bonds
     lines += ["  " + ln for ln in _bonds.daily(conn, t, random.Random(t * 29 + day), player)]
+    from engine.systems import beasts
+    lines += ["  " + ln for ln in beasts.daily(conn, t, random.Random(t * 31 + day), player)]
+    from engine.systems import lifespan
+    lines += ["  " + ln for ln in lifespan.daily_check(conn, player, t)]
     return "\n".join(lines)
 
 
@@ -1919,6 +1998,12 @@ def cmd_dao(conn: sqlite3.Connection, player: entities.Player) -> str:
         lines.append(f"Sfida al Cielo: {d} — {dao_powers.defiance_label(d)}.")
         if dao_powers.tribulation_due(conn, player.id) > 0:
             lines.append("⚡ Una tribolazione divina incombe: usa 'tribulation' per affrontarla.")
+    from engine.systems import elements, dao_superiori
+    lines += elements.describe(conn, player.id)
+    sealed = dao_superiori.sealed_hints(conn, player.id)
+    if sealed:
+        lines.append("Dao superiori ancora sigillati (si risvegliano, non si scelgono):")
+        lines += sealed
     return "\n".join(lines)
 
 
@@ -2085,10 +2170,14 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
     prof = character.get_profile(conn, "player", player.id)
     origin_line = ""
     if prof:
-        from engine.systems.character import ORIGINS, YEAR_TICKS
+        from engine.systems.character import ORIGINS
         oname = ORIGINS.get(prof["origin"], {}).get("name", prof["origin"])
-        age = (prof["age"] or 16) + t // YEAR_TICKS
-        origin_line = f"Origine: {oname} | Età: {age}\n"
+        from engine.systems import lifespan
+        origin_line = f"Origine: {oname} | Età: {lifespan.label(conn, player.id)}\n"
+        from engine.systems import destinies as _ds
+        _dk = _ds.current(conn, player.id)
+        if _dk:
+            origin_line += f"Destino: {_ds.DESTINIES[_dk]['name']} — {_ds.DESTINIES[_dk]['desc']}\n"
     from engine.systems import sects, weapons
     m = sects.get_membership(conn, player.id)
     sect_line = (f"Setta: {m['rank']} di {m['sect_name']} ({sects.tier_name(m['sect_tier'])})\n") if m else ""
@@ -2117,6 +2206,16 @@ def cmd_status(conn: sqlite3.Connection, player: entities.Player) -> str:
     if dtk.dao_techniques(conn, player.id):
         spirit_line = f"Spirito (tecniche Dao): {spmod.spirit_label(conn, player.id)}\n"
     path_line = f"Via: {progression.path_label(conn, player.id)}\n"
+    from engine.systems import weapon_spirit as _wsp, professions as _prf, beasts as _bst
+    _wl = _wsp.describe(conn, player.id)
+    if _wl:
+        path_line += _wl + "\n"
+    if _prf.profession(conn, player.id):
+        path_line += (f"Arte: {_prf.PROFESSIONS[_prf.profession(conn, player.id)]} "
+                      f"(livello {_prf.level(conn, player.id)})\n")
+    _pt = _bst.pet(conn, player.id)
+    if _pt:
+        path_line += f"Bestia: {_pt['name']} (talento {_bst.traits(conn, _pt['npc_id'])['talent']})\n"
     abyss_line = ""
     _prof = character.get_profile(conn, "player", player.id)
     if _prof and _prof["anomaly"] == "abisso_divoratore":
@@ -2438,8 +2537,8 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_sleep(conn, player)
     if cmd in ("cultivate", "meditate", "coltiva", "c", "med"):
         return cmd_cultivate(conn, player)
-    if cmd == "breakthrough":
-        return cmd_breakthrough(conn, player)
+    if cmd in ("breakthrough", "sfonda"):
+        return cmd_breakthrough(conn, player, arg)
 
     # fallback in linguaggio naturale: traduci la frase in un comando (solo se Ollama attivo)
     if allow_nl:

@@ -94,8 +94,10 @@ def stat_value(conn: sqlite3.Connection, player_id: int, stat: str) -> int:
         base = (p[col] if p and p[col] is not None else 50)
         return int(base + tier * 4)
     if stat == "fortuna":
+        from engine.systems import destinies
         k = karma.get_karma(conn, "player", player_id)
-        return int(45 + dao_powers.fate_idx(conn, player_id) * 12 + max(-30, min(30, k // 10)))
+        return int(45 + dao_powers.fate_idx(conn, player_id) * 12 + max(-30, min(30, k // 10))
+                   + int(destinies.flag_value(conn, "fortune", player_id, 0)))
     if stat == "karma":
         return int(50 + max(-50, min(50, karma.get_karma(conn, "player", player_id) // 4)))
     if stat == "potenza":
@@ -141,7 +143,10 @@ def render(conn: sqlite3.Connection, player: entities.Player, sc: dict | None = 
         chk = ch.get("check")
         if chk:
             p = chance(stat_value(conn, player.id, chk.get("stat", "fortuna")), int(chk.get("dc", 60)))
-            hint = f"  [{STAT_LABEL.get(chk.get('stat'), chk.get('stat'))}: {chance_word(p)}]"
+            from engine.systems import destinies
+            word = (f"{int(round(p * 100))}%" if destinies.flag_value(conn, "heaven_eyes", player.id, False)
+                    else chance_word(p))
+            hint = f"  [{STAT_LABEL.get(chk.get('stat'), chk.get('stat'))}: {word}]"
         cmd = ch.get("command") or ""
         if cmd.startswith("attack") and sc.get("ctx", {}).get("npc_id"):
             from engine.systems import perception
@@ -294,6 +299,21 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
                              reason=eff.get("bond_reason", ctx.get("title", "")))
         if msg:
             lines.append(msg)
+    if eff.get("master_learn"):
+        from engine.systems import secret_masters
+        lines += secret_masters.learn(conn, t, player, eff["master_learn"], eff.get("gift"))
+    if eff.get("bt_bonus"):
+        from engine.systems import heart_demon
+        heart_demon.add_bonus(conn, float(eff["bt_bonus"]))
+    if eff.get("inner_demon"):
+        from engine.systems import heart_demon
+        msg = heart_demon.spawn_demon(conn, player, t)
+        if msg:
+            lines.append(msg)
+    if eff.get("lifespan_years"):
+        from engine.systems import lifespan
+        lifespan.add_bonus_years(conn, int(eff["lifespan_years"]))
+        lines.append(f"La tua vita si allunga di {int(eff['lifespan_years'])} anni.")
     if npc and eff.get("end_bond"):
         bonds.end_bond(conn, player.id, npc.id, eff["end_bond"], "riconciliata")
     if npc and eff.get("bond_delay"):

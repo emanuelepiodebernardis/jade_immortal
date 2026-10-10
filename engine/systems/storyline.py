@@ -476,6 +476,12 @@ def goals(conn: sqlite3.Connection, player: entities.Player) -> str:
     ab = bounties.active_bounties(conn)
     if ab:
         lines.append(f"  · {len(ab)} ricercati con una taglia: 'bounties'.")
+    from engine.systems import secret_masters, beasts, lifespan, dao_superiori
+    for m in secret_masters.available(conn, player.id):
+        lines.append(f"  · Un maestro segreto è pronto a riceverti: {m['name']} ('masters').")
+    for r in beasts.active_rare(conn):
+        lines.append(f"  · Avvistata una bestia {r['rarity']}: {r['name']} a {r['loc'] or '?'} ('tame').")
+    lines.append(f"  · Età: {lifespan.label(conn, player.id)} — sfondare al regno successivo raddoppia la vita.")
     tl = state.titles(conn)
     if tl:
         lines.append(f"Titoli: {', '.join(tl)}")

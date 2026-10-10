@@ -32,6 +32,15 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
   nello stesso mondo, con un frammento della precedente.
 - **Riga di stato** sempre visibile e aiuto per categorie.
 
+### Poteri che interagiscono ☯
+- **Ciclo dei Cinque Elementi**: catene di 2-5 elementi con nome, vantaggio elementale sul nemico.
+- **Stati di combattimento** (ustione, gelo, emorragia, stordimento, …) e scontri di più round.
+- **22 fusioni leggendarie** e **Domini**; **11 Dao superiori** che si risvegliano con le imprese.
+- **Destini alla nascita**, talento dei rivali, **demone interiore** al breakthrough.
+- **Bestie spirituali** da domare (anche fenici, draghi e ibridi), **professioni**
+  (alchimia, talismani, forgia), **spirito dell'arma**, **durata della vita** che
+  raddoppia a ogni regno, **maestri segreti** a più livelli.
+
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.
 - **Nessun tetto**: oltre l'*Immortale di Giada* (regno 8) i regni si generano da soli con
@@ -119,7 +128,9 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Coltivazione | `cultivate`, `comprehend <dao>`, `breakthrough`, `dao`, `tribulation` |
 | Sette | `join`, `class`, `challenge`, `market`, `buy <n>`, `invitations`, `accept <n>` |
 | Legami | `talk`, `gift <nome> <pietre>`, `spar`, `recruit`, `dismiss`, `disciple`, `bonds` |
-| Storia | `<numero>` (scelte), `goals`, `encounter`, `lives`, `titles` |
+| Storia | `<numero>` (scelte), `goals`, `encounter`, `lives`, `titles`, `masters` |
+| Bestie | `tame <creatura>`, `beast`, `feed`, `release` |
+| Arti | `profession <alchimia\|talismani\|forgia>`, `gather`, `recipes`, `craft <n>` |
 | Guerra | `raid`, `invade` |
 | Stato | `status`, `rating`, `inventory`, `use <oggetto>`, `use all`, `techniques` |
 | Sistema | `help [categoria\|tutto]`, `hud on/off`, `suggest on/off`, save automatico, `quit` |
@@ -143,7 +154,7 @@ jade_immortal/
 │   │                       #   invasioni mondiali, invasioni guidate, caccia, reputazione,
 │   │                       #   suggestions, encounters, bonds, storyline, rebirth…
 │   └── cli/                # loop.py (dispatch), story_cmds.py, lifecycle.py, hud.py, help_text.py
-└── tests/                  # ~375 test (pytest)
+└── tests/                  # ~400 test (pytest)
 ```
 
 I dati di gioco vivono in un singolo file **SQLite**. Le migrazioni sono idempotenti: i

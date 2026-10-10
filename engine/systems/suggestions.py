@@ -110,6 +110,21 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
         nxt = sect_life.next_event(conn, t, player.id)
         if nxt and nxt["fire_tick"] - t <= training.DAY_TICKS:
             _add(out, "Controlla la classifica: la sfida è vicina", "class")
+    # bestie rare qui: prova a domarle
+    from engine.systems import beasts, professions
+    for r in beasts.active_rare(conn):
+        if r["location_id"] == loc and not beasts.pet(conn, player.id):
+            _add(out, f"Prova a domare {r['name']} ({r['rarity']})", f"tame {r['name']}")
+    prof = professions.profession(conn, player.id)
+    if prof:
+        lvl = professions.level(conn, player.id)
+        for i, rcp in enumerate(professions.recipes_for(conn, player.id), 1):
+            if lvl >= rcp[1] and all(professions.material(conn, player.id, k) >= v for k, v in rcp[3].items()):
+                _add(out, f"Crea: {rcp[2]}", f"craft {i}")
+                break
+        here = entities.get_location(conn, loc)
+        if here and here.location_type in ("mountain", "forbidden_zone", "ruin"):
+            _add(out, "Raccogli materiali per la tua arte", "gather")
     if items.player_inventory(conn, player.id):
         _add(out, "Usa ciò che hai nello zaino", "use all")
     if market.is_market_here(conn, loc):

@@ -120,6 +120,22 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
 
 # ---------- scambio di colpi ----------
 
+# Gli scontri usano una riserva di vitalità più ampia della statistica "vitality":
+# così due avversari alla pari si scambiano 4-6 colpi invece di chiudere al primo,
+# e c'è spazio per stati (ustione, gelo, stordimento...) e combo elementali.
+# Gli scontri molto sbilanciati restano rapidi.
+DUEL_HP_SCALE = 16.0
+
+
+def duel_scale(pa: dict, pd: dict) -> float:
+    """Moltiplicatore della riserva di vitalità: pieno tra pari, si riduce col divario
+    (un coltivatore immensamente superiore chiude comunque al primo scambio)."""
+    # quanti colpi servono a ciascuno per abbattere l'altro (a vitalità base)
+    hits_a = pd["vitality"] / max(1.0, pa["attack"] - pd["defense"] * 0.5)
+    hits_d = pa["vitality"] / max(1.0, pd["attack"] - pa["defense"] * 0.5)
+    gap = max(hits_a, hits_d) / max(1e-6, min(hits_a, hits_d))
+    return max(1.0, DUEL_HP_SCALE / gap)
+
 def _strike(attack: float, defense: float, rng: random.Random) -> tuple[float, bool]:
     base = max(1.0, attack - defense * 0.5)
     roll = rng.uniform(0.6, 1.4)                 # caos
@@ -141,7 +157,8 @@ def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
     d_defense = pd["defense"] * (1.0 - mods.get("pierce", 0.0))
     extra = int(mods.get("extra_strikes", 0))
     taken_mult = mods.get("taken_mult", 1.0)
-    hp = {"a": pa["vitality"], "d": pd["vitality"]}
+    scale = duel_scale(pa, pd)
+    hp = {"a": pa["vitality"] * scale, "d": pd["vitality"] * scale}
     killing_crit = False
     rounds = 0
 
@@ -169,7 +186,7 @@ def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
     else:
         winner, loser, winner_hp = atk, dfn, hp["a"]
 
-    wfrac = winner_hp / max(1.0, combat_power(conn, winner[0], winner[1])["vitality"])
+    wfrac = winner_hp / max(1.0, combat_power(conn, winner[0], winner[1])["vitality"] * scale)
     death_prob = 0.12 + (0.28 if wfrac > 0.5 else 0.0) + (0.2 if killing_crit else 0.0)
     if winner == atk:
         death_prob += mods.get("death_bonus", 0.0)    # mossa esecutrice

@@ -25,7 +25,7 @@ from engine.core import entities, tick as tick_mod
 from engine.systems import relations, state
 
 KINDS_IT = {"companion": "compagno di viaggio", "master": "maestro",
-            "rival": "rivale", "nemesis": "nemesi"}
+            "rival": "rivale", "nemesis": "nemesi", "beast": "bestia spirituale"}
 RECRUIT_MIN = 40              # rapporto minimo per chiedere a qualcuno di seguirti
 MASTER_MIN = 50               # rapporto minimo per diventare discepolo
 MAX_NEMESES = 2
@@ -81,6 +81,8 @@ def tag(conn: sqlite3.Connection, npc_id: int, player_id: int = 1) -> str | None
         return "NEMESI"
     if "companion" in k:
         return "tuo compagno"
+    if "beast" in k:
+        return "tua bestia"
     if "master" in k:
         return "tuo maestro"
     if "rival" in k:
@@ -93,7 +95,7 @@ def protected_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
     try:
         return {r["npc_id"] for r in conn.execute(
             "SELECT npc_id FROM bonds WHERE player_id=? AND status='active' "
-            "AND kind IN ('companion','master');", (player_id,))}
+            "AND kind IN ('companion','master','beast');", (player_id,))}
     except sqlite3.OperationalError:
         return set()
 
@@ -104,7 +106,7 @@ def pinned_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
         t = tick_mod.get_tick(conn)
         return {r["npc_id"] for r in conn.execute(
             "SELECT npc_id FROM bonds WHERE player_id=? AND status='active' AND "
-            "(kind='companion' OR (kind='nemesis' AND ready_tick<=?));", (player_id, t))}
+            "(kind IN ('companion','beast') OR (kind='nemesis' AND ready_tick<=?));", (player_id, t))}
     except sqlite3.OperationalError:
         return set()
 
@@ -161,7 +163,8 @@ def follow_player(conn: sqlite3.Connection, player_id: int, location_id: int) ->
     try:
         conn.execute(
             "UPDATE npcs SET location_id=? WHERE status='alive' AND id IN ("
-            "SELECT npc_id FROM bonds WHERE player_id=? AND kind='companion' AND status='active');",
+            "SELECT npc_id FROM bonds WHERE player_id=? AND kind IN ('companion','beast') "
+            "AND status='active');",
             (location_id, player_id))
     except sqlite3.OperationalError:
         pass
@@ -554,9 +557,11 @@ def daily(conn, t, rng, player) -> list[str]:
         else:
             relations.adjust(conn, comp["npc_id"], 2, t, player.id)
     # nemesi: si allenano finché non tornano (non oltre il tuo regno + 1)
+    from engine.systems import destinies
+    rm = destinies.rival_mult(conn)
     for nm in nemeses(conn, player.id):
         if nm["ready_tick"] > t and npc_factory.npc_tier(conn, nm["npc_id"]) <= ptier:
-            npc_factory.raise_npc(conn, nm["npc_id"], rng.randint(1, 3))
+            npc_factory.raise_npc(conn, nm["npc_id"], max(1, round(rng.randint(1, 3) * rm)))
     return out
 
 
@@ -655,3 +660,17 @@ def on_player_defeated(conn, t, rng, player, npc) -> str | None:
         return None
     delay_nemesis(conn, player.id, npc.id, rng.randint(2, 4))
     return f"{npc.name} sputa a terra: «Non vali ancora la mia spada. Allenati, e tornerò»."
+
+
+def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
+    """Altri alleati nello scontro oltre al compagno: la bestia spirituale e lo spirito
+    dell'arma. Possono anche aggiungere stati al contesto di combattimento `fx`."""
+    out: list[dict] = []
+    from engine.systems import beasts, weapon_spirit
+    b = beasts.combat_ally(conn, player_id, npc_id, fx)
+    if b:
+        out.append(b)
+    w = weapon_spirit.combat_ally(conn, player_id, fx)
+    if w:
+        out.append(w)
+    return out

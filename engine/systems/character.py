@@ -64,10 +64,11 @@ ORIGINS = {
     },
     "divoratore": {
         "name": "Portatore dell'Abisso Divoratore",
-        "desc": "Un'anomalia rarissima: puoi divorare l'eredità altrui. Ma mezzo mondo "
-                "ti vuole morto, e ogni assorbimento lascia un segno nell'anima.",
+        "desc": "Un'anomalia rarissima e il talento più alto di tutti: puoi divorare "
+                "l'eredità altrui. Ma mezzo mondo ti vuole morto, e ogni assorbimento "
+                "lascia un segno nell'anima.",
         "start_tier": 1, "age": 17,
-        "aff": {"cultivation": 55, "body": 60, "qi": 50, "soul": 82, "combat": 60},
+        "aff": {"cultivation": 90, "body": 60, "qi": 50, "soul": 82, "combat": 60},
         "flags": {"hunted": True, "anomaly": "abisso_divoratore"},
         "anomaly": "abisso_divoratore",
         # pratica Corpo/Anima/Fulmine; affinità LATENTI verso i Dao profondi
@@ -145,6 +146,10 @@ def apply_origin(conn: sqlite3.Connection, origin_key: str, rng: random.Random,
     """Crea il profilo del giocatore dall'origine scelta e applica gli effetti."""
     origin = ORIGINS.get(origin_key, ORIGINS["mortale"])
     aff = {k: max(1, min(100, origin["aff"][k] + rng.randint(-6, 6))) for k in AFFINITY_KEYS}
+    if origin_key == "divoratore":
+        # l'Assorbitore ha SEMPRE il talento più alto: supera il massimo possibile delle altre
+        top = max(o["aff"]["cultivation"] for k, o in ORIGINS.items() if k != "divoratore") + 6
+        aff["cultivation"] = max(aff["cultivation"], min(100, top + 1 + rng.randint(0, 4)))
 
     conn.execute(
         "INSERT INTO character_profiles "

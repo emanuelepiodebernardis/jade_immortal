@@ -29,7 +29,8 @@ def hud_line(conn: sqlite3.Connection, player: entities.Player) -> str:
     rec = cultivation.get_record(conn, "player", player.id)
     prog = f" {rec['progress']*100:.0f}%" if rec else ""
     realm = cultivation.realm_label(conn, "player", player.id)
-    parts = [f"Giorno {day}, ore {hour:02d}", f"{realm}{prog}",
+    from engine.systems import lifespan
+    parts = [f"Giorno {day}, ore {hour:02d}", f"Età {lifespan.label(conn, player.id)}", f"{realm}{prog}",
              f"Qi {qimod.qi_label(conn, player.id).split(' ')[0]}"]
     if dtk.dao_techniques(conn, player.id):
         parts.append(f"Spirito {spmod.spirit_label(conn, player.id).split(' ')[0]}")
@@ -44,6 +45,10 @@ def hud_line(conn: sqlite3.Connection, player: entities.Player) -> str:
     comp = bonds.companion(conn, player.id)
     if comp:
         parts.append(f"Compagno: {comp['name']}")
+    from engine.systems import beasts
+    pt = beasts.pet(conn, player.id)
+    if pt:
+        parts.append(f"Bestia: {pt['name']}")
     return "── " + " · ".join(parts) + " ──"
 
 

@@ -59,6 +59,30 @@ _MAIN_NAMES = {
                  "Luce Celeste", "Alba della Creazione", "Legge della Luce", "Dao della Luce"],
     "oscurita": ["Ombra", "Tenebra", "Intento dell'Oscurità", "Notte Divorante",
                  "Oscurità Celeste", "Vuoto Senza Stelle", "Legge dell'Oscurità", "Dao dell'Oscurità"],
+    # --- Dao superiori ---
+    "karma":     ["Filo Karmico", "Retribuzione", "Intento del Karma", "Ruota di Causa ed Effetto",
+                  "Karma Celeste", "Giudizio Senza Appello", "Legge del Karma", "Dao del Karma"],
+    "massacro":  ["Intento Omicida", "Lama Insanguinata", "Intento del Massacro", "Campo di Ossa",
+                  "Massacro Celeste", "Mare di Sangue", "Legge del Massacro", "Dao del Massacro"],
+    "vita_morte": ["Respiro Sospeso", "Soglia", "Intento della Vita e della Morte", "Confine Eterno",
+                   "Vita e Morte Celesti", "Signore del Confine", "Legge della Vita e della Morte",
+                   "Dao della Vita e della Morte"],
+    "samsara":   ["Eco di Vite", "Ruota che Gira", "Intento del Samsara", "Ciclo delle Rinascite",
+                  "Samsara Celeste", "Sei Sentieri", "Legge della Reincarnazione", "Dao della Reincarnazione"],
+    "yinyang":   ["Due Respiri", "Taiji", "Intento dello Yin-Yang", "Danza di Luce e Ombra",
+                  "Yin-Yang Celeste", "Grande Armonia", "Legge del Taiji", "Dao dello Yin-Yang"],
+    "caos":      ["Turbine", "Nebbia Primordiale", "Intento del Caos", "Wuji",
+                  "Caos Celeste", "Prima della Creazione", "Legge del Caos", "Dao del Caos"],
+    "sangue":    ["Goccia", "Sete", "Intento del Sangue", "Fiume Cremisi",
+                  "Sangue Celeste", "Mare Vermiglio", "Legge del Sangue", "Dao del Sangue"],
+    "illusione": ["Miraggio", "Riflesso", "Intento dell'Illusione", "Mondo di Specchi",
+                  "Sogno Celeste", "Il Sogno della Farfalla", "Legge dell'Illusione", "Dao dell'Illusione"],
+    "stelle":    ["Scintilla", "Costellazione", "Intento delle Stelle", "Pioggia di Meteore",
+                  "Stelle Celesti", "Firmamento Caduto", "Legge delle Stelle", "Dao delle Stelle"],
+    "vuoto":     ["Silenzio", "Cancellazione", "Intento del Vuoto", "Nulla Divorante",
+                  "Vuoto Celeste", "Fine di Ogni Legge", "Legge del Vuoto", "Dao del Vuoto"],
+    "creazione": ["Scintilla Vitale", "Plasmare", "Intento della Creazione", "Mondo Nascente",
+                  "Creazione Celeste", "Genesi", "Legge della Creazione", "Dao della Creazione"],
 }
 
 # Frase modificatrice quando un Dao è SECONDARIO.
@@ -70,6 +94,9 @@ _MODIFIERS = {
     "fuoco": "Ardente", "acqua": "Travolgente", "terra": "Incrollabile",
     "vento": "del Vento", "metallo": "d'Acciaio", "legno": "Vivente",
     "luce": "Radiante", "oscurita": "Tenebroso",
+    "karma": "del Giudizio", "massacro": "Sanguinario", "vita_morte": "del Confine",
+    "samsara": "Eterno", "yinyang": "dell'Armonia", "caos": "Primordiale", "sangue": "Cremisi",
+    "illusione": "Illusorio", "stelle": "Stellare", "vuoto": "del Nulla", "creazione": "Generatore",
 }
 
 _GRADE = ["", "iniziato", "adepto", "esperto", "maestro", "gran maestro", "dominatore", "legislatore"]

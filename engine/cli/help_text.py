@@ -39,7 +39,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
     ]),
     ("coltivazione", "Coltivazione e Dao", [
         "cultivate (o 'c')             — mediti per accumulare progresso nel tuo regno",
-        "breakthrough                  — tenti di salire di regno (può fallire o ucciderti!)",
+        "breakthrough                  — tenti di salire di regno (può fallire o ucciderti!); a volte appare il demone interiore",
         "dao                           — i Dao che pratichi e la loro comprensione",
         "comprehend <nome>             — affini un Dao (i Dao da combattimento ti rendono più forte)",
         "tribulation                   — sfida al Cielo (heaven defiance) e tribolazione divina",
@@ -77,6 +77,19 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "dismiss                       — congedi il tuo compagno di viaggio",
         "disciple <nome>               — chiedi a un anziano/eremita di farti da maestro",
         "bonds                         — i tuoi legami: compagni, maestro, rivali e nemesi",
+        "masters                       — i MAESTRI SEGRETI: chi hai incontrato e cosa serve per il prossimo",
+    ]),
+    ("bestie", "Bestie spirituali", [
+        "tame <creatura>               — provi a domare una creatura (ferirla prima aiuta)",
+        "beast                         — la tua bestia, il suo talento e gli avvistamenti di bestie rare",
+        "feed                          — nutri la tua bestia con un nucleo (cresce)",
+        "release                       — liberi la tua bestia",
+    ]),
+    ("arti", "Professioni: alchimia, talismani, forgia", [
+        "profession <alchimia|talismani|forgia> — scegli (o vedi) la tua arte",
+        "gather                        — raccogli erbe, minerali e nuclei nelle zone selvagge",
+        "recipes                       — le ricette della tua arte e i materiali che hai",
+        "craft <n>                     — crei la ricetta n (pillole, talismani, armi)",
     ]),
     ("storia", "Storia, destino e memoria", [
         "goals                         — i tuoi obiettivi: la tua storia personale e i traguardi vicini",
@@ -108,6 +121,8 @@ _ALIASES = {
     "sette": "setta", "sect": "setta", "guerra": "setta", "mercato": "setta",
     "social": "legami", "persone": "legami", "compagni": "legami", "bonds": "legami",
     "destino": "storia", "story": "storia", "obiettivi": "storia",
+    "beast": "bestie", "pet": "bestie", "professioni": "arti", "alchimia": "arti",
+    "talismani": "arti", "forgia": "arti", "maestri": "legami",
     "ui": "sistema", "interfaccia": "sistema",
 }
 
