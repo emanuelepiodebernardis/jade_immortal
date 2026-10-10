@@ -39,7 +39,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 - **Destini alla nascita**, talento dei rivali, **demone interiore** al breakthrough.
 - **Bestie spirituali** da domare (anche fenici, draghi e ibridi), **professioni**
   (alchimia, talismani, forgia), **spirito dell'arma**, **durata della vita** che
-  raddoppia a ogni regno, **maestri segreti** a più livelli.
+  raddoppia a ogni regno, **maestri segreti infiniti** che ti accompagnano fino alle vette più alte.
 
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.

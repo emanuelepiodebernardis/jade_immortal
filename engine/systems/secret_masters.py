@@ -16,8 +16,10 @@ Ispirati ai grandi topoi del wuxia/xianxia:
     Heavens") e la caccia alle fiamme strane;
   - il monaco che spazza il cortile e nasconde un'arte suprema.
 
-Ogni VIA ha più maestri a livelli crescenti: il secondo appare solo se hai appreso dal
-primo E hai raggiunto una soglia più alta, e così via. Quando le condizioni sono
+Ogni VIA ha maestri INFINITI a livelli crescenti, come i regni: il successivo appare solo
+se hai appreso dal precedente E hai raggiunto una soglia più alta (e un regno più alto).
+Oltre ai maestri scritti a mano, il mondo genera maestri sempre più antichi e potenti
+— fino alle vette più alte. Quando le condizioni sono
 soddisfatte, il maestro può comparirti davanti nei luoghi giusti (scena a scelta).
 'masters' mostra chi hai incontrato e quanto manca al prossimo.
 """
@@ -197,6 +199,121 @@ MASTERS = [
 ]
 
 
+
+
+# ============================================================
+# Maestri INFINITI: oltre quelli scritti a mano, ogni via ne genera altri
+# ============================================================
+
+# ruolo del maestro per via (nome generato: "<ruolo>, <titolo del regno>")
+_ROLE = {
+    "Spada": "Il Santo della Spada", "Demoniaca": "Il Patriarca Demoniaco",
+    "Alchimia": "Il Venerabile delle Pillole", "Talismani": "Il Maestro dei Sigilli",
+    "Forgia": "Il Fabbro Celeste", "Fulmine": "Il Signore del Tuono", "Corpo": "Il Corpo Immortale",
+    "Anima": "Lo Spirito Antico", "Giustizia": "Il Giusto Sovrano", "Bestie": "Il Re delle Bestie",
+    "Abisso": "L'Eco dell'Abisso",
+}
+# radice delle tecniche generate per via
+_TECH_STEM = {
+    "Spada": "Spada", "Demoniaca": "Arte Proibita", "Alchimia": "Fiamma Alchemica",
+    "Talismani": "Sigillo", "Forgia": "Martello", "Fulmine": "Folgore", "Corpo": "Corpo",
+    "Anima": "Intento dell'Anima", "Giustizia": "Palmo", "Bestie": "Patto", "Abisso": "Fauci",
+}
+_EPITHETS = ["dell'Eternità", "del Firmamento", "dei Nove Cieli", "del Vuoto Primordiale",
+             "delle Diecimila Ere", "dell'Origine", "oltre il Cielo", "senza Nome", "della Fine dei Tempi"]
+_SCENES = [
+    "Il cielo si apre come una porta. Qualcuno ti attendeva da molto prima che tu nascessi: {name}.",
+    "Un vecchio siede su una nuvola immobile. «Hai salito molto. Ora vedrai quanto ancora resta.» È {name}.",
+    "Il tempo si ferma. Tra un respiro e l'altro compare {name}: «La via non finisce mai. Nemmeno io.»",
+    "Una stella cade e si fa uomo. {name} ti guarda come si guarda un fratello minore.",
+]
+_WHERE_ALL = ["mountain", "forbidden_zone", "ruin", "city"]
+
+
+def _authored(path: str) -> list[dict]:
+    return sorted((m for m in MASTERS if m["path"] == path), key=lambda m: m["tier"])
+
+
+def _slug(path: str) -> str:
+    return _authored(path)[0]["key"].rsplit("_", 1)[0]
+
+
+def _scale_req(req: tuple, k: int):
+    kind = req[0]
+    # soglie che crescono senza fine, ma con passo sostenibile (il regno richiesto fa il resto)
+    if kind == "dao":
+        return ("dao", req[1], int(req[2] * (1.5 ** k)))
+    if kind == "stat":
+        return ("stat", req[1], int(req[2] * (1.6 ** k)))
+    if kind == "prof":
+        return ("prof", req[1], req[2] + 3 * k)
+    if kind == "fame":
+        return ("fame", min(90000, int(req[1] * (1.6 ** k))))
+    if kind == "karma_ge":
+        return ("karma_ge", min(900, int(req[1] * (1.3 ** k))))
+    if kind == "absorbed":
+        return ("absorbed", int(req[1] * (1.6 ** k)))
+    if kind == "beast":
+        return ("beast_tier", 3 + 2 * k)
+    return req
+
+
+def master_for(path: str, tier: int) -> dict | None:
+    """Il maestro di livello `tier` della via (scritto a mano o generato). Mai None per tier>=1."""
+    auth = _authored(path)
+    if not auth:
+        return None
+    if tier <= len(auth):
+        return auth[tier - 1]
+    from engine.generators.cultivation_gen import realm_name_for_tier
+    last = auth[-1]
+    k = tier - len(auth)                     # quanti livelli oltre l'ultimo maestro scritto
+    lt = last["teach"]
+    req = [_scale_req(r, k) for r in last["req"]] + [("realm", 2 + tier)]
+    name = f"{_ROLE[path]}, {realm_name_for_tier(4 + tier)}"
+    epithet = _EPITHETS[(tier - 1) % len(_EPITHETS)]
+    cycle = (tier - 1) // len(_EPITHETS)
+    tname = f"{_TECH_STEM[path]} {epithet}" + (f" ({cycle + 1}° ciclo)" if cycle else "")
+    teach = {"name": tname, "magnitude": round(lt["magnitude"] + 0.10 * k, 2)}
+    if lt.get("proc"):
+        st, ch, pw = lt["proc"]
+        teach["proc"] = (st, min(0.55, ch + 0.03 * k), round(pw + 0.4 * k, 2))
+    if lt.get("cost"):
+        teach["cost"] = {key: (int(v * (1.5 ** k)) if isinstance(v, int) else v)
+                         for key, v in lt["cost"].items() if key != "aff_soul"}
+        teach["warn"] = lt.get("warn", "Il potere ha un prezzo.")
+    b = dict(lt.get("bonus", {}))
+    if b.get("prof_xp"):
+        b["prof_xp"] = int(b["prof_xp"] * (1.5 ** k))
+    if b.get("lifespan_years"):
+        b["lifespan_years"] = int(b["lifespan_years"] * (2 ** k))
+    if "weapon_rarity" in b or "weapon_spirit" in b:
+        b = {key: v for key, v in b.items() if key not in ("weapon_rarity", "weapon_spirit")}
+        b["weapon_tier"] = True
+    if "beast_talent" in b or "beast_stages" in b:
+        b["beast_stages"] = 5 + 3 * k
+        b.pop("beast_talent", None)
+    if "residue" in b:
+        b["residue"] = int(b["residue"] * (1.5 ** k))
+    if b:
+        teach["bonus"] = b
+    return {"key": f"{_slug(path)}_{tier}", "path": path, "tier": tier, "req": req,
+            "where": last["where"] if k % 2 else _WHERE_ALL, "name": name,
+            "text": _SCENES[tier % len(_SCENES)].format(name=name), "teach": teach,
+            "generated": True}
+
+
+def master_by_key(key: str) -> dict | None:
+    slug, _, n = key.rpartition("_")
+    for path in {m["path"] for m in MASTERS}:
+        if _slug(path) == slug and n.isdigit():
+            return master_for(path, int(n))
+    return None
+
+
+def paths() -> list[str]:
+    return sorted({m["path"] for m in MASTERS})
+
 # ============================================================
 # Requisiti
 # ============================================================
@@ -240,20 +357,32 @@ def _progress(conn, pid: int, req: tuple) -> tuple[bool, str]:
         v = beasts.traits(conn, pt["npc_id"])["rarity"] if pt else None
         ok = bool(v) and order.index(v) >= order.index(req[1])
         return ok, f"una bestia {req[1]} al tuo fianco"
+    if kind == "realm":
+        from engine.simulation import cultivation
+        from engine.generators.cultivation_gen import realm_name_for_tier
+        v = cultivation.realm_tier(conn, "player", pid) or 1
+        return v >= req[1], f"regno {realm_name_for_tier(req[1])}"
+    if kind == "beast_tier":
+        from engine.systems import npc_factory
+        pt = beasts.pet(conn, pid)
+        v = npc_factory.npc_tier(conn, pt["npc_id"]) if pt else 0
+        return v >= req[1], f"una bestia al regno {req[1]} (ora {v})"
     return False, "?"
 
 
+def _learned_in_path(conn, path: str) -> int:
+    slug = _slug(path)
+    return sum(1 for k in learned(conn) if k.rpartition("_")[0] == slug)
+
+
 def _next_in_path(conn, path: str) -> dict | None:
-    done = set(learned(conn))
-    for m in sorted((m for m in MASTERS if m["path"] == path), key=lambda m: m["tier"]):
-        if m["key"] not in done:
-            return m
-    return None
+    """Il prossimo maestro della via: non finiscono mai."""
+    return master_for(path, _learned_in_path(conn, path) + 1)
 
 
 def available(conn, pid: int = 1) -> list[dict]:
     out = []
-    for path in sorted({m["path"] for m in MASTERS}):
+    for path in paths():
         m = _next_in_path(conn, path)
         if m and all(_progress(conn, pid, r)[0] for r in m["req"]):
             out.append(m)
@@ -275,7 +404,7 @@ def maybe_meet(conn: sqlite3.Connection, player, rng: random.Random | None = Non
     rng = rng or random.Random(t * 9091 + player.id)
     cands = [m for m in available(conn, player.id) if loc and loc.location_type in m["where"]]
     if force:
-        cands = [m for m in MASTERS if m["key"] == force]
+        cands = [m for m in [master_by_key(force)] if m]
     elif not cands or t - state.get_int(conn, "master_last_tick", -999) < 24 or rng.random() > 0.35:
         return None
     m = cands[0]
@@ -306,7 +435,7 @@ def _scene(m: dict) -> dict:
 def learn(conn: sqlite3.Connection, t: int, player, key: str, gift: dict | None = None) -> list[str]:
     """Applica l'insegnamento del maestro. Chiamato dagli effetti della scena."""
     from engine.systems import professions, karma, reputation, lifespan, weapons, beasts, npc_factory
-    m = next((x for x in MASTERS if x["key"] == key), None)
+    m = master_by_key(key)
     if not m or key in learned(conn):
         return []
     if gift and not professions.spend(conn, player.id, gift):
@@ -347,6 +476,13 @@ def learn(conn: sqlite3.Connection, t: int, player, key: str, gift: dict | None 
         if eq:
             weapons._set_equipped(conn, player.id, eq["tier"], min(4, eq["rarity"] + b["weapon_rarity"]))
             lines.append("La tua arma esce dalla fucina trasformata.")
+    if b.get("weapon_tier"):
+        eq = weapons.get_equipped(conn, player.id)
+        if eq:
+            from engine.simulation import cultivation
+            ptier = cultivation.realm_tier(conn, "player", player.id) or 1
+            weapons._set_equipped(conn, player.id, max(eq["tier"], ptier), 4)
+            lines.append("La tua arma viene riforgiata alla perfezione, all'altezza del tuo regno.")
     if b.get("weapon_spirit"):
         from engine.systems import weapon_spirit
         lines.append(weapon_spirit.awaken(conn, random.Random(t), player, forced=True))
@@ -379,22 +515,19 @@ def learn(conn: sqlite3.Connection, t: int, player, key: str, gift: dict | None 
 
 
 def describe(conn, player) -> str:
-    done = set(learned(conn))
-    lines = ["Maestri segreti — si mostrano solo a chi raggiunge certe vette:"]
-    for path in sorted({m["path"] for m in MASTERS}):
-        tiers = sorted((m for m in MASTERS if m["path"] == path), key=lambda m: m["tier"])
-        got = [m for m in tiers if m["key"] in done]
+    lines = ["Maestri segreti — infiniti come i regni: si mostrano solo a chi raggiunge certe vette:"]
+    for path in paths():
+        n = _learned_in_path(conn, path)
         nxt = _next_in_path(conn, path)
-        if nxt and any(r[0] == "anomaly" and not _progress(conn, player.id, r)[0] for r in nxt["req"]):
+        if any(r[0] == "anomaly" and not _progress(conn, player.id, r)[0] for r in nxt["req"]):
             continue                              # via riservata (es. all'Abisso)
-        status = ", ".join(m["teach"]["name"] for m in got) if got else "nessuna tecnica"
-        if nxt:
-            prog = "; ".join(_progress(conn, player.id, r)[1] for r in nxt["req"])
-            ready = all(_progress(conn, player.id, r)[0] for r in nxt["req"])
-            where = "/".join({"mountain": "montagne", "city": "città", "ruin": "rovine",
-                              "forbidden_zone": "zone proibite"}[w] for w in nxt["where"])
-            lines.append(f"  · Via {path} [{len(got)}/{len(tiers)}] — {status}. Prossimo: "
-                         + (f"PRONTO, cercalo tra {where}" if ready else f"«{prog}»"))
-        else:
-            lines.append(f"  · Via {path} [{len(got)}/{len(tiers)}] — completata: {status}.")
+        got = [master_for(path, i)["teach"]["name"] for i in range(1, n + 1)]
+        status = (", ".join(got[-3:]) + (f" (+{len(got) - 3} prima)" if len(got) > 3 else "")) \
+            if got else "nessuna tecnica"
+        prog = "; ".join(_progress(conn, player.id, r)[1] for r in nxt["req"])
+        ready = all(_progress(conn, player.id, r)[0] for r in nxt["req"])
+        where = "/".join({"mountain": "montagne", "city": "città", "ruin": "rovine",
+                          "forbidden_zone": "zone proibite"}[w] for w in nxt["where"])
+        lines.append(f"  · Via {path} [maestri: {n}] — {status}. Prossimo ({nxt['name']}): "
+                     + (f"PRONTO, cercalo tra {where}" if ready else f"«{prog}»"))
     return "\n".join(lines)

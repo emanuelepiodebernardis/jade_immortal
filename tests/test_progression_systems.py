@@ -254,3 +254,35 @@ def test_gift_master_needs_the_gift(conn):
     professions.give(conn, 1, "erbe", 3)
     lines = secret_masters.learn(conn, 0, _player(conn), "giusto_1", gift={"erbe": 3})
     assert "Diciotto Palmi del Drago" in lines[0]
+
+
+def test_masters_are_infinite_and_escalate(conn):
+    for path in secret_masters.paths():
+        prev = None
+        for tier in range(1, 30):
+            m = secret_masters.master_for(path, tier)
+            assert m is not None and m["tier"] == tier
+            assert secret_masters.master_by_key(m["key"])["name"] == m["name"]
+            if prev and tier > 4:
+                assert m["teach"]["magnitude"] > prev["teach"]["magnitude"]
+            prev = m
+
+
+def test_generated_master_needs_higher_realm_and_teaches(conn):
+    dao_gen._set_dao(conn, "player", 1, "spada", 60, 3000, 1)
+    for k in ("spada_1", "spada_2", "spada_3"):
+        secret_masters.learn(conn, 0, _player(conn), k)
+    nxt = secret_masters._next_in_path(conn, "Spada")
+    assert nxt["key"] == "spada_4" and nxt.get("generated")
+    assert not any(m["key"] == "spada_4" for m in secret_masters.available(conn, 1))   # serve il regno
+    _set_tier(conn, 6)
+    assert any(m["key"] == "spada_4" for m in secret_masters.available(conn, 1))
+    lines = secret_masters.learn(conn, 0, _player(conn), "spada_4")
+    assert nxt["teach"]["name"] in lines[0]
+    assert "spada_5" == secret_masters._next_in_path(conn, "Spada")["key"]
+    assert "maestri: 4" in secret_masters.describe(conn, _player(conn))
+
+
+def test_profession_levels_have_no_cap(conn):
+    assert professions.level_for_xp(150) == 10
+    assert professions.level_for_xp(10**6) > 20

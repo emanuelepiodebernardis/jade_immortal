@@ -517,3 +517,21 @@ infamia, anni di vita). `masters` mostra i progressi.
 
 Nuovi test: `tests/test_elements_states.py` (12), `tests/test_progression_systems.py` (18).
 Suite totale: **407 passati**.
+
+---
+
+## Aggiornamento 15 — Maestri segreti infiniti
+
+I maestri segreti ora sono **infiniti**, come i regni. Dopo i 27 maestri scritti a mano,
+ogni via (Spada, Demoniaca, Alchimia, Talismani, Forgia, Fulmine, Corpo, Anima, Giustizia,
+Bestie, Abisso) genera maestri sempre più antichi — «Il Santo della Spada, Immortale di
+Giada», «… Sovrano Celeste», «… Re degli Immortali» e oltre — che ti accompagnano fino alle
+vette più alte:
+- ognuno richiede una soglia più alta nella sua arte (Dao ×1,5, vite tolte ×1,6, livelli di
+  professione +3, fama ×1,6, …) **e** un regno di coltivazione più alto;
+- insegna una tecnica più potente (+10% di potenza a livello) con uno stato più frequente e
+  più forte; le vie con un prezzo (demoniaca) chiedono un prezzo che cresce;
+- le professioni non hanno più un livello massimo.
+
+`masters` mostra per ogni via quanti maestri hai incontrato e chi sarà il prossimo.
+Nuovi test (3). Suite totale: **410 passati**.

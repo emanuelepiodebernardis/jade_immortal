@@ -8,7 +8,7 @@ pillole, talismani o armi migliori.
   Materiali (player_resources): erbe (erbe spirituali), minerali, nuclei (di bestia),
   nuclei_rari (dalle bestie rare). Si ottengono con 'gather' nelle zone selvagge e
   cacciando creature.
-  Ogni creazione dà esperienza: il livello (1..10) sblocca ricette migliori e alza
+  Ogni creazione dà esperienza: il livello (senza tetto) sblocca ricette migliori e alza
   la riuscita e la potenza di ciò che crei.
   'recipes' mostra le ricette, 'craft <n>' crea.
 """
@@ -24,7 +24,7 @@ MATERIALS = {"erbe": "erbe spirituali", "minerali": "minerali", "nuclei": "nucle
 PROFESSIONS = {"alchimia": "Alchimia", "talismani": "Talismani", "forgia": "Forgia"}
 _ALIASES = {"alchemy": "alchimia", "alchimista": "alchimia", "talisman": "talismani",
             "talismano": "talismani", "fulu": "talismani", "forge": "forgia", "fabbro": "forgia"}
-XP_LEVELS = [0, 3, 8, 15, 25, 40, 60, 85, 115, 150]     # xp minima per i livelli 1..10
+XP_LEVELS = [0, 3, 8, 15, 25, 40, 60, 85, 115, 150]     # xp minima per i livelli 1..10 (poi cresce)
 
 
 # ============================================================
@@ -43,8 +43,21 @@ def level(conn, pid: int = 1) -> int:
     if not profession(conn, pid):
         return 0
     from engine.systems import destinies
-    lv = sum(1 for x in XP_LEVELS if xp(conn, pid) >= x)
-    return min(10, lv + int(destinies.flag_value(conn, "crafter", pid, 0)))
+    return level_for_xp(xp(conn, pid)) + int(destinies.flag_value(conn, "crafter", pid, 0))
+
+
+def xp_for_level(lv: int) -> int:
+    """Esperienza minima per il livello lv (SENZA tetto: oltre il 10 cresce del 35% a livello)."""
+    if lv <= len(XP_LEVELS):
+        return XP_LEVELS[max(0, lv - 1)]
+    return int(XP_LEVELS[-1] * (1.35 ** (lv - len(XP_LEVELS))))
+
+
+def level_for_xp(x: int) -> int:
+    lv = 1
+    while xp_for_level(lv + 1) <= x:
+        lv += 1
+    return lv
 
 
 def material(conn, pid: int, key: str) -> int:
