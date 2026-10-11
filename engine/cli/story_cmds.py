@@ -412,6 +412,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return seclusion.retreat(conn, player, arg)
     if cmd in ("dimora", "abode", "grotta"):
         from engine.systems import cave_abode
+        if not arg.strip():
+            from engine.systems import menus
+            return menus.show(conn, player, "dimora")
         return cave_abode.command(conn, player, arg)
     if cmd in ("classifica", "classifiche", "ranking", "rankings", "lista"):
         from engine.systems import rankings

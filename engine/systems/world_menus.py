@@ -207,6 +207,7 @@ def hub(conn, player) -> dict:
             act("Regni, corti e razze antiche", "regni"),
             act("Eventi del mondo", "eventi"),
             act("Coltivazione: allenamento, sfondamento, Dao, dimora", "coltivazione"),
+            act("Grotta-dimora", "dimora"),
             act("Famiglia, legami e discepoli", "famiglia")]
     if own_sect.get(conn):
         acts.append(act("La setta che hai fondato", "setta mia"))
@@ -256,22 +257,16 @@ def growth(conn, player) -> dict:
                         icon="📜"))
     ab = cave_abode.get(conn, player.id)
     if ab:
+        steps, cost = cave_abode.plan_max(ab, _stones(conn, player.id))
+        n = sum(b - a for _k, a, b in steps)
         home = player.location_id == ab["loc"]
-        a_acts = [act("Torna alla dimora", "dimora torna", ok=not home, why="ci sei già"),
-                  act("Raccogli ciò che ha prodotto", "dimora raccogli", ok=home, why="devi essere alla dimora")]
-        for k, (nm, _c) in cave_abode.WINGS.items():
-            lv = int(ab["wings"].get(k, 0))
-            cost = cave_abode.upgrade_cost(k, lv)
-            a_acts.append(act(f"Potenzia {nm} (liv. {lv} → {lv + 1}, {cost} pietre)", f"dimora potenzia {k}",
-                              ok=_stones(conn, player.id) >= cost, why=f"servono {cost} pietre"))
-        secs.append(section(f"Grotta-dimora: {ab['name']}", [], a_acts, icon="⌂"))
+        secs.append(section(f"Grotta-dimora: {ab['name']}", [], [
+            act("Apri il menu della dimora", "dimora", main=True),
+            act(f"Potenzia al massimo ({n} livell{'o' if n == 1 else 'i'}, {cost} pietre)", "dimora potenzia max",
+                ok=bool(n) and home, why="devi essere alla dimora" if n else "non hai abbastanza pietre")], icon="⌂"))
     else:
-        tier = cultivation.realm_tier(conn, "player", player.id) or 1
-        here = conn.execute("SELECT location_type FROM locations WHERE id=?;", (player.location_id,)).fetchone()
-        ok = here and here["location_type"] in ("mountain", "ruin", "forbidden_zone")
         secs.append(section("Grotta-dimora", ["Una casa tra le montagne: coltivi e crei meglio, produce erbe e nuclei."],
-                            [act(f"Reclama questo luogo ({cave_abode.claim_cost(tier)} pietre)", "dimora reclama",
-                                 ok=bool(ok), why="serve una montagna, delle rovine o una zona proibita")], icon="⌂"))
+                            [act("Apri il menu della dimora", "dimora")], icon="⌂"))
     return menu("coltivazione", "☯ COLTIVAZIONE", [cultivation.realm_label(conn, "player", player.id)], secs)
 
 
@@ -334,3 +329,57 @@ def family_menu(conn, player) -> dict:
                             [] if dis else ["Accogli chi ti stima ed è più debole di te: 'accogli <nome>'."],
                             dacts + [act("I tuoi discepoli", "discepoli")], icon="🎓"))
     return menu("famiglia", "🏠 FAMIGLIA E LEGAMI", [], secs)
+
+
+# ================================================================ DIMORA
+
+def abode(conn, player) -> dict:
+    from engine.systems import cave_abode as A, professions
+    from engine.simulation import cultivation
+    from engine.systems.travel import _loc_name
+    ab = A.get(conn, player.id)
+    stones = _stones(conn, player.id)
+    if not ab:
+        tier = cultivation.realm_tier(conn, "player", player.id) or 1
+        here = conn.execute("SELECT location_type FROM locations WHERE id=?;", (player.location_id,)).fetchone()
+        ok = here and here["location_type"] in A._SPOTS
+        cost = A.claim_cost(tier)
+        return menu("dimora", "⌂ GROTTA-DIMORA", ["Non hai ancora una dimora."], [section("Reclamarne una", [
+            "Si scava tra montagne, rovine o zone proibite. Poi la potenzi senza limiti: erbe, Qi, ritiro, "
+            "alchimia, difesa, stalla."],
+            [act(f"Reclama questo luogo ({cost} pietre)", "dimora reclama", ok=bool(ok) and stones >= cost,
+                 why="serve una montagna, delle rovine o una zona proibita" if not ok else f"hai {stones} pietre",
+                 main=True)], icon="⌂")])
+    home = player.location_id == ab["loc"]
+    steps, cost = A.plan_max(ab, stones)
+    n = sum(b - a for _k, a, b in steps)
+    top = [act(f"Potenzia tutto al massimo possibile ora: {n} livell{'o' if n == 1 else 'i'}, {cost} pietre",
+               "dimora potenzia max", ok=bool(n) and home,
+               why=("devi essere alla dimora" if n else
+                    f"il prossimo potenziamento costa {min(A.upgrade_cost(k, int(ab['wings'].get(k, 0))) for k in A.WINGS)} pietre, ne hai {stones}"),
+               main=True)]
+    if not home:
+        top.append(act("Torna alla dimora", "dimora torna", main=True))
+    lines = [("Sei a casa." if home else f"La dimora è a {_loc_name(conn, ab['loc'])}.") + f" Pietre: {stones}."]
+    if steps:
+        lines.append("Il potenziamento massimo farebbe: " + ", ".join(f"{A.WINGS[k][0]} {a}→{b}" for k, a, b in steps) + ".")
+    secs = [section("Potenzia", lines, top, icon="⇑")]
+    st = {k: v for k, v in ab.get("stock", {}).items() if v}
+    secs.append(section("Produzione", ["Da raccogliere: " + ", ".join(f"{v} {professions.MATERIALS.get(k, k)}"
+                                                                    for k, v in st.items()) if st else
+                                       "Nulla da raccogliere, per ora."],
+                        [act("Raccogli", "dimora raccogli", ok=bool(st) and home,
+                             why="devi essere alla dimora" if st else "non c'è nulla")], icon="✿"))
+    for k, (nm, _c) in A.WINGS.items():
+        lv = int(ab["wings"].get(k, 0))
+        c1 = A.upgrade_cost(k, lv)
+        wsteps, wcost = A.plan_max(ab, stones, k)
+        to = wsteps[0][2] if wsteps else lv
+        acts = [act(f"Potenzia di un livello ({c1} pietre)", f"dimora potenzia {k}", ok=home and stones >= c1,
+                    why="devi essere alla dimora" if not home else f"servono {c1} pietre")]
+        if to > lv + 1:
+            acts.append(act(f"Al massimo possibile: livello {to} ({wcost} pietre)", f"dimora potenzia {k} max",
+                            ok=home, why="devi essere alla dimora"))
+        secs.append(section(f"{nm} — livello {lv}", [f"Ora: {A.EFFECT[k](lv)} · al prossimo: {A.EFFECT[k](lv + 1)}"],
+                            acts))
+    return menu("dimora", f"⌂ {ab['name'].upper()}", [], secs)

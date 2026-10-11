@@ -70,7 +70,9 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
     ("dimora", "Grotta-dimora, discepoli e la tua setta", [
         "dimora                        — la tua grotta-dimora (o come ottenerne una)",
         "dimora reclama                — reclami il luogo selvaggio in cui sei come dimora",
+        "dimora                        — il MENU DELLA DIMORA: produzione, ali e «potenzia al massimo»",
         "dimora potenzia <ala>         — erbe · qi · ritiro · alchimia · difesa · stalla (livelli infiniti)",
+        "dimora potenzia max [ala]     — porta la dimora (o un'ala) al livello più alto che puoi pagare ora",
         "dimora raccogli | dimora torna — raccogli la produzione | torni a casa",
         "accogli <nome>                — (regno 3+) prendi un discepolo che ti stima ed è più debole",
         "insegna <nome> [dao]          — una lezione al giorno: lui cresce, tu comprendi meglio il Dao",

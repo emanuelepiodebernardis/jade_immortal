@@ -7,6 +7,8 @@ GROTTA-DIMORA (洞府) — la tua casa tra le montagne.
   dimora potenzia <ala>      potenzi una struttura (livelli infiniti, costo crescente)
   dimora raccogli            raccogli ciò che la dimora ha prodotto (devi esserci)
   dimora torna               torni a casa (il viaggio richiede tempo)
+  dimora potenzia max [ala]  porta la dimora (o un'ala) al livello più alto che puoi
+                             permetterti ora con le tue pietre, in un colpo solo
 
 Strutture:
   erbe      Campo di Erbe Spirituali — produce erbe ogni giorno
@@ -133,6 +135,61 @@ def upgrade(conn, player, wing_raw: str) -> str:
     return f"{WINGS[w][0]} portata al livello {lv + 1}. (-{cost} pietre)"
 
 
+EFFECT = {"erbe": lambda lv: f"{2 * lv} erbe al giorno",
+          "qi": lambda lv: f"coltivazione a casa ×{1.1 * (1 + 0.15 * lv):.2f}",
+          "ritiro": lambda lv: f"ritiro a casa ×{1 + 0.2 * lv:.1f}",
+          "alchimia": lambda lv: f"creare a casa: +{5 * lv}% riuscita, esperienza doppia" if lv else "nessun bonus",
+          "difesa": lambda lv: f"disturbi ÷{1 + lv}",
+          "stalla": lambda lv: f"nuclei e crescita della bestia ({lv})" if lv else "nessuna produzione"}
+
+
+def plan_max(ab: dict, stones: int, wing: str | None = None) -> tuple[list[tuple[str, int, int]], int]:
+    """I potenziamenti che puoi permetterti ora: [(ala, dal livello, al livello)], costo totale.
+    Per tutta la dimora sceglie ogni volta il potenziamento più economico (le ali crescono in equilibrio)."""
+    lv = {k: int(ab["wings"].get(k, 0)) for k in WINGS}
+    start = dict(lv)
+    spent = 0
+    keys = [wing] if wing else list(WINGS)
+    while True:
+        k = min(keys, key=lambda x: upgrade_cost(x, lv[x]))
+        c = upgrade_cost(k, lv[k])
+        if spent + c > stones:
+            break
+        spent += c
+        lv[k] += 1
+    return [(k, start[k], lv[k]) for k in WINGS if lv[k] > start[k]], spent
+
+
+def upgrade_max(conn, player, wing_raw: str = "") -> str:
+    """'dimora potenzia max [ala]': tutto ciò che puoi permetterti, in una sola sessione di lavoro."""
+    from engine.systems import sects
+    from engine.simulation import world_tick
+    ab = get(conn, player.id)
+    if not ab:
+        return "Non hai una dimora. ('dimora reclama' in una montagna, rovine o zona proibita)"
+    w = _ALIASES.get(wing_raw.strip().lower(), wing_raw.strip().lower()) or None
+    if w and w not in WINGS:
+        return "Quale ala? " + ", ".join(WINGS)
+    if player.location_id != ab["loc"]:
+        return "Devi essere nella tua dimora per lavorarci. ('dimora torna')"
+    stones = sects.get_resource(conn, "pietre_spirituali", player.id)
+    steps, cost = plan_max(ab, stones, w)
+    if not steps:
+        k = w or min(WINGS, key=lambda x: upgrade_cost(x, int(ab["wings"].get(x, 0))))
+        return (f"Non hai abbastanza pietre: il prossimo potenziamento ({WINGS[k][0]}) costa "
+                f"{upgrade_cost(k, int(ab['wings'].get(k, 0)))} pietre, ne hai {stones}.")
+    sects.grant_resource(conn, "pietre_spirituali", -cost, player.id)
+    n = 0
+    for k, a, b in steps:
+        ab["wings"][k] = b
+        n += b - a
+    _save(conn, ab)
+    world_tick.advance(conn, min(120, 24 + 8 * (n - 1)))
+    lines = [f"Lavori alla dimora senza sosta: {n} potenziament{'o' if n == 1 else 'i'} (-{cost} pietre)."]
+    lines += [f"  · {WINGS[k][0]}: livello {a} → {b} ({EFFECT[k](b)})" for k, a, b in steps]
+    return "\n".join(lines)
+
+
 def daily(conn, t: int, rng, player) -> list[str]:
     """Produzione quotidiana (accumulata finché non la raccogli)."""
     ab = get(conn, player.id)
@@ -229,6 +286,13 @@ def command(conn, player, arg: str) -> str:
     rest = parts[1] if len(parts) > 1 else ""
     if sub in ("reclama", "claim", "scava"):
         return claim(conn, player)
+    if sub in ("max", "massimo") or (sub in ("potenzia", "upgrade", "costruisci", "build")
+                                     and rest.split()[:1] and rest.split()[0] in ("max", "massimo", "tutto", "tutta")):
+        r = rest.split()
+        wing = r[1] if sub not in ("max", "massimo") and len(r) > 1 else (r[0] if sub in ("max", "massimo") and r else "")
+        return upgrade_max(conn, player, wing)
+    if sub in ("potenzia", "upgrade", "costruisci", "build") and rest.split()[-1:] in (["max"], ["massimo"]):
+        return upgrade_max(conn, player, rest.split()[0])
     if sub in ("potenzia", "upgrade", "costruisci", "build"):
         return upgrade(conn, player, rest)
     if sub in ("raccogli", "collect"):

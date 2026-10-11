@@ -152,3 +152,25 @@ def test_dashboard_menu_endpoint(conn, monkeypatch):
     m = game.menu_data("setta")
     assert m["key"] == "setta" and any(s["title"].startswith("Ascesa") for s in m["sections"])
     assert "errore" in game.menu_data("nulla")
+
+
+def test_abode_upgrade_max_spends_what_it_can_and_menu_offers_it(conn):
+    from engine.systems import cave_abode
+    loc = conn.execute("SELECT id FROM locations WHERE location_type='mountain' LIMIT 1;").fetchone()["id"]
+    entities.move_player(conn, 1, loc)
+    sects.grant_resource(conn, "pietre_spirituali", 3000, 1)
+    loop.dispatch(conn, "dimora reclama", allow_nl=False)
+    m = menus.build(conn, _p(conn), "dimora")
+    top = m["sections"][0]["actions"][0]
+    assert top["cmd"] == "dimora potenzia max" and top["ok"]
+    stones = sects.get_resource(conn, "pietre_spirituali", 1)
+    steps, cost = cave_abode.plan_max(cave_abode.get(conn), stones)
+    out = loop.dispatch(conn, "dimora potenzia max", allow_nl=False)
+    assert "potenziament" in out
+    left = sects.get_resource(conn, "pietre_spirituali", 1)
+    assert left == stones - cost
+    ab = cave_abode.get(conn)
+    nxt = min(cave_abode.upgrade_cost(k, int(ab["wings"].get(k, 0))) for k in cave_abode.WINGS)
+    assert nxt > left                                   # non resta nulla che si possa ancora pagare
+    out = loop.dispatch(conn, "dimora potenzia qi max", allow_nl=False)
+    assert "Non hai abbastanza pietre" in out or "potenziament" in out

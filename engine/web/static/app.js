@@ -44,7 +44,7 @@ function addLog(text, cmd) {
 }
 
 // ---------------- comandi ----------------
-const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "menu"];
+const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "menu"];
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;

@@ -12,6 +12,7 @@ avanzamento, e le AZIONI che puoi fare da lì. Le stesse strutture vengono mostr
   regni           regni e corti, guerre, trono, razze antiche
   eventi          tutto ciò a cui puoi partecipare ora nel mondo
   coltivazione    allenamento, sfondamento, Dao, metodo, grotta-dimora
+  dimora          la grotta-dimora: produzione, ali, «potenzia al massimo» in un colpo
   famiglia        la famiglia, i legami (parla, favori, duelli con rivali e nemesi), i discepoli
 """
 
@@ -49,11 +50,11 @@ def _builders() -> dict:
     from engine.systems import sect_menu, world_menus, professions
     return {"setta": sect_menu.build, "arti": world_menus.arts, "regni": world_menus.realms,
             "eventi": world_menus.events, "menu": world_menus.hub, "coltivazione": world_menus.growth,
-            "famiglia": world_menus.family_menu}
+            "famiglia": world_menus.family_menu, "dimora": world_menus.abode}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
-         "coltivazione": "Coltivazione", "famiglia": "Famiglia"}
+         "coltivazione": "Coltivazione", "famiglia": "Famiglia", "dimora": "Dimora"}
 
 
 def build(conn, player, key: str) -> dict:

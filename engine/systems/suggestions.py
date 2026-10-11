@@ -102,6 +102,12 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     ab = cave_abode.get(conn, player.id)
     if ab and ab["loc"] == loc and any(v > 0 for v in (ab.get("stock") or {}).values()):
         _add(out, "Raccogli la produzione della tua dimora", "dimora raccogli")
+    if ab and ab["loc"] == loc:
+        steps, cost = cave_abode.plan_max(ab, sects.get_resource(conn, "pietre_spirituali", player.id))
+        n = sum(b - a for _k, a, b in steps)
+        if n:
+            _add(out, f"Potenzia la dimora al massimo ({n} livell{'o' if n == 1 else 'i'}, {cost} pietre)",
+                 "dimora potenzia max")
 
     if conn.execute("SELECT 1 FROM inventories v JOIN items i ON i.id=v.item_id WHERE v.owner_type='player' "
                     "AND v.owner_id=? AND v.quantity>0 AND i.item_type='essenza' LIMIT 1;",

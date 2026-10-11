@@ -1240,3 +1240,21 @@ Nuovi test: `test_duel.py` (3), `test_stories.py` (5) e aggiunte in `test_dashbo
 - `vai #<luogo>` porta in un luogo preciso: lo usano i menu.
 
 Nuovi test: `test_menus.py` (8). Suite totale: **546 passati**.
+
+---
+
+## Aggiornamento 27 — Il menu della dimora e «potenzia al massimo»
+
+- **Menu della dimora** (`dimora`, e il pulsante *⌂ Dimora* nella dashboard). Contiene:
+  - la produzione da raccogliere;
+  - per ogni ala il livello, cosa fa ora e cosa farà al livello successivo, con i pulsanti
+    *+1 livello* e *Al massimo possibile*.
+- **Potenzia al massimo** (`dimora potenzia max`): spende le pietre che hai per portare la
+  dimora al livello più alto che puoi permetterti adesso, in una sola sessione di lavoro.
+  - Ogni volta sceglie il potenziamento più economico, così le ali crescono in equilibrio.
+  - Prima di confermare, il menu mostra quanti livelli farebbe e quanto costerebbe.
+  - `dimora potenzia <ala> max` fa lo stesso su un'ala sola.
+- Quando sei a casa e puoi permetterti un potenziamento, compare tra le 8 azioni rapide.
+- Nel menu Coltivazione la dimora ha un collegamento al suo menu e il potenziamento massimo.
+
+Nuovi test in `test_menus.py`. Suite totale: **547 passati**.
