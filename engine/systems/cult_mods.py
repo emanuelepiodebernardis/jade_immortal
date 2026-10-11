@@ -35,7 +35,8 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     from engine.systems import constitutions, dao_heart, mentor_ring, inner_space, celestial_elements, lost_legacy
     for m, lbl in (constitutions.cultivation_mult(conn), dao_heart.cultivation_mult(conn),
                    mentor_ring.cultivation_mult(conn), inner_space.cultivation_mult(conn),
-                   celestial_elements.cultivation_mult(conn), lost_legacy.cultivation_mult(conn)):
+                   celestial_elements.cultivation_mult(conn), lost_legacy.cultivation_mult(conn),
+                   _era(conn)):
         if m != 1.0:
             out.append((m, lbl))
     from engine.systems import formations
@@ -66,5 +67,10 @@ def dao_mult(conn: sqlite3.Connection, pid: int, dao_key: str) -> float:
 
 
 def _extra_dao(conn, dao_key: str) -> float:
-    from engine.systems import celestial_elements, lost_legacy
-    return celestial_elements.dao_mult(conn, dao_key) * lost_legacy.dao_mult(conn)
+    from engine.systems import celestial_elements, lost_legacy, master_plot
+    return celestial_elements.dao_mult(conn, dao_key) * lost_legacy.dao_mult(conn) * master_plot.dao_mult(conn)
+
+
+def _era(conn):
+    from engine.systems import eras
+    return eras.cultivation_mult(conn)

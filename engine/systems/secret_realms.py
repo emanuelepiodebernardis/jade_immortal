@@ -119,7 +119,7 @@ def _floor_scene(conn, rng, player, r: dict, floor: int) -> dict:
     tier = r["tier"]
     last = floor >= r["floors"]
     if last:
-        return {
+        inh = {
             "key": "reame_eredita", "title": f"{r['name']} — La Sala dell'Eredità", "event_type": "fortune",
             "text": ("In fondo al reame, una sala intatta da diecimila anni. Su un altare, cinque doni: "
                      "solo uno potrà essere tuo."),
@@ -142,6 +142,8 @@ def _floor_scene(conn, rng, player, r: dict, floor: int) -> dict:
                 {"label": "Una bottiglietta di giada verde, piena di terra",
                  "effects": {"inner_space": True, "realm_done": True}},
             ]}
+        from engine.systems import heart_trials
+        return heart_trials.scene(rng, tier, then=inh) if rng.random() < 0.5 else inh
     kind = rng.choice(["guardiano", "scrigno", "rivali", "pozza", "guardiano", "scrigno"])
     base = {"title": f"{r['name']} — piano {floor}/{r['floors']}", "event_type": "fortune", "sticky": True}
     if kind == "guardiano":

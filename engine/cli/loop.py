@@ -434,8 +434,9 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     _mat = professions.on_creature_kill(conn, player.id, npc.id, _vk["kind"] if _vk else None)
     if _mat:
         lines.append(_mat)
-    from engine.systems import npc_quests, soul_war, lost_legacy
+    from engine.systems import npc_quests, soul_war, lost_legacy, kingdoms
     lines += npc_quests.check(conn, player)
+    lines += kingdoms.on_kill(conn, player, npc.id)
     lines += soul_war.on_kill(conn, t, player, _vk["kind"] if _vk else None)
     _fl = soul_war.maybe_find_flag(conn, rng, player)
     if _fl:
@@ -992,8 +993,9 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         lines.append(f"{fin} ({rounds} round)")
         if ratio < 0.87:
             lines += seclusion.on_upset_win(conn, t, rng, player, npc.name, ratio)
-        from engine.systems import weapon_spirit as _wsp
+        from engine.systems import weapon_spirit as _wsp, archrival as _arc
         lines += _wsp.on_fight(conn, rng, player, True, npc.name, ratio)
+        lines += _arc.on_fight(conn, player, npc.id, True, True)
         lines += _after_player_kill(conn, t, rng, player, npc, chosen)
     else:
         lines.append(rng.choice([
@@ -1002,8 +1004,9 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
             f"{npc.name} arretra, troppo malconcio per continuare. ({rounds} round)"]))
         if ratio < 0.87:
             lines += seclusion.on_upset_win(conn, t, rng, player, npc.name, ratio)
-        from engine.systems import weapon_spirit as _wsp
+        from engine.systems import weapon_spirit as _wsp, archrival as _arc
         lines += _wsp.on_fight(conn, rng, player, True, npc.name, ratio)
+        lines += _arc.on_fight(conn, player, npc.id, True, False)
         from engine.systems import bonds as _bonds
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
@@ -1026,8 +1029,9 @@ def _auto_end_player(conn, t, rng, player, npc, rounds, lines) -> str:
         lines.append(f"Sei sopraffatto e ti accasci, ferito ma vivo. ({rounds} round)")
         from engine.systems import dao_heart
         lines += dao_heart.adjust(conn, -3, "sconfitta")
-        from engine.systems import weapon_spirit as _wsp
+        from engine.systems import weapon_spirit as _wsp, archrival as _arc
         lines += _wsp.on_fight(conn, rng, player, False, npc.name, 1.0)
+        lines += _arc.on_fight(conn, player, npc.id, False, False)
         from engine.systems import bonds as _bonds
         msg = _bonds.on_player_defeated(conn, t, rng, player, npc)
         if msg:
@@ -2029,7 +2033,9 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     if not lost_legacy.get(conn) and not state_flag(conn, "legacy_init"):
         lines += ["  " + ln for ln in lost_legacy.assign(conn, _rng2)]
         _set_flag(conn, "legacy_init")
-    for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense):
+    from engine.systems import archrival, kingdoms, races, eras, contests, captivity
+    for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense,
+                 archrival, kingdoms, races, eras, contests, captivity):
         lines += ["  " + ln for ln in _mod.daily(conn, t, _rng2, entities.get_player(conn))]
     from engine.systems import beast_eggs, qol
     lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]

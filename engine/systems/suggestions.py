@@ -42,6 +42,19 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     if last.get("tick") == t and last.get("cmd"):
         _SKIP.add(last["cmd"])            # appena fatta e senza effetti sul tempo
 
+    # 0) prigionia e calamità: vengono prima di tutto
+    from engine.systems import captivity, eras, contests
+    if captivity.active(conn):
+        _add(out, "Pianifica la fuga", "evadi")
+        return out
+    era = eras.get(conn)
+    if era["key"] == "calamita" and era["waves"] > 0:
+        _add(out, f"Respingi un'ondata di {era['calamity']}", "calamita")
+    gc = contests.current(conn)
+    if gc and gc["loc"] == loc and not gc["done"]:
+        _add(out, "Affronta la prossima prova della gara" if gc["joined"] else "Iscriviti alla gara d'arte",
+             "gara prova" if gc["joined"] else "gara iscriviti")
+
     # 1) minacce immediate
     for nm in bonds.nemeses(conn, player.id):
         if nm["location_id"] == loc:

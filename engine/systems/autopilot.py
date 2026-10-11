@@ -162,6 +162,22 @@ def _loc_type(conn, loc_id) -> str:
     return r["location_type"] if r else ""
 
 
+def _danger(conn, pid: int, loc: int) -> bool:
+    """Un nemico più forte di te (che ti odia, o ti dà la caccia) è in quel luogo?"""
+    from engine.systems import perception
+    rows = conn.execute(
+        "SELECT n.id FROM npcs n LEFT JOIN npc_player_relations r ON r.npc_id=n.id AND r.player_id=? "
+        "WHERE n.location_id=? AND n.status='alive' AND (n.hunting=1 OR COALESCE(r.score,0)<=-30);",
+        (pid, loc)).fetchall()
+    return any(perception.strength_ratio(conn, pid, r["id"]) < 1.0 for r in rows)
+
+
+def _safe_exit(conn, player, rng) -> str | None:
+    ex = entities.get_exits(conn, player.location_id)
+    safe = [d for d, lid in ex.items() if not _danger(conn, player.id, lid) and d in ("north", "south", "east", "west")]
+    return f"move {rng.choice(sorted(safe))}" if safe else None
+
+
 def _step_to_wild(conn, player) -> str | None:
     from collections import deque
     start = player.location_id
@@ -172,7 +188,7 @@ def _step_to_wild(conn, player) -> str | None:
         for r in conn.execute("SELECT direction, to_location_id FROM location_connections "
                               "WHERE from_location_id=?;", (cur,)).fetchall():
             nxt = r["to_location_id"]
-            if nxt in seen:
+            if nxt in seen or _danger(conn, player.id, nxt):
                 continue
             fd = first or r["direction"]
             if _loc_type(conn, nxt) in _WILD:
@@ -184,6 +200,9 @@ def _step_to_wild(conn, player) -> str | None:
 
 def _wander(conn, player, rng) -> str | None:
     ex = entities.get_exits(conn, player.location_id)
+    if not ex:
+        return None
+    ex = {d: lid for d, lid in ex.items() if not _danger(conn, player.id, lid)}
     if not ex:
         return None
     wild = [d for d, lid in ex.items() if _loc_type(conn, lid) in _WILD]
@@ -240,6 +259,10 @@ def _meditations_today(conn) -> int:
 def _choose_action(conn, player, cfg: dict, rng: random.Random) -> str | None:
     from engine.systems import dao_training, loot, absorption, own_sect
     from engine.core import entities as ents
+    if _danger(conn, player.id, player.location_id):
+        mv = _safe_exit(conn, player, rng)
+        if mv:
+            return mv
     # prima ciò che è a terra
     if cfg["loot"] and loot.drops_in_location(conn, player.location_id):
         return "loot"
@@ -386,6 +409,35 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
     rec = cultivation.get_record(conn, "player", p.id)
     if rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and not (cfg or DEFAULT).get("sfonda"):
         return "sei pronto allo sfondamento ('breakthrough')"
+    ev = conn.execute(
+        "SELECT e.summary FROM events e JOIN event_participants pp ON pp.event_id=e.id "
+        "WHERE pp.participant_type='player' AND e.event_type='fight' AND e.tick>=? "
+        "AND e.summary LIKE '% te %' ORDER BY e.id DESC LIMIT 1;", (before.get("t0", 0),)).fetchone()
+    if ev:
+        return f"sei stato aggredito ({ev['summary']})"
+    from engine.systems import eras, contests, professions, captivity
+    if captivity.active(conn):
+        return "sei stato catturato ('evadi')"
+    era = eras.get(conn)
+    if era["key"] == "calamita" and era["waves"] > 0 and before.get("era_n") != era["n"]:
+        before["era_n"] = era["n"]
+        return f"è cominciata la calamità: {era['calamity']} ('calamita')"
+    gc = contests.current(conn)
+    if gc and not gc["joined"] and before.get("contest_end") != gc["end"] \
+            and professions.profession(conn, p.id) == gc["art"]:
+        before["contest_end"] = gc["end"]
+        return f"si apre una gara della tua arte a {gc['city']} ('gara')"
+    seen = before.setdefault("threats_seen", set())
+    hunter = conn.execute("SELECT id, name FROM npcs WHERE location_id=? AND hunting=1 AND status='alive' LIMIT 1;",
+                          (p.location_id,)).fetchone()
+    if hunter and hunter["id"] not in seen:
+        seen.add(hunter["id"])
+        return f"un cacciatore ti ha trovato: {hunter['name']}"
+    from engine.systems import bonds
+    for nm in bonds.nemeses(conn, p.id):
+        if nm["location_id"] == p.location_id and nm["npc_id"] not in seen:
+            seen.add(nm["npc_id"])
+            return f"la tua nemesi {nm['name']} è qui"
     inj = conn.execute("SELECT COALESCE(SUM(severity),0) s FROM injuries WHERE character_type='player' "
                        "AND character_id=? AND healed=0;", (p.id,)).fetchone()["s"]
     if inj >= 9:
@@ -424,12 +476,23 @@ def run(conn, player, days: int) -> str:
     from engine.systems import encounters, reports
     if encounters.pending(conn):
         return "C'è una scena in sospeso: risolvila prima di entrare nello stato etereo."
+    from engine.systems import captivity
+    if captivity.active(conn):
+        return "Sei prigioniero: prima devi evadere ('evadi')."
     days = max(1, min(MAX_DAYS, days))
     cfg = config(conn)
     rng_keys = _random_keys()
     s0 = _stats(conn, player.id)
     before = _snapshot(conn, player.id)
     t0 = tick_mod.get_tick(conn)
+    before["t0"] = t0
+    # chi è già qui quando parti non ferma il pilota (lo eviterà): ferma solo chi arriva dopo
+    from engine.systems import eras, contests
+    before["era_n"] = eras.get(conn)["n"] if eras.get(conn)["key"] == "calamita" else None
+    _gc = contests.current(conn)
+    before["contest_end"] = _gc["end"] if _gc else None
+    before["threats_seen"] = {r["id"] for r in conn.execute(
+        "SELECT id FROM npcs WHERE location_id=? AND status='alive';", (player.location_id,))}
     notes: list[str] = []
     reason = None
     done_days = 0
@@ -472,6 +535,12 @@ def run(conn, player, days: int) -> str:
                 notes += [ln.strip() for ln in out.splitlines() if any(k in ln for k in _NOTABLE)]
             done_days += 1
             conn.commit()
+            from engine.cli import story_cmds
+            _st = story_cmds.story_tick(conn, entities.get_player(conn, player.id))
+            if _st:
+                notes.append(_st.split("\n")[0])
+                reason = "un nuovo capitolo della tua storia ('encounter' per leggerlo)"
+                break
             reason = _stop_reason(conn, player, before, rng_keys, cfg)
             if reason:
                 break

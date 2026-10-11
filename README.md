@@ -26,6 +26,11 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 - **Incontri a scelta**: mini-scene con prove sulle tue qualità reali e la probabilità di
   riuscita mostrata prima di scegliere.
 - **Storia personale** in 4 capitoli per ogni origine, con il diario `goals`.
+- **Trama maestra in atti, senza fine** (`trama`): fidanzamento annullato e duello dei tre
+  anni, l'arcinemico che ricorda e ha eredi, regni e corti, razze antiche, tradimento e
+  prigionia, i Mietitori. Poi mondi superiori uno sopra l'altro, ognuno con le sue
+  verità, i suoi Signori e le Leggi dell'Imperatore del Dao. Non c'è un nemico finale.
+- **Ere del mondo e calamità** che ritornano sempre più forti; **gare d'arte** con corone infinite.
 - **Legami**: compagni che combattono con te, un maestro, rivali e **nemesi** che tornano
   più forti.
 - **Reincarnazione**: alla morte un epilogo, una tomba con i tuoi tesori e una nuova vita
@@ -160,6 +165,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Sangue | `sangue`, `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
 | Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
 | Eredità | `retaggio`, `anello`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
+| Trama | `trama`, `arcinemico`, `regni`, `corte`, `sostieni`, `tributo`, `guerra_regni`, `trono`, `razze`, `ambasciata`, `era`, `calamita`, `gara`, `evadi` |
 | Interfaccia | `tutorial`, `mappa`, `codex`, `salva`, `carica`, `salvataggi`, `colori` |
 | Pilota automatico | `auto`, `auto <giorni>`, `auto imposta ...` |
 | Guerra | `raid`, `invade` |

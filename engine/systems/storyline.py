@@ -503,6 +503,8 @@ def goals(conn: sqlite3.Connection, player: entities.Player) -> str:
                     ln = conn.execute("SELECT name FROM locations WHERE id=?;", (sn["location_id"],)).fetchone()
                     if ln:
                         lines.append(f"  (Ultimo avvistamento: {ln['name']})")
+    from engine.systems import master_plot
+    lines += master_plot.goals(conn, player)
     from engine.systems import lost_legacy
     lg = lost_legacy.get(conn)
     if lg:

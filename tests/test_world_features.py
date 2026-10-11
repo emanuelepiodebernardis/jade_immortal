@@ -59,8 +59,11 @@ def test_secret_realm_opens_and_runs_to_inheritance(conn):
     assert "soglia" in secret_realms.enter(conn, _p(conn))
     for _ in range(r["floors"]):
         out = loop.dispatch(conn, "delve", allow_nl=False)
-        assert "piano" in out or "Eredità" in out
+        assert "piano" in out or "Eredità" in out or "Prova" in out
         sc = encounters.pending(conn)
+        if sc["key"].startswith("prova_cuore"):
+            loop.dispatch(conn, "1", allow_nl=False)
+            sc = encounters.pending(conn)
         last = len(sc["choices"])
         loop.dispatch(conn, str(last if "Eredità" not in sc["title"] else 3), allow_nl=False)
         if _p(conn).status != "alive":

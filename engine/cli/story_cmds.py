@@ -55,7 +55,9 @@ def _toggle(conn, key, arg, label) -> str:
 
 
 def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str) -> str | None:
-    from engine.systems import bonds, encounters, storyline, rebirth
+    from engine.systems import bonds, encounters, storyline, rebirth, captivity
+    if captivity.active(conn) and (cmd in _MOVE_CMDS or (cmd == "dimora" and arg.strip().lower().startswith("torna"))):
+        return captivity.blocked_msg()
     if cmd.isdigit():
         return _choose_number(conn, player, int(cmd))
     if cmd in ("encounter", "incontro", "scelte"):
@@ -170,6 +172,48 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("chiama", "call"):
         from engine.systems import oaths
         return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("trama", "storia", "plot"):
+        from engine.systems import master_plot
+        return master_plot.describe(conn, player)
+    if cmd in ("arcinemico", "archrival", "rivale"):
+        from engine.systems import archrival
+        return archrival.describe(conn, player)
+    if cmd in ("regni", "kingdoms", "imperi"):
+        from engine.systems import kingdoms
+        return kingdoms.describe(conn, player)
+    if cmd in ("corte", "court"):
+        from engine.systems import kingdoms
+        return kingdoms.court(conn, player)
+    if cmd in ("sostieni", "support"):
+        from engine.systems import kingdoms
+        return kingdoms.back(conn, player, arg)
+    if cmd in ("tributo", "tribute"):
+        from engine.systems import kingdoms
+        return kingdoms.tribute(conn, player, arg)
+    if cmd in ("guerra_regni", "kingdomwar"):
+        from engine.systems import kingdoms
+        return kingdoms.war(conn, player)
+    if cmd in ("trono", "throne", "usurpa"):
+        from engine.systems import kingdoms
+        return kingdoms.seize(conn, player)
+    if cmd in ("razze", "races"):
+        from engine.systems import races
+        return races.describe(conn, player)
+    if cmd in ("ambasciata", "embassy"):
+        from engine.systems import races
+        return races.embassy(conn, player, arg)
+    if cmd in ("era", "ere", "epoca"):
+        from engine.systems import eras
+        return eras.describe(conn, player)
+    if cmd in ("calamita", "calamità", "calamity"):
+        from engine.systems import eras
+        return eras.fight_wave(conn, player)
+    if cmd in ("gara", "gare", "contest"):
+        from engine.systems import contests
+        return contests.command(conn, player, arg)
+    if cmd in ("evadi", "fuggi", "escape"):
+        from engine.systems import captivity
+        return captivity.escape_step(conn, player)
     if cmd in ("anello", "ring", "maestro_anello"):
         from engine.systems import mentor_ring
         return mentor_ring.command(conn, player, arg)
@@ -364,6 +408,18 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     return bonds.take_master(conn, t, player, npc)
 
 
+def story_tick(conn, player) -> str | None:
+    """Prova a far avanzare la storia: origine, archi del mondo, trama maestra, maestri segreti."""
+    from engine.systems import storyline, world_arcs, master_plot, secret_masters
+    return (storyline.maybe_advance(conn, player) or world_arcs.maybe_advance(conn, player)
+            or master_plot.maybe_advance(conn, player) or secret_masters.maybe_meet(conn, player))
+
+
+_MOVE_CMDS = {"move", "go", "n", "s", "e", "w", "north", "south", "east", "west", "nord", "sud", "est", "ovest",
+              "home", "warzone", "raidtarget", "teletrasporto", "teleport", "tp", "up", "down", "su", "giu", "giù",
+              "enter", "entra", "ascendi_mondo"}
+
+
 def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     """Testo da mostrare dopo ogni comando: capitolo della storia pronto, HUD e
     azioni suggerite (o le scelte dell'incontro aperto)."""
@@ -374,18 +430,9 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
         return ""
     from engine.systems import dao_superiori
     out += dao_superiori.check_awakenings(conn, player.id)
-    ch = storyline.maybe_advance(conn, player)
-    if not ch:
-        from engine.systems import world_arcs
-        ch = world_arcs.maybe_advance(conn, player)
+    ch = story_tick(conn, player)
     if ch:
         out.append(ch)
-    else:
-        from engine.systems import secret_masters
-        ms = secret_masters.maybe_meet(conn, player)
-        if ms:
-            out.append(ms)
-            ch = ms
     if hud.enabled(conn):
         out.append(hud.hud_line(conn, player))
     pend = encounters.pending(conn)

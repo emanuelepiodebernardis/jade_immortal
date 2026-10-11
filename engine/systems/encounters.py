@@ -338,6 +338,30 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     if any(k in eff for k in ("face_duel", "face_humiliate", "feud_end", "feud_win")):
         from engine.systems import face
         lines += face.apply(conn, t, rng, player, eff, ctx)
+    if any(k in eff for k in ("plot_flag", "plot_flag2", "plot_choice", "plot_vow", "plot_duel", "imprison",
+                              "dao_law", "race_all")):
+        from engine.systems import master_plot
+        lines += master_plot.apply_effect(conn, t, rng, player, eff, ctx)
+    if eff.get("escape_step"):
+        from engine.systems import captivity
+        captivity.set_step(conn, int(eff["escape_step"]))
+    if eff.get("escape_ally") and ctx.get("npc_id"):
+        from engine.systems import captivity
+        captivity.set_ally(conn, ctx["npc_id"])
+    if eff.get("escape_free"):
+        from engine.systems import captivity
+        lines += captivity.free(conn, player)
+    if eff.get("kingdom_favor"):
+        from engine.systems import kingdoms
+        rk, n = eff["kingdom_favor"]
+        lines += kingdoms.add_favor(conn, str(rk), int(n))
+    if eff.get("race_honor"):
+        from engine.systems import races
+        k, rel, hon = eff["race_honor"]
+        lines += races.adjust(conn, k, rel=int(rel) // 4, honor=int(rel)) + (races.adjust(conn, k, rel=int(hon)) if hon else [])
+    if eff.get("calamity_wave"):
+        from engine.systems import eras
+        lines += eras.wave_won(conn)
     if eff.get("mentor_ring"):
         from engine.systems import mentor_ring
         lines += mentor_ring.awaken(conn, rng)

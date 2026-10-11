@@ -167,6 +167,17 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "gu [raffina <tipo>]           — i GU nella tua apertura: nutrirli, raffinarli",
         "bandiera                      — la BANDIERA DELLE ANIME (arte demoniaca)",
     ]),
+    ("trama", "La trama, i regni, le razze e le ere", [
+        "trama                         — la tua storia: l'atto, le verità scoperte, le scelte che il mondo ricorda",
+        "arcinemico                    — il rivale di una vita: cosa ricorda, le cicatrici, i suoi eredi",
+        "regni | corte                 — i regni del mondo | la corte del regno in cui ti trovi",
+        "sostieni <regno> | tributo <pietre> — servi un regno e sali di rango (da Suddito a Re dei Re)",
+        "guerra_regni | trono          — combatti per il tuo regno | prendi il trono (da Duca, se il popolo ti segue)",
+        "razze | ambasciata <razza> <dona N|prova> — le RAZZE ANTICHE (draghi, demoni, spiriti, giganti, maree)",
+        "era | calamita                — l'ERA del mondo e la CALAMITÀ che ritorna: respingi le ondate",
+        "gara [iscriviti|prova]        — le GARE DEI MAESTRI d'arte: corone senza fine",
+        "evadi                         — (se sei prigioniero) il passo successivo della fuga",
+    ]),
     ("auto", "Pilota automatico (stato etereo)", [
         "auto                          — la configurazione del pilota automatico",
         "auto <giorni>                 — i giorni scorrono da soli (max 60); si ferma agli eventi importanti",
@@ -206,6 +217,8 @@ _ALIASES = {
     "formazioni": "arti", "domatore": "arti", "sangue": "bestie", "lignaggi": "bestie",
     "autopilota": "auto", "pilota": "auto", "etereo": "auto", "anello": "eredita", "cloni": "eredita",
     "famiglia": "eredita", "gu": "eredita", "elementi": "eredita", "retaggio": "eredita",
+    "regni": "trama", "razze": "trama", "era": "trama", "ere": "trama", "calamita": "trama",
+    "arcinemico": "trama", "gare": "trama", "prigionia": "trama", "plot": "trama",
 }
 
 ESSENTIALS = """Nuovo? Scrivi 'tutorial'.

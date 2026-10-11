@@ -751,3 +751,67 @@ Tutto si coltiva senza fine: ogni sistema ha livelli, gradi o cicli che continua
   frammenti del retaggio.
 
 Nuovi test: `tests/test_protagonist_features.py` (10). Suite totale: **477 passati**.
+
+---
+
+## Aggiornamento 21 — La trama maestra (che non finisce mai)
+
+La storia ora ha una **spina dorsale in atti**, costruita a *storylet*: ogni capitolo si
+apre quando le sue condizioni sono vere (regno, scelte fatte, mondi raggiunti), non a una
+data fissa. Si legge con `trama`. **Non esiste un nemico finale**: sopra ogni verità ce
+n'è un'altra, sopra ogni mondo un altro mondo.
+
+- **Atto I — L'umiliazione**
+  - L'annullamento del fidanzamento: subisci, rispondi o giuri il **duello dei tre anni**.
+  - L'arcinemico.
+  - La prima verità sulla **Mietitura**: qualcuno, in alto, «raccoglie» i talenti di
+    ogni generazione.
+- **Atto II — Il mondo è più grande**
+  - Le corti dei regni.
+  - Il segreto dei tuoi genitori.
+  - Le razze antiche.
+  - Il tradimento.
+  - La prigionia.
+- **Atto III — I Mietitori**: i Mietitori si mostrano, arriva la calamità dell'era, poi
+  l'ascensione.
+- **Atto IV e oltre — senza fine.** Per ogni mondo superiore:
+  - il disprezzo dei nativi verso chi sale dal basso;
+  - una nuova verità, che rivela un grado più alto dell'ordine della Mietitura (la
+    gerarchia non ha cima);
+  - il Signore di quel mondo;
+  - una **Legge dell'Imperatore del Dao**, che aumenta la comprensione del Dao dell'8% per
+    ogni legge.
+- **Le scelte che il mondo ricorda** tornano nei capitoli successivi.
+- **Arcinemico** (`archrival.py`, `arcinemico`), sul modello del «sistema Nemesi»:
+  - ricorda le cicatrici che gli hai lasciato e le vittorie che ha avuto su di te;
+  - cresce da solo e torna più forte;
+  - se lo uccidi, dopo qualche settimana un erede (fratello, discepolo, figlio…) ne
+    raccoglie il nome e la memoria, ogni generazione più forte.
+- **Regni** (`kingdoms.py`: `regni`, `corte`, `sostieni`, `tributo`, `guerra_regni`, `trono`):
+  - un regno per ogni regione, con successioni e guerre tra regni;
+  - ranghi che salgono senza fine, da Suddito a Re dei Re N;
+  - da Duca, se il popolo ti segue, puoi prendere il trono.
+- **Razze antiche** (`races.py`: `razze`, `ambasciata`): draghi, demoni, spiriti, giganti e
+  maree, con relazioni, onori a livelli infiniti, alleanze e incursioni.
+- **Ere del mondo e calamità** (`eras.py`: `era`, `calamita`):
+  - un'era ogni 90 giorni: Rinascita del Qi (coltivazione ×1,25), Declino (×0,85), Mille
+    Scuole (gare più frequenti) o Pace;
+  - ogni quarta era torna la **calamità**, con un'ondata in più ogni volta;
+  - gli alleati che hai conquistato (razze, regni, setta, famiglia, fratelli giurati,
+    discepoli) combattono con te.
+- **Gare dei maestri d'arte** (`contests.py`, `gara`): tre prove contro maestri rivali;
+  ogni vittoria aggiunge una corona («Re delle Pillole (3ª corona)»…).
+- **Prigionia e fuga** (`captivity.py`, `evadi`):
+  - finché sei prigioniero non puoi viaggiare;
+  - la fuga richiede tre passi: studiare le guardie, trovare un alleato (che poi viaggerà
+    con te), evadere.
+- **Prove del cuore** (`heart_trials.py`): illusioni del desiderio, della paura e del
+  rimpianto, che custodiscono le eredità dei reami segreti e i momenti chiave della storia.
+- **Pilota automatico**:
+  - si ferma per aggressioni, cacciatori o nemesi appena arrivati, la calamità, le gare
+    della tua arte e la cattura;
+  - evita i luoghi dove c'è un nemico più forte di te.
+- Nuova categoria d'aiuto: `help trama`. Le azioni suggerite propongono la fuga, le ondate
+  della calamità e le gare.
+
+Nuovi test: `tests/test_master_plot.py` (11). Suite totale: **488 passati**.
