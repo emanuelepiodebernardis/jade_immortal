@@ -815,3 +815,26 @@ n'è un'altra, sopra ogni mondo un altro mondo.
   della calamità e le gare.
 
 Nuovi test: `tests/test_master_plot.py` (11). Suite totale: **488 passati**.
+
+---
+
+## Aggiornamento 22 — Allenamento d'insieme (`train` / `t`)
+
+Un solo comando per far crescere tutto insieme, invece di alternare `cultivate`,
+`comprehend <dao>` e `craft`.
+
+- **`train`** (oppure `t`, `allena`): una sessione, lo stesso tempo di una meditazione.
+  - **Qi**: rende il 70% di una meditazione dedicata, perché l'attenzione è divisa.
+  - **Tutti i Dao che conosci** crescono un poco ciascuno. I comuni vanno più in fretta e
+    i rari più piano: Dao d'arma ×1, elementali ×0,85, sistemici ×0,75, superiori ×0,5,
+    profondi (Destino, Tempo, Spazio) ×0,35.
+  - I progressi frazionari si accumulano da una sessione all'altra, quindi anche i Dao più
+    lenti avanzano sempre.
+  - **La tua arte** guadagna esperienza a ogni sessione.
+  - Valgono tutti i bonus abituali: rendimento della giornata, setta affine, Dao del Tempo,
+    ere, dimora, Leggi dell'Imperatore. Si nutre anche lo spirito dell'arma, se ti alleni
+    nel suo Dao.
+- Le meditazioni dedicate restano più efficaci per spingere una cosa sola.
+- L'azione suggerita per coltivare ora propone `train`.
+
+Nuovi test: `tests/test_train_all.py` (2). Suite totale: **490 passati**.

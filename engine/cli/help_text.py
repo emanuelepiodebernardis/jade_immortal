@@ -38,6 +38,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "rating                        — il tuo profilo di potenza (Qi/Corpo/Anima/Dao), classe e zona",
     ]),
     ("coltivazione", "Coltivazione e Dao", [
+        "train (o 't')                 — ALLENAMENTO D'INSIEME: Qi, tutti i tuoi Dao e la tua arte in una sola azione",
         "cultivate (o 'c')             — mediti per accumulare progresso nel tuo regno",
         "breakthrough                  — tenti di salire di regno (può fallire o ucciderti!); a volte appare il demone interiore",
         "dao                           — i Dao che pratichi e la loro comprensione",
@@ -223,7 +224,7 @@ _ALIASES = {
 
 ESSENTIALS = """Nuovo? Scrivi 'tutorial'.
 Comandi essenziali:
-  look · move <n|s|e|w> · cultivate · attack <nome> · status · goals · auto <giorni>
+  look · move <n|s|e|w> · train (t) · attack <nome> · status · goals · auto <giorni>
   Dopo ogni comando trovi delle AZIONI SUGGERITE numerate: scrivi il numero per eseguirle.
   Quando capita un INCONTRO, scegli scrivendo il numero dell'opzione.
 

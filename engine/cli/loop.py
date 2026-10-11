@@ -1088,7 +1088,8 @@ def _absorb_hint(conn, player) -> str | None:
     return None
 
 
-def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
+def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player,
+                  share: float = 1.0, advance: bool = True) -> str:
     from engine.systems import training
     t = tick.get_tick(conn)
     rng = random.Random(t * 31 + player.id)
@@ -1102,8 +1103,9 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import cult_mods
     xmult, xlabels = cult_mods.cultivation_mult(conn, player.id, player.location_id)
     res = cultivation.cultivate(conn, "player", player.id, t, rng,
-                                multiplier=y * (1 + bonus + mbonus) * tmult * xmult)
-    world_tick.advance(conn, tick.cost_of("cultivate"))
+                                multiplier=y * (1 + bonus + mbonus) * tmult * xmult * share)
+    if advance:
+        world_tick.advance(conn, tick.cost_of("cultivate"))
     from engine.systems import qi as qimod, progression
     qimod.restore_fraction(conn, 0.5, player.id)       # meditare ristora il Qi
     from engine.systems import spirit as spmod
@@ -2699,6 +2701,9 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_wait(conn, player)
     if cmd in ("sleep", "dormi"):
         return cmd_sleep(conn, player)
+    if cmd in ("train", "t", "allena", "allenati"):
+        from engine.systems import train_all
+        return train_all.train(conn, player)
     if cmd in ("cultivate", "meditate", "coltiva", "c", "med"):
         return cmd_cultivate(conn, player)
     if cmd in ("breakthrough", "sfonda"):

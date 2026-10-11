@@ -218,7 +218,7 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     sessions = training.sessions_today(conn, t, "player", player.id)
     from engine.systems import qi as qimod
     if sessions < 3:
-        _add(out, "Coltiva (sessioni piene oggi)", "cultivate")
+        _add(out, "Allenati: Qi, Dao e arte insieme (sessioni piene oggi)", "train")
     elif qimod.get_qi(conn, player.id) < qimod.max_qi(conn, player.id) * 0.3:
         _add(out, "Riposa e recupera il Qi", "wait")
     else:

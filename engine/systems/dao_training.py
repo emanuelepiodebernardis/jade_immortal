@@ -180,8 +180,10 @@ def find_dao(conn: sqlite3.Connection, fragment: str, player_id: int = 1) -> sql
 
 
 def comprehend(conn: sqlite3.Connection, tick: int, rng: random.Random,
-               dao_key: str, multiplier: float = 1.0, player_id: int = 1) -> dict:
-    """Affina la comprensione di un Dao (SENZA tetto). multiplier = rendimento giornaliero."""
+               dao_key: str, multiplier: float = 1.0, player_id: int = 1, carry: bool = False) -> dict:
+    """Affina la comprensione di un Dao (SENZA tetto). multiplier = rendimento giornaliero.
+    carry=True: i guadagni frazionari si accumulano (l'allenamento d'insieme fa crescere un
+    po' alla volta anche i Dao più lenti, invece di arrotondarli a zero)."""
     row = conn.execute(
         "SELECT affinity, comprehension, practiced FROM character_daos "
         "WHERE character_type='player' AND character_id=? AND dao_key=?;",
@@ -191,7 +193,17 @@ def comprehend(conn: sqlite3.Connection, tick: int, rng: random.Random,
 
     attention = 1 + 0.3 * (_practiced_count(conn, player_id) - 1)
     raw = (row["affinity"] / 50.0) * rng.uniform(1.0, 2.0) * multiplier / attention
-    gain = int(round(raw))
+    if carry:
+        from engine.systems import state
+        fr = state.get_json(conn, "dao_frac", {}) or {}
+        raw += fr.get(dao_key, 0.0)
+        gain = int(raw)
+        fr[dao_key] = round(raw - gain, 4)
+        state.set_json(conn, "dao_frac", fr)
+        if gain <= 0:
+            return {"status": "accum", "comprehension": row["comprehension"]}
+    else:
+        gain = int(round(raw))
     if gain <= 0:
         return {"status": "exhausted", "comprehension": row["comprehension"]}
 

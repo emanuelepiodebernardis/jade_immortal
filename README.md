@@ -152,7 +152,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Esplorazione | `look`, `move <dir>`, `home`, `warzone`, `raidtarget`, `events`, `map` |
 | Combattimento | `attack <nome>`, `attack all`, `attack humans`, `attack creatures`, `moves`, `defend` |
 | Abisso | `absorb <nome>`, `absorb all`, `loot` |
-| Coltivazione | `cultivate`, `comprehend <dao>`, `breakthrough`, `dao`, `tribulation` |
+| Coltivazione | `train` (o `t`: Qi, Dao e arte insieme), `cultivate`, `comprehend <dao>`, `breakthrough`, `dao`, `tribulation` |
 | Sette | `join`, `class`, `challenge`, `market`, `buy <n>`, `invitations`, `accept <n>` |
 | Legami | `talk`, `gift <nome> <pietre>`, `spar`, `recruit`, `dismiss`, `disciple`, `bonds` |
 | Storia | `<numero>` (scelte), `goals`, `encounter`, `lives`, `titles`, `masters` |
