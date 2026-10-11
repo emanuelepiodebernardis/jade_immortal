@@ -60,7 +60,8 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
 def _score(conn, pid: int, rng) -> float:
     from engine.systems import professions, cave_abode, mentor_ring, celestial_elements
     from engine.core import entities
-    lv = professions.level(conn, pid)
+    c = current(conn)
+    lv = professions.level(conn, pid, c["art"] if c else None)
     bonus = 1.0 + 0.05 * cave_abode.level(conn, pid, "alchimia") + mentor_ring.craft_bonus(conn) * 2 \
         + celestial_elements.craft_bonus(conn) * 2
     return lv * bonus * rng.uniform(0.8, 1.2)
@@ -73,8 +74,8 @@ def register(conn, player) -> str:
         return describe(conn, player)
     if player.location_id != c["loc"]:
         return f"Il {NAMES[c['art']]} si tiene a {c['city']}."
-    if professions.profession(conn, player.id) != c["art"]:
-        return f"Per iscriverti devi praticare l'arte: {c['art']}."
+    if not professions.has(conn, c["art"]):
+        return f"Per iscriverti devi conoscere l'arte: {c['art']} ('arti {c['art']}')."
     if c["joined"]:
         return "Sei già iscritto: 'gara prova'."
     c["joined"] = True
@@ -91,12 +92,12 @@ def trial(conn, player) -> str:
     if player.location_id != c["loc"]:
         return f"Le prove si tengono a {c['city']}."
     rng = random.Random(tick_mod.get_tick(conn) * 7 + c["stage"])
-    lv = professions.level(conn, player.id)
+    lv = professions.level(conn, player.id, c["art"])
     opp = max(1, lv + c["stage"] + rng.randint(-2, 2)) * rng.uniform(0.85, 1.15)
     me = _score(conn, player.id, rng)
     world_tick.advance(conn, 24)
     st = STAGES[c["stage"]]
-    state.set(conn, "profession_xp", str(professions.xp(conn, player.id) + 3 + c["stage"] * 2))
+    professions.add_xp(conn, player.id, 3 + c["stage"] * 2, c["art"])
     if me < opp:
         c["done"] = True
         state.set_json(conn, KEY, c)

@@ -146,7 +146,7 @@ def _hybrid_species(a: dict, b: dict) -> str:
 
 def breed(conn, player, arg: str) -> str:
     from engine.systems import beasts, professions, cave_abode
-    if professions.profession(conn, player.id) != "domatore" or professions.level(conn, player.id) < BREED_LEVEL:
+    if professions.level(conn, player.id, "domatore") < BREED_LEVEL:
         return f"Solo un Domatore di Bestie esperto (livello {BREED_LEVEL}) sa far accoppiare le bestie spirituali."
     why = can_incubate(conn, player.id)
     if why:
@@ -177,7 +177,7 @@ def breed(conn, player, arg: str) -> str:
             "elements": list(dict.fromkeys(A["elements"] + B["elements"]))[:3],
             "ability": ta["ability"] or tb["ability"]}
     state.set(conn, "breed_day", str(day))
-    professions.state.set(conn, "profession_xp", str(professions.xp(conn, player.id) + 6))
+    professions.add_xp(conn, player.id, 6, "domatore")
     lines = [f"{pick[0]['name']} e {pick[1]['name']} si accoppiano sotto la luna: nasce un uovo di {species}!"]
     lines += incubate(conn, player.id, spec)
     return "\n".join(lines)

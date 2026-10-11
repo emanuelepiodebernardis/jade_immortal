@@ -21,6 +21,10 @@ _TECH_SUFFIX = {
     "fulmine": "del Fulmine Divino",
     "spada": "della Spada Celeste",
     "anima": "dell'Anima Eterna",
+    "fuoco": "della Fiamma Immortale", "acqua": "delle Acque Profonde", "metallo": "del Metallo Celeste",
+    "vento": "del Vento Errante", "luce": "della Luce Pura", "oscurita": "dell'Ombra Silente",
+    "spazio": "del Vuoto Spezzato", "tempo": "dell'Istante Eterno", "legno": "del Bosco Antico",
+    "terra": "della Montagna Immota",
 }
 _RANK_NAME = {1: "Manuale", 2: "Arte", 3: "Legge"}
 
@@ -36,6 +40,9 @@ def get_merit(conn: sqlite3.Connection, player_id: int = 1) -> int:
 
 
 def add_merit(conn: sqlite3.Connection, amount: int, player_id: int = 1) -> int:
+    if amount > 0:                                 # il merito GUADAGNATO in questa setta (per l'ascesa)
+        from engine.systems import state
+        state.set(conn, "sect_merit_earned", str(state.get_int(conn, "sect_merit_earned", 0) + amount))
     conn.execute("UPDATE sect_memberships SET merit=COALESCE(merit,0)+? WHERE player_id=?;",
                  (amount, player_id))
     return get_merit(conn, player_id)
@@ -82,7 +89,7 @@ def sect_techniques(conn: sqlite3.Connection, faction_id: int) -> list[dict]:
     if not f:
         return []
     tier = f["tier"] or 1
-    suffix = _TECH_SUFFIX.get(f["element"], "Segreta")
+    suffix = _TECH_SUFFIX.get(f["element"], "della Setta")
     techs = []
     for i in (1, 2, 3):
         cost = tier * 40 * i

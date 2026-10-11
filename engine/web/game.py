@@ -141,6 +141,8 @@ def _after(conn, player) -> list[str]:
     """Capitolo della storia, risvegli, azioni suggerite (salvate per i pulsanti)."""
     from engine.systems import encounters, suggestions, dao_superiori
     from engine.cli import story_cmds
+    from engine.systems import menus
+    menus.consume_open(conn)                  # nella dashboard i menu hanno i loro pulsanti
     out = list(dao_superiori.check_awakenings(conn, player.id))
     ch = story_cmds.story_tick(conn, player)
     if ch:
@@ -291,9 +293,21 @@ PANELS = {
     "tesori": ["tesori", "arma"],
     "storia": ["trama", "goals", "arcinemico", "retaggio", "svolte"],
     "legami": ["favori"],
-    "mondo": ["era", "setta", "ritmo"],
+    "mondo": ["era", "ritmo"],
     "aiuto": ["help tutto"],
 }
+
+
+def menu_data(key: str) -> dict:
+    """Un menu a sezioni (setta, arti, coltivazione, eventi, regni, famiglia, menu): guardarlo non cambia nulla."""
+    from engine.systems import menus
+    if key not in menus.NAMES:
+        return {"errore": f"menu sconosciuto: {key}"}
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        m = menus.build(conn, p, key)
+        conn.rollback()
+    return m
 
 
 def panel(name: str) -> list[dict]:

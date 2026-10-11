@@ -49,7 +49,9 @@ def train(conn, player) -> str:
     rng = random.Random(t * 37 + player.id)
 
     # 1) Qi — la meditazione condivide la sessione con il resto
-    qi_txt = loop.cmd_cultivate(conn, player, share=QI_SHARE, advance=False)
+    # senza arti in pratica l'attenzione va tutta a Qi e Dao
+    qi_share = QI_SHARE if professions.practiced(conn, player.id) else QI_SHARE + 0.1
+    qi_txt = loop.cmd_cultivate(conn, player, share=qi_share, advance=False)
     y = training.session_yield(training.sessions_today(conn, t, "player", player.id))
     from engine.narrative import varia
     qi_lines = qi_txt.splitlines()
@@ -85,19 +87,24 @@ def train(conn, player) -> str:
     else:
         out.append("Dao: non ne hai ancora risvegliato nessuno.")
 
-    # 3) L'arte
-    if professions.profession(conn, player.id):
-        lv0 = professions.level(conn, player.id)
-        fr = state.get_json(conn, "prof_frac", 0.0) or 0.0
-        fr += PROF_XP * y
-        gain = int(fr)
-        state.set_json(conn, "prof_frac", round(fr - gain, 4))
-        if gain:
-            state.set(conn, "profession_xp", str(professions.xp(conn, player.id) + gain))
-        lv1 = professions.level(conn, player.id)
-        line = f"Arte ({professions.profession(conn, player.id)}): livello {lv1}"
-        line += f" — sali al livello {lv1}!" if lv1 > lv0 else (f", +{gain} esperienza." if gain else ", eserciti la mano.")
-        out.append(line)
+    # 3) Le arti che pratichi: tutte insieme, ognuna un po' più piano se sono tante
+    arts = professions.practiced(conn, player.id)
+    if arts:
+        share = PROF_XP * y / len(arts) ** 0.5
+        fracs = state.get_json(conn, "prof_frac_map", {}) or {}
+        bits = []
+        for k in arts:
+            lv0 = professions.level(conn, player.id, k)
+            fr = float(fracs.get(k, 0.0)) + share
+            gain = int(fr)
+            fracs[k] = round(fr - gain, 4)
+            if gain:
+                professions.add_xp(conn, player.id, gain, k)
+            lv1 = professions.level(conn, player.id, k)
+            nm = professions.PROFESSIONS[k].split()[0]
+            bits.append(f"{nm} {lv1}" + (" ↑" if lv1 > lv0 else (f" (+{gain})" if gain else "")))
+        state.set_json(conn, "prof_frac_map", fracs)
+        out.append("Arti: " + ", ".join(bits) + ".")
 
     world_tick.advance(conn, tick_mod.cost_of("cultivate"))
     out += extra_qi + notes

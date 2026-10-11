@@ -46,9 +46,7 @@ def treasures(conn) -> list[dict]:
 
 def _art_level(conn, pid) -> int:
     from engine.systems import professions
-    if professions.profession(conn, pid) in ("forgia", "formazioni"):
-        return professions.level(conn, pid)
-    return 0
+    return max(professions.level(conn, pid, "forgia"), professions.level(conn, pid, "formazioni"))
 
 
 def max_puppets(conn, pid) -> int:

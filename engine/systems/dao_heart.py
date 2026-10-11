@@ -152,8 +152,8 @@ def on_pill(conn, pid: int, potency: float) -> list[str]:
     if potency <= 0 or constitutions.toxin_immune(conn):
         return []
     red = 1.0
-    if professions.profession(conn, pid) == "alchimia":
-        red = max(0.3, 1.0 - 0.04 * professions.level(conn, pid))
+    if professions.has(conn, "alchimia"):
+        red = max(0.3, 1.0 - 0.04 * professions.level(conn, pid, "alchimia"))
     before = toxin(conn)
     after = before + 25.0 * potency * red
     _set_toxin(conn, after)

@@ -201,6 +201,8 @@ def join_sect(conn: sqlite3.Connection, tick: int, player_id: int = 1) -> dict:
                                      f"{rank} di {sect['name']}", visibility="public",
                                      resolve_tick=tick)],
     )
+    from engine.systems import sect_menu
+    sect_menu.level(conn, player_id)                # nuova setta: il conto del merito riparte
     return {"status": "joined", "sect": sect["name"], "grade": grade,
             "rank": rank, "rank_level": level, "stones": stones}
 
@@ -230,16 +232,18 @@ def current_sect_tier(conn: sqlite3.Connection, player_id: int = 1) -> int:
 
 
 def generate_invitations(conn: sqlite3.Connection, tick: int, rng,
-                         player_id: int = 1) -> list[sqlite3.Row]:
-    """I 7 rappresentanti di sette superiori si presentano (dati leggeri).
-    Non rigenera se ci sono già inviti pendenti."""
+                         player_id: int = 1, count: int = 7, bonus: int = 0) -> list[sqlite3.Row]:
+    """I rappresentanti di sette superiori si presentano (dati leggeri).
+    Non rigenera se ci sono già inviti pendenti. 'bonus' alza il livello delle offerte
+    (chi ha rifiutato per lealtà viene cercato da sette ancora più grandi)."""
     if pending_invitations(conn, player_id):
         return pending_invitations(conn, player_id)
     cur_tier = max(1, current_sect_tier(conn, player_id))
     elements = ["corpo", "fulmine", "spada", "anima", "fuoco", "acqua",
                 "metallo", "vento", "luce", "oscurita", "spazio", "tempo"]
-    for slot in range(1, 8):
-        t = cur_tier + rng.choices([1, 2, 3], weights=[5, 3, 1])[0]   # nessun tetto: si sale sempre
+    for slot in range(1, count + 1):
+        jump = 1 if slot == 1 else rng.choices([1, 2, 3], weights=[5, 3, 1])[0]
+        t = cur_tier + jump + bonus                                    # nessun tetto: si sale sempre
         el = rng.choice(elements)
         name = f"{rng.choice(_GREAT_PREFIX)} {rng.choice(_GREAT_SUFFIX)}"
         hint = f"{tier_name(t)} · affine al {_dao_display(conn, el)}"

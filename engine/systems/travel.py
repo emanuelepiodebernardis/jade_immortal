@@ -39,7 +39,7 @@ def destinations(conn, player) -> list[dict]:
                     "join": None if asm.get("joined") else "assemblea iscriviti"})
     gc = contests.current(conn)
     if gc and not gc["done"]:
-        mine = professions.profession(conn, player.id) == gc["art"]
+        mine = professions.has(conn, gc["art"])
         out.append({"key": "gara", "title": contests.NAMES[gc["art"]] + ("" if mine else " (non è la tua arte)"),
                     "loc": gc["loc"], "join": ("gara prova" if gc["joined"] else "gara iscriviti") if mine else None})
     au = auction.current(conn)
@@ -90,6 +90,9 @@ def _resolve(conn, player, arg: str) -> tuple[dict | None, int | None, str]:
     """(meta, location_id, nome) da un numero, un nome di meta o un nome di luogo."""
     a = arg.strip().lower()
     ds = destinations(conn, player)
+    if a.startswith("#") and a[1:].isdigit():          # '#<id>': un luogo preciso (lo usano i menu)
+        r = conn.execute("SELECT id, name FROM locations WHERE id=?;", (int(a[1:]),)).fetchone()
+        return (None, r["id"], r["name"]) if r else (None, None, "")
     if a.isdigit():                      # un numero è sempre una meta dell'elenco, mai un nome di luogo
         if 1 <= int(a) <= len(ds):
             d = ds[int(a) - 1]

@@ -234,7 +234,7 @@ def _rebellion(conn, t, rng, player, key, amount) -> list[str]:
     c = _conflicts(d)
     if c == 0:
         return []
-    tamer = professions.level(conn, player.id) if professions.profession(conn, player.id) == "domatore" else 0
+    tamer = professions.level(conn, player.id, "domatore")
     p = max(0.0, 0.12 * c * min(1.0, amount / 10.0) - 0.015 * tamer)
     if rng.random() >= p:
         return []

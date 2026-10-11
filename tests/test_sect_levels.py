@@ -63,7 +63,7 @@ def test_winning_tournament_generates_invitations(conn):
     m = sects.get_membership(conn)
     if m["class_rank"] == 1:
         invs = sects.pending_invitations(conn)
-        assert len(invs) == 7
+        assert len(invs) == 3          # tre emissari, con la loro scena
         # tutte di tier superiore alla setta attuale
         assert all(i["tier"] > (m["sect_tier"] or 1) for i in invs)
 

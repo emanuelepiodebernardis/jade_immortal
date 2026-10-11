@@ -44,7 +44,8 @@ def _c_mats(conn, pid):
 
 
 def _c_prof(conn, pid):
-    return state.get_int(conn, "profession_xp", 0)
+    from engine.systems import professions
+    return professions.total_xp(conn, pid)
 
 
 def _c_fame(conn, pid):

@@ -2045,6 +2045,8 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in auction.daily(conn, t, random.Random(t * 67 + day), player)]
     from engine.systems import sect_politics, face
     lines += ["  " + ln for ln in sect_politics.daily(conn, t, random.Random(t * 71 + day), player)]
+    from engine.systems import sect_menu
+    lines += ["  " + ln for ln in sect_menu.daily(conn, t, random.Random(t * 79 + day), player)]
     lines += ["  " + ln for ln in face.daily(conn, t, random.Random(t * 73 + day), player)]
     from engine.systems import weapon_spirit as _wsp
     lines += ["  " + ln for ln in _wsp.on_days(conn, player, 1)]

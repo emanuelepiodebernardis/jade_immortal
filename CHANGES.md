@@ -1176,3 +1176,67 @@ anche in un browser vero (Chromium), senza errori in console.
 
 Nuovi test: `test_duel.py` (3), `test_stories.py` (5) e aggiunte in `test_dashboard.py`,
 `test_balance.py` e `test_story_systems.py`. Suite totale: **538 passati**.
+
+---
+
+## Aggiornamento 26 — I menu: setta, arti, coltivazione, eventi, regni, famiglia
+
+**Menu a sezioni** (`menus.py`)
+- Ogni parte del gioco ha il suo menu, diviso in sezioni. In ogni sezione trovi qualche riga di
+  stato, a volte una barra di avanzamento, e le azioni già pronte.
+- Nel terminale le azioni sono numerate e basta scrivere il numero. Nella dashboard sono
+  pulsanti; quelle non ancora possibili sono spente e dicono perché.
+- `menu` mostra l'indice di tutti i menu.
+- Nella dashboard la colonna di sinistra ha i pulsanti *Setta, Arti, Coltivazione, Eventi,
+  Regni, Famiglia*: aprono il menu nel pannello di destra. Lo stesso succede se scrivi il nome
+  del menu nella casella dei comandi.
+
+**La setta e l'ascesa** (`setta`, `sect_menu.py`)
+- **Ascesa nella storia.** Ogni setta ha una soglia, e la superi in uno di tre modi:
+  - sei troppo forte per lei;
+  - hai guadagnato abbastanza merito da quando ci sei entrato;
+  - vinci il torneo mensile.
+- A quel punto arrivano gli emissari di tre sette superiori, con una scena scritta che cambia
+  in base a come ci sei arrivato. Puoi:
+  - **accettare** una delle tre;
+  - **rimandare**: le offerte restano nel menu;
+  - **restare per lealtà**: ricevi merito, pietre, il favore degli anziani e un rango in più.
+    La soglia si alza e le offerte successive vengono da sette ancora più grandi.
+- Le soglie si misurano sul livello effettivo della setta: chi entra da mortale in una grande
+  setta parte comunque dal basso.
+- Il menu della setta raccoglie:
+  - l'**ascesa**, con la barra di avanzamento e le offerte aperte;
+  - **classe, tornei e sfide**: la prossima sfida, i compagni, la sfida di rango;
+  - le **tecniche segrete** e il **metodo** della setta;
+  - il **tesoro del merito**: pillole del progresso, pietre, materiali, nuclei, essenze del Dao,
+    la stanza di coltivazione (×1,5 nella sede per 3 giorni);
+  - il **rango**: promozione col merito, in alternativa alla sfida;
+  - lo **stipendio** del mese;
+  - la **bacheca delle missioni** e gli **anziani** da servire;
+  - **guerre, razzie, invasioni** e la zona di caccia, con i comandi per raggiungerle.
+- Se non sei in una setta, il menu mostra le sette vicine con *Vai* e il test d'ingresso.
+  La setta che hai fondato tu resta in `setta mia`.
+
+**Le arti: una, alcune, tutte o nessuna** (`arti`)
+- Ora puoi praticare più arti insieme. `train` le fa crescere tutte: ognuna un po' più piano,
+  se sono tante. Il pilota automatico crea con le ricette di tutte quelle in pratica.
+- `arti nessuna` mette le arti a riposo e l'allenamento si concentra su Qi e Dao.
+- Cambiare l'arte principale non fa più perdere esperienza: le altre restano tue.
+- `craft <arte> <n>` crea con un'arte qualsiasi e `ricette <arte>` ne mostra le ricette.
+- I vecchi salvataggi con una sola arte vengono convertiti da soli.
+
+**Gli altri menu**
+- **Coltivazione**: allenamento e ritiri, sfondamento e tribolazioni, i tuoi Dao, il metodo,
+  le radici e la grotta-dimora con i potenziamenti.
+- **Eventi**: tutto ciò a cui puoi partecipare adesso, con *Partecipa* o *Raggiungilo*. Ci sono
+  anche gli scontri dell'Assemblea, le offerte all'asta, il reame segreto, la calamità e la
+  guerra tra sette, più il calendario di ciò che verrà.
+- **Regni**: la corte in cui sei, con tributi, principi da sostenere, guerra e trono; tutti i
+  regni con *Vai*; le razze antiche, con doni e campioni da sfidare.
+- **Famiglia**: il clan (visita, difesa, doni), i legami (parla, favori, duello con rivali e
+  nemesi) e i discepoli.
+- Le 8 azioni rapide segnalano quando gli emissari ti aspettano e quando puoi salire di rango o
+  ritirare lo stipendio.
+- `vai #<luogo>` porta in un luogo preciso: lo usano i menu.
+
+Nuovi test: `test_menus.py` (8). Suite totale: **546 passati**.

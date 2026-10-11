@@ -146,9 +146,9 @@ def combat(conn, pid: int, npc_id: int, fx) -> list[str]:
 
 def tamer_mult(conn, pid: int, beast_elements: str | None) -> float:
     from engine.systems import professions
-    if professions.profession(conn, pid) != "domatore":
+    if not professions.has(conn, "domatore"):
         return 1.0
-    lv = professions.level(conn, pid)
+    lv = professions.level(conn, pid, "domatore")
     m = 1.0 + 0.08 * lv
     els = attunement(conn, pid)
     if beast_elements and any(e in (beast_elements or "").split(",") for e in els):
@@ -158,16 +158,16 @@ def tamer_mult(conn, pid: int, beast_elements: str | None) -> float:
 
 def max_beasts(conn, pid: int) -> int:
     from engine.systems import professions
-    if professions.profession(conn, pid) != "domatore":
+    if not professions.has(conn, "domatore"):
         return 1
-    return 1 + professions.level(conn, pid) // 4
+    return 1 + professions.level(conn, pid, "domatore") // 4
 
 
 def tame_bonus(conn, pid: int) -> float:
     from engine.systems import professions
-    if professions.profession(conn, pid) != "domatore":
+    if not professions.has(conn, "domatore"):
         return 0.0
-    return min(0.4, 0.04 * professions.level(conn, pid))
+    return min(0.4, 0.04 * professions.level(conn, pid, "domatore"))
 
 
 def describe(conn, player) -> str:

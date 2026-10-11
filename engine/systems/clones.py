@@ -106,7 +106,8 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
         lv = c["level"]
         if c["task"] == "lavora":
             if professions.profession(conn, player.id):
-                state.set(conn, "profession_xp", str(professions.xp(conn, player.id) + 1 + lv // 2))
+                for k in (professions.practiced(conn) or [professions.profession(conn, player.id)]):
+                    professions.add_xp(conn, player.id, 1 + lv // 2, k)
             professions.give(conn, player.id, "erbe", 1 + lv // 3)
             professions.give(conn, player.id, "minerali", lv // 3)
             rows = dao_training.trainable_daos(conn, player.id)

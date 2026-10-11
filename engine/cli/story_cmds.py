@@ -101,10 +101,15 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return text
     if cmd in ("profession", "professione", "arte"):
         return professions.choose(conn, player.id, arg)
+    if cmd in ("arti", "lavori", "lavoro", "mestieri", "professioni"):
+        if not arg.strip():
+            from engine.systems import menus
+            return menus.show(conn, player, "arti")
+        return professions.menu_command(conn, player.id, arg)
     if cmd in ("gather", "raccolta", "harvest", "erbe"):
         return professions.gather(conn, t, rng, player)
     if cmd in ("recipes", "ricette"):
-        return professions.describe_recipes(conn, player.id)
+        return professions.describe_recipes(conn, player.id, professions._key(arg) if arg.strip() else None)
     if cmd in ("craft", "crea", "forgia", "distilla"):
         return professions.craft(conn, t, rng, player, arg)
     if cmd in ("masters", "maestri"):
@@ -242,7 +247,10 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return archrival.describe(conn, player)
     if cmd in ("regni", "kingdoms", "imperi"):
         from engine.systems import kingdoms
-        return kingdoms.describe(conn, player)
+        if arg.strip().lower() in ("elenco", "lista", "tutti"):
+            return kingdoms.describe(conn, player)
+        from engine.systems import menus
+        return menus.show(conn, player, "regni")
     if cmd in ("corte", "court"):
         from engine.systems import kingdoms
         return kingdoms.court(conn, player)
@@ -290,6 +298,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return celestial_elements.command(conn, player, arg)
     if cmd in ("famiglia", "family", "clan"):
         from engine.systems import family
+        if not arg.strip():
+            from engine.systems import menus
+            return menus.show(conn, player, "famiglia")
         return family.command(conn, player, arg)
     if cmd in ("scruta", "senso", "scan"):
         from engine.systems import divine_sense
@@ -412,16 +423,17 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         from engine.systems import own_sect
         return own_sect.found(conn, tick.get_tick(conn), player, arg)
     if cmd in ("setta", "mysect", "lamiasetta"):
-        from engine.systems import own_sect
-        t = tick.get_tick(conn)
-        sub = arg.strip().lower()
-        if sub in ("riscuoti", "collect", "tributi"):
-            return own_sect.collect(conn, player)
-        if sub in ("recluta", "recruit"):
-            return own_sect.recruit(conn, t, random.Random(t * 53 + player.id), player)
-        if sub in ("difendi", "defend", "difesa"):
-            return own_sect.defend(conn, t, random.Random(t * 59 + player.id), player)
-        return own_sect.describe(conn, player)
+        from engine.systems import sect_menu
+        return sect_menu.command(conn, player, arg)
+    if cmd in ("menu", "menù"):
+        from engine.systems import menus
+        return menus.show(conn, player, "menu")
+    if cmd in ("coltivazione", "crescita"):
+        from engine.systems import menus
+        return menus.show(conn, player, "coltivazione")
+    if cmd in ("eventi", "events"):
+        from engine.systems import menus
+        return menus.show(conn, player, "eventi")
     if cmd in ("accogli", "prendi_discepolo", "adotta", "insegna", "teach",
                "congeda_discepolo", "espelli"):
         from engine.systems import own_sect
@@ -498,7 +510,7 @@ _MOVE_CMDS = {"vai", "raggiungi", "goto", "vola", "fly", "volo", "move", "go", "
 def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     """Testo da mostrare dopo ogni comando: capitolo della storia pronto, HUD e
     azioni suggerite (o le scelte dell'incontro aperto)."""
-    from engine.systems import encounters, storyline, suggestions
+    from engine.systems import encounters, storyline, suggestions, menus
     from engine.cli import hud
     out = []
     if player.status != "alive":
@@ -516,6 +528,8 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
             out.append("(Un incontro attende la tua scelta: 'encounter' per rileggerlo, "
                        "oppure scrivi il numero.)")
         suggestions.store(conn, [])
+    elif menus.consume_open(conn):
+        pass                                  # i numeri restano quelli del menu appena aperto
     elif suggestions.enabled(conn):
         sugg = suggestions.compute(conn, player)
         suggestions.store(conn, sugg)

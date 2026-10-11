@@ -30,6 +30,8 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
   (con la cronaca delle tue vite), **Mondo** e **Partita** (salvataggi, salvataggio automatico
   ogni 5 giorni, *Reincarnati ora* e *Ricomincia da zero*);
 - i **duelli a turni** con le barre della vita;
+- i **menu** Setta, Arti, Coltivazione, Eventi, Regni e Famiglia nella colonna di sinistra:
+  ogni azione è un pulsante, e quelle non ancora possibili dicono cosa manca;
 - il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
 - la creazione del personaggio e la rinascita in finestre guidate.
 
@@ -46,6 +48,10 @@ momento.
 ## ✨ Caratteristiche
 
 ### Una storia che è tua 🎴
+- **Menu a sezioni** (`menu`): *setta* (ascesa alle sette superiori, tecniche, tesoro del merito,
+  rango, stipendio, missioni, anziani, guerre), *arti* (una, alcune, tutte o nessuna),
+  *coltivazione*, *eventi* (tutto ciò a cui partecipare), *regni* e *famiglia*. Nel terminale
+  si sceglie col numero, nella dashboard coi pulsanti.
 - **8 azioni rapide** numerate dopo ogni comando: scrivi da `1` a `8` per agire senza
   ricordare 70 comandi (restano tutti disponibili). In testa ciò che è urgente o a tempo,
   poi le azioni che accorpano tanti comandi in uno: `train`, `tesori cura`, `mete`,

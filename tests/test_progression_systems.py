@@ -158,7 +158,7 @@ def test_common_creature_has_talent(conn):
 # ---------- professioni ----------
 
 def test_profession_gather_craft_and_level(conn):
-    assert "Scegli l'arte" in professions.choose(conn, 1, "alchimia")
+    assert "Inizi a praticare l'Alchimia" in professions.choose(conn, 1, "alchimia")
     professions.give(conn, 1, "erbe", 30)
     out = ""
     for _ in range(6):

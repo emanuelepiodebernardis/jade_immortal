@@ -125,7 +125,7 @@ def _cond(conn, pid, key) -> bool:
         if all(c(e) >= 50 for e in ("legno", "terra", "acqua")):
             return True
         from engine.systems import professions
-        return professions.level(conn, pid) >= 5
+        return professions.best_level(conn, pid) >= 5
     return False
 
 

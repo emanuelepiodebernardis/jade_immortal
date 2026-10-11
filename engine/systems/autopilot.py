@@ -257,17 +257,15 @@ def _targets(conn, player, mode: str) -> list[str]:
     return out
 
 
-def _best_recipe(conn, pid: int) -> int | None:
+def _best_recipe(conn, pid: int) -> str | None:
+    """La ricetta migliore pronta tra le arti che PRATICHI ('craft <arte> <n>')."""
     from engine.systems import professions
-    if not professions.profession(conn, pid):
-        return None
-    lv = professions.level(conn, pid)
     best = None
-    for i, r in enumerate(professions.recipes_for(conn, pid), 1):
-        _p, need, _name, cost, _make = r
-        if lv >= need and all(professions.material(conn, pid, k) >= v for k, v in cost.items()):
-            best = i
-    return best
+    for k in professions.practiced(conn, pid):
+        ready = professions.ready_recipes(conn, pid, k)
+        if ready and (best is None or ready[-1][1][1] > best[0]):
+            best = (ready[-1][1][1], f"{k} {ready[-1][0]}")
+    return best[1] if best else None
 
 
 def _meditations_today(conn) -> int:
@@ -479,7 +477,7 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
         return f"è cominciata la calamità: {era['calamity']} ('calamita')"
     gc = contests.current(conn)
     if gc and not gc["joined"] and before.get("contest_end") != gc["end"] \
-            and professions.profession(conn, p.id) == gc["art"]:
+            and professions.has(conn, gc["art"]):
         before["contest_end"] = gc["end"]
         return f"si apre una gara della tua arte a {gc['city']} ('gara')"
     seen = before.setdefault("threats_seen", set())
@@ -516,7 +514,7 @@ def _stats(conn, pid: int) -> dict:
             "label": cultivation.realm_label(conn, "player", pid),
             "kills": state.get_int(conn, "kills_total", 0),
             "stones": sects.get_resource(conn, "pietre_spirituali", pid),
-            "prof": professions.level(conn, pid) if professions.profession(conn, pid) else 0,
+            "prof": sum(professions.level(conn, pid, k) for k in professions.known(conn, pid)),
             "dao": conn.execute("SELECT COALESCE(SUM(comprehension),0) s FROM character_daos "
                                 "WHERE character_type='player' AND character_id=?;", (pid,)).fetchone()["s"],
             "age": lifespan.age_years(conn, pid),

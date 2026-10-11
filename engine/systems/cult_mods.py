@@ -58,6 +58,10 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = ascension.cultivation_mult(conn, location_id)
     if m != 1.0:
         out.append((m, lbl))
+    from engine.systems import sect_menu
+    m, lbl = sect_menu.chamber_mult(conn, location_id)
+    if m != 1.0:
+        out.append((m, lbl))
     return out
 
 

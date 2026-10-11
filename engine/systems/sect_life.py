@@ -247,10 +247,13 @@ def _run_tournament(conn, tick, rng, player_id, faction_id, kind, observer, obse
 
     # vincere il torneo richiama i rappresentanti delle sette superiori
     if player_rank == 1:
-        invs = sects.generate_invitations(conn, tick, rng, player_id)
-        if invs:
-            note = ("I tuoi exploit hanno richiamato i RAPPRESENTANTI di sette superiori: "
-                    "usa 'invitations' per vederli e 'accept <numero>' per ascendere.")
+        from engine.core import entities
+        from engine.systems import sect_menu
+        pl = entities.get_player(conn, player_id)
+        txt = sect_menu.open_offer(conn, tick, rng, pl, "torneo") if pl else None
+        if sects.pending_invitations(conn, player_id):
+            note = txt or ("I tuoi exploit hanno richiamato gli EMISSARI delle sette superiori: "
+                           "'setta ascesa' per vedere le offerte.")
             reports.push(conn, player_id, tick, note)
             if observations is not None:
                 observations.append(note)

@@ -44,9 +44,11 @@ function addLog(text, cmd) {
 }
 
 // ---------------- comandi ----------------
+const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "menu"];
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
+  if (MENUS.includes(cmd.toLowerCase())) return loadTab("m:" + cmd.toLowerCase());   // i menu si aprono nel pannello
   busy = true;
   document.body.style.cursor = "progress";
   try {
@@ -70,7 +72,7 @@ async function refresh() {
   S = s;
   renderTop(s); renderPlace(s); renderScene(s); renderSugg(s); renderAutoCfg(s);
   if (tab === "mete") renderMete(s);
-  else if (tab === "mappa" || tab === "obiettivi" || tab === "persone") loadTab(tab);
+  else if (tab === "mappa" || tab === "obiettivi" || tab === "persone" || tab.startsWith("m:")) loadTab(tab);
 }
 
 function setBar(id, pct) { $(id).style.width = Math.max(0, Math.min(100, pct)) + "%"; }
@@ -145,9 +147,17 @@ function renderMete(s) {
 // ---------------- pannelli ----------------
 const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
 async function loadTab(name) {
+  const keep = tab === name;
   tab = name;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  document.querySelectorAll("[data-menu]").forEach((b) => b.classList.toggle("on", "m:" + b.dataset.menu === name));
   const b = $("#tabbody");
+  if (name.startsWith("m:")) {
+    if (!keep) b.innerHTML = `<div class="empty">Carico…</div>`;
+    try { const top = b.scrollTop; b.innerHTML = menuHtml(await api("/api/menu/" + name.slice(2))); if (keep) b.scrollTop = top; }
+    catch (e) { b.innerHTML = `<div class="empty">Errore: ${esc(e.message)}</div>`; }
+    return;
+  }
   if (name === "mete") { if (S) renderMete(S); return; }
   if (name === "mappa") return loadMap();
   b.innerHTML = `<div class="empty">Carico…</div>`;
@@ -164,6 +174,22 @@ async function loadTab(name) {
     b.innerHTML = head + parts.map((p) => `<details class="txt"${name === "personaggio" && p.cmd === "status" ? " open" : ""}><summary>${esc(TITLES[p.cmd] || p.cmd)}</summary><pre>${esc(p.text)}</pre></details>`).join("");
   } catch (e) { b.innerHTML = `<div class="empty">Errore: ${esc(e.message)}</div>`; }
 }
+// menu a sezioni: setta, arti, coltivazione, eventi, regni, famiglia
+function menuHtml(m) {
+  if (m.errore) return `<div class="empty">${esc(m.errore)}</div>`;
+  let h = `<div class="card menuhead"><h3>${esc(m.title)}</h3>${m.sub.map((s) => `<div class="muted">${esc(s)}</div>`).join("")}</div>`;
+  for (const s of m.sections) {
+    h += `<div class="card sec msec"><b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
+    for (const b of s.bars) h += `<div class="mbar"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
+    for (const l of s.lines) h += `<div class="mline">${esc(l)}</div>`;
+    if (s.actions.length) h += `<div class="mact">` + s.actions.map((a) => a.ok
+      ? `<button class="${a.main ? "primary" : ""}" data-cmd="${esc(a.cmd)}" title="${esc(a.cmd)}">${esc(a.label)}</button>`
+      : `<button disabled title="${esc(a.why)}">${esc(a.label)}<small>${esc(a.why)}</small></button>`).join("") + `</div>`;
+    h += `</div>`;
+  }
+  return h + (m.foot ? `<div class="muted">${esc(m.foot)}</div>` : "");
+}
+
 const TITLES = { status: "Stato", rating: "Potenza e classe", dao: "Dao (dettaglio)", corpo: "Corpo e cuore",
   radici: "Radici spirituali", sangue: "Lignaggi di sangue", tesori: "Tesori (dettaglio)", arma: "Arma",
   trama: "La trama", goals: "Diario degli obiettivi", arcinemico: "Arcinemico", retaggio: "Retaggio spezzato",
@@ -404,6 +430,8 @@ document.addEventListener("click", async (ev) => {
   if (t) { ev.preventDefault(); run(t.dataset.cmd); return; }
   const tb = ev.target.closest("[data-tab]");
   if (tb) loadTab(tb.dataset.tab);
+  const mb = ev.target.closest("[data-menu]");
+  if (mb) loadTab("m:" + mb.dataset.menu);
 });
 document.addEventListener("change", (ev) => { if (ev.target.matches("[data-auto]")) autoSet(ev.target); });
 $("#cmdform").addEventListener("submit", (ev) => {

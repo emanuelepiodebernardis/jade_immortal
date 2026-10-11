@@ -39,7 +39,7 @@ KEY = "director"
 
 # tipi di scena che passano sempre
 EXEMPT = {"trama", "demone_interiore", "calamita", "fuga", "difesa_setta", "trib_strike", "prova_razza",
-          "guerra_regni", "reame_eredita", "incarico_recupero", "duello"}
+          "guerra_regni", "reame_eredita", "incarico_recupero", "duello", "ascesa_setta"}
 # scene di reazione: distanza minima anche se nate da un comando
 REACTIVE = {"battaglia_anima", "prova_cuore", "provocazione", "sfida_pubblica"}
 # prefissi che raggruppano scene sorelle in un solo tipo

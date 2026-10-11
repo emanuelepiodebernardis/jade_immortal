@@ -397,8 +397,7 @@ def _progress(conn, pid: int, req: tuple) -> tuple[bool, str]:
         label = {"kills_human": "vite umane tolte", "kills_total": "vite tolte"}.get(req[1], req[1])
         return v >= req[2], f"{label} {v}/{req[2]}"
     if kind == "prof":
-        cur = professions.profession(conn, pid)
-        v = professions.level(conn, pid) if cur == req[1] else 0
+        v = professions.level(conn, pid, req[1])
         return v >= req[2], f"{req[1]} livello {v}/{req[2]}"
     if kind == "fame":
         v = reputation.get(conn, pid)["fame"]
@@ -539,7 +538,7 @@ def learn(conn: sqlite3.Connection, t: int, player, key: str, gift: dict | None 
                      "WHERE character_type='player' AND character_id=?;", (cost["aff_soul"], player.id))
     b = tch.get("bonus", {})
     if b.get("prof_xp") and professions.profession(conn, player.id):
-        state.set(conn, "profession_xp", str(professions.xp(conn, player.id) + b["prof_xp"]))
+        professions.add_xp(conn, player.id, b["prof_xp"])
         lines.append(f"La tua arte fa un balzo: ora sei al livello {professions.level(conn, player.id)}.")
     if b.get("lifespan_years"):
         lifespan.add_bonus_years(conn, b["lifespan_years"])

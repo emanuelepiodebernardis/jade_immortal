@@ -123,6 +123,15 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     from engine.systems import npc_quests
     if len(npc_quests.active(conn)) < npc_quests.MAX_ACTIVE and npc_quests._offers_here(conn, player):
         _add(out, "Ascolta chi, qui, ha un incarico per te", "richieste")
+    # la setta: gli emissari aspettano una risposta; una promozione o una tecnica a portata
+    from engine.systems import sect_menu
+    if sects.get_membership(conn, player.id):
+        if sect_menu.offers(conn, player.id):
+            _add(out, "Gli emissari delle sette superiori aspettano: scegli la tua strada", "setta")
+        elif sect_menu.promotion_info(conn, player)["ok"]:
+            _add(out, "Puoi salire di rango nella setta", "setta promozione")
+        elif sect_menu.stipend_info(conn, player)[0]:
+            _add(out, "Ritira lo stipendio della setta", "setta stipendio")
 
     # 2) ciò che è a terra
     if loot.drops_in_location(conn, loc):
@@ -183,12 +192,13 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     for r in beasts.active_rare(conn):
         if r["location_id"] == loc and not beasts.pet(conn, player.id):
             _add(out, f"Prova a domare {r['name']} ({r['rarity']})", f"tame {r['name']}")
-    prof = professions.profession(conn, player.id)
+    prof = professions.practiced(conn, player.id)
     if prof:
-        lvl = professions.level(conn, player.id)
-        for i, rcp in enumerate(professions.recipes_for(conn, player.id), 1):
-            if lvl >= rcp[1] and all(professions.material(conn, player.id, k) >= v for k, v in rcp[3].items()):
-                _add(out, f"Crea: {rcp[2]}", f"craft {i}")
+        for k in prof:
+            ready = professions.ready_recipes(conn, player.id, k)
+            if ready:
+                i, rcp = ready[-1]
+                _add(out, f"Crea: {rcp[2]} ({professions.PROFESSIONS[k]})", f"craft {k} {i}")
                 break
         here = entities.get_location(conn, loc)
         if here and here.location_type in ("mountain", "forbidden_zone", "ruin"):

@@ -16,7 +16,7 @@ from __future__ import annotations
 from engine.core import tick as tick_mod
 
 ICON = {"regno": "⇑", "titolo": "✧", "storia": "☯", "scelta": "»", "nemico": "⚔", "lutto": "✝",
-        "svolta": "✦", "eco": "↺", "morte": "☠", "rinascita": "☀", "legame": "♥", "impresa": "★"}
+        "svolta": "✦", "eco": "↺", "morte": "☠", "rinascita": "☀", "legame": "♥", "impresa": "★", "setta": "⛩"}
 
 
 def ensure_table(conn) -> None:

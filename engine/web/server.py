@@ -7,6 +7,7 @@ Ascolta su 127.0.0.1 (solo il tuo PC). Rotte:
   GET  /api/stato           istantanea JSON (barra in alto, luogo, scena, suggerimenti, mete)
   POST /api/comando         {"cmd": "..."} → esegue un comando come nel terminale
   GET  /api/pannello/<n>    personaggio | tesori | storia | mondo | aiuto
+  GET  /api/menu/<n>        setta | arti | coltivazione | eventi | regni | famiglia | menu (sezioni e azioni)
   GET  /api/mappa           grafo dei luoghi intorno a te
   GET  /api/nuovo           opzioni per creare il personaggio
   POST /api/nuovo           {"origine","destino","nome","rivali"}
@@ -76,6 +77,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/stato":
                 ph = game.phase()
                 return self._json(game.state_snapshot() if ph == "gioco" else {"fase": ph})
+            if path.startswith("/api/menu/"):
+                return self._json(game.menu_data(path.rsplit("/", 1)[-1]))
             if path.startswith("/api/pannello/"):
                 return self._json(game.panel(path.rsplit("/", 1)[-1]))
             if path == "/api/obiettivi":
