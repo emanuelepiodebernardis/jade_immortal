@@ -175,3 +175,14 @@ def test_autopilot_stops_for_calamity_and_captivity(conn):
     captivity.imprison(conn, _p(conn), "il Clan Nero")
     assert "Sei prigioniero" in autopilot.run(conn, _p(conn), 3)
     assert suggestions.compute(conn, _p(conn))[0][1] == "evadi"
+
+
+def test_autopilot_avoids_stronger_archrival(conn):
+    from engine.systems import autopilot
+    archrival.create(conn, random.Random(1), _p(conn))
+    d = archrival.get(conn)
+    npc_factory.raise_npc(conn, d["npc"], 40)                      # molto più forte di te
+    conn.execute("UPDATE npc_player_relations SET score=0 WHERE npc_id=?;", (d["npc"],))
+    assert autopilot._danger(conn, 1, _p(conn).location_id)
+    cmd = autopilot._choose_action(conn, _p(conn), autopilot.config(conn), random.Random(3))
+    assert cmd and cmd.startswith("move ")

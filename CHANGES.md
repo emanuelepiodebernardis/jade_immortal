@@ -842,4 +842,10 @@ Un solo comando per far crescere tutto insieme, invece di alternare `cultivate`,
   allena invece di meditare soltanto.
   - Esempio: `auto imposta attivita allena=5 caccia=2 raccolta=1 lavoro=1 insegna=1`.
 
-Nuovi test: `tests/test_train_all.py` (3). Suite totale: **491 passati**.
+- **Il pilota evita l'arcinemico e le nemesi** quando sono più forti di te: si allontana
+  anche se la relazione non li segna come ostili.
+  - Ogni aggressione ferma il pilota una volta sola: ripartendo subito non si riferma per
+    lo stesso scontro.
+
+Nuovi test: `tests/test_train_all.py` (3), più un test in `tests/test_master_plot.py`.
+Suite totale: **492 passati**.

@@ -168,11 +168,27 @@ def _loc_type(conn, loc_id) -> str:
 def _danger(conn, pid: int, loc: int) -> bool:
     """Un nemico più forte di te (che ti odia, o ti dà la caccia) è in quel luogo?"""
     from engine.systems import perception
-    rows = conn.execute(
+    ids = {r["id"] for r in conn.execute(
         "SELECT n.id FROM npcs n LEFT JOIN npc_player_relations r ON r.npc_id=n.id AND r.player_id=? "
         "WHERE n.location_id=? AND n.status='alive' AND (n.hunting=1 OR COALESCE(r.score,0)<=-30);",
-        (pid, loc)).fetchall()
-    return any(perception.strength_ratio(conn, pid, r["id"]) < 1.0 for r in rows)
+        (pid, loc))}
+    ids |= _sworn_enemies(conn, pid, loc)
+    return any(perception.strength_ratio(conn, pid, i) < 1.0 for i in ids)
+
+
+def _sworn_enemies(conn, pid: int, loc: int) -> set[int]:
+    """L'arcinemico e le nemesi: ti cercano anche se la relazione non lo dice."""
+    from engine.systems import archrival, bonds
+    out = set()
+    ar = archrival.get(conn)
+    if ar:
+        r = conn.execute("SELECT location_id, status FROM npcs WHERE id=?;", (ar["npc"],)).fetchone()
+        if r and r["status"] == "alive" and r["location_id"] == loc:
+            out.add(ar["npc"])
+    for nm in bonds.nemeses(conn, pid):
+        if nm["location_id"] == loc:
+            out.add(nm["npc_id"])
+    return out
 
 
 def _safe_exit(conn, player, rng) -> str | None:
@@ -415,10 +431,12 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
     if rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and not (cfg or DEFAULT).get("sfonda"):
         return "sei pronto allo sfondamento ('breakthrough')"
     ev = conn.execute(
-        "SELECT e.summary FROM events e JOIN event_participants pp ON pp.event_id=e.id "
-        "WHERE pp.participant_type='player' AND e.event_type='fight' AND e.tick>=? "
-        "AND e.summary LIKE '% te %' ORDER BY e.id DESC LIMIT 1;", (before.get("t0", 0),)).fetchone()
+        "SELECT e.id, e.summary FROM events e JOIN event_participants pp ON pp.event_id=e.id "
+        "WHERE pp.participant_type='player' AND e.event_type='fight' AND e.tick>=? AND e.id>? "
+        "AND e.summary LIKE '% te %' ORDER BY e.id DESC LIMIT 1;",
+        (before.get("t0", 0), state.get_int(conn, "auto_last_fight", 0))).fetchone()
     if ev:
+        state.set(conn, "auto_last_fight", str(ev["id"]))     # ogni aggressione ferma il pilota una volta sola
         return f"sei stato aggredito ({ev['summary']})"
     from engine.systems import eras, contests, professions, captivity
     if captivity.active(conn):
