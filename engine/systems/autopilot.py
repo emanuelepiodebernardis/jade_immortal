@@ -7,8 +7,11 @@ quando succede qualcosa che vale la pena giocare.
 
   auto                                  la configurazione attuale
   auto <giorni>                         parte (massimo 60 giorni per volta; Ctrl+C lo interrompe)
-  auto imposta attivita coltiva=3 dao=2 caccia=2 raccolta=1 lavoro=1 insegna=1
-                                        quanto spazio dare a ogni attività (0 = mai)
+  auto imposta attivita allena=5 caccia=2 raccolta=1 lavoro=1 insegna=1
+                                        quanto spazio dare a ogni attività (0 = mai).
+                                        'allena' è l'allenamento d'insieme (train): Qi, tutti i
+                                        Dao e l'arte insieme. 'coltiva' (solo Qi) e 'dao' (un Dao
+                                        alla volta) restano disponibili, spenti di default.
   auto imposta bersagli <nessuno|bestie|ricercati|deboli|tutti>
                                         chi attaccare quando lo incontri (mai chi è più forte)
   auto imposta assorbi <si|no>          (Divoratore) divora i caduti
@@ -36,11 +39,11 @@ from engine.systems import state
 
 KEY = "auto_cfg"
 MAX_DAYS = 60
-ACTIVITIES = ["coltiva", "dao", "caccia", "raccolta", "lavoro", "insegna"]
+ACTIVITIES = ["allena", "coltiva", "dao", "caccia", "raccolta", "lavoro", "insegna"]
 TARGETS = ["nessuno", "bestie", "ricercati", "deboli", "tutti"]
 CONDUCTS = ["virtuosa", "prudente", "opportunista", "spietata"]
 _WILD = ("mountain", "ruin", "forbidden_zone")
-DEFAULT = {"attivita": {"coltiva": 3, "dao": 2, "caccia": 2, "raccolta": 1, "lavoro": 1, "insegna": 1},
+DEFAULT = {"attivita": {"allena": 5, "coltiva": 0, "dao": 0, "caccia": 2, "raccolta": 1, "lavoro": 1, "insegna": 1},
            "bersagli": "bestie", "assorbi": False, "loot": True, "oggetti": True, "sfonda": False,
            "condotta": "prudente",
            "fermate": {"reame": True, "assemblea": True, "asta": False, "invasione": True, "elemento": True}}
@@ -94,7 +97,7 @@ def configure(conn, arg: str) -> str:
         c["fermate"][rest[0].lower()] = _yes(rest[1])
     else:
         return ("Non ho capito. Esempi: 'auto imposta bersagli bestie', 'auto imposta condotta virtuosa', "
-                "'auto imposta assorbi si', 'auto imposta attivita coltiva=4 caccia=0'.")
+                "'auto imposta assorbi si', 'auto imposta attivita allena=6 caccia=0'.")
     state.set_json(conn, KEY, c)
     return "Impostato.\n" + describe(conn)
 
@@ -278,7 +281,7 @@ def _choose_action(conn, player, cfg: dict, rng: random.Random) -> str | None:
     tg = _targets(conn, player, cfg["bersagli"]) if inj < 4 else []
     weights = dict(cfg["attivita"])
     if _meditations_today(conn) >= 4:              # sfinito: niente più meditazione oggi
-        weights["coltiva"] = weights["dao"] = 0
+        weights["allena"] = weights["coltiva"] = weights["dao"] = 0
     if tg and weights.get("caccia", 0) > 0 and rng.random() < 0.7:
         return f"attack {tg[0]}"
     acts = [a for a in ACTIVITIES if weights.get(a, 0) > 0]
@@ -286,35 +289,37 @@ def _choose_action(conn, player, cfg: dict, rng: random.Random) -> str | None:
         return None                                 # giornata finita: si dorme
     act = rng.choices(acts, weights=[weights[a] for a in acts])[0]
     wild_here = _loc_type(conn, player.location_id) in _WILD
+    if act == "allena":
+        return "train"
     if act == "coltiva":
         return "cultivate"
     if act == "dao":
         rows = dao_training.trainable_daos(conn, player.id)
-        return f"comprehend {rows[0]['dao_key']}" if rows else "cultivate"
+        return f"comprehend {rows[0]['dao_key']}" if rows else "train"
     if act == "caccia":
         if cfg["bersagli"] == "nessuno":
-            return "cultivate"
+            return "train"
         if not wild_here:
             st = _step_to_wild(conn, player)
-            return f"move {st}" if st else "cultivate"
-        return _wander(conn, player, rng) or "cultivate"
+            return f"move {st}" if st else "train"
+        return _wander(conn, player, rng) or "train"
     if act == "raccolta":
         if wild_here:
             return "gather"
         st = _step_to_wild(conn, player)
-        return f"move {st}" if st else "cultivate"
+        return f"move {st}" if st else "train"
     if act == "lavoro":
         r = _best_recipe(conn, player.id)
         if r:
             return f"craft {r}"
-        return "gather" if wild_here else "cultivate"
+        return "gather" if wild_here else "train"
     if act == "insegna":
         for d in own_sect.disciples(conn, player.id):
             if d["location_id"] == player.location_id and \
                     state.get_int(conn, f"taught_{d['npc_id']}", -1) != tick_mod.get_tick(conn) // 120:
                 return f"insegna {d['name'].split()[0]}"
-        return "cultivate"
-    return "cultivate"
+        return "train"
+    return "train"
 
 
 # ============================================================

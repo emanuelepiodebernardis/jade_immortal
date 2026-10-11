@@ -182,7 +182,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
     ("auto", "Pilota automatico (stato etereo)", [
         "auto                          — la configurazione del pilota automatico",
         "auto <giorni>                 — i giorni scorrono da soli (max 60); si ferma agli eventi importanti",
-        "auto imposta attivita coltiva=3 dao=2 caccia=2 raccolta=1 lavoro=1 insegna=1 — pesi delle attività",
+        "auto imposta attivita allena=5 caccia=2 raccolta=1 lavoro=1 insegna=1 — pesi (allena = train: Qi, Dao e arte insieme; coltiva/dao = una cosa sola)",
         "auto imposta bersagli <nessuno|bestie|ricercati|deboli|tutti> — chi attaccare (mai i più forti)",
         "auto imposta assorbi <si|no>  — (Divoratore) divora i caduti",
         "auto imposta loot <si|no> | oggetti <si|no> — raccogli il bottino | usa pillole ed essenze",

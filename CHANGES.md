@@ -836,5 +836,10 @@ Un solo comando per far crescere tutto insieme, invece di alternare `cultivate`,
     nel suo Dao.
 - Le meditazioni dedicate restano più efficaci per spingere una cosa sola.
 - L'azione suggerita per coltivare ora propone `train`.
+- **Il pilota automatico usa `train`.** C'è una nuova attività `allena` (peso 5 di default)
+  che prende il posto di `coltiva` e `dao`: restano configurabili, ma sono spente di default.
+  Anche quando un'attività non è possibile (niente prede, niente ricette), il pilota si
+  allena invece di meditare soltanto.
+  - Esempio: `auto imposta attivita allena=5 caccia=2 raccolta=1 lavoro=1 insegna=1`.
 
-Nuovi test: `tests/test_train_all.py` (2). Suite totale: **490 passati**.
+Nuovi test: `tests/test_train_all.py` (3). Suite totale: **491 passati**.

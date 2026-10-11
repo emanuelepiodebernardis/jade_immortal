@@ -56,3 +56,25 @@ def test_rarity_order():
     r = train_all.RARITY
     assert r["narrative"] > r["elemental"] > r["systemic"] > r["superior"] > r["deep"]
     assert train_all.short("Dao della Spada") == "Spada"
+
+
+def test_autopilot_uses_train_by_default(conn, monkeypatch):
+    from engine.systems import autopilot
+    assert autopilot.config(conn)["attivita"]["allena"] > 0
+    assert autopilot.config(conn)["attivita"]["coltiva"] == 0
+    autopilot.command(conn, entities_player(conn), "imposta attivita allena=5 caccia=0 raccolta=0 lavoro=0 insegna=0")
+    seen = []
+    orig = loop.dispatch
+
+    def spy(c, cmd, allow_nl=True):
+        seen.append(cmd)
+        return orig(c, cmd, allow_nl=allow_nl)
+    monkeypatch.setattr(loop, "dispatch", spy)
+    dao_gen._set_dao(conn, "player", 1, "fuoco", 60, 1, 1)
+    autopilot.run(conn, entities_player(conn), 3)
+    assert "train" in seen and "cultivate" not in seen
+
+
+def entities_player(conn):
+    from engine.core import entities
+    return entities.get_player(conn)
