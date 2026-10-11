@@ -64,3 +64,9 @@ def test_destinations_and_join(conn):
 def test_plain_iscriviti_still_joins_sect(conn):
     # senza argomento resta il vecchio 'iscriviti' alla setta
     assert travel.join(conn, _p(conn), "") is None
+
+
+def test_number_without_destinations_does_not_guess(conn):
+    here = _p(conn).location_id
+    out = loop.dispatch(conn, "vai 7", allow_nl=False)
+    assert _p(conn).location_id == here and "Non trovo" in out

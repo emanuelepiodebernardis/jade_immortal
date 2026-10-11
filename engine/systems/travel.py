@@ -90,9 +90,11 @@ def _resolve(conn, player, arg: str) -> tuple[dict | None, int | None, str]:
     """(meta, location_id, nome) da un numero, un nome di meta o un nome di luogo."""
     a = arg.strip().lower()
     ds = destinations(conn, player)
-    if a.isdigit() and 1 <= int(a) <= len(ds):
-        d = ds[int(a) - 1]
-        return d, d["loc"], _loc_name(conn, d["loc"])
+    if a.isdigit():                      # un numero è sempre una meta dell'elenco, mai un nome di luogo
+        if 1 <= int(a) <= len(ds):
+            d = ds[int(a) - 1]
+            return d, d["loc"], _loc_name(conn, d["loc"])
+        return None, None, ""
     for d in ds:
         if a and (a == d["key"] or a in d["title"].lower()):
             return d, d["loc"], _loc_name(conn, d["loc"])
