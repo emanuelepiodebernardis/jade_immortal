@@ -112,7 +112,7 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     if conn.execute("SELECT 1 FROM inventories v JOIN items i ON i.id=v.item_id WHERE v.owner_type='player' "
                     "AND v.owner_id=? AND v.quantity>0 AND i.item_type='essenza' LIMIT 1;",
                     (player.id,)).fetchone():
-        _add(out, "Assorbi l'essenza di sangue che hai raccolto", "use essenza")
+        _add(out, "Assorbi tutte le essenze che hai raccolto", "use essenze")
 
     from engine.systems import celestial_elements, family, lost_legacy
     cev = celestial_elements.current_event(conn)

@@ -1258,3 +1258,20 @@ Nuovi test: `test_menus.py` (8). Suite totale: **546 passati**.
 - Nel menu Coltivazione la dimora ha un collegamento al suo menu e il potenziamento massimo.
 
 Nuovi test in `test_menus.py`. Suite totale: **547 passati**.
+
+---
+
+## Aggiornamento 28 — Le essenze si assorbono tutte insieme
+
+- `use essenze` (o `use essenza`) assorbe con un solo comando **tutte** le essenze dello zaino,
+  sia quelle di sangue sia quelle del Dao. Lo stesso vale per `use pillole`, `use nuclei` e
+  `use manuali`.
+- `use tutte <oggetto>` usa tutte le copie di un oggetto. Se usi per nome un'essenza di cui
+  hai più copie, le assorbe tutte.
+- Ora `use` riconosce anche gli oggetti con il nome di più parole (prima venivano scambiati
+  per una mossa).
+- Dashboard: nella scheda Tesori le essenze hanno il pulsante *Assorbi tutte*, gli altri oggetti
+  con più copie hanno *Tutte*, e in fondo c'è *Assorbi tutte le essenze*.
+- Anche l'azione rapida assorbe tutte le essenze in una volta.
+
+Suite totale: **548 passati**.

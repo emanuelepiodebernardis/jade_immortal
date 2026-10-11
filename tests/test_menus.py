@@ -174,3 +174,16 @@ def test_abode_upgrade_max_spends_what_it_can_and_menu_offers_it(conn):
     assert nxt > left                                   # non resta nulla che si possa ancora pagare
     out = loop.dispatch(conn, "dimora potenzia qi max", allow_nl=False)
     assert "Non hai abbastanza pietre" in out or "potenziament" in out
+
+
+def test_one_command_absorbs_every_essence(conn):
+    from engine.systems import items
+    for i in range(3):
+        iid = items.create_item(conn, f"Essenza di Sangue {i}", "essenza", "raro", "x", {"grow_strength": 1})
+        items.grant(conn, "player", 1, iid)
+    iid = items.create_item(conn, "Essenza del Dao «spada»", "essenza", "raro", "x", {"dao_key": "spada", "dao_gain": 2})
+    items.grant(conn, "player", 1, iid, 2)
+    out = loop.dispatch(conn, "use essenze", allow_nl=False)
+    assert "Assorbi" in out
+    left = [r for r in items.player_inventory(conn, 1) if r["item_type"] == "essenza"]
+    assert not left, out

@@ -283,7 +283,7 @@ def on_beast_kill(conn, t: int, rng, player, npc_id: int) -> list[str]:
                             {"bloodline": {"species": b["species"], "elements": b["elements"],
                                            "gain": b["gain"]}})
     items.grant(conn, "player", player.id, iid)
-    out = [f"Dalla bestia raccogli un'{nm}! ('use essenza' per assorbirla)"]
+    out = [f"Dalla bestia raccogli un'{nm}! ('use essenze' per assorbirle tutte)"]
     if b["rarity"] in ("leggendaria", "ibrida") and rng.random() < 0.6:
         tn = f"Nucleo Antico di {b['species']}"
         iid = items.create_item(conn, tn, "pillola", "prezioso", "Il cuore cristallizzato di una bestia sacra.",

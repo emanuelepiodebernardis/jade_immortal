@@ -241,8 +241,10 @@ async function bagHtml() {
   return `<div class="card"><b>Zaino</b>` + it.map((x) =>
     `<div class="item r-${esc(x.rarita)}" title="${esc(x.desc)}"><span>${esc(x.nome)}${x.n > 1 ? ` ×${x.n}` : ""}</span>
      <span class="muted">${esc(x.tipo)} · ${esc(x.rarita.replace("_", " "))}</span>
-     <button data-cmd="use ${esc(x.nome)}">Usa</button></div>`).join("") +
-    `<div class="tools"><button data-cmd="use all">Usa tutto ciò che serve</button></div></div>`;
+     ${x.tipo === "essenza" ? `<button data-cmd="use tutte ${esc(x.nome)}">Assorbi${x.n > 1 ? " tutte" : ""}</button>`
+       : `<button data-cmd="use ${esc(x.nome)}">Usa</button>${x.n > 1 ? `<button data-cmd="use tutte ${esc(x.nome)}">Tutte</button>` : ""}`}</div>`).join("") +
+    `<div class="tools">${it.some((x) => x.tipo === "essenza") ? `<button class="primary" data-cmd="use essenze">Assorbi tutte le essenze</button>` : ""}` +
+    `<button data-cmd="use all">Usa tutto ciò che serve</button></div></div>`;
 }
 
 let allLives = false;

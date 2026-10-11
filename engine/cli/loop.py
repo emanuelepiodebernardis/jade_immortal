@@ -1885,7 +1885,48 @@ def cmd_use_all(conn: sqlite3.Connection, player: entities.Player) -> str:
     return "\n".join(out)
 
 
+_KIND_WORDS = {"essenze": ("essenza", "le essenze"), "essenza": ("essenza", "le essenze"),
+               "essences": ("essenza", "le essenze"), "pillole": ("pillola", "le pillole"),
+               "pills": ("pillola", "le pillole"), "nuclei": ("nucleo", "i nuclei"), "manuali": ("manuale", "i manuali")}
+
+
+def cmd_use_many(conn: sqlite3.Connection, player: entities.Player, item_type: str | None = None,
+                 frag: str | None = None, what: str = "") -> str:
+    """Usa TUTTE le copie: di un tipo (essenze, pillole…) o di un oggetto preciso. Un comando solo."""
+    from engine.systems import items
+    rows = [r for r in items.player_inventory(conn, player.id)
+            if (item_type is None or r["item_type"] == item_type)
+            and (frag is None or frag.lower() in r["name"].lower())]
+    if not rows:
+        return f"Non hai {what or 'nulla di simile'} nello zaino."
+    t = tick.get_tick(conn)
+    rng = random.Random(t * 7351 + player.id)
+    n = sum(r["quantity"] for r in rows)
+    out = [f"Assorbi {what or rows[0]['name']} una dopo l'altra ({n}):" if item_type == "essenza"
+           else f"Usi {what or rows[0]['name']} ({n}):"]
+    for r in rows:
+        for _ in range(r["quantity"]):
+            res = items.use_item(conn, t, rng, player.id, r["name"])
+            if res["status"] == "used":
+                out.append(f"  · {res['name']}: " + "; ".join(res["lines"]))
+    return "\n".join(out)
+
+
 def cmd_use(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
+    from engine.systems import items
+    a = arg.strip()
+    low = a.lower()
+    if low in _KIND_WORDS:                              # 'use essenze': tutte, con un comando solo
+        typ, what = _KIND_WORDS[low]
+        return cmd_use_many(conn, player, item_type=typ, what=what)
+    for w in ("tutte ", "tutti ", "all "):              # 'use tutte <oggetto>': tutte le copie
+        if low.startswith(w) and a[len(w):].strip():
+            return cmd_use_many(conn, player, frag=a[len(w):].strip())
+    if items.find_in_inventory(conn, player.id, a) and len(a) > 2:
+        r = items.find_in_inventory(conn, player.id, a)
+        if r["item_type"] == "essenza" and r["quantity"] > 1:     # le essenze si assorbono tutte insieme
+            return cmd_use_many(conn, player, frag=r["name"], what=r["name"])
+        return cmd_use_item(conn, player, a)          # il nome intero di un oggetto (anche di più parole)
     parts = arg.strip().split(maxsplit=1)
     if len(parts) < 2:
         single = arg.strip()
