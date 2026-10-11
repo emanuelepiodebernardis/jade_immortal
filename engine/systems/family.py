@@ -46,9 +46,11 @@ def create(conn, rng: random.Random, player) -> list[str]:
     loc = player.location_id
     members = []
     for role, arch in rng.sample(_ROLES, 3):
-        given = npc_factory.unique_name(rng, conn=conn).split()[-1]
+        fem = role in ("madre", "sorella minore")
+        given = npc_factory.unique_name(rng, conn=conn, female=fem).split()[-1]
         nid = npc_factory.spawn(conn, rng, archetype=arch, location_id=loc, tier=1, stage=rng.randint(1, 4),
-                                name=f"{sur} {given}", traits={"loyalty": 95, "compassion": 80})
+                                name=f"{sur} {given}", traits={"loyalty": 95, "compassion": 80},
+                                gender="f" if fem else "m")
         bonds.add_bond(conn, player.id, nid, "family", tick_mod.get_tick(conn), reason=role)
         members.append({"id": nid, "role": role})
     _save(conn, {"clan": f"Famiglia {sur}", "home": loc, "members": members, "level": 1, "gifts": 0,

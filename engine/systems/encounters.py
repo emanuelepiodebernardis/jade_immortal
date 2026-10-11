@@ -53,6 +53,10 @@ def start_scene(conn: sqlite3.Connection, player: entities.Player, scene: dict,
     da mostrare, o None se c'è già un'altra scena aperta (e force=False)."""
     if pending(conn) and not force:
         return None
+    if not force:
+        from engine.systems import director
+        if not director.gate(conn, scene):
+            return None                      # il regista la rimanda (o, se è presto, non accade)
     sc = dict(scene)
     sc.setdefault("ctx", {})
     sc["location_id"] = player.location_id
@@ -471,7 +475,8 @@ def choose(conn: sqlite3.Connection, player: entities.Player, n: int) -> tuple[s
     if ch.get("check"):
         ok, _v, _r = roll(conn, rng, player.id, ch["check"])
         branch = ch.get("success" if ok else "failure", {}) or {}
-        lines.append("Riesci." if ok else "Non va come speravi.")
+        from engine.narrative import varia
+        lines.append(varia.outcome(ok, rng))
     else:
         branch = ch.get("effects", {}) or {}
     lines += apply_effects(conn, t, rng, player, branch, ctx)
@@ -562,7 +567,9 @@ def maybe_trigger(conn: sqlite3.Connection, player: entities.Player,
     from engine.systems import npc_factory
     ctx = {"npc_name": npc_factory.unique_name(rng, conn=conn),
            "luogo": loc.name if loc else "qui", "title": enc["title"]}
-    scene = format_scene({"key": enc["key"], "title": enc["title"], "text": enc["text"],
+    from engine.narrative import varia
+    scene = format_scene({"key": enc["key"], "title": enc["title"],
+                          "text": varia.ambience(conn, player, t) + " " + enc["text"],
                           "choices": enc["choices"]}, ctx)
     state.set(conn, LAST_KEY, str(t))
     seen[enc["key"]] = t

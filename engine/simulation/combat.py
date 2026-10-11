@@ -38,11 +38,46 @@ def _active_injury_penalty(conn: sqlite3.Connection, ctype: str, cid: int) -> fl
     return min(0.6, s * 0.03)   # max -60%
 
 
+# ---------- modello di potenza (bilanciamento, Aggiornamento 23) ----------
+# Il REGNO è la scala principale: ogni regno vale ×REALM_STEP sul precedente (crescita
+# continua strato per strato). Un genio con i Dao giusti batte chi è un regno sopra; due
+# regni sono quasi un muro; tre sono il cielo.
+REALM_STEP = 1.6
+# I DAO amplificano la potenza, in proporzione al «vaso» che il regno può contenere:
+# la potenza dei Dao (dao_training.dao_power, la formula di sempre) viene confrontata con
+# la capienza del regno e trasformata in un moltiplicatore LOGARITMICO, senza tetto.
+DAO_VESSEL = 100.0        # capienza al primo regno (poi ×REALM_STEP a regno)
+DAO_AMP = 0.4             # peso del moltiplicatore dei Dao
+
+
 def _realm_factor(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
-    """Bonus di coltivazione: il regno moltiplica la potenza (Fase 7)."""
+    """Il regno moltiplica la potenza in modo esponenziale (×REALM_STEP a regno)."""
     from engine.simulation import cultivation
     lvl = cultivation.effective_level(conn, ctype, cid)
-    return 1.0 + (lvl - 1) * cultivation.PER_STAGE_FACTOR
+    return REALM_STEP ** ((lvl - 1) / cultivation.STAGES_PER_REALM)
+
+
+GROWTH_LOG = 0.2         # peso della crescita «personale» compressa
+
+
+def compress(ratio: float) -> float:
+    """Rapporto sul profilo base → moltiplicatore. Lineare fino a 1, poi logaritmico:
+    ×2 → 1.2, ×10 → 1.66, ×100 → 2.3, ×1000 → 3 … senza tetto."""
+    import math
+    if ratio <= 1.0:
+        return max(0.05, ratio)
+    return 1.0 + GROWTH_LOG * math.log2(ratio)
+
+
+def dao_vessel(tier: int) -> float:
+    return DAO_VESSEL * REALM_STEP ** (max(1, tier) - 1)
+
+
+def dao_amplifier(dao_power: float, tier: int) -> float:
+    """Moltiplicatore dei Dao: 1 senza Dao; ~1.4 quando riempi il vaso del tuo regno;
+    ~2.2 a sette volte il vaso… e continua a salire (piano) all'infinito."""
+    import math
+    return 1.0 + DAO_AMP * math.log2(1.0 + max(0.0, dao_power) / dao_vessel(tier))
 
 
 def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
@@ -90,31 +125,37 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     from engine.systems import character, dao_training
     caf = character.affinity_factor(conn, ctype, cid, "combat")
     # comprensione dei Dao da combattimento (Corpo/Fulmine/Spada): fino a +20%
-    daf = dao_training.combat_dao_factor(conn, ctype, cid)
+    import math as _m
+    daf = 1.0 + 0.5 * _m.log2(dao_training.combat_dao_factor(conn, ctype, cid))   # soglie: rendimento decrescente
     # tecniche segrete apprese (solo player): bonus permanente alla potenza
     from engine.systems import guild
     tf = guild.technique_combat_factor(conn, ctype, cid)
     # punti DIRETTI da Dao (per tutti) e dalle sessioni/via (solo player)
     from engine.systems import progression
     flat = progression.growth_bonuses(conn, ctype, cid)
-    result = {k: max(1.0, v * rf * keep * caf * daf * tf) + flat.get(k, 0.0)
-              for k, v in base.items()}
-    # POTENZA DEI DAO: contributo principale alla forza offensiva, che cresce molto col
-    # numero di Dao padroneggiati e col loro livello (vale per giocatore e NPC).
-    result["attack"] += dao_training.dao_power(conn, ctype, cid) * keep
-    # linea evolutiva dell'Abisso (solo giocatore): moltiplicatori per statistica
+    # tutto ciò che NON è il regno (crescita del corpo, affinità, soglie dei Dao, tecniche,
+    # arma, linea dell'Abisso, doni della tribolazione) si somma in un RAPPORTO sul profilo
+    # base, poi viene compresso in modo logaritmico: cresce sempre, ma il regno resta la
+    # scala principale (Aggiornamento 23)
+    mult = {k: caf * daf * tf for k in base}
+    bb = None
     if ctype == "player":
         from engine.systems import absorption, tribulation
-        evb = absorption.evolution_bonuses(conn, cid)
-        if evb:
-            result["attack"] *= evb.get("attack_mult", 1.0)
-            result["defense"] *= evb.get("defense_mult", 1.0)
-            result["vitality"] *= evb.get("vitality_mult", 1.0)
-        # benedizioni della tribolazione (capacità celesti assorbite dai fulmini)
+        evb = absorption.evolution_bonuses(conn, cid) or {}
         bb = tribulation.boon_bonuses(conn, cid)
-        result["attack"] = result["attack"] * bb["attack_mult"] + bb["attack_flat"]
-        result["defense"] *= bb["defense_mult"]
-        result["vitality"] *= bb["vitality_mult"]
+        mult["attack"] *= evb.get("attack_mult", 1.0) * bb["attack_mult"]
+        mult["defense"] *= evb.get("defense_mult", 1.0) * bb["defense_mult"]
+        mult["vitality"] *= evb.get("vitality_mult", 1.0) * bb["vitality_mult"]
+    from engine.simulation import cultivation as _cv
+    amp = dao_amplifier(dao_training.dao_power(conn, ctype, cid) * keep, _cv.realm_tier(conn, ctype, cid) or 1)
+    amp_k = {"attack": amp, "defense": amp ** 0.5, "vitality": amp ** 0.5}   # i Dao colpiscono più che proteggere
+    result = {}
+    for k, v in base.items():
+        ref = PLAYER_BASE[k]
+        eff = ref * compress(v * mult[k] / ref)
+        result[k] = max(1.0, eff * rf * keep * amp_k[k]) + flat.get(k, 0.0)
+    if bb:
+        result["attack"] += bb["attack_flat"]
     return result
 
 
@@ -190,6 +231,8 @@ def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
     death_prob = 0.12 + (0.28 if wfrac > 0.5 else 0.0) + (0.2 if killing_crit else 0.0)
     if winner == atk:
         death_prob += mods.get("death_bonus", 0.0)    # mossa esecutrice
+    if loser[0] == "player" and dfn[0] == "player":
+        death_prob *= 0.4        # colto di sorpresa, il protagonista spesso riesce a fuggire ferito
     died = rng.random() < death_prob
 
     _apply_outcome(conn, tick, rng, winner, loser, rounds, died, killing_crit,

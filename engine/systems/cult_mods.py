@@ -43,6 +43,10 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = formations.cultivation_mult(conn, location_id)
     if m != 1.0:
         out.append((m, lbl))
+    from engine.systems import svolte
+    m, lbl = svolte.cultivation_mult(conn)
+    if m != 1.0:
+        out.append((m, lbl))
     from engine.systems import ascension
     m, lbl = ascension.cultivation_mult(conn, location_id)
     if m != 1.0:
@@ -56,14 +60,26 @@ def cultivation_mult(conn: sqlite3.Connection, pid: int, location_id: int | None
     for m, lbl in _parts_cult(conn, pid, location_id, seclusion):
         total *= m
         labels.append(lbl)
-    return total, labels
+    return soften(total), labels
+
+
+SOFT_CAP = 3.0
+
+
+def soften(total: float) -> float:
+    """Rete di sicurezza contro le spirali: oltre ×3 i moltiplicatori sommati crescono in modo
+    logaritmico (×6 → 4.5, ×24 → 7.5, ×1000 → 15…): sempre di più, mai all'esplosione."""
+    import math
+    if total <= SOFT_CAP:
+        return total
+    return SOFT_CAP * (1.0 + 0.5 * math.log2(total / SOFT_CAP))
 
 
 def dao_mult(conn: sqlite3.Connection, pid: int, dao_key: str) -> float:
     from engine.systems import spirit_roots, bloodlines
     from engine.systems import constitutions
-    return (spirit_roots.dao_mult(conn, "player", pid, dao_key) * bloodlines.dao_mult(conn, dao_key)
-            * constitutions.dao_mult(conn, dao_key) * _extra_dao(conn, dao_key))
+    return soften(spirit_roots.dao_mult(conn, "player", pid, dao_key) * bloodlines.dao_mult(conn, dao_key)
+                  * constitutions.dao_mult(conn, dao_key) * _extra_dao(conn, dao_key))
 
 
 def _extra_dao(conn, dao_key: str) -> float:

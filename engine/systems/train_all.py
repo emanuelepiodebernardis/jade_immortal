@@ -51,8 +51,10 @@ def train(conn, player) -> str:
     # 1) Qi — la meditazione condivide la sessione con il resto
     qi_txt = loop.cmd_cultivate(conn, player, share=QI_SHARE, advance=False)
     y = training.session_yield(training.sessions_today(conn, t, "player", player.id))
-    out = ["☯ Allenamento d'insieme: Qi, Dao e arte crescono insieme.", qi_txt.splitlines()[0]]
-    extra_qi = [ln for ln in qi_txt.splitlines()[1:] if ln.startswith(("Avanzi", "Sei al colmo", "Sei sfinito"))
+    from engine.narrative import varia
+    qi_lines = qi_txt.splitlines()
+    out = [varia.train_header(conn, player, t), qi_lines[1] if len(qi_lines) > 1 else qi_lines[0]]
+    extra_qi = [ln for ln in qi_txt.splitlines()[2:] if ln.startswith(("Avanzi", "Sei al colmo", "Sei sfinito"))
                 or "cuore" in ln.lower() or "deviazione" in ln.lower()]
 
     # 2) Tutti i Dao conosciuti, ognuno secondo la sua rarità

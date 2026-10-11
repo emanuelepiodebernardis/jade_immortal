@@ -172,6 +172,32 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("chiama", "call"):
         from engine.systems import oaths
         return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("mete", "destinazioni", "dove"):
+        from engine.systems import travel
+        return travel.describe(conn, player)
+    if cmd in ("vai", "raggiungi", "goto"):
+        from engine.systems import travel
+        return travel.go(conn, player, arg)
+    if cmd in ("iscriviti", "partecipa") and arg.strip():
+        from engine.systems import travel
+        res = travel.join(conn, player, arg)
+        if res is not None:
+            return res
+    if cmd in ("svolte", "traguardi", "milestones"):
+        from engine.systems import svolte
+        return svolte.describe(conn, player)
+    if cmd in ("vola", "fly", "volo"):
+        from engine.systems import svolte
+        return svolte.fly(conn, player, arg)
+    if cmd in ("crea_dao", "creadao"):
+        from engine.systems import svolte
+        return svolte.create_dao(conn, player, arg)
+    if cmd in ("capolavoro", "masterpiece"):
+        from engine.systems import svolte
+        return svolte.masterpiece(conn, player, arg)
+    if cmd in ("ritmo", "regista", "pacing"):
+        from engine.systems import director
+        return director.describe(conn)
     if cmd in ("trama", "storia", "plot"):
         from engine.systems import master_plot
         return master_plot.describe(conn, player)
@@ -235,7 +261,10 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("cela", "nascondi", "conceal"):
         from engine.systems import divine_sense
         return divine_sense.toggle(conn, arg)
-    if cmd in ("marionette", "tesori", "puppets", "treasures"):
+    if cmd in ("tesori", "treasures", "inventario_vivo"):
+        from engine.systems import treasury
+        return treasury.command(conn, player, arg)
+    if cmd in ("marionette", "puppets"):
         from engine.systems import puppets
         return puppets.describe(conn, player)
     if cmd in ("marionetta", "puppet"):
@@ -410,12 +439,20 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
 
 def story_tick(conn, player) -> str | None:
     """Prova a far avanzare la storia: origine, archi del mondo, trama maestra, maestri segreti."""
-    from engine.systems import storyline, world_arcs, master_plot, secret_masters
-    return (storyline.maybe_advance(conn, player) or world_arcs.maybe_advance(conn, player)
-            or master_plot.maybe_advance(conn, player) or secret_masters.maybe_meet(conn, player))
+    from engine.systems import storyline, world_arcs, master_plot, secret_masters, director, encounters
+    if encounters.pending(conn) or not director.story_ready(conn):
+        return None                            # un capitolo alla volta, con il tempo di respirare
+    fns = [storyline.maybe_advance, master_plot.maybe_advance, world_arcs.maybe_advance,
+           secret_masters.maybe_meet]
+    for i in director.story_order(conn, len(fns)):    # le trame si alternano
+        txt = fns[i](conn, player)
+        if txt:
+            director.story_shown(conn, i)
+            return txt
+    return None
 
 
-_MOVE_CMDS = {"move", "go", "n", "s", "e", "w", "north", "south", "east", "west", "nord", "sud", "est", "ovest",
+_MOVE_CMDS = {"vai", "raggiungi", "goto", "vola", "fly", "volo", "move", "go", "n", "s", "e", "w", "north", "south", "east", "west", "nord", "sud", "est", "ovest",
               "home", "warzone", "raidtarget", "teletrasporto", "teleport", "tp", "up", "down", "su", "giu", "giù",
               "enter", "entra", "ascendi_mondo"}
 

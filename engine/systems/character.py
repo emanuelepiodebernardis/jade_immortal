@@ -205,8 +205,11 @@ def _apply_enemy_flags(conn, flags, rng, player_id) -> None:
         return
     n = 3 if flags.get("hunted") else 2
     delta = -50 if flags.get("hunted") else -25   # hunted = nemici; more_enemies = rivali
+    # nemici alla tua portata (un patriarca non scende in campo per un ragazzino: manda altri)
+    from engine.simulation import cultivation
     npcs = [r["id"] for r in conn.execute(
-        "SELECT id FROM npcs WHERE status='alive' ORDER BY id;")]
+        "SELECT id FROM npcs WHERE status='alive' AND COALESCE(kind,'human')='human' ORDER BY id;")
+        if (cultivation.realm_tier(conn, "npc", r["id"]) or 1) <= 2]
     rng.shuffle(npcs)
     for nid in npcs[:n]:
         relations.adjust(conn, nid, delta, tick=0, player_id=player_id)

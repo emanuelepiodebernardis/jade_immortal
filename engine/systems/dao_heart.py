@@ -176,6 +176,12 @@ def daily(conn, t: int, rng, player) -> list[str]:
     v = toxin(conn)
     if v > 0:
         _set_toxin(conn, v - 1.5)
+    # il tempo guarisce: un cuore ferito torna piano verso la calma (più in fretta quando è
+    # in pericolo). Senza questo un cuore a zero era una spirale senza uscita.
+    from engine.systems import constitutions
+    h, base = heart(conn), 60 + constitutions.heart_bonus(conn)
+    if h < base:
+        return adjust(conn, 3 if h < 30 else 1)
     return []
 
 

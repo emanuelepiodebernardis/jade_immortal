@@ -11,6 +11,9 @@ from __future__ import annotations
 # (chiave, titolo, righe "comando — descrizione")
 CATEGORIES: list[tuple[str, str, list[str]]] = [
     ("esplorazione", "Esplorazione e viaggio", [
+        "mete                          — tutto ciò che sta accadendo nel mondo, numerato, con la distanza",
+        "vai <n|meta|luogo>            — raggiungi DIRETTAMENTE una meta o un luogo (es. 'vai 1', 'vai assemblea')",
+        "iscriviti <n|meta>            — ci vai e partecipi subito (Assemblea, gara, reame, invasione, famiglia…)",
         "move <north|south|east|west>  (abbrev: n/s/e/w)  — ti sposti, +1 tick",
         "look                          — osservi la location corrente",
         "look <dir>                    — sbirci la location adiacente in quella direzione",
@@ -116,7 +119,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "incarico <n> | incarichi      — accetti una richiesta | i tuoi incarichi in corso e dove andare",
         "consegna                      — consegni erbe o pillole per un incarico di guarigione",
         "giura <nome>                  — giuri fratellanza (rapporto ≥ 70) — 'chiama <nome>' per chiamarlo",
-        "proponi <nome>                — diventate compagni del Dao (rapporto ≥ 80): doppia coltivazione",
+        "proponi <nome>                — lei diventa la tua compagna del Dao (rapporto ≥ 80): doppia coltivazione",
     ]),
     ("bestie", "Bestie spirituali e lignaggi di sangue", [
         "tame <creatura>               — provi a domare una creatura (ferirla prima aiuta)",
@@ -156,6 +159,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "chronicle                     — un breve passo di cronaca del mondo",
     ]),
     ("eredita", "Eredità e poteri dei protagonisti", [
+        "tesori [cura|<nome>]          — TUTTI I TUOI TESORI in un pannello (arma, anello, spazio, Gu, marionette…); 'cura' li cura tutti",
         "retaggio                      — il talento che ti è stato tolto: frammenti ritrovati e dove cercare il prossimo",
         "anello [nutri <n>|forza]      — il MAESTRO NELL'ANELLO: consigli, risveglio infinito, ti presta la sua forza",
         "spazio [semina <n>|raccogli|espandi] — lo SPAZIO INTERIORE: campo accelerato, poi Mondo Interiore",
@@ -164,7 +168,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "famiglia [visita|difendi|dona <pietre>|resuscita <nome>] — la tua famiglia e il tuo clan",
         "scruta [nome] | cela <on|off> — SENSO DIVINO e nascondere il proprio livello",
         "marionetta crea|potenzia <n>  — MARIONETTE da combattimento (Forgia o Formazioni 3)",
-        "tesoro forgia <tipo>|nutri <n> — TESORI LEGATI AL SANGUE ('marionette' / 'tesori' per vederli)",
+        "tesoro forgia <tipo>|nutri <n> — TESORI LEGATI AL SANGUE ('marionette' o 'tesori sangue' per vederli)",
         "gu [raffina <tipo>]           — i GU nella tua apertura: nutrirli, raffinarli",
         "bandiera                      — la BANDIERA DELLE ANIME (arte demoniaca)",
     ]),
@@ -178,6 +182,11 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "era | calamita                — l'ERA del mondo e la CALAMITÀ che ritorna: respingi le ondate",
         "gara [iscriviti|prova]        — le GARE DEI MAESTRI d'arte: corone senza fine",
         "evadi                         — (se sei prigioniero) il passo successivo della fuga",
+        "ritmo                         — il ritmo degli eventi: scene della settimana, capitoli, scene in attesa",
+        "svolte                        — le SVOLTE della via: ciò che cambia il modo di giocare (raggiunte e prossime)",
+        "vola <luogo>                  — (2° regno) voli in un luogo già visitato; dal 6° regno è istantaneo",
+        "crea_dao <nome>               — (3 Dao alla Legge) fondi un Dao TUO, mai percorso da nessuno",
+        "capolavoro <nome>             — (arte 10, 20, 30…) un'opera unica: +5% coltivazione per sempre",
     ]),
     ("auto", "Pilota automatico (stato etereo)", [
         "auto                          — la configurazione del pilota automatico",
@@ -187,6 +196,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "auto imposta assorbi <si|no>  — (Divoratore) divora i caduti",
         "auto imposta loot <si|no> | oggetti <si|no> — raccogli il bottino | usa pillole ed essenze",
         "auto imposta sfonda <si|no>   — tenta da solo il breakthrough quando sei al colmo (rischioso!)",
+        "auto imposta rischio <percento> — il rischio di morte che il pilota accetta per sfondare da solo (10%)",
         "auto imposta condotta <virtuosa|prudente|opportunista|spietata> — scelte negli incontri minori",
         "auto imposta fermati <reame|assemblea|asta|invasione|elemento> <si|no> — per quali occasioni fermarsi",
     ]),
@@ -244,10 +254,51 @@ def full_help() -> str:
     return "\n\n".join(parts)
 
 
-def help_for(arg: str) -> str:
+# Categorie che si SVELANO man mano (aiuto progressivo): finché non le hai toccate, l'aiuto
+# le mostra in fondo, in breve, con il modo per scoprirle. 'help tutto' mostra sempre tutto.
+_ALWAYS = {"esplorazione", "combattimento", "coltivazione", "storia", "legami", "setta", "auto", "sistema"}
+_HINT = {"mondo": "dal 2° regno, o quando si apre un reame segreto o un'Assemblea",
+         "dimora": "quando reclami una grotta-dimora o hai un discepolo",
+         "bestie": "quando domi una bestia o un sangue antico scorre in te",
+         "arti": "quando scegli un'arte ('profession <arte>')",
+         "eredita": "quando trovi il tuo primo tesoro vivo (anello, spazio interiore, Gu…)",
+         "trama": "quando la tua storia comincia davvero (il primo capitolo della trama)"}
+
+
+def _unlocked(conn, key: str) -> bool:
+    if key in _ALWAYS or conn is None:
+        return True
+    try:
+        from engine.systems import state, professions, beasts, bloodlines, cave_abode, treasury
+        from engine.simulation import cultivation
+        from engine.core import entities
+        p = entities.get_player(conn)
+        if key == "mondo":
+            return (cultivation.realm_tier(conn, "player", p.id) or 1) >= 2 or bool(state.get(conn, "secret_realm"))
+        if key == "dimora":
+            return bool(cave_abode.get(conn, p.id))
+        if key == "bestie":
+            return bool(beasts.pets(conn, p.id)) or bool(bloodlines.ordered(conn))
+        if key == "arti":
+            return bool(professions.profession(conn, p.id))
+        if key == "eredita":
+            return bool(treasury._lines(conn, p))
+        if key == "trama":
+            return bool((state.get_json(conn, "master_plot") or {}).get("done"))
+    except Exception:
+        return True
+    return True
+
+
+def help_for(arg: str, conn=None) -> str:
     a = (arg or "").strip().lower()
     if not a:
-        cats = "\n".join(f"  {key:<14} — {title}" for key, title, _ in CATEGORIES)
+        open_ = [(k, t) for k, t, _ in CATEGORIES if _unlocked(conn, k)]
+        hidden = [(k, t) for k, t, _ in CATEGORIES if not _unlocked(conn, k)]
+        cats = "\n".join(f"  {key:<14} — {title}" for key, title in open_)
+        if hidden:
+            cats += "\nAncora da scoprire:\n" + "\n".join(
+                f"  {key:<14} — si svela {_HINT.get(key, 'più avanti')}" for key, _t in hidden)
         return f"{ESSENTIALS}\n{cats}"
     if a in ("tutto", "all", "completo", "full"):
         return full_help()

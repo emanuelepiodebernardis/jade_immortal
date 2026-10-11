@@ -126,13 +126,25 @@ def resolve_player_threats(conn, tick, scope, rng, player, observer, observation
     for npc in npcs:
         disp = relations.get_disposition(conn, npc.id).score
         traits = entities.get_npc_traits(conn, npc.id)
+        from engine.systems import state as _st
+        cd = _st.get_json(conn, "threat_cd", {}) or {}
+        if cd.get(str(npc.id), -1) > tick:
+            continue                      # ti ha già battuto da poco: per ora gli basta
         if disp <= -40 and traits.get("courage", 50) > 50 and rng.random() < 0.3:
             from engine.simulation import combat
-            combat.resolve_combat(
+            from engine.systems import perception
+            # un nemico SCHIACCIANTEMENTE più forte non si sporca le mani con chi è sotto di lui:
+            # ti minaccia (e magari manda qualcuno), ma non ti uccide in un colpo per strada
+            if perception.strength_ratio(conn, player.id, npc.id) < 0.4:
+                continue
+            res = combat.resolve_combat(
                 conn, tick, rng,
                 ("npc", npc.id, npc.name), ("player", player.id, "te"),
                 player.location_id, observer, observations,
             )
+            if res["winner"][0] == "npc":
+                cd[str(npc.id)] = tick + 5 * 120
+                _st.set_json(conn, "threat_cd", {k: v for k, v in cd.items() if v > tick})
             events += 1
             # se il giocatore muore, basta un attacco
             st = conn.execute("SELECT status FROM players WHERE id=?;", (player.id,)).fetchone()["status"]

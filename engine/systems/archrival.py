@@ -19,7 +19,7 @@ from engine.systems import state
 
 KEY = "archrival"
 _HEIRS = ["il fratello minore", "il discepolo prediletto", "la sorella gemella", "il figlio", "l'allievo segreto",
-          "il compagno del Dao", "il vecchio servitore che lo crebbe"]
+          "la compagna del Dao", "il vecchio servitore che lo crebbe"]
 _EPITHETS = ["il Senza Pari", "Spada di Giada", "il Prescelto", "Figlio del Cielo", "Occhi di Brace", "il Freddo",
              "Mano di Ferro"]
 
@@ -37,15 +37,16 @@ def npc_name(conn, d) -> str:
     return r["name"] if r else "l'arcinemico"
 
 
-def create(conn, rng: random.Random, player, heir_of: dict | None = None) -> str:
+def create(conn, rng: random.Random, player, heir_of: dict | None = None, female: bool = False) -> str:
     from engine.systems import npc_factory, prodigies
     from engine.simulation import cultivation
     ptier = cultivation.realm_tier(conn, "player", player.id) or 1
     nid = npc_factory.spawn(conn, rng, archetype="discepolo", location_id=player.location_id,
-                            tier=ptier + (1 if heir_of else 0),
-                            stage=min(10, 3 + rng.randint(0, 4) + (2 * heir_of["gen"] if heir_of else 0)),
+                            tier=ptier, stage=1 + rng.randint(0, 3), gender="f" if female else "m",
                             traits={"pride": 95, "ambition": 95, "honor": 30}, tick=tick_mod.get_tick(conn))
     gen = (heir_of["gen"] + 1) if heir_of else 1
+    # il rivale è alla TUA altezza (l'erede un po' sopra): una sfida vera, non un sacco da pugni
+    _match(conn, player.id, nid, rng.uniform(0.85, 1.05) if not heir_of else rng.uniform(0.7, 0.9))
     d = {"npc": nid, "gen": gen, "epithet": rng.choice(_EPITHETS), "wins": 0, "losses": 0, "scars": [],
          "memory": list(heir_of.get("memory", []))[-3:] if heir_of else [], "next_day": tick_mod.get_tick(conn) // 120 + 12,
          "level": heir_of["level"] if heir_of else 1}
@@ -58,6 +59,15 @@ def create(conn, rng: random.Random, player, heir_of: dict | None = None) -> str
         ids.insert(0, nid)
         state.set_json(conn, prodigies.KEY, ids)
     return d["name"]
+
+
+def _match(conn, pid: int, nid: int, target_ratio: float, max_steps: int = 300) -> None:
+    """Fa crescere il rivale finché il rapporto di forza (tu/lui) non scende a target_ratio."""
+    from engine.systems import npc_factory, perception
+    for _ in range(max_steps):
+        if perception.strength_ratio(conn, pid, nid) <= target_ratio:
+            return
+        npc_factory.raise_npc(conn, nid, 1)
 
 
 def _promote(conn, d: dict, stages: int) -> None:
@@ -85,13 +95,18 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
         heir = rng.choice(_HEIRS)
         prev = dict(d)
         prev.pop("heir_day", None)
-        name = create(conn, rng, player, heir_of=prev)
+        name = create(conn, rng, player, heir_of=prev, female=heir.startswith("la "))
         out.append(f"☠ La morte di {prev['name']} non chiude nulla: {heir}, {name}, raccoglie il suo nome. "
                    f"«Ricordo tutto. Hai ucciso {prev['name']}.» (arcinemico, {prev['gen'] + 1}ª generazione)")
         return out
-    if rng.random() < 0.25 * destinies.rival_mult(conn):
+    # cresce con te, non al posto tuo: si allena quando gli sei vicino o davanti; se ti
+    # ha staccato di molto aspetta (ti guarda dall'alto); se lo hai staccato, ti rincorre
+    from engine.systems import perception
+    ratio = perception.strength_ratio(conn, player.id, d["npc"])
+    if ratio > 0.8 and rng.random() < 0.25 * destinies.rival_mult(conn):
         from engine.systems import npc_factory
         npc_factory.raise_npc(conn, d["npc"], 1)
+    _match(conn, player.id, d["npc"], 1.25, max_steps=3)
     day = t // 120
     if day >= d["next_day"] and not encounters.pending(conn):
         d["next_day"] = day + rng.randint(15, 25)

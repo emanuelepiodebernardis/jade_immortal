@@ -13,6 +13,7 @@ rende davvero più forti.
 
 from __future__ import annotations
 
+import math
 import random
 import sqlite3
 
@@ -136,17 +137,8 @@ def cultivate(conn, ctype, cid, tick: int, rng: random.Random,
             "ready": ready, "stage_up": stage_up}
 
 
-def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
-                         observer: int | None = None,
-                         observations: list | None = None) -> dict:
-    rec = get_record(conn, ctype, cid)
-    tier = realm_tier(conn, ctype, cid)
-    if rec is None:
-        return {"status": "no_record"}
-    # nessun tetto: la via sale all'infinito (i regni oltre l'8 si generano da soli)
-    if not (stage_of(conn, ctype, cid) >= STAGES_PER_REALM and rec["progress"] >= 1.0):
-        return {"status": "not_ready"}
-
+def _bt_success(conn, ctype, cid, rec, tier, consume: bool) -> tuple[float, float]:
+    """Probabilità di riuscita dello sfondamento e fattore di morte del Destino."""
     dao = rec["dao_understanding"]
     fails = rec["bt_failures"] or 0
     from engine.systems import character
@@ -167,14 +159,56 @@ def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
     extra = 0.0
     if ctype == "player":
         from engine.systems import heart_demon
-        extra = heart_demon.take_bonus(conn)      # demone interiore, pillole di fondazione
+        extra = heart_demon.take_bonus(conn) if consume else heart_demon.peek_bonus(conn)   # demone, pillole
         from engine.systems import spirit_roots
         extra += spirit_roots.breakthrough_bonus(conn, cid)   # combinazioni di radici
         from engine.systems import constitutions, dao_heart
         extra += constitutions.bt_bonus(conn) + dao_heart.breakthrough_bonus(conn)
     p_success = max(0.05, min(0.97,
-                              0.5 + (rec["progress"] - 1.0) + dao * 0.003 - tier * 0.04
+                              0.55 - 0.08 * math.log2(max(1, tier)) + (rec["progress"] - 1.0) + dao * 0.003
                               + aff_bonus - residue_penalty + fail_bonus + fate_succ + extra))
+    return p_success, fate_death
+
+
+def breakthrough_odds(conn, ctype: str, cid: int) -> dict:
+    """Stima (senza effetti) della riuscita e del rischio di morte se fallisce: per il pilota
+    automatico e per mostrare al giocatore cosa rischia."""
+    rec = get_record(conn, ctype, cid)
+    tier = realm_tier(conn, ctype, cid)
+    if rec is None:
+        return {"success": 0.0, "death": 0.0}
+    p_success, fate_death = _bt_success(conn, ctype, cid, rec, tier, consume=False)
+    if (rec["bt_failures"] or 0) >= BT_GUARANTEE:
+        p_success = 1.0
+    return {"success": p_success, "death": (1 - p_success) * _bt_death(conn, ctype, cid, tier,
+                                                                       rec["bt_failures"] or 0, fate_death)}
+
+
+def _bt_death(conn, ctype, cid, tier, fails, fate_death) -> float:
+    from engine.systems import character, karma
+    # il rischio cresce coi regni, ma piano (logaritmico, max 18%): la via è infinita, e
+    # uno sfondamento non deve diventare una lotteria della morte ai regni alti
+    p_death = min(0.18, 0.03 + 0.03 * math.log2(max(1, tier)))
+    if character.has_flag(conn, ctype, cid, "hard_tribulation"):
+        p_death *= 1.5
+    p_death *= (1.0 - min(0.7, fails * 0.18))
+    p_death *= karma.breakthrough_factor(karma.get_karma(conn, ctype, cid))
+    return p_death * fate_death
+
+
+def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
+                         observer: int | None = None,
+                         observations: list | None = None) -> dict:
+    rec = get_record(conn, ctype, cid)
+    tier = realm_tier(conn, ctype, cid)
+    if rec is None:
+        return {"status": "no_record"}
+    # nessun tetto: la via sale all'infinito (i regni oltre l'8 si generano da soli)
+    if not (stage_of(conn, ctype, cid) >= STAGES_PER_REALM and rec["progress"] >= 1.0):
+        return {"status": "not_ready"}
+
+    fails = rec["bt_failures"] or 0
+    p_success, fate_death = _bt_success(conn, ctype, cid, rec, tier, consume=True)
     name = _char_name(conn, ctype, cid)
     loc = _char_location(conn, ctype, cid)
 
@@ -186,15 +220,8 @@ def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
         return _breakthrough_success(conn, ctype, cid, tier, tick, name, loc, observer, observations)
 
     # fallimento: contraccolpo o morte (le origini "hard_tribulation" rischiano di più)
-    p_death = 0.03 + tier * 0.02
-    if character.has_flag(conn, ctype, cid, "hard_tribulation"):
-        p_death *= 1.5
-    # i fallimenti accumulati temprano il corpo contro la deviazione del qi: meno morte
-    p_death *= (1.0 - min(0.7, fails * 0.18))
-    # il karma negativo rende la tribolazione più letale (vale anche per gli NPC)
-    from engine.systems import karma
-    p_death *= karma.breakthrough_factor(karma.get_karma(conn, ctype, cid))
-    p_death *= fate_death                     # il Destino allontana la catastrofe
+    # (i fallimenti accumulati temprano il corpo; karma e Destino spostano il rischio)
+    p_death = _bt_death(conn, ctype, cid, tier, fails, fate_death)
     if rng.random() < p_death:
         return _breakthrough_death(conn, ctype, cid, tier, tick, rng, name, loc, observer, observations)
     return _breakthrough_setback(conn, ctype, cid, rec, tier, tick, name, loc, observer, observations)

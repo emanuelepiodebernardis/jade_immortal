@@ -23,7 +23,7 @@ from engine.core import entities, tick as tick_mod
 from engine.systems import state
 
 # chiavi di game_state che appartengono al MONDO (sopravvivono alla rinascita)
-_WORLD_KEYS = {"last_day", "life_no"}
+_WORLD_KEYS = {"last_day", "life_no", "auto_cfg", "director", "ui_hud", "ui_suggest", "ui_colors"}   # mondo e preferenze di gioco
 
 # tabelle di sola storia (non si cancellano: il mondo ricorda)
 _HISTORY_TABLES = {"events", "event_participants", "consequences", "chronicles",

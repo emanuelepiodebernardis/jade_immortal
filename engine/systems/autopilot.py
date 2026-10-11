@@ -18,6 +18,7 @@ quando succede qualcosa che vale la pena giocare.
   auto imposta loot <si|no>             raccogli tutto il bottino
   auto imposta oggetti <si|no>          usa pillole ed essenze raccolte
   auto imposta sfonda <si|no>           tenta da solo lo sfondamento quando sei al colmo (rischioso!)
+  auto imposta rischio <percento>       il rischio di morte che il pilota accetta per sfondare da solo (10%)
   auto imposta condotta <virtuosa|prudente|opportunista|spietata>
                                         come comportarti negli incontri casuali minori
   auto imposta fermati <reame|assemblea|asta|invasione|elemento> <si|no>
@@ -44,7 +45,7 @@ TARGETS = ["nessuno", "bestie", "ricercati", "deboli", "tutti"]
 CONDUCTS = ["virtuosa", "prudente", "opportunista", "spietata"]
 _WILD = ("mountain", "ruin", "forbidden_zone")
 DEFAULT = {"attivita": {"allena": 5, "coltiva": 0, "dao": 0, "caccia": 2, "raccolta": 1, "lavoro": 1, "insegna": 1},
-           "bersagli": "bestie", "assorbi": False, "loot": True, "oggetti": True, "sfonda": False,
+           "bersagli": "bestie", "rischio": 10, "assorbi": False, "loot": True, "oggetti": True, "sfonda": False,
            "condotta": "prudente",
            "fermate": {"reame": True, "assemblea": True, "asta": False, "invasione": True, "elemento": True}}
 _STOP_KEY = {"realm": "reame", "assembly": "assemblea", "auction": "asta", "event": "invasione",
@@ -92,6 +93,8 @@ def configure(conn, arg: str) -> str:
         c["condotta"] = rest[0].lower()
     elif what in ("assorbi", "loot", "oggetti", "sfonda") and rest and _yes(rest[0]) is not None:
         c[what] = _yes(rest[0])
+    elif what in ("rischio", "risk") and rest and rest[0].rstrip("%").isdigit():
+        c["rischio"] = max(0, min(100, int(rest[0].rstrip("%"))))
     elif what in ("fermati", "fermata", "stop") and len(rest) >= 2 and rest[0].lower() in DEFAULT["fermate"] \
             and _yes(rest[1]) is not None:
         c["fermate"][rest[0].lower()] = _yes(rest[1])
@@ -109,7 +112,7 @@ def describe(conn) -> str:
             f"  Attività (peso): {act}\n"
             f"  Bersagli: {c['bersagli']}   Assorbi: {'sì' if c['assorbi'] else 'no'}   "
             f"Bottino: {'sì' if c['loot'] else 'no'}   Usa oggetti: {'sì' if c['oggetti'] else 'no'}   "
-            f"Sfonda da solo: {'sì' if c['sfonda'] else 'no'}\n"
+            f"Sfonda da solo: {'sì' if c['sfonda'] else 'no'} (rischio accettato {c.get('rischio', 10)}%)\n"
             f"  Condotta negli incontri: {c['condotta']}\n"
             "  Si ferma anche per: " + ", ".join(f"{k} {'sì' if v else 'no'}" for k, v in c["fermate"].items())
             + " ('auto imposta fermati asta si')\n"
@@ -276,6 +279,15 @@ def _meditations_today(conn) -> int:
 
 
 def _choose_action(conn, player, cfg: dict, rng: random.Random) -> str | None:
+    cmd = _choose_action_raw(conn, player, cfg, rng)
+    if cmd in ("train", "cultivate") or (cmd or "").startswith("comprehend"):
+        from engine.systems import dao_heart
+        if dao_heart.heart(conn) < 30 or _meditations_today(conn) >= 4:
+            return None              # niente meditazione forzata: si riposa fino a domani
+    return cmd
+
+
+def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | None:
     from engine.systems import dao_training, loot, absorption, own_sect
     from engine.core import entities as ents
     if _danger(conn, player.id, player.location_id):
@@ -292,11 +304,23 @@ def _choose_action(conn, player, cfg: dict, rng: random.Random) -> str | None:
                        "AND character_id=? AND healed=0;", (player.id,)).fetchone()["s"]
     from engine.simulation import cultivation
     rec = cultivation.get_record(conn, "player", player.id)
-    if cfg.get("sfonda") and rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and inj == 0:
+    if cfg.get("sfonda") and rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and inj == 0 \
+            and cultivation.breakthrough_odds(conn, "player", player.id)["death"] <= cfg.get("rischio", 10) / 100:
         return "breakthrough"
+    if inj >= 9:
+        return None                    # ferite gravi: il pilota si riposa e lascia guarire il corpo
+    if inj < 4 and cfg["bersagli"] != "nessuno":
+        from engine.systems import perception
+        for h in conn.execute("SELECT id, name FROM npcs WHERE location_id=? AND hunting=1 AND status='alive';",
+                              (player.location_id,)).fetchall():
+            if perception.strength_ratio(conn, player.id, h["id"]) >= 1.2:
+                return f"attack {h['name']}"           # un cacciatore più debole: lo affronti
     tg = _targets(conn, player, cfg["bersagli"]) if inj < 4 else []
     weights = dict(cfg["attivita"])
-    if _meditations_today(conn) >= 4:              # sfinito: niente più meditazione oggi
+    from engine.systems import dao_heart
+    if _meditations_today(conn) >= 4 or dao_heart.heart(conn) < 30:
+        # sfinito, o cuore del Dao incrinato (meditare ora rischia la deviazione del Qi):
+        # oggi niente meditazione, il pilota fa altro e lascia che il cuore si calmi
         weights["allena"] = weights["coltiva"] = weights["dao"] = 0
     if tg and weights.get("caccia", 0) > 0 and rng.random() < 0.7:
         return f"attack {tg[0]}"
@@ -428,8 +452,16 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
         if nxt and nxt["fire_tick"] - t <= training.DAY_TICKS:
             return "un torneo o una sfida di setta è imminente"
     rec = cultivation.get_record(conn, "player", p.id)
-    if rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and not (cfg or DEFAULT).get("sfonda"):
-        return "sei pronto allo sfondamento ('breakthrough')"
+    if rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0:
+        tier = cultivation.realm_tier(conn, "player", p.id) or 1
+        odds = cultivation.breakthrough_odds(conn, "player", p.id)
+        if not (cfg or DEFAULT).get("sfonda"):
+            return "sei pronto allo sfondamento ('breakthrough')"
+        if odds["death"] > (cfg or DEFAULT).get("rischio", 10) / 100 and state.get_int(conn, "auto_risk_warned", 0) != tier:
+            state.set(conn, "auto_risk_warned", str(tier))
+            return (f"lo sfondamento è rischioso (riuscita {odds['success']:.0%}, rischio di morte "
+                    f"{odds['death']:.0%}): decidi tu ('breakthrough'), o alza il rischio accettato "
+                    f"('auto imposta rischio <percento>')")
     ev = conn.execute(
         "SELECT e.id, e.summary FROM events e JOIN event_participants pp ON pp.event_id=e.id "
         "WHERE pp.participant_type='player' AND e.event_type='fight' AND e.tick>=? AND e.id>? "
@@ -455,7 +487,9 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
                           (p.location_id,)).fetchone()
     if hunter and hunter["id"] not in seen:
         seen.add(hunter["id"])
-        return f"un cacciatore ti ha trovato: {hunter['name']}"
+        from engine.systems import perception
+        if perception.strength_ratio(conn, p.id, hunter["id"]) < 1.2:     # i deboli li sistema il pilota
+            return f"un cacciatore ti ha trovato: {hunter['name']}"
     from engine.systems import bonds
     for nm in bonds.nemeses(conn, p.id):
         if nm["location_id"] == p.location_id and nm["npc_id"] not in seen:
@@ -463,8 +497,9 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
             return f"la tua nemesi {nm['name']} è qui"
     inj = conn.execute("SELECT COALESCE(SUM(severity),0) s FROM injuries WHERE character_type='player' "
                        "AND character_id=? AND healed=0;", (p.id,)).fetchone()["s"]
-    if inj >= 9:
-        return "le tue ferite sono gravi"
+    if inj >= 15 and state.get_int(conn, "auto_inj_warn", -99) < tick_mod.get_tick(conn) // 120 - 5:
+        state.set(conn, "auto_inj_warn", str(tick_mod.get_tick(conn) // 120))
+        return "le tue ferite sono gravissime (il pilota si riposa, ma valuta pillole o un guaritore)"
     return None
 
 

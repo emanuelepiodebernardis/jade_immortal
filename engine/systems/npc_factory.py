@@ -25,12 +25,32 @@ _GIVEN = ["Wei", "Feng", "Lan", "Jian", "Yan", "Ruo", "Tian", "Cheng", "Min", "H
           "Lian", "Fei", "Heng", "Jun", "Ying", "Zhen", "Wuji", "Changge", "Moran", "Xiaoyu"]
 
 
+# nomi femminili (per le donne del mondo: fidanzate, compagne del Dao, sorelle, madri…)
+_GIVEN_F = ["Mei", "Lan", "Xue", "Ling", "Yue", "Ying", "Qing", "Rou", "Xiu", "Yan", "Zhen", "Fei", "Lian",
+            "Shuang", "Yao", "Ning", "Wan", "Xiaoyu", "Ruoxi", "Qingxue", "Yuyan", "Lingyun", "Hua", "Xin"]
+
+
+def gender_of(conn: sqlite3.Connection, npc_id: int) -> str:
+    """'m' o 'f'. Nei mondi creati prima del genere (NULL) lo si deduce in modo stabile dall'id."""
+    r = conn.execute("SELECT gender, kind FROM npcs WHERE id=?;", (npc_id,)).fetchone()
+    if r is None:
+        return "m"
+    if r["gender"] in ("m", "f"):
+        return r["gender"]
+    return "f" if (r["kind"] or "human") == "human" and npc_id % 5 in (1, 3) else "m"
+
+
+def is_female(conn: sqlite3.Connection, npc_id: int) -> bool:
+    return gender_of(conn, npc_id) == "f"
+
+
 def unique_name(rng: random.Random, used: set[str] | None = None,
-                conn: sqlite3.Connection | None = None) -> str:
+                conn: sqlite3.Connection | None = None, female: bool = False) -> str:
     if used is None:
         used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")} if conn else set()
+    pool = _GIVEN_F if female else _GIVEN
     for _ in range(200):
-        n = f"{rng.choice(_SURNAMES)} {rng.choice(_GIVEN)}"
+        n = f"{rng.choice(_SURNAMES)} {rng.choice(pool)}"
         if n not in used:
             used.add(n)
             return n
@@ -46,12 +66,13 @@ def spawn(conn: sqlite3.Connection, rng: random.Random, *, archetype: str,
           location_id: int | None, tier: int, stage: int | None = None,
           name: str | None = None, faction_id: int | None = None,
           dao: str | None = None, dao_comp: int | None = None,
-          traits: dict[str, int] | None = None, tick: int = 0) -> int:
-    """Crea un NPC umano e ritorna il suo id."""
+          traits: dict[str, int] | None = None, tick: int = 0, gender: str | None = None) -> int:
+    """Crea un NPC umano e ritorna il suo id. gender: 'm' | 'f' (None = a caso)."""
     if archetype not in npc_gen.ARCHETYPE_PROFILES:
         archetype = "vagabondo"
+    gender = gender if gender in ("m", "f") else None      # None: deciso in modo stabile dall'id
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
-    name = name or unique_name(rng, used)
+    name = name or unique_name(rng, used, female=gender == "f")
     tr = dict(npc_gen.roll_traits(rng, archetype))
     if traits:
         tr.update({k: max(0, min(100, v)) for k, v in traits.items()})
@@ -61,10 +82,12 @@ def spawn(conn: sqlite3.Connection, rng: random.Random, *, archetype: str,
     stage = max(1, min(10, stage))
     cur = conn.execute(
         "INSERT INTO npcs (name, location_id, status, description, archetype, faction_id, "
-        "realm_id, kind, birth_tick, last_active_tick) "
-        "VALUES (?, ?, 'alive', ?, ?, ?, ?, 'human', ?, ?);",
-        (name, location_id, desc, archetype, faction_id, realm_id, tick, tick))
+        "realm_id, kind, birth_tick, last_active_tick, gender) "
+        "VALUES (?, ?, 'alive', ?, ?, ?, ?, 'human', ?, ?, ?);",
+        (name, location_id, desc, archetype, faction_id, realm_id, tick, tick, gender))
     nid = cur.lastrowid
+    if gender is None:
+        conn.execute("UPDATE npcs SET gender=? WHERE id=?;", (gender_of(conn, nid), nid))
     conn.execute(
         "INSERT INTO npc_traits (npc_id, ambition, honor, greed, courage, loyalty, "
         "compassion, pride) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",

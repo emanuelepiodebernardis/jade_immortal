@@ -26,7 +26,7 @@ from engine.systems import relations, state
 
 KINDS_IT = {"companion": "compagno di viaggio", "master": "maestro",
             "rival": "rivale", "nemesis": "nemesi", "beast": "bestia spirituale",
-            "disciple": "discepolo", "sworn": "fratello giurato", "dao_partner": "compagno del Dao",
+            "disciple": "discepolo", "sworn": "fratello giurato", "dao_partner": "compagna del Dao",
             "family": "famiglia"}
 RECRUIT_MIN = 40              # rapporto minimo per chiedere a qualcuno di seguirti
 MASTER_MIN = 50               # rapporto minimo per diventare discepolo
@@ -433,7 +433,7 @@ def dao_partner(conn, player_id: int = 1):
 
 
 def dao_partner_mult(conn, player_id: int, location_id) -> tuple[float, str]:
-    """Doppia coltivazione: col compagno del Dao accanto, il Qi circola tra due corpi."""
+    """Doppia coltivazione: con la compagna del Dao accanto, il Qi circola tra due corpi."""
     dp = dao_partner(conn, player_id)
     if not dp or dp["location_id"] != location_id:
         return 1.0, ""

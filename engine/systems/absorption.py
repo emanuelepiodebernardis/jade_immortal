@@ -251,11 +251,20 @@ def _absorb_human(conn, player_id, target_id, freshness, ptier, ttier, clean,
         (target_id,)).fetchone()
     if trec and (trec["qi_level"] or 0) > 0:
         qi = max(1, int(yield_pts * 0.25 * mult))
+        # il qi altrui va DIGERITO: al massimo mezzo strato al giorno, e mai oltre lo strato
+        # in cui sei (bilanciamento: prima il Divoratore saliva di un regno ogni due giorni)
+        from engine.core import tick as _tk
+        from engine.systems import state as _st
+        day = _tk.get_tick(conn) // 120
+        dg = _st.get_json(conn, "absorb_digest", {}) or {}
+        used = dg.get("used", 0.0) if dg.get("day") == day else 0.0
+        gain = max(0.0, min(0.2, qi * 0.01, 0.5 - used))
+        _st.set_json(conn, "absorb_digest", {"day": day, "used": round(used + gain, 4)})
         conn.execute(
-            "UPDATE cultivation_records SET qi_level=qi_level+?, progress=progress+? "
+            "UPDATE cultivation_records SET qi_level=qi_level+?, progress=MIN(1.0, progress+?) "
             "WHERE character_type='player' AND character_id=?;",
-            (qi, min(0.2, qi * 0.01), player_id))
-        parts.append(f"+{qi} qi")
+            (qi, gain, player_id))
+        parts.append(f"+{qi} qi" + ("" if gain else " (il tuo corpo non riesce a digerirne altro, oggi)"))
 
     # la SETTA in cui milito scala il Dao assorbito: più la setta è alta, più i suoi
     # avversari custodiscono Dao profondi.

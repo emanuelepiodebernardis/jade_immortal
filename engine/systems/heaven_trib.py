@@ -51,7 +51,10 @@ def preview(conn, pid: int, tier: int | None = None) -> tuple[int, float]:
     from engine.simulation import cultivation
     n = count(conn)
     tier = tier or (cultivation.realm_tier(conn, "player", pid) or 1)
-    return 3 + 2 * n, (20 + 12 * tier) * (1 + 0.15 * n)
+    # la potenza delle folgori segue la scala dei regni (×1.6 a regno, come la forza dei
+    # coltivatori): ogni tribolazione resta una prova vera, a ogni altezza
+    from engine.simulation import combat
+    return 3 + 2 * n, 30 * combat.REALM_STEP ** (max(1, tier) - 1) * (1 + 0.15 * n)
 
 
 def absorb_fraction(comp: int) -> float:

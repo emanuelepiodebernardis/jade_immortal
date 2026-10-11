@@ -849,3 +849,193 @@ Un solo comando per far crescere tutto insieme, invece di alternare `cultivate`,
 
 Nuovi test: `tests/test_train_all.py` (3), più un test in `tests/test_master_plot.py`.
 Suite totale: **492 passati**.
+
+---
+
+## Aggiornamento 23 — Ritmo, bilanciamento, svolte, narrazione, tesori
+
+Cinque lavori, nell'ordine in cui dipendono l'uno dall'altro.
+
+### 1. Il regista: il ritmo degli eventi (`director.py`, comando `ritmo`)
+Ispirato al «director» dei giochi a storylet: gli eventi non arrivano appena le loro
+condizioni sono vere, ma quando c'è spazio per goderseli.
+- **Scene portate dal mondo** (arcinemico, famiglia minacciata, emissari, elementi celesti…):
+  - al massimo **4 a settimana**;
+  - lo **stesso tipo** di scena non torna prima di **8 giorni**;
+  - una scena che non trova posto entra in **coda** e arriva appena c'è spazio, le più
+    vecchie prima. Dopo 25 giorni svanisce, perché il mondo è andato avanti.
+- **Scene di reazione** (battaglie dell'anima, prove del cuore, sfide in piazza): anche
+  quando nascono da un tuo comando, non si ripetono a breve distanza.
+- **Passano sempre** le scene urgenti o decise da te: calamità, fuga, demone interiore,
+  difesa della setta.
+- **Capitoli della storia:** almeno **2 giorni** tra un capitolo e il successivo. Le trame
+  (origine, trama maestra, archi del mondo, maestri segreti) si **alternano** invece di
+  accavallarsi.
+- Un maestro segreto che non hai seguito torna solo dopo 12 giorni, non più a ogni passo.
+  Il demone interiore torna più di rado se l'hai appena affrontato al regno precedente.
+
+### 2. Bilanciamento con dati veri
+Uno script fa giocare il pilota automatico per **500 giorni** con ogni origine (due mondi
+per origine) e misura quando si muore, quanto si sale, cosa ferma il pilota, quali scene
+arrivano e quali sistemi dominano la potenza.
+
+**Cosa abbiamo trovato**
+- La potenza dei Dao veniva **sommata** all'attacco e cresceva senza misura: milioni di
+  attacco contro poche centinaia di difesa. Gli scontri si chiudevano al primo colpo e il
+  regno quasi non contava: un ragazzo al primo regno batteva patriarchi del quinto.
+- Altre fonti si moltiplicavano tra loro senza limite: tecniche segrete (×11), crescita del
+  corpo, soglie di tutti i Dao.
+- Gli NPC non seguivano un ordine coerente per regno.
+- Lo sfondamento diventava una lotteria della morte ai regni alti, fino al 70% di
+  probabilità di morire per regno al dodicesimo.
+- Il pilota automatico perdeva la configurazione a ogni reincarnazione.
+- Cacciare bestie costava karma: il karma negativo rendeva ostili tutti quelli intorno,
+  che poi ti tendevano agguati.
+
+**Il nuovo modello di potenza** (`combat.py`)
+- **Il regno è la scala principale:** ogni regno vale ×1,6 sul precedente, e la crescita
+  è continua strato per strato.
+  - Un genio con i Dao giusti batte chi sta un regno sopra.
+  - Due regni sono quasi un muro.
+- **I Dao amplificano.**
+  - La potenza dei Dao (la tua formula di sempre, invariata) si confronta con il «vaso»
+    del tuo regno e diventa un moltiplicatore **logaritmico**, senza tetto.
+  - Colpisce l'attacco più della difesa e della vitalità.
+- **Crescita personale compressa.** Corpo temprato, affinità, soglie dei Dao, tecniche,
+  arma, linea dell'Abisso e doni della tribolazione si sommano in un rapporto sul profilo
+  base, poi compresso in modo logaritmico: ×10 vale ×1,66, ×1000 vale ×3. Cresce sempre,
+  ma non schiaccia più il regno.
+- Gli scontri tra pari tornano a durare più scambi.
+
+**Le altre correzioni**
+- **Sfondamento**
+  - La difficoltà e il rischio di morte crescono in modo logaritmico coi regni; il
+    rischio per tentativo fallito non supera il 18%.
+  - Il pilota tenta da solo solo se il rischio di morte è sotto il 10%; altrimenti ti
+    avvisa (una volta per regno) e decidi tu.
+- **Agguati**
+  - Un nemico schiacciantemente più forte non ti uccide per strada.
+  - Chi ti ha appena battuto ti lascia stare per 5 giorni.
+  - Se vieni colto di sorpresa, spesso riesci a fuggire ferito invece di morire.
+- **Nemici dei Braccati:** se la tua origine è «braccata», i nemici iniziali sono ora
+  alla tua portata, non patriarchi del quarto regno.
+- **Karma della caccia:** cacciare bestie e spiriti selvaggi non costa più karma, e
+  abbattere un demone è un merito.
+- **Arcinemico**
+  - Nasce alla tua altezza; l'erede nasce un po' sopra di te.
+  - Cresce *con* te: se lo stacchi troppo, ti rincorre; se ti ha staccato, aspetta.
+    Prima cresceva da solo di dodici regni in 500 giorni.
+- **Divoratore:** il Qi divorato va digerito, al massimo mezzo strato al giorno e mai oltre
+  lo strato in cui sei. Prima il Divoratore saliva di un regno ogni due giorni (il
+  diciassettesimo regno al giorno 100), poi moriva negli sfondamenti.
+- **Pillole:** valgono meno a ogni regno, come la meditazione. Prima a regni alti valevano
+  decine di sessioni.
+- **Cuore del Dao:** un cuore ferito torna piano verso la calma (+1 al giorno, +3 se è in
+  pericolo).
+  - Prima un cuore a zero era una spirale senza uscita: deviazioni del Qi a ripetizione,
+    e un personaggio fermo per trecento giorni.
+  - Con il cuore incrinato, il pilota non medita e lascia che si calmi.
+- **Radici spirituali:** l'effetto sulla coltivazione e sui Dao ora cresce in modo
+  logaritmico.
+  - L'affinamento a ogni regno ha un passo massimo, e il Divoratore strappa meno radici
+    quanto più ne ha già.
+  - Prima le radici si moltiplicavano a ogni regno: miliardi di punti e una coltivazione
+    ×400 milioni, fino al regno 168 in 500 giorni.
+- **Rete di sicurezza:** se tutti i moltiplicatori di coltivazione e di comprensione insieme
+  superano ×3, oltre quella soglia crescono in modo logaritmico. Aumentano sempre, ma non
+  esplodono.
+- **Tribolazioni del Cielo** (Spazio, Tempo, Destino):
+  - le folgori crescono in modo logaritmico;
+  - le benedizioni sono riassunte;
+  - prima un Divoratore arrivava a 5,7 milioni di folgori e un salvataggio di 2 GB.
+- **Tribolazione del Fulmine** dei regni: la potenza delle folgori segue la scala dei
+  regni, così resta una prova vera anche in alto.
+- **Cacciatori:** quelli più deboli di te li affronta il pilota; si ferma solo per quelli
+  pericolosi.
+- **Rischio di sfondamento** configurabile: `auto imposta rischio <percento>`.
+- **Pilota automatico**
+  - Con ferite gravi si riposa invece di fermarsi di continuo.
+  - La sua configurazione, il ritmo degli eventi e le preferenze d'interfaccia
+    sopravvivono alla reincarnazione.
+
+**Risultati dopo la taratura** (14 partite simulate da 500 giorni, due mondi per origine):
+- **Morti:** da 0 a 4 per partita; il Divoratore, origine «braccata» e difficile, da 5
+  a 8. Prima c'erano partite con 9 morti, alcune nel primo giorno.
+- **Regni raggiunti senza morti tardive:** dal 5° al 10° al giorno 500. Prima c'erano il
+  168° regno da una parte e personaggi fermi al 2° per trecento giorni dall'altra.
+- **Scene importanti:** circa una ogni 5-6 giorni; il pilota si ferma circa una volta
+  ogni 5 giorni.
+
+### 3. Svolte: salti di qualità, non solo numeri (`svolte.py`, comando `svolte`)
+- **Volo (2° regno):** `vola <luogo>` ti porta in un luogo già visitato senza camminare. Il
+  tempo dipende dalla distanza e costa Qi. Dal **6° regno** è un *Passo nel Vuoto*
+  istantaneo.
+- **Incarnazione del Dao:** un Dao oltre la Legge (2000, poi a ogni raddoppio, senza
+  fine) si incarna. All'inizio di ogni scontro il suo stato colpisce subito, più forte a
+  ogni incarnazione.
+- **Il tuo Dao:** con tre Dao alla Legge, `crea_dao <nome>` li fonde in un Dao **tuo**, mai
+  percorso da nessuno, che poi coltivi come gli altri. Ogni altri tre Dao alla Legge, un
+  nuovo Dao tuo.
+- **Capolavori:** al livello 10, 20, 30… della tua arte, `capolavoro <nome>` crea un'opera
+  unica. Ogni capolavoro rende la coltivazione più rapida del 5%, per sempre.
+- **Il pannello `svolte`** mette insieme queste e quelle che c'erano già (domini dei Dao,
+  cloni, Mondo Interiore, forma del sangue, eredità dell'anello, Leggi dell'Imperatore),
+  raggiunte e prossime. Il mondo annuncia ogni svolta quando arriva.
+
+### 4. Narrazione meno a schede (`engine/narrative/varia.py`)
+- Una piccola **grammatica generativa** alla Tracery, con memoria anti-ripetizione.
+- Il testo cambia col **mondo**:
+  - ora del giorno, stagioni (l'anno ha quattro stagioni);
+  - un tempo atmosferico coerente per ogni giorno (sereno, pioggia, nebbia, vento,
+    temporale, diverso per stagione);
+  - tipo di luogo.
+- Si applica alle frasi più frequenti:
+  - l'alba di ogni giorno, la meditazione, l'allenamento d'insieme;
+  - l'esito delle prove negli incontri, l'atmosfera che apre ogni incontro casuale;
+  - una riga di ambiente in `look`.
+
+### 5. Accorpare e svelare man mano
+- **`tesori`:** un solo pannello per arma viva, maestro nell'anello, spazio interiore, Gu,
+  marionette, tesori legati al sangue, bandiera, elementi celesti e cloni.
+  - **`tesori cura`** fa la cura quotidiana in un colpo: raccoglie e risemina lo spazio
+    interiore, nutre l'anello coi nuclei che hai e avvisa se i Gu hanno fame.
+  - `tesori <nome>` mostra il dettaglio. I vecchi comandi restano validi.
+- **Aiuto progressivo:** `help` mostra le categorie che hai già toccato. Le altre restano
+  in fondo («Ancora da scoprire»), con il modo per svelarle. `help tutto` mostra sempre
+  tutto.
+
+### 6. Il protagonista è un uomo: fidanzata e compagna del Dao sono donne
+- Gli NPC hanno ora un **genere** (`npcs.gender`). Nei salvataggi vecchi viene dedotto in modo
+  stabile, e le donne hanno nomi femminili.
+- **La fidanzata** dell'Atto I è una donna: «la tua promessa sposa fin dall'infanzia, ora
+  discepola prediletta…».
+- **La compagna del Dao** (`proponi`) è sempre una donna. A un uomo puoi giurare
+  fratellanza (`giura`).
+- Testi al femminile ovunque si parla della compagna: combattimento, lutto, doppia
+  coltivazione, aiuto.
+- **Famiglia:** madre e sorella sono donne, con nomi femminili.
+- **Eredi dell'arcinemico:** «la sorella gemella» e «la compagna del Dao» ereditano il nome
+  del rivale come donne.
+
+### 7. Mete e comandi diretti (`travel.py`)
+Muoversi sulla mappa passo per passo non è comodo. Ora ogni cosa importante si raggiunge con
+un comando.
+- **`mete`** elenca, numerato, tutto ciò che sta accadendo: reame segreto, Grande Assemblea,
+  gara della tua arte, asta, invasione, elemento celeste, famiglia minacciata, casa, sede
+  della setta. Per ognuno indica il luogo, la distanza e il comando per partecipare.
+- **`vai <n | meta | luogo>`** ti porta direttamente lì: `vai 1`, `vai assemblea`, oppure il
+  nome di un luogo qualsiasi.
+  - Il viaggio costa tempo in proporzione alla distanza, e il mondo intanto continua a
+    vivere.
+  - Dal 2° regno voli (costa Qi, metà del tempo); dal 6° il Passo nel Vuoto è quasi
+    istantaneo.
+- **`iscriviti <n | meta>`** ti porta lì **e** partecipi subito: ti iscrivi all'Assemblea o
+  alla gara, entri nel reame, difendi dall'invasione o la famiglia. Se all'arrivo succede
+  qualcosa, si ferma e te lo lascia risolvere. `iscriviti` senza argomento resta
+  l'iscrizione a una setta.
+- Le **azioni suggerite** propongono da sole «Raggiungi: Grande Assemblea →
+  `iscriviti assemblea`» quando un evento importante è lontano.
+
+Nuovi test: `test_director.py` (5), `test_svolte.py` (5), `test_consolidation.py` (3),
+`test_balance.py` (6), `test_romance_gender.py` (3), `test_travel.py` (3).
+Suite totale: **517 passati**.

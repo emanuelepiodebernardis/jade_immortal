@@ -100,6 +100,15 @@ def on_kill(conn, tick, killer, victim) -> None:
             adjust_karma(conn, killer[0], killer[1], 2 + ol["notoriety"],
                          f"giustizia su {victim[2]}", tick)
             return
+        # cacciare bestie e spiriti selvaggi è la via di ogni coltivatore: nessun debito;
+        # abbattere un demone è perfino un merito
+        kr = conn.execute("SELECT kind FROM npcs WHERE id=?;", (victim[1],)).fetchone()
+        kind = (kr["kind"] if kr else None) or "human"
+        if kind == "demon":
+            adjust_karma(conn, killer[0], killer[1], 1, f"demone abbattuto: {victim[2]}", tick)
+            return
+        if kind in ("beast", "spirit"):
+            return
     ktier = cultivation.realm_tier(conn, killer[0], killer[1])
     vtier = cultivation.realm_tier(conn, victim[0], victim[1])
     # uccidere i più deboli pesa di più; affrontare i più forti pesa meno

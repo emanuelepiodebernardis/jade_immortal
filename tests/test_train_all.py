@@ -40,7 +40,7 @@ def test_train_grows_everything_at_once(conn):
     p0 = cultivation.get_record(conn, "player", 1)["progress"]
     t0 = tick.get_tick(conn)
     out = loop.dispatch(conn, "t", allow_nl=False)
-    assert "Allenamento d'insieme" in out
+    assert out.startswith("☯")
     assert tick.get_tick(conn) - t0 == tick.cost_of("cultivate")          # una sola azione
     assert cultivation.get_record(conn, "player", 1)["progress"] > p0
     for i in range(40):

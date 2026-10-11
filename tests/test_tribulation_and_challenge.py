@@ -50,6 +50,12 @@ def _join(conn, strong):
     val = 9000 if strong else 0
     conn.execute("UPDATE character_profiles SET grow_strength=?, grow_vitality=?, grow_resistance=? "
                  "WHERE character_type='player' AND character_id=1;", (val, val, val))
+    if strong:     # forte davvero: anche il regno (il regno è la scala principale della potenza)
+        from engine.simulation import cultivation
+        rid = cultivation.ensure_realm(conn, 6)
+        conn.execute("UPDATE players SET realm_id=? WHERE id=1;", (rid,))
+        conn.execute("UPDATE cultivation_records SET realm_id=? WHERE character_type='player' "
+                     "AND character_id=1;", (rid,))
     sect = sects.joinable_sects(conn)[0]
     conn.execute("UPDATE players SET location_id=? WHERE id=1;", (sect["home_location_id"],))
     sects.join_sect(conn, tick=0)

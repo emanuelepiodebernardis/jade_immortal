@@ -10,7 +10,7 @@ Ogni corpo ha DONI e spesso una MALEDIZIONE:
   Corpo del Caos Primordiale   coltivazione e stati di ogni tipo · il Cielo lo odia (sfondamenti più duri)
   Vene Yin Estreme             coltivazione rapidissima, gelo · senza cura MUORI A 20 ANNI:
                                serve un Fuoco Yang (radice o lignaggio di fuoco, Dao del Fuoco,
-                               o un compagno del Dao) per guarirle
+                               o una compagna del Dao) per guarirle
   Ossa di Spada Innate         Dao della Spada ×1,5, colpi perforanti · gli altri Dao d'arma rallentano
   Corpo del Tuono Celeste      stordimento, resistenza · le tribolazioni ti cercano
   Corpo dell'Ombra Celeste     schivata e drenaggio · la luce ti brucia (i nemici di luce colpiscono di più)
@@ -232,7 +232,7 @@ def daily(conn, t: int, rng, player) -> list[str]:
             if 0 < left < 2 and not state.flag(conn, "yin_warned", False):
                 state.set(conn, "yin_warned", "1")
                 out.append("⚠ Il gelo delle Vene Yin ti sale al cuore: ti resta meno di due anni. Cerca un Fuoco "
-                           "Yang (radice o lignaggio di fuoco, Dao del Fuoco a 50, un compagno del Dao).")
+                           "Yang (radice o lignaggio di fuoco, Dao del Fuoco a 50, una compagna del Dao).")
     return out
 
 

@@ -31,6 +31,12 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
   prigionia, i Mietitori. Poi mondi superiori uno sopra l'altro, ognuno con le sue
   verità, i suoi Signori e le Leggi dell'Imperatore del Dao. Non c'è un nemico finale.
 - **Ere del mondo e calamità** che ritornano sempre più forti; **gare d'arte** con corone infinite.
+- **Un regista per il ritmo** (`ritmo`): poche scene importanti a settimana, mai lo stesso tipo
+  a breve distanza, capitoli della storia che si alternano con il tempo di respirare.
+- **Svolte** (`svolte`): salti di qualità oltre i numeri — volo e passo nel vuoto, incarnazioni
+  del Dao, un Dao tutto tuo (`crea_dao`), capolavori della tua arte.
+- **Un mondo che cambia sotto i tuoi occhi**: stagioni, tempo atmosferico, ora del giorno,
+  testi che variano senza bisogno dell'LLM.
 - **Legami**: compagni che combattono con te, un maestro, rivali e **nemesi** che tornano
   più forti.
 - **Reincarnazione**: alla morte un epilogo, una tomba con i tuoi tesori e una nuova vita
@@ -149,7 +155,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 
 | Categoria | Comandi |
 |---|---|
-| Esplorazione | `look`, `move <dir>`, `home`, `warzone`, `raidtarget`, `events`, `map` |
+| Esplorazione | `mete`, `vai <n\|meta\|luogo>`, `iscriviti <meta>`, `look`, `move <dir>`, `home`, `warzone`, `raidtarget`, `events`, `map` |
 | Combattimento | `attack <nome>`, `attack all`, `attack humans`, `attack creatures`, `moves`, `defend` |
 | Abisso | `absorb <nome>`, `absorb all`, `loot` |
 | Coltivazione | `train` (o `t`: Qi, Dao e arte insieme), `cultivate`, `comprehend <dao>`, `breakthrough`, `dao`, `tribulation` |
@@ -164,7 +170,8 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 | Arma | `weapon <arma>`, `arma`, `arma nome <nome>` |
 | Sangue | `sangue`, `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
 | Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
-| Eredità | `retaggio`, `anello`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
+| Eredità | `tesori` (pannello unico, `tesori cura`), `retaggio`, `anello`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
+| Svolte e ritmo | `svolte`, `vola <luogo>`, `crea_dao <nome>`, `capolavoro <nome>`, `ritmo` |
 | Trama | `trama`, `arcinemico`, `regni`, `corte`, `sostieni`, `tributo`, `guerra_regni`, `trono`, `razze`, `ambasciata`, `era`, `calamita`, `gara`, `evadi` |
 | Interfaccia | `tutorial`, `mappa`, `codex`, `salva`, `carica`, `salvataggi`, `colori` |
 | Pilota automatico | `auto`, `auto <giorni>`, `auto imposta ...` |
@@ -216,9 +223,18 @@ invasioni (mondiali e guidate), caccia territoriale e i fix di gameplay.
 
 ## ⚖️ Stato & bilanciamento
 
-Il gioco è in sviluppo attivo: molti sistemi sono nuovi e alcuni **numeri** (potenza dei Dao,
-soglie delle tribolazioni, prezzi del mercato, forza della fusione, ritmo dei breakthrough)
-sono **prime tarature** pensate per essere rifinite col playtest. Feedback e bilanciamenti
-sono benvenuti.
+Il gioco è in sviluppo attivo. Dall'Aggiornamento 23 il bilanciamento si verifica con
+**simulazioni lunghe**: il pilota automatico gioca 500 giorni con ogni origine e si misura
+quando si muore, quanto si sale e quali sistemi dominano.
+
+Il modello di potenza in breve:
+- il **regno** è la scala principale: ×1,6 a regno, continuo strato per strato;
+- i **Dao** amplificano in proporzione al «vaso» del regno, con un moltiplicatore
+  logaritmico senza tetto;
+- tutta la **crescita personale** (corpo, tecniche, arma, sangue, Abisso) è compressa in
+  modo logaritmico: cresce sempre, senza schiacciare il regno.
+
+I parametri stanno in cima a `engine/simulation/combat.py` (`REALM_STEP`, `DAO_VESSEL`,
+`DAO_AMP`, `GROWTH_LOG`). Feedback e bilanciamenti sono benvenuti.
 
 Per il dettaglio cronologico delle aggiunte vedi **`CHANGES.md`**.

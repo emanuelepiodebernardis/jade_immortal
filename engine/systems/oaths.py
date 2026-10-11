@@ -10,9 +10,10 @@ Fratellanza giurata
     è un tradimento: il giuramento si spezza, il karma ne soffre.
   - Uccidere un fratello giurato fa di te uno Spergiuro: infamia e karma terribili.
 
-Compagno del Dao
-  proponi <nome>    a chi ti ama di un affetto profondo (rapporto ≥ 80) e cammina sulla Via
-                    a un livello vicino al tuo: diventate compagni del Dao.
+Compagna del Dao
+  proponi <nome>    a colei che ti ama di un affetto profondo (rapporto ≥ 80) e cammina sulla
+                    Via a un livello vicino al tuo: diventa la tua compagna del Dao. (Il
+                    protagonista è un uomo: le compagne, come le fidanzate, sono donne.)
   - Viaggia con te; quando coltivate insieme, il Qi circola tra due corpi (doppia
     coltivazione: coltivazione e ritiro rendono molto di più).
   - Combatte al tuo fianco. Se cade, il lutto lascia un segno sul tuo cuore.
@@ -88,9 +89,13 @@ def propose(conn, t: int, player, npc) -> str:
     from engine.systems import bonds, relations
     from engine.simulation import cultivation
     if not _human(conn, npc.id):
-        return f"{npc.name} non può essere il tuo compagno del Dao."
+        return f"{npc.name} non può essere la tua compagna del Dao."
+    from engine.systems import npc_factory
+    if not npc_factory.is_female(conn, npc.id):
+        return (f"Con {npc.name} puoi giurare fratellanza ('giura'), ma la tua compagna del Dao sarà una "
+                "donna.")
     if bonds.dao_partner(conn, player.id):
-        return "Hai già un compagno del Dao."
+        return "Hai già una compagna del Dao."
     kinds = bonds.bond_kinds(conn, npc.id, player.id)
     if {"nemesis", "disciple", "master"} & kinds:
         return f"Con {npc.name} c'è già un legame che non lo permette."
@@ -105,7 +110,7 @@ def propose(conn, t: int, player, npc) -> str:
                 "la doppia coltivazione richiede regni vicini.")
     bonds.add_bond(conn, player.id, npc.id, "dao_partner", t, reason="compagni del Dao")
     conn.execute("UPDATE npcs SET location_id=? WHERE id=?;", (player.location_id, npc.id))
-    msg = (f"Sotto un cielo limpido, tu e {npc.name} unite le vostre Vie: ora siete COMPAGNI DEL DAO. "
+    msg = (f"Sotto un cielo limpido, tu e {npc.name} unite le vostre Vie: ora è la tua COMPAGNA DEL DAO. "
            "Viaggerà con te; coltivando insieme, il Qi circolerà tra i vostri corpi.")
     if state.grant_title(conn, "Compagno del Dao"):
         msg += "\n✧ Nuovo titolo: «Compagno del Dao» ✧"
@@ -127,7 +132,7 @@ def combat_allies(conn, player_id: int, npc_id: int) -> list[dict]:
             continue
         atk = combat.combat_power(conn, "npc", r["npc_id"])["attack"] * 0.45
         partner = dp is not None and r["npc_id"] == dp["npc_id"]
-        out.append({"intro": (f"{r['name']}, il tuo compagno del Dao, ti affianca." if partner
+        out.append({"intro": (f"{r['name']}, la tua compagna del Dao, ti affianca." if partner
                               else f"{r['name']}, tuo fratello giurato, sguaina l'arma al tuo fianco."),
                     "attack": atk,
                     "line": f"{r['name']} " + random.choice(["colpisce dove ti eri aperto un varco.",
@@ -151,7 +156,7 @@ def on_kill(conn, t: int, player, npc_id: int) -> list[str]:
         out += dao_heart.adjust(conn, -20)
     if "dao_partner" in kinds:
         bonds.end_bond(conn, player.id, npc_id, "dao_partner", "ucciso")
-        karma.adjust_karma(conn, "player", player.id, -100, "assassinio del compagno del Dao", t)
+        karma.adjust_karma(conn, "player", player.id, -100, "assassinio della compagna del Dao", t)
         out.append("Hai spezzato con le tue mani la Via che condividevate.")
     return out
 
@@ -167,7 +172,7 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
                 bonds.end_bond(conn, player.id, r["npc_id"], kind, "morto")
                 if kind == "dao_partner":
                     heart_demon.add_bonus(conn, -0.1)
-                    out.append(f"✝ {r['name']}, il tuo compagno del Dao, è caduto. Una crepa si apre nel "
+                    out.append(f"✝ {r['name']}, la tua compagna del Dao, è caduta. Una crepa si apre nel "
                                "tuo cuore: il prossimo sfondamento sarà più difficile.")
                 else:
                     out.append(f"✝ Il tuo fratello giurato {r['name']} è caduto. Il giuramento ti chiede vendetta.")

@@ -121,7 +121,8 @@ def test_sworn_call_and_request(conn):
 
 def test_dao_partner_dual_cultivation(conn):
     p = _friend(conn, 95)
-    assert "COMPAGNI DEL DAO" in oaths.propose(conn, 0, _p(conn), p)
+    conn.execute("UPDATE npcs SET gender='f' WHERE id=?;", (p.id,))     # la compagna del Dao è una donna
+    assert "COMPAGNA DEL DAO" in oaths.propose(conn, 0, _p(conn), p)
     m, lbl = bonds.dao_partner_mult(conn, 1, _p(conn).location_id)
     assert m > 1.2 and "doppia" in lbl
     total, labels = cult_mods.cultivation_mult(conn, 1, _p(conn).location_id)
@@ -154,7 +155,7 @@ def test_roots_shown_and_used(conn):
     assert roots
     spirit_roots.add(conn, "player", 1, "fuoco", 500)
     assert "Sangue della Fenice" in " ".join(spirit_roots.talents_of(spirit_roots.get(conn, "player", 1)))
-    assert spirit_roots.dao_mult(conn, "player", 1, "fuoco") > 3
+    assert spirit_roots.dao_mult(conn, "player", 1, "fuoco") > 1.8      # logaritmico dall'Aggiornamento 23
     prof = spirit_roots.combat_profile(conn, "player", 1)
     assert any(p[0] == "ustione" for p in prof["procs"])
 

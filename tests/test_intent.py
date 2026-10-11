@@ -53,7 +53,7 @@ def test_translate_returns_none_without_llm(conn):
 
 def test_dispatch_unknown_without_llm_gives_hint(conn):
     # senza LLM, una frase naturale resta "comando sconosciuto"
-    out = loop.dispatch(conn, "vai verso nord per favore")
+    out = loop.dispatch(conn, "portami verso nord per favore")
     assert "sconosciuto" in out.lower()
 
 

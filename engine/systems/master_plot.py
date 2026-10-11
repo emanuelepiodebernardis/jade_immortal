@@ -159,7 +159,7 @@ def _b_engagement(conn, player) -> dict:
     f = conn.execute("SELECT id, name, home_location_id FROM factions WHERE status='active' ORDER BY influence DESC LIMIT 1;").fetchone()
     nid = npc_factory.spawn(conn, rng, archetype="discepolo", location_id=f["home_location_id"] if f else player.location_id,
                             tier=_tier(conn, player.id), stage=rng.randint(6, 9), faction_id=f["id"] if f else None,
-                            traits={"pride": 90, "ambition": 85, "honor": 55})
+                            traits={"pride": 90, "ambition": 85, "honor": 55}, gender="f")
     d = get(conn)
     d["fiancee"] = nid
     _save(conn, d)
@@ -169,7 +169,7 @@ def _b_engagement(conn, player) -> dict:
     nm = _name(conn, nid)
     sect = f["name"] if f else "una grande setta"
     return _scene("L'annullamento del fidanzamento",
-                  f"Davanti a tutta la città, {nm} — tuo promesso fin dall'infanzia, ora discepolo prediletto della "
+                  f"Davanti a tutta la città, {nm} — la tua promessa sposa fin dall'infanzia, ora discepola prediletta della "
                   f"{sect} — getta a terra il contratto di fidanzamento. «Un futuro immortale non sposa una nullità.» "
                   "La folla ride.",
                   [{"label": "Subisci in silenzio, a pugni chiusi", "effects": {"heart": -5, "plot_flag": "silenzio",
@@ -210,7 +210,8 @@ def _b_duel(conn, player) -> dict:
                       "senza risposta: la città, però, ricorda che ti eri presentato.",
                       [{"label": "Prosegui", "effects": {"fame": 5}}])
     return _scene("Il giorno del patto",
-                  f"Sono passati tre anni. La piazza è gremita: {nm} ti aspetta sull'arena, più forte che mai. "
+                  f"Sono passati tre anni. La piazza è gremita: {nm} ti aspetta sull'arena, più forte che mai, la "
+                  "spada in pugno e il mento alto. "
                   "«Sei venuto davvero. Bene: oggi ti rimetto al tuo posto.»",
                   [{"label": "Combatti il duello giurato", "effects": {"plot_duel": "fidanzamento"}},
                    {"label": "Chiedi altri tre anni (perdi la faccia)", "effects": {"plot_vow": 3, "fame": -5, "heart": -4}}])
@@ -470,7 +471,7 @@ def _resolve_duel(conn, rng, player) -> list[str]:
         set_flag(conn, "duello_vinto")
         return [f"✦ Dopo un duello che la città racconterà per generazioni, {nm} è a terra. Ti guarda, e per la prima "
                 "volta non c'è disprezzo nei suoi occhi. ✧ Nuovo titolo: «Colui che Mantenne il Patto» ✧",
-                f"(Il vostro rapporto è cambiato: un giorno, chissà, potreste perfino diventare compagni del Dao.)"]
+                f"(Il vostro rapporto è cambiato: un giorno, chissà, potrebbe perfino diventare la tua compagna del Dao.)"]
     from engine.systems import dao_heart
     d = get(conn)
     d["done"].remove("duello")

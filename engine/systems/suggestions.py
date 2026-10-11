@@ -69,6 +69,13 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     if wev and wev["location_id"] == loc:
         _add(out, "Respingi l'invasione che minaccia questo luogo", "defend")
 
+    # 1a) mete importanti lontane: un comando diretto per raggiungerle (e partecipare)
+    from engine.systems import travel
+    for d in travel.destinations(conn, player):
+        if d["key"] in ("reame", "assemblea", "gara", "invasione", "elemento", "famiglia") and d["loc"] != loc \
+                and not (d["key"] == "gara" and not d["join"]):
+            _add(out, f"Raggiungi: {d['title']}", f"iscriviti {d['key']}" if d["join"] else f"vai {d['key']}")
+
     # 1b) occasioni a tempo: reame segreto, Assemblea, setta assaltata, Sistema
     from engine.systems import secret_realms, assembly, own_sect, system_quest, cave_abode
     rr = secret_realms.current(conn)

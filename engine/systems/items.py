@@ -119,7 +119,10 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
     cp = float(effects.get("cultivation_progress", 0) or 0)
     if cp:
         from engine.simulation import cultivation
-        res = cultivation.cultivate(conn, "player", player_id, tick, rng, amount=cp)
+        # una pillola vale meno a ogni regno, come la meditazione (prima a regni alti valeva
+        # quanto decine di sessioni e faceva salire di cinque regni in ottanta giorni)
+        tier = cultivation.realm_tier(conn, "player", player_id) or 1
+        res = cultivation.cultivate(conn, "player", player_id, tick, rng, amount=cp / (1 + (tier - 1) * 0.5))
         label = cultivation.realm_label(conn, "player", player_id)
         msg = f"L'energia dilaga nei meridiani: {label} — esperienza {res['progress']*100:.0f}%."
         if res.get("stage_up"):

@@ -186,8 +186,10 @@ def add(conn, ctype: str, cid: int, element: str, amount: float) -> float:
 
 def refine_all(conn, cid: int, frac: float) -> None:
     get(conn, "player", cid)
-    conn.execute("UPDATE spirit_roots SET score=score*? WHERE character_type='player' AND character_id=?;",
-                 (1.0 + frac, cid))
+    # affinamento: cresce in proporzione, ma con un passo massimo (prima era composto, e a
+    # ogni regno moltiplicava tutte le radici: miliardi dopo cento regni)
+    conn.execute("UPDATE spirit_roots SET score=score+?*MIN(score, 200.0) WHERE character_type='player' "
+                 "AND character_id=?;", (frac, cid))
 
 
 # ============================================================
@@ -321,7 +323,9 @@ def cultivation_mult(conn, ctype: str, cid: int) -> tuple[float, str]:
     if not roots:
         return 1.0, ""
     sc = sorted(roots.values(), reverse=True)
-    base = 0.65 + sc[0] / 200.0 + sum(sc[1:]) / 800.0
+    # logaritmico (Aggiornamento 23): le radici crescono senza tetto, ma il loro effetto
+    # sulla coltivazione no — prima un Divoratore arrivava a ×400 milioni
+    base = 0.65 + 0.35 * math.log2(1 + sc[0] / 70.0) + 0.1 * math.log2(1 + sum(sc[1:]) / 280.0)
     c = _totals(roots)["cult"]
     m = max(0.5, base * (1.0 + (math.log1p(c) if c > 0 else c)))
     if abs(m - 1.0) < 0.02:
@@ -333,8 +337,8 @@ def dao_mult(conn, ctype: str, cid: int, dao_key: str) -> float:
     roots = get(conn, ctype, cid)
     el = ROOT_OF_DAO.get(dao_key)
     if el and el in roots:
-        return 1.0 + roots[el] / 150.0
-    return 1.0 + (max(roots.values()) / 1000.0 if roots else 0.0)
+        return 1.0 + 0.5 * math.log2(1 + roots[el] / 150.0)
+    return 1.0 + (0.1 * math.log2(1 + max(roots.values()) / 100.0) if roots else 0.0)
 
 
 def breakthrough_bonus(conn, cid: int) -> float:
@@ -382,7 +386,7 @@ def devour(conn, player_id: int, victim_id: int, freshness: float = 1.0, clean: 
     mine = get(conn, "player", player_id)
     gains = []
     for el, sc in victim.items():
-        g = round(sc * frac, 1)
+        g = round(sc * frac / (1.0 + mine.get(el, 0.0) / 400.0), 1)    # più ne hai, meno ne strappi
         if g <= 0:
             continue
         before = mine.get(el, 0.0)

@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS npcs (
     -- Guida la generazione dei traits (Fase 2) e le decisioni NPC (Fase 15).
     archetype TEXT,
     kind TEXT DEFAULT 'human',         -- human | beast | demon | spirit
+    gender TEXT,                       -- 'm' | 'f' (solo per gli umani; NULL = dedotto dall'id)
     event_id INTEGER,                  -- se appartiene all'ondata di un evento mondiale
     hunting INTEGER DEFAULT 0,         -- 1 = dà attivamente la caccia al giocatore (Eretico)
     war_id INTEGER,                    -- se è un combattente di una guerra tra sette in corso

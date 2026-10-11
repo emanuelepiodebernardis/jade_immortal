@@ -45,7 +45,9 @@ def should_trigger(conn: sqlite3.Connection, pid: int, tier: int, rng: random.Ra
     if state.get_int(conn, "hd_seen_tier", 0) == tier:
         return False
     from engine.systems import destinies, karma
-    p = 0.45
+    p = 0.40
+    if state.get_int(conn, "hd_seen_tier", 0) == tier - 1:
+        p *= 0.5                       # appena affrontato al regno precedente: torna più di rado
     if karma.get_karma(conn, "player", pid) < -100:
         p += 0.25
     if destinies.flag_value(conn, "pure_heart", pid, False):
@@ -85,6 +87,13 @@ def scene(conn: sqlite3.Connection, pid: int, tier: int) -> dict:
              "effects": {"text": "Rimandi. Il demone resta in attesa — al prossimo regno."}},
         ],
     }
+
+
+def peek_bonus(conn: sqlite3.Connection) -> float:
+    try:
+        return float(state.get(conn, "bt_bonus") or 0.0)
+    except ValueError:
+        return 0.0
 
 
 def take_bonus(conn: sqlite3.Connection) -> float:

@@ -469,13 +469,19 @@ def maybe_meet(conn: sqlite3.Connection, player, rng: random.Random | None = Non
     loc = entities.get_location(conn, player.location_id)
     t = __import__("engine.core.tick", fromlist=["get_tick"]).get_tick(conn)
     rng = rng or random.Random(t * 9091 + player.id)
-    cands = [m for m in available(conn, player.id) if loc and loc.location_type in m["where"]]
+    seen = state.get_json(conn, "master_seen", {}) or {}
+    day = t // 120
+    # un maestro che hai già incontrato (e non hai seguito) torna solo dopo un po'
+    cands = [m for m in available(conn, player.id) if loc and loc.location_type in m["where"]
+             and day - seen.get(m["key"], -999) >= 12]
     if force:
         cands = [m for m in [master_by_key(force)] if m]
     elif not cands or t - state.get_int(conn, "master_last_tick", -999) < 24 or rng.random() > 0.35:
         return None
     m = cands[0]
     state.set(conn, "master_last_tick", str(t))
+    seen[m["key"]] = day
+    state.set_json(conn, "master_seen", seen)
     return encounters.start_scene(conn, player, _scene(m))
 
 

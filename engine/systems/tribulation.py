@@ -123,6 +123,17 @@ def _raise_space(conn, amount, player_id) -> int:
     return r["comprehension"] if r else amount
 
 
+def _boon_summary(boons: list[str]) -> str:
+    """'Corpo di Fulmine (livello 3)', 'Corpo di Fulmine (livello 4)' → 'Corpo di Fulmine ×2 (ora livello 4)'."""
+    agg: dict[str, tuple[int, str]] = {}
+    for b in boons:
+        name, _, lv = b.partition(" (livello ")
+        n, _old = agg.get(name, (0, ""))
+        agg[name] = (n + 1, lv.rstrip(")"))
+    return ", ".join(f"{nm} ×{n} (ora livello {lv})" if n > 1 else f"{nm} (livello {lv})"
+                     for nm, (n, lv) in agg.items())
+
+
 def resolve_tribulation(conn: sqlite3.Connection, tick: int, rng: random.Random,
                         power: int, player_id: int = 1) -> dict:
     """Affronta una tribolazione divina di potenza `power`. Ritorna un esito narrativo."""
@@ -131,7 +142,10 @@ def resolve_tribulation(conn: sqlite3.Connection, tick: int, rng: random.Random,
     cp = combat.combat_power(conn, "player", player_id)
     fulmine = _fulmine_comp(conn, player_id)
     resist = fulmine_resistance(conn, player_id) + cp["defense"] * 0.5 + cp["vitality"] * 0.3
-    bolts = max(1, power // 25)
+    # le folgori crescono con la potenza, ma in modo logaritmico (prima: potenza/25 → milioni
+    # di folgori, e un resoconto di gigabyte)
+    import math
+    bolts = max(1, min(120, int(3 + 6 * math.log2(1 + power / 100))))
     per_bolt = power / bolts
     absorbed = 0
     lines = []
@@ -151,7 +165,7 @@ def resolve_tribulation(conn: sqlite3.Connection, tick: int, rng: random.Random,
         space_line = ""
         if fulmine > 0:
             # affinità col Fulmine → la folgore RISVEGLIA poteri SPAZIALI
-            gain = 8 + power // 20
+            gain = 8 + int(6 * math.log2(1 + power / 50))
             newc = _raise_space(conn, gain, player_id)
             space_line = (f" Le folgori risvegliano in te il Dao dello Spazio "
                           f"(+{gain}, ora comprensione {newc}).")
@@ -164,7 +178,7 @@ def resolve_tribulation(conn: sqlite3.Connection, tick: int, rng: random.Random,
         purge = (" Il tuono incenerisce la corruzione dell'Abisso: la tua anima torna limpida."
                  if had_residue else "")
         if boons:
-            lines.append("Folgori domate → benedizioni: " + ", ".join(boons) + ".")
+            lines.append("Folgori domate → benedizioni: " + _boon_summary(boons) + ".")
         lines.append("Hai DOMATO la tribolazione." + space_line + purge)
         conn.execute(
             "UPDATE character_profiles SET last_tribulation_defiance=? "
@@ -184,7 +198,7 @@ def resolve_tribulation(conn: sqlite3.Connection, tick: int, rng: random.Random,
         "UPDATE cultivation_records SET progress=MAX(0, progress-0.4) "
         "WHERE character_type='player' AND character_id=?;", (player_id,))
     if boons:
-        lines.append("Folgori parzialmente domate → benedizioni: " + ", ".join(boons) + ".")
+        lines.append("Folgori parzialmente domate → benedizioni: " + _boon_summary(boons) + ".")
     lines.append(f"Il castigo ti travolge: ustioni gravi (gravità {severity}) e coltivazione "
                  f"arretrata. Sopravvivi, ma il Cielo ti ha segnato.")
     conn.execute(

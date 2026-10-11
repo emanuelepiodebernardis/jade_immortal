@@ -60,6 +60,8 @@ def render_location(conn: sqlite3.Connection, player: entities.Player) -> str:
     lines = [f"Ti trovi a: {loc.name} {_danger_tag(loc.danger_level)}"]
     if loc.description:
         lines.append(loc.description)
+    from engine.narrative import varia
+    lines.append(varia.weather_line(tick.get_tick(conn)))
     owner = entities.location_owner_name(conn, loc.id)
     if owner:
         lines.append(f"Controllata da: {owner}")
@@ -1112,7 +1114,8 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player,
     spmod.restore_fraction(conn, 0.5, player.id)
     progression.record_cultivation(conn, player.id)    # via dell'Universo
     label = cultivation.realm_label(conn, "player", player.id)
-    line = f"Mediti a lungo. {label} — esperienza {res['progress']*100:.0f}%."
+    from engine.narrative import varia
+    line = f"{varia.meditation(conn, player, t)}\n{label} — esperienza {res['progress']*100:.0f}%."
     if res.get("stage_up"):
         line += f"\nAvanzi allo Strato {res['stage']}: il tuo corpo si rafforza."
     line += f"\nAllenamento {n}° della giornata (rendimento {training.yield_label(y)})."
@@ -1969,7 +1972,20 @@ def _set_flag(conn, key: str) -> None:
 
 
 def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None:
-    """Mostra 'GIORNO N' quando inizia un nuovo giorno, con i giorni all'evento."""
+    """Mostra 'GIORNO N' quando inizia un nuovo giorno. Le scene che il mondo porta nella
+    giornata passano dal regista (budget settimanale, niente doppioni ravvicinati)."""
+    from engine.systems import director
+    with director.ambient():
+        out = _day_banner_inner(conn, player)
+    if out is None:
+        return None
+    rel = director.release(conn, entities.get_player(conn))
+    if rel:
+        out += "\n" + rel
+    return out
+
+
+def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str | None:
     from engine.systems import training, sect_life, sects
     t = tick.get_tick(conn)
     day = training.current_day(t)
@@ -1986,7 +2002,8 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     from engine.systems import spirit as spmod
     spmod.restore_full(conn, player.id)
     bar = "=" * 26
-    lines = [bar, f"  GIORNO {day + 1}", bar, "  Un nuovo giorno: Qi e spirito ristabiliti."]
+    from engine.narrative import varia
+    lines = [bar, f"  GIORNO {day + 1}", bar, "  " + varia.dawn(t)]
     if sects.get_membership(conn, player.id):
         # i compagni di classe coltivano ogni giorno, secondo il loro talento
         leaps = sect_life.daily_cohort_growth(conn, random.Random(t * 17 + day), player.id)
@@ -2045,6 +2062,8 @@ def _day_banner(conn: sqlite3.Connection, player: entities.Player) -> str | None
     dao_heart.daily(conn, t, None, player)
     from engine.systems import lifespan
     lines += ["  " + ln for ln in lifespan.daily_check(conn, player, t)]
+    from engine.systems import svolte
+    lines += ["  " + ln for ln in svolte.check_new(conn, entities.get_player(conn))]
     return "\n".join(lines)
 
 
@@ -2596,7 +2615,7 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
     if _res is not None:
         return _res
     if cmd in ("help", "h", "?", "comandi", "aiuto"):
-        return help_for(arg)
+        return help_for(arg, conn)
     if cmd in ("war", "guerra"):
         return cmd_war(conn, player)
     if cmd in ("spare", "risparmia"):
