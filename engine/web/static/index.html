@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jade Immortal</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header id="topbar">
+  <div class="who"><strong id="t-nome">—</strong> <span id="t-regno" class="muted">—</span></div>
+  <div class="meter" title="Esperienza dello strato"><span>Esp.</span><div class="bar"><i id="b-esp"></i></div></div>
+  <div class="meter" title="Qi"><span>Qi</span><div class="bar qi"><i id="b-qi"></i></div><em id="v-qi"></em></div>
+  <div class="meter" title="Spirito"><span>Spirito</span><div class="bar sp"><i id="b-sp"></i></div><em id="v-sp"></em></div>
+  <div class="chip" id="t-cuore" title="Cuore del Dao">—</div>
+  <div class="chip" id="t-ferite" title="Ferite">—</div>
+  <div class="chip" id="t-pietre" title="Pietre spirituali">—</div>
+  <div class="chip muted" id="t-tempo">—</div>
+</header>
+
+<main id="layout">
+  <nav id="actions" aria-label="Azioni rapide">
+    <button data-cmd="train" title="Qi, Dao e arte insieme (t)">☯ Allenati</button>
+    <button data-cmd="sleep" title="Dormi fino all'alba">☾ Dormi</button>
+    <button data-cmd="look" title="Guardati intorno">◎ Guarda</button>
+    <button data-cmd="loot" title="Raccogli il bottino">✋ Raccogli</button>
+    <button data-cmd="gather" title="Raccogli materiali">✿ Materiali</button>
+    <button data-cmd="tesori cura" title="Cura di tutti i tesori">✧ Cura tesori</button>
+    <button data-cmd="breakthrough" title="Tenta lo sfondamento">⇑ Sfonda</button>
+    <hr>
+    <div class="auto">
+      <label>Pilota automatico</label>
+      <div class="row"><input id="auto-giorni" type="number" min="1" max="60" value="7"><span>giorni</span></div>
+      <button id="auto-go" class="primary">▶ Avvia</button>
+      <button id="auto-stop" hidden>■ Interrompi</button>
+      <details>
+        <summary>Impostazioni</summary>
+        <label>Bersagli <select data-auto="bersagli">
+          <option>nessuno</option><option>bestie</option><option>ricercati</option><option>deboli</option><option>tutti</option>
+        </select></label>
+        <label>Condotta <select data-auto="condotta">
+          <option>virtuosa</option><option>prudente</option><option>opportunista</option><option>spietata</option>
+        </select></label>
+        <label><input type="checkbox" data-auto="sfonda"> Sfonda da solo</label>
+        <label>Rischio accettato <input type="number" min="0" max="100" data-auto="rischio"> %</label>
+        <label><input type="checkbox" data-auto="assorbi"> Divora i caduti</label>
+        <label><input type="checkbox" data-auto="loot"> Raccogli il bottino</label>
+        <label><input type="checkbox" data-auto="oggetti"> Usa pillole ed essenze</label>
+      </details>
+    </div>
+    <hr>
+    <button data-cmd="salva" title="Salva la partita">💾 Salva</button>
+  </nav>
+
+  <section id="center">
+    <div id="place" class="card"></div>
+    <div id="log" aria-live="polite"></div>
+    <div id="scene" class="card scene" hidden></div>
+    <div id="sugg"></div>
+    <form id="cmdform" autocomplete="off">
+      <input id="cmd" placeholder="Scrivi un comando (es. train, mete, vai 1, attack nome)… — 'help' per l'elenco" autofocus>
+      <button class="primary">Invia</button>
+    </form>
+  </section>
+
+  <aside id="side">
+    <div id="tabs" role="tablist">
+      <button data-tab="mete" class="on">Mete</button>
+      <button data-tab="mappa">Mappa</button>
+      <button data-tab="personaggio">Personaggio</button>
+      <button data-tab="tesori">Tesori</button>
+      <button data-tab="storia">Storia</button>
+      <button data-tab="mondo">Mondo</button>
+      <button data-tab="aiuto">Aiuto</button>
+    </div>
+    <div id="tabbody"></div>
+  </aside>
+</main>
+
+<div id="overlay" hidden><div class="modal" id="modal"></div></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

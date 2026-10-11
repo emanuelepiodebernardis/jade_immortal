@@ -13,6 +13,26 @@ python main.py
 Al primo avvio genera il mondo, ti fa scegliere un'**origine** e lancia il gioco.
 Scrivi `help` in qualsiasi momento per la lista dei comandi.
 
+### 🖥️ Oppure: la dashboard nel browser
+
+```bash
+python dashboard.py
+```
+
+Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del terminale, con
+- una barra di stato sempre visibile (regno ed esperienza, Qi, spirito, cuore del Dao,
+  ferite, pietre, giorno, stagione, meteo, era);
+- il luogo con le uscite e i presenti cliccabili (vai, parla, attacca);
+- le **scelte degli incontri** e le **azioni suggerite** come pulsanti, oppure i tasti 1-9;
+- i pannelli **Mete** (Vai / Partecipa), **Mappa** cliccabile, **Personaggio** (con le barre
+  dei Dao), **Tesori**, **Storia**, **Mondo** e **Aiuto** (con salvataggi e caricamenti);
+- il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
+- la creazione del personaggio e la rinascita in finestre guidate.
+
+Non serve installare nulla (solo libreria standard) e ascolta solo sul tuo PC. La riga di
+comando resta sempre disponibile in basso. Non usare terminale e dashboard nello stesso
+momento.
+
 > Richiede solo **Python 3.11+** (usa `sqlite3` della standard library). La narrazione
 > avanzata è opzionale (LLM locale via Ollama); senza, c'è un fallback testuale completo.
 
@@ -188,6 +208,7 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 ```
 jade_immortal/
 ├── main.py                 # entry point: init DB, genera mondo, crea personaggio, loop
+├── dashboard.py            # la stessa partita nel browser (http://127.0.0.1:8765)
 ├── database/schema.sql     # schema SQLite (mondo, NPC, sette, Dao, eventi, …)
 ├── engine/
 │   ├── db.py               # connessione + migrazioni idempotenti
@@ -197,7 +218,8 @@ jade_immortal/
 │   ├── systems/            # sette, mercato, assorbimento, dao_powers, tribolazione,
 │   │                       #   invasioni mondiali, invasioni guidate, caccia, reputazione,
 │   │                       #   suggestions, encounters, bonds, storyline, rebirth…
-│   └── cli/                # loop.py (dispatch), story_cmds.py, lifecycle.py, hud.py, help_text.py
+│   ├── cli/                # loop.py (dispatch), story_cmds.py, lifecycle.py, hud.py, help_text.py
+│   └── web/                # dashboard: game.py (ponte col motore), server.py, static/ (HTML/CSS/JS)
 └── tests/                  # ~430 test (pytest)
 ```
 

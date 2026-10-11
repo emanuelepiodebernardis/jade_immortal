@@ -1039,3 +1039,59 @@ un comando.
 Nuovi test: `test_director.py` (5), `test_svolte.py` (5), `test_consolidation.py` (3),
 `test_balance.py` (6), `test_romance_gender.py` (3), `test_travel.py` (3).
 Suite totale: **517 passati**.
+
+---
+
+## Aggiornamento 24 — La dashboard nel browser
+
+`python dashboard.py` apre il gioco nel browser, su `http://127.0.0.1:8765`. È la **stessa
+partita** del terminale: ogni azione passa dallo stesso `dispatch`, e dopo ogni comando
+gira lo stesso ciclo del loop testuale (alba, report, morte, capitoli, suggerimenti).
+
+**Architettura** (`engine/web/`)
+- `game.py` è il ponte col motore: turni, istantanea dello stato in JSON, pannelli, mappa,
+  Dao, pilota automatico un giorno alla volta, creazione, morte e rinascita.
+  - Un lucchetto rende sicuro il server multi-thread.
+  - I pannelli vengono letti dentro una transazione annullata, quindi guardarli non fa
+    mai passare il tempo né cambia nulla.
+- `server.py` usa solo la libreria standard: nessuna dipendenza. Ascolta solo su
+  127.0.0.1. Il pilota automatico arriva dal vivo con i Server-Sent Events.
+- `static/` contiene una sola pagina in HTML, CSS e JavaScript semplice, senza build.
+
+**Fase 1 — Console web**
+- Barra di stato fissa: regno ed esperienza, Qi, spirito, cuore del Dao, ferite, pietre,
+  fama, giorno e ora, stagione, meteo, era, età.
+- Registro colorato per tipo di evento: pericoli, morte, svolte, successi.
+- **Scelte degli incontri come pulsanti**, con la probabilità di riuscita e la forza
+  dell'avversario.
+- **Azioni suggerite come pulsanti**; i tasti 1-9 le eseguono quando la casella è vuota.
+- Casella di comando sempre presente, con la cronologia (frecce su e giù).
+- Creazione del personaggio e rinascita in finestre guidate: origine, destino, rivali,
+  nome, frammento ereditato.
+
+**Fase 2 — Pannelli**
+- **Luogo:** uscite cliccabili e presenti con «parla» e «attacca».
+- **Mete:** tutto ciò che accade, con «Vai» e «Partecipa».
+- **Personaggio:** barre dei Dao con la soglia successiva, poi stato, potenza, corpo,
+  radici, sangue.
+- **Tesori:** con «Cura tutti i tesori».
+- **Storia:** trama, obiettivi, arcinemico, retaggio, svolte, legami.
+- **Mondo:** era, regni, razze, classifiche, setta, ritmo.
+
+**Fase 3 — Mappa e pilota dal vivo**
+- **Mappa** dei luoghi intorno a te: icone per tipo, i luoghi visitati in evidenza, le
+  mete bordate di giallo. Clic su un luogo per andarci.
+- **Pilota automatico dal vivo:** il resoconto arriva giorno per giorno, con
+  «Interrompi».
+- Le impostazioni del pilota (bersagli, condotta, sfondamento e rischio, assorbire,
+  bottino, oggetti) sono moduli, non comandi.
+
+**Fase 4 — Rifiniture**
+- Tema chiaro e scuro automatico.
+- Stile sobrio e leggibile, che si adatta a schermi più stretti.
+- Salvataggi e caricamenti dal pannello Aiuto.
+- Tipi MIME espliciti, così funziona anche su Windows.
+
+Nuovi test: `tests/test_dashboard.py` (5) — suite totale **523 passati**: turni, pannelli che non cambiano il mondo,
+mappa, Dao, pilota, morte e rinascita, server HTTP di fine in fine. La pagina è verificata
+anche in un browser vero (Chromium), senza errori in console.
