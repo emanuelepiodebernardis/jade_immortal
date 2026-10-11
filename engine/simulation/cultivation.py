@@ -164,6 +164,8 @@ def _bt_success(conn, ctype, cid, rec, tier, consume: bool) -> tuple[float, floa
         extra += spirit_roots.breakthrough_bonus(conn, cid)   # combinazioni di radici
         from engine.systems import constitutions, dao_heart
         extra += constitutions.bt_bonus(conn) + dao_heart.breakthrough_bonus(conn)
+        from engine.systems import rebirth
+        extra += rebirth.memory_bt_bonus(conn, cid)        # il corpo ricorda i regni già percorsi
     p_success = max(0.05, min(0.97,
                               0.55 - 0.08 * math.log2(max(1, tier)) + (rec["progress"] - 1.0) + dao * 0.003
                               + aff_bonus - residue_penalty + fail_bonus + fate_succ + extra))

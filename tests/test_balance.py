@@ -78,3 +78,42 @@ def test_archrival_starts_at_your_height(conn):
     archrival.create(conn, random.Random(3), _p(conn))
     r = perception.strength_ratio(conn, 1, archrival.get(conn)["npc"])
     assert 0.5 < r < 1.4
+
+
+def test_maintenance_prunes_old_world_events_but_keeps_yours(conn):
+    from engine.systems import maintenance
+    from engine.simulation import event_system as ev
+    ev.log_event(conn, event_type="encounter", tick=10, location_id=None, title="vecchio", summary="vecchio",
+                 participants=[ev.Participant("npc", 1, "initiator")],
+                 consequences=[ev.Consequence("npc", 1, "nota", "x", resolve_tick=10)])
+    ev.log_event(conn, event_type="story", tick=10, location_id=None, title="mio", summary="mio",
+                 participants=[ev.Participant("player", 1, "initiator")],
+                 consequences=[ev.Consequence("player", 1, "nota", "x", resolve_tick=10)])
+    n = maintenance.prune(conn, 400, force=True)
+    assert n >= 1
+    left = {r[0] for r in conn.execute("SELECT title FROM events WHERE tick=10;")}
+    assert "mio" in left and "vecchio" not in left
+
+
+def test_long_run_stays_bounded(conn):
+    """Regressione: 30 giorni di pilota automatico non devono far esplodere nulla."""
+    from engine.systems import autopilot, cult_mods
+    from engine.cli import loop
+    loop.dispatch(conn, "auto imposta sfonda si", allow_nl=False)
+    from engine.core import tick as _tk
+    from engine.systems import encounters, captivity, state
+    for _ in range(60):
+        if _tk.get_tick(conn) // 120 >= 30:
+            break
+        autopilot.run(conn, _p(conn), 10)
+        encounters.clear(conn)
+        state.delete(conn, captivity.KEY)
+        if _p(conn).status != "alive":
+            return
+    assert _tk.get_tick(conn) // 120 >= 25
+    tier = cultivation.realm_tier(conn, "player", 1) or 1
+    atk = combat.combat_power(conn, "player", 1)["attack"]
+    assert tier <= 4
+    assert atk < 32 * combat.REALM_STEP ** tier * 60           # nessuna esplosione di potenza
+    assert cult_mods.cultivation_mult(conn, 1, _p(conn).location_id)[0] < 20
+    assert conn.execute("SELECT COALESCE(SUM(LENGTH(text)),0) FROM pending_reports;").fetchone()[0] < 2_000_000

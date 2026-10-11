@@ -1095,3 +1095,84 @@ gira lo stesso ciclo del loop testuale (alba, report, morte, capitoli, suggerime
 Nuovi test: `tests/test_dashboard.py` (5) — suite totale **523 passati**: turni, pannelli che non cambiano il mondo,
 mappa, Dao, pilota, morte e rinascita, server HTTP di fine in fine. La pagina è verificata
 anche in un browser vero (Chromium), senza errori in console.
+
+---
+
+## Aggiornamento 25 — Il prezzo della morte, storie che ritornano, duelli e 8 azioni rapide
+
+**Il prezzo della morte** (`rebirth.py`)
+- Alla morte porti con te fino a **2 frammenti** di eredità, non più uno solo.
+- **Memoria del regno**: la vita dopo ricorda fin dove eri arrivato. Sotto quel regno coltivi
+  ×2,5 e gli sfondamenti hanno +20%: risalire è più rapido, superarlo resta difficile.
+- **Senza Ritorno** (`senza_ritorno si|no`, o la casella alla creazione): la morte è
+  definitiva. Il mondo viene archiviato in `database/saves/` e ne nasce uno nuovo.
+- **Reincarnati ora** (`reincarnati`, o il pulsante nella scheda *Partita*): chiudi tu questa
+  vita e rinasci con i benefici di ciò che hai accumulato.
+  - Il **merito** conta regno, Dao, titoli, giorni vissuti e fama.
+  - Diventa pietre spirituali e **Samsara**: un moltiplicatore permanente di coltivazione,
+    logaritmico e quindi infinito.
+  - Puoi scegliere tutti i frammenti. Ti aspetta un epilogo apposito.
+- **Ricomincia da zero** (`ricomincia`): un mondo nuovo e nessuna eredità. Il mondo vecchio
+  viene archiviato, non cancellato.
+
+**Storie che ritornano**
+- **Cronaca** (`cronaca [tutte|esporta]`): la storia di questa vita e di quelle passate, con
+  titoli, svolte, sfondamenti, lutti e duelli. Si può esportare in un file `.md`.
+- **Echi** (`echoes.py`): ciò che hai fatto torna a cercarti. Chi hai risparmiato può
+  tornare grato o rabbioso, chi hai aiutato ricambia, chi hai offeso torna a chiedere il conto.
+- **Varianti delle scene**: gli incontri cambiano se ti ripeti, se sei famoso o temuto, se
+  domini chi hai davanti. Ci sono scelte nuove come *Fai valere il tuo nome*.
+
+**Dialoghi e favori** (`dialogues.py`)
+- `parla` con le persone a te vicine (compagni, maestro, fidanzata, compagna del Dao) apre un
+  dialogo vero. A volte ti chiedono un **favore**: `favori` per vederli, `favore <nome>` per
+  esaudirne uno.
+- Esaudire i favori fa crescere l'**intimità**. Da 2 in su, chi ti è caro **accorre in tuo
+  aiuto** nei combattimenti difficili.
+
+**Duelli a turni** (`duello <nome>`)
+- Gli scontri importanti si giocano a turni: Colpisci, le tue tecniche (con costo e ricarica),
+  Difendi, Concentrati, Fuggi.
+- Il nemico a volte carica un colpo pesante e lo vedi un turno prima: difendersi al momento
+  giusto lo para quasi del tutto.
+- Alla fine decidi tu se **finirlo** o **risparmiarlo**, e il mondo se lo ricorda.
+- L'arcinemico e i legami ostili offrono il duello direttamente tra le scelte.
+
+**Dashboard**
+- Nuove schede:
+  - **Obiettivi**: primari (storia, trama, svolte, sfondamento), secondari (incarichi, favori,
+    nemesi, taglie, bestie rare) e missioni (bacheca della setta, Sistema), ognuno con il suo
+    pulsante.
+  - **Alleati e nemici**: per ognuno la potenza, il confronto con la tua, il regno, dove si
+    trova, il rapporto e i pulsanti Vai, Parla, Duello e Attacca.
+- Pannelli strutturati:
+  - *Tesori*, con i colori di rarità e il pulsante Usa;
+  - *Storia*, con la cronaca;
+  - *Mondo*, con le tabelle di classifica, regni e razze;
+  - *Partita*, con i salvataggi, la nota sul salvataggio automatico ogni 5 giorni,
+    *Reincarnati ora* con l'anteprima del merito e *Ricomincia da zero*.
+- Duelli con le barre della vita.
+- `python dashboard.py --rete` per giocare dal telefono sulla rete di casa.
+
+**8 azioni rapide** (`suggestions.py`)
+- Dopo ogni comando ci sono fino a **8** azioni numerate: tasti 1-8 nella dashboard, `1`…`8`
+  nel terminale.
+- In testa c'è ciò che è urgente o a tempo: prigionia, calamità, nemesi, invasioni, eventi
+  da raggiungere, sfondamento, bottino, incarichi, favori da esaudire.
+- Poi vengono le azioni che **accorpano** tanti comandi in uno:
+  - `train` per Qi, Dao e arte insieme;
+  - `tesori cura` per tutti i tesori, quando c'è qualcosa da raccogliere;
+  - `mete` per gli eventi del mondo;
+  - `auto 1` e `auto 7` per il pilota automatico;
+  - `sleep` per Qi, Spirito e ferite;
+  - le due uscite migliori.
+- Il pilota automatico è sempre a portata di tasto. Con ferite gravi il riposo sale in cima.
+
+**Manutenzione** (`maintenance.py`)
+- Ogni 10 giorni il database si alleggerisce: eventi altrui vecchi, conseguenze risolte,
+  tick di simulazione, report già mostrati e voci vecchie. La tua storia resta intatta.
+- Un nuovo test di regressione del bilanciamento controlla 30 giorni di gioco con valori
+  limitati.
+
+Nuovi test: `test_duel.py` (3), `test_stories.py` (5) e aggiunte in `test_dashboard.py`,
+`test_balance.py` e `test_story_systems.py`. Suite totale: **538 passati**.

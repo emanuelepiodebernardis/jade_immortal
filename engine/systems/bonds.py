@@ -650,6 +650,8 @@ def nemesis_scene(conn, nm) -> dict:
         "on_leave": f"(Sfuggi a {nm['name']}, per ora. Ti troverà di nuovo.)",
         "choices": [
             {"label": "Combatti fino alla fine", "effects": {}, "command": f"attack {nm['name']}"},
+            {"label": "Combatti a turni (ogni mossa la scegli tu)", "effects": {},
+             "command": f"duello {nm['name']}"},
             {"label": "Provi a placare il suo rancore con le parole",
              "check": {"stat": "anima", "dc": 70 + 8 * grudge},
              "success": {"relation": 120, "karma": 30, "end_bond": "nemesis",
@@ -697,4 +699,9 @@ def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     out += puppets.combat_allies(conn, player_id, fx)
     from engine.systems import oaths
     out += oaths.combat_allies(conn, player_id, npc_id)
+    from engine.systems import dialogues, perception
+    try:
+        out += dialogues.rescuers(conn, player_id, npc_id, perception.strength_ratio(conn, player_id, npc_id))
+    except Exception:
+        pass
     return out

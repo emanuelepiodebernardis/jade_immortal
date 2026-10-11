@@ -115,3 +115,80 @@ def test_http_server_end_to_end(world):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_two_fragments_and_realm_memory(world):
+    _p, tx = world
+    from engine.systems import rebirth, cult_mods
+    game.create("mortale", "", "A", "normale")
+    with tx() as c:
+        rebirth.remember_realm(c, 5)
+        c.execute("UPDATE players SET status='dead';")
+    info = game.death_info()
+    if "salvato" in info:
+        return
+    n = len(info["eredita"])
+    out = game.reincarnate("mortale", "", "B", [0, 1] if n > 2 else [0])
+    assert "Rinasci" in out
+    with tx() as c:
+        m, labels = cult_mods.cultivation_mult(c, 1, None)
+        assert any("memoria delle vite" in x for x in labels)
+        assert rebirth.memory_bt_bonus(c, 1) > 0
+
+
+def test_senza_ritorno_archives_and_starts_a_new_world(world, monkeypatch):
+    p, tx = world
+    from engine.systems import rebirth
+    import engine.db as _db
+    monkeypatch.setattr(_db, "DB_PATH", p)
+    game.create("mortale", "", "A", "normale", hardcore=True)
+    with tx() as c:
+        assert rebirth.hardcore(c)
+        c.execute("UPDATE players SET status='dead';")
+    info = game.death_info()
+    if "salvato" in info:
+        return
+    assert info["senza_ritorno"]
+    monkeypatch.setattr("engine.generators.world_gen.transaction", tx, raising=False)
+    msg = game.new_world()
+    assert "archivio_" in msg and list((p.parent / "saves").glob("archivio_*.db"))
+    assert game.phase() == "nuovo"
+
+
+def test_objectives_people_and_voluntary_rebirth(world):
+    _p, tx = world
+    game.create("mortale", "", "A", "normale")
+    for _ in range(3):
+        game.turn("train")
+    o = game.objectives_data()
+    assert set(o) == {"primari", "secondari", "missioni"} and o["primari"]
+    pp = game.people_data()
+    assert pp["io"]["potenza"] > 0 and pp["alleati"]                  # la famiglia
+    assert all("potenza" in c and "confronto" in c for c in pp["alleati"])
+    m = game.merit_preview()
+    assert m["punti"] > 0 and m["pietre"] == m["punti"] * 10
+    r = game.voluntary()
+    assert r["morto"] and game.phase() == "morto"
+    info = game.death_info()
+    assert "salvato" not in info                                     # una scelta, non una disgrazia da evitare
+    assert info["volontaria"] and info["frammenti"] >= len(info["eredita"]) - 1
+    assert "Scelse la Ruota" in info["epilogo"]
+    out = game.reincarnate("mortale", "", "B", list(range(len(info["eredita"]) - 1)))
+    assert "pietre" in out and game.phase() == "gioco"
+    from engine.systems import rebirth, sects
+    with tx() as c:
+        assert sects.get_resource(c, "pietre_spirituali", 1) >= m["pietre"]
+        assert rebirth.samsara_cult_mult(c)[0] > 1.0
+        assert not rebirth.voluntary_pending(c)
+
+
+def test_restart_command_sets_flag(world):
+    _p, tx = world
+    game.create("mortale", "", "A", "normale")
+    game.turn("ricomincia")
+    from engine.systems import rebirth, state
+    with tx() as c:
+        assert state.get(c, rebirth.RESTART_KEY) != "1"              # senza conferma non succede nulla
+    game.turn("ricomincia conferma")
+    with tx() as c:
+        assert state.get(c, rebirth.RESTART_KEY) == "1"

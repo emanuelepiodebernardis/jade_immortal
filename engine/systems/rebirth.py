@@ -86,11 +86,16 @@ def _facts(conn, player) -> dict:
         "titles": state.titles(conn),
         "story_done": storyline.chapter(conn) >= len((storyline.arc_for(conn, player.id) or {"chapters": [1]})["chapters"]),
         "cause": cause_row["summary"] if cause_row else None,
+        "voluntary": bool(voluntary_pending(conn)),
     }
 
 
 # (chiave, titolo, condizione, testo) — il primo che combacia vince
 _EPILOGUES = [
+    ("ruota", "Colui che Scelse la Ruota",
+     lambda f: f.get("voluntary"),
+     "Nessuno ti ha sconfitto. Hai chiuso gli occhi quando hai deciso tu, come chi posa un pennello "
+     "a opera finita, e la ruota delle vite ti ha accolto. Tornerai — e ricorderai."),
     ("immortale", "L'Immortale di Giada",
      lambda f: f["tier"] >= 8,
      "Pochi, in diecimila anni, salgono tanto in alto. Il tuo nome entra nelle preghiere "
@@ -197,6 +202,7 @@ def record_death(conn, player) -> sqlite3.Row:
     relic = json.dumps({"name": f"Reliquia di {player.name}",
                         "magnitude": round(0.04 + 0.02 * f["tier"], 3)}, ensure_ascii=False)
     t = tick_mod.get_tick(conn)
+    remember_realm(conn, f["tier"])
     conn.execute(
         "INSERT INTO past_lives (life_no, name, origin, realm_tier, realm_label, epilogue_key, "
         "epilogue_title, epilogue_text, cause, death_tick, days_lived, tomb_location_id, "
@@ -206,6 +212,8 @@ def record_death(conn, player) -> sqlite3.Row:
          f["cause"], t, f["days"], player.location_id, int(stones * 0.5), relic,
          best["dao_key"] if best else None, best["comprehension"] if best else 0,
          best_aff, json.dumps(f["titles"], ensure_ascii=False)))
+    from engine.systems import chronicle
+    chronicle.add(conn, "morte", f"{player.name} muore: «{ep['title']}» ({f['realm']}, {f['days']} giorni vissuti).")
     from engine.simulation import event_system as ev
     ev.log_event(conn, event_type="death", tick=t, location_id=player.location_id,
                  title=f"La fine di {player.name}",
@@ -279,6 +287,8 @@ def claim_tombs(conn, player) -> list[str]:
 def try_phoenix(conn, player) -> str | None:
     """Corpo della Fenice: una volta per vita, risorgi dalle ceneri invece di morire.
     (Prima ancora: un clone che si sacrifica, o il Gu che riavvolge il tempo.)"""
+    if voluntary_pending(conn):
+        return None                    # una vita lasciata di propria scelta non va «salvata»
     from engine.systems import clones, gu
     saved = clones.try_save(conn, player) or gu.try_rewind(conn, player)
     if saved:
@@ -313,6 +323,159 @@ def describe_lives(conn) -> str:
 # ============================================================
 # Reincarnazione
 # ============================================================
+
+MAX_FRAGMENTS = 2          # quanti frammenti della vita passata puoi portare con te
+MEMORY_KEY = "world_realm_memory"
+
+
+def remember_realm(conn, tier: int) -> None:
+    """Il regno più alto mai raggiunto (in qualunque vita): la memoria che ti fa risalire."""
+    if tier > state.get_int(conn, MEMORY_KEY, 0):
+        state.set(conn, MEMORY_KEY, str(tier))
+
+
+def realm_memory(conn) -> int:
+    return state.get_int(conn, MEMORY_KEY, 0)
+
+
+def memory_cult_mult(conn, pid: int = 1) -> tuple[float, str]:
+    """Sotto il regno che già conoscevi, il corpo ricorda la strada: coltivi molto più in fretta."""
+    from engine.simulation import cultivation
+    mem = realm_memory(conn)
+    tier = cultivation.realm_tier(conn, "player", pid) or 1
+    if life_no(conn) <= 1 or tier >= mem:
+        return 1.0, ""
+    return 2.5, f"la memoria delle vite passate (fino al regno {mem})"
+
+
+def memory_bt_bonus(conn, pid: int = 1) -> float:
+    from engine.simulation import cultivation
+    tier = cultivation.realm_tier(conn, "player", pid) or 1
+    return 0.2 if life_no(conn) > 1 and tier < realm_memory(conn) else 0.0
+
+
+# ------------------------------------------------------------
+# Reincarnazione VOLONTARIA (ciclo del Samsara) e «ricomincia da zero»
+# ------------------------------------------------------------
+VOLUNTARY_KEY = "voluntary_rebirth"        # in sospeso tra la scelta e la nuova vita
+SAMSARA_KEY = "world_samsara"              # merito accumulato in tutte le reincarnazioni volontarie
+
+
+def merit(conn, pid: int = 1) -> dict:
+    """Quanto vale ciò che hai costruito in questa vita, se scegli di lasciarla."""
+    import math
+    from engine.simulation import cultivation
+    from engine.systems import reputation, storyline, training
+    tier = cultivation.realm_tier(conn, "player", pid) or 1
+    rec = cultivation.get_record(conn, "player", pid)
+    dao = conn.execute("SELECT COALESCE(SUM(comprehension),0) s FROM character_daos WHERE character_type='player' "
+                       "AND character_id=?;", (pid,)).fetchone()["s"]
+    titles = len(state.titles(conn))
+    days = max(0, (tick_mod.get_tick(conn) - storyline.life_start(conn)) // training.DAY_TICKS)
+    fame = reputation.get(conn, pid)["fame"]
+    parts = {"regno": tier * 15 + (rec["stage"] if rec else 0),
+             "Dao": int(20 * math.log2(1 + dao / 50)),
+             "titoli": titles * 3,
+             "giorni vissuti": days // 5,
+             "fama": int(10 * math.log2(1 + max(0, fame) / 20))}
+    pts = sum(parts.values())
+    return {"punti": pts, "parti": parts, "pietre": pts * 10,
+            "samsara": pts, "coltivazione": samsara_mult(state.get_int(conn, SAMSARA_KEY, 0) + pts)}
+
+
+def samsara_mult(points: int) -> float:
+    import math
+    return 1.0 + 0.1 * math.log2(1 + max(0, points) / 50)
+
+
+def samsara_cult_mult(conn) -> tuple[float, str]:
+    pts = state.get_int(conn, SAMSARA_KEY, 0)
+    return (samsara_mult(pts), "il ciclo del Samsara (vite lasciate di tua scelta)") if pts else (1.0, "")
+
+
+def voluntary_preview(conn, player) -> str:
+    if hardcore(conn):
+        return ("In modalità Senza Ritorno non c'è reincarnazione: puoi solo ricominciare da zero "
+                "('ricomincia conferma').")
+    m = merit(conn, player.id)
+    lines = ["☸ REINCARNAZIONE VOLONTARIA — lasci questa vita di tua scelta, quando vuoi tu.",
+             "  Merito di questa vita: " + ", ".join(f"{k} {v}" for k, v in m["parti"].items()) + f" = {m['punti']}",
+             "  Cosa ottieni, rispetto a una morte qualsiasi:",
+             "   · porti con te TUTTI i frammenti della vita passata (non solo due);",
+             f"   · rinasci con {m['pietre']} pietre spirituali;",
+             f"   · il ciclo del Samsara si rafforza: coltivazione ×{m['coltivazione']:.2f} per sempre (cresce a ogni "
+             "reincarnazione volontaria);",
+             "   · la memoria del regno ti fa risalire in fretta fino a dove eri arrivato.",
+             "  Nessuna tomba da saccheggiare, nessun nemico che esulta: è una scelta, non una sconfitta.",
+             "Per farlo: 'reincarnati conferma'. Per azzerare tutto e cominciare un mondo nuovo: 'ricomincia conferma'."]
+    return "\n".join(lines)
+
+
+def voluntary(conn, player) -> str:
+    """Lascia questa vita di tua scelta. Il giocatore risulta morto: segue la normale rinascita."""
+    if hardcore(conn):
+        return voluntary_preview(conn, player)
+    from engine.simulation import event_system as ev
+    m = merit(conn, player.id)
+    state.set_json(conn, VOLUNTARY_KEY, {"punti": m["punti"], "pietre": m["pietre"]})
+    state.set(conn, SAMSARA_KEY, str(state.get_int(conn, SAMSARA_KEY, 0) + m["samsara"]))
+    t = tick_mod.get_tick(conn)
+    conn.execute("UPDATE players SET status='dead' WHERE id=?;", (player.id,))
+    ev.log_event(conn, event_type="death", tick=t, location_id=player.location_id,
+                 title=f"{player.name} lascia questa vita",
+                 summary=f"{player.name} siede nella posizione del loto e lascia andare questa vita, di sua scelta.",
+                 participants=[ev.Participant("player", player.id, "subject")],
+                 consequences=[ev.Consequence("player", player.id, "death",
+                                              "ha scelto di reincarnarsi", visibility="public", resolve_tick=t)])
+    return (f"Siedi nella posizione del loto. Respiri piano, un'ultima volta, e lasci andare questa vita "
+            f"(merito {m['punti']}). La ruota gira…")
+
+
+def voluntary_pending(conn) -> dict | None:
+    return state.get_json(conn, VOLUNTARY_KEY)
+
+
+def fragments_allowed(conn, n_options: int) -> int:
+    """Due frammenti di norma; tutti se la vita è stata lasciata di tua scelta."""
+    return max(MAX_FRAGMENTS, n_options) if voluntary_pending(conn) else MAX_FRAGMENTS
+
+
+RESTART_KEY = "world_restart_requested"
+
+
+HARDCORE_KEY = "world_senza_ritorno"
+
+
+def hardcore(conn) -> bool:
+    return state.get(conn, HARDCORE_KEY) == "1"
+
+
+def set_hardcore(conn, on: bool) -> str:
+    state.set(conn, HARDCORE_KEY, "1" if on else "0")
+    return ("☠ Modalità SENZA RITORNO: la morte è definitiva. Niente reincarnazione: la tua storia finirà "
+            "con te, e un nuovo mondo prenderà il suo posto." if on else
+            "Modalità normale: alla morte potrai rinascere in questo mondo.")
+
+
+def archive_world(db_path=None) -> str:
+    """Senza Ritorno: il mondo finito va in archivio (database/saves/archivio_<data>.db) e il
+    file di gioco riparte vuoto. Chiamare senza connessioni aperte."""
+    import datetime
+    import shutil
+    from pathlib import Path
+    from engine import db
+    src = Path(db_path or db.DB_PATH)
+    dst_dir = src.parent / "saves"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    dst = dst_dir / f"archivio_{datetime.datetime.now():%Y%m%d_%H%M%S}.db"
+    if src.exists():
+        shutil.move(str(src), str(dst))
+    for ext in ("-journal", "-wal", "-shm"):
+        p = Path(str(src) + ext)
+        if p.exists():
+            p.unlink()
+    return dst.name
+
 
 def inheritance_options(row: sqlite3.Row) -> list[dict]:
     from engine.systems.character import AFF_LABELS_IT
@@ -380,6 +543,7 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
     n_next = life_no(conn) + 1
     from engine.systems import bloodlines
     _blood = bloodlines.legacy(conn)
+    vol = voluntary_pending(conn)          # letto PRIMA che la vecchia vita venga cancellata
     _purge_player(conn, player_id)
     t = tick_mod.get_tick(conn)
     loc = _rebirth_location(conn, rng, prev["tomb_location_id"] if prev else None)
@@ -399,39 +563,52 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
         lines.append(f"Il tuo destino: {d['name']}.")
     from engine.systems import constitutions
     lines += constitutions.roll_at_birth(conn, rng, origin_key)
-    inherit = inherit or {"key": "none"}
-    if inherit["key"] == "dao":
-        conn.execute(
-            "INSERT INTO character_daos (character_type, character_id, dao_key, affinity, "
-            "comprehension, practiced) VALUES ('player', ?, ?, 70, ?, 1) "
-            "ON CONFLICT(character_type, character_id, dao_key) DO UPDATE SET practiced=1, "
-            "comprehension=MAX(character_daos.comprehension, excluded.comprehension), "
-            "affinity=MAX(character_daos.affinity, 70);",
-            (player_id, inherit["dao"], inherit["comp"]))
-        lines.append(f"Il Dao «{inherit['dao']}» ti torna alla mente come un sogno ricordato.")
-    elif inherit["key"] == "tier":
-        cur = cultivation.realm_tier(conn, "player", player_id) or 1
-        tier = max(cur, inherit["tier"])
-        rid = cultivation.ensure_realm(conn, tier)
-        conn.execute("UPDATE players SET realm_id=? WHERE id=?;", (rid, player_id))
-        conn.execute("UPDATE cultivation_records SET realm_id=?, qi_level=?, body_level=?, "
-                     "soul_level=? WHERE character_type='player' AND character_id=?;",
-                     (rid, tier * 10, tier * 8, tier * 8, player_id))
-        lines.append(f"Il tuo corpo ricorda la via: rinasci già al regno "
-                     f"{cultivation.realm_label(conn, 'player', player_id)}.")
-    elif inherit["key"] == "aff":
-        col = f"aff_{inherit['aff']}"
-        conn.execute(f"UPDATE character_profiles SET {col}=MIN(100, {col}+10) "
-                     "WHERE character_type='player' AND character_id=?;", (player_id,))
-        lines.append("Le tue radici portano la tempra di un'altra vita.")
-    else:
-        karma.adjust_karma(conn, "player", player_id, 60, "rinascita pura", t)
-        lines.append("Rinasci leggero, senza debiti col passato.")
+    # fino a DUE frammenti dalla vita passata ('Nulla' resta una scelta a sé, col suo karma)
+    picks = inherit if isinstance(inherit, list) else [inherit or {"key": "none"}]
+    picks = [x for x in picks if x][:(len(picks) if vol else MAX_FRAGMENTS)] or [{"key": "none"}]
+    if len(picks) > 1:
+        picks = [x for x in picks if x["key"] != "none"] or [{"key": "none"}]
+    for inherit in picks:
+        if inherit["key"] == "dao":
+            conn.execute(
+                "INSERT INTO character_daos (character_type, character_id, dao_key, affinity, "
+                "comprehension, practiced) VALUES ('player', ?, ?, 70, ?, 1) "
+                "ON CONFLICT(character_type, character_id, dao_key) DO UPDATE SET practiced=1, "
+                "comprehension=MAX(character_daos.comprehension, excluded.comprehension), "
+                "affinity=MAX(character_daos.affinity, 70);",
+                (player_id, inherit["dao"], inherit["comp"]))
+            lines.append(f"Il Dao «{inherit['dao']}» ti torna alla mente come un sogno ricordato.")
+        elif inherit["key"] == "tier":
+            cur = cultivation.realm_tier(conn, "player", player_id) or 1
+            tier = max(cur, inherit["tier"])
+            rid = cultivation.ensure_realm(conn, tier)
+            conn.execute("UPDATE players SET realm_id=? WHERE id=?;", (rid, player_id))
+            conn.execute("UPDATE cultivation_records SET realm_id=?, qi_level=?, body_level=?, "
+                         "soul_level=? WHERE character_type='player' AND character_id=?;",
+                         (rid, tier * 10, tier * 8, tier * 8, player_id))
+            lines.append(f"Il tuo corpo ricorda la via: rinasci già al regno "
+                         f"{cultivation.realm_label(conn, 'player', player_id)}.")
+        elif inherit["key"] == "aff":
+            col = f"aff_{inherit['aff']}"
+            conn.execute(f"UPDATE character_profiles SET {col}=MIN(100, {col}+10) "
+                         "WHERE character_type='player' AND character_id=?;", (player_id,))
+            lines.append("Le tue radici portano la tempra di un'altra vita.")
+        else:
+            karma.adjust_karma(conn, "player", player_id, 60, "rinascita pura", t)
+            lines.append("Rinasci leggero, senza debiti col passato.")
     if prev:
         ploc = conn.execute("SELECT name FROM locations WHERE id=?;", (prev["tomb_location_id"],)).fetchone()
         if ploc:
             lines.append(f"Da qualche parte, a {ploc['name']}, una tomba porta il nome che avevi. "
                          f"Custodisce ancora qualcosa per te.")
+    if vol:
+        from engine.systems import sects
+        sects.grant_resource(conn, "pietre_spirituali", int(vol.get("pietre", 0)), player_id)
+        lines.append(f"☸ Hai scelto tu di rinascere: porti con te {int(vol.get('pietre', 0))} pietre spirituali, e il "
+                     f"ciclo del Samsara ti accompagna (coltivazione ×{samsara_cult_mult(conn)[0]:.2f}).")
+    from engine.systems import chronicle
+    chronicle.add(conn, "rinascita", f"Una nuova vita comincia (la n.{n_next}): {origin['name']}"
+                  + (" — scelta, non subita." if vol else "."))
     from engine.simulation import event_system as ev
     ev.log_event(conn, event_type="rebirth", tick=t, location_id=loc,
                  title="Una nuova vita", summary=f"Un'anima antica rinasce: la vita n.{n_next} comincia.",

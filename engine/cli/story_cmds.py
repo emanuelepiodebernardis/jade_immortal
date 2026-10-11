@@ -172,6 +172,42 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("chiama", "call"):
         from engine.systems import oaths
         return oaths.call(conn, tick.get_tick(conn), player, arg)
+    if cmd in ("duello", "duel", "aturni"):
+        from engine.systems import duel
+        return duel.start(conn, player, arg)
+    if cmd == "duello_azione":
+        from engine.systems import duel
+        return duel.command(conn, player, arg)
+    if cmd in ("favori", "favors"):
+        from engine.systems import dialogues
+        return dialogues.describe(conn, player)
+    if cmd in ("favore", "favor"):
+        from engine.systems import dialogues
+        return dialogues.fulfil(conn, player, arg)
+    if cmd in ("cronaca", "chronicle", "annali"):
+        from engine.systems import chronicle
+        return chronicle.describe(conn, player, arg)
+    if cmd in ("reincarnati", "reincarnazione", "samsara"):
+        from engine.systems import rebirth
+        if arg.strip().lower() in ("conferma", "si", "sì") and not rebirth.hardcore(conn):
+            return rebirth.voluntary(conn, player)
+        return rebirth.voluntary_preview(conn, player)
+    if cmd in ("ricomincia", "restart", "nuovo_mondo"):
+        from engine.systems import rebirth, state as _st
+        if arg.strip().lower() in ("conferma", "si", "sì"):
+            _st.set(conn, rebirth.RESTART_KEY, "1")
+            return "Il mondo attuale andrà negli annali (resta salvato in archivio). Un mondo nuovo sta per nascere…"
+        return ("RICOMINCIA DA ZERO: il mondo attuale va in archivio (database/saves/archivio_<data>.db, lo puoi "
+                "ricaricare) e ne nasce uno nuovo, con un personaggio nuovo. Per farlo: 'ricomincia conferma'.")
+    if cmd in ("senza_ritorno", "hardcore", "modalita"):
+        from engine.systems import rebirth
+        a = arg.strip().lower().replace("senza_ritorno", "").strip()
+        if a in ("si", "sì", "on", "1"):
+            return rebirth.set_hardcore(conn, True)
+        if a in ("no", "off", "0"):
+            return rebirth.set_hardcore(conn, False)
+        return ("Modalità attuale: " + ("SENZA RITORNO (morte definitiva)" if rebirth.hardcore(conn) else
+                "normale (alla morte rinasci)") + ". 'senza_ritorno si|no' per cambiarla.")
     if cmd in ("mete", "destinazioni", "dove"):
         from engine.systems import travel
         return travel.describe(conn, player)
@@ -429,7 +465,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if kind and kind["kind"] not in (None, "human") and action != "spar":
         return f"{npc.name} non è una persona con cui parlare."
     if action == "talk":
-        return bonds.talk(conn, t, rng, player, npc)
+        from engine.systems import dialogues
+        dlg = dialogues.talk(conn, t, rng, player, npc)
+        return dlg if dlg else bonds.talk(conn, t, rng, player, npc)
     if action == "spar":
         return bonds.spar(conn, t, rng, player, npc)
     if action == "recruit":

@@ -43,7 +43,7 @@ EXEMPT = {"trama", "demone_interiore", "calamita", "fuga", "difesa_setta", "trib
 # scene di reazione: distanza minima anche se nate da un comando
 REACTIVE = {"battaglia_anima", "prova_cuore", "provocazione", "sfida_pubblica"}
 # prefissi che raggruppano scene sorelle in un solo tipo
-_PREFIXES = ("prova_cuore", "fuga", "demone_interiore", "battaglia_anima", "arcinemico", "nemesi",
+_PREFIXES = ("eco_", "dialogo", "prova_cuore", "fuga", "demone_interiore", "battaglia_anima", "arcinemico", "nemesi",
              "famiglia", "elemento", "maestro", "anello", "fame_abisso", "dao")
 
 _AMBIENT = [False]

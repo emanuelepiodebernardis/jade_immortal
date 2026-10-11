@@ -52,8 +52,8 @@ def creation_options(life_no: int = 1) -> dict:
             "rivali": [{"key": k, "label": f"{k.capitalize()} — {v[1]}"} for k, v in destinies.RIVAL_LEVELS.items()]}
 
 
-def create(origin: str, destiny: str, name: str, rivals: str) -> str:
-    from engine.systems import character, destinies, constitutions
+def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = False) -> str:
+    from engine.systems import character, destinies, constitutions, rebirth
     name = " ".join((name or "Viandante").split())[:32] or "Viandante"
     with LOCK, transaction() as conn:
         if character.has_profile(conn):
@@ -63,6 +63,8 @@ def create(origin: str, destiny: str, name: str, rivals: str) -> str:
         if rivals in destinies.RIVAL_LEVELS:
             destinies.set_rival_level(conn, rivals)
         conn.execute("UPDATE players SET name=? WHERE id=1;", (name,))
+        if hardcore:
+            rebirth.set_hardcore(conn, True)
         lines = [f"Sei {name}. Hai scelto: {applied['name']}" + (f", destino «{d['name']}»." if d else ".")]
         lines += constitutions.roll_at_birth(conn, random.Random(), origin)
         lines.append(character.describe_profile(conn))
@@ -86,15 +88,32 @@ def death_info() -> dict:
             state.set(conn, key, str(rebirth.life_no(conn)))
         opts = rebirth.inheritance_options(row)
         return {"epilogo": _clean(rebirth.epilogue_text(row)), "eredita": [o["label"] for o in opts],
-                "vita": rebirth.life_no(conn) + 1}
+                "vita": rebirth.life_no(conn) + 1, "senza_ritorno": rebirth.hardcore(conn),
+                "frammenti": rebirth.fragments_allowed(conn, len(opts) - 1),
+                "volontaria": bool(rebirth.voluntary_pending(conn))}
 
 
-def reincarnate(origin: str, destiny: str, name: str, inherit_idx: int) -> str:
+def new_world() -> str:
+    """Senza Ritorno: archivia il mondo finito e ne genera uno nuovo (poi si crea il personaggio)."""
+    from engine.systems import rebirth
+    from engine import db as _db
+    from engine.generators.world_gen import generate
+    with LOCK:
+        name = rebirth.archive_world(_db.DB_PATH)
+        _db.init_db(_db.DB_PATH)
+        with transaction() as conn:
+            if not conn.execute("SELECT 1 FROM worlds LIMIT 1;").fetchone():
+                generate(conn)
+    return f"Il vecchio mondo è conservato in database/saves/{name}. Un nuovo mondo ti attende."
+
+
+def reincarnate(origin: str, destiny: str, name: str, inherit_idx) -> str:
     from engine.systems import rebirth, character, state
     with LOCK, transaction() as conn:
         row = conn.execute("SELECT * FROM past_lives WHERE life_no=?;", (rebirth.life_no(conn),)).fetchone()
         opts = rebirth.inheritance_options(row) if row else [{"key": "none"}]
-        inherit = opts[max(0, min(len(opts) - 1, inherit_idx))]
+        idxs = inherit_idx if isinstance(inherit_idx, list) else [inherit_idx]
+        inherit = [opts[max(0, min(len(opts) - 1, int(i)))] for i in idxs][:rebirth.fragments_allowed(conn, len(opts) - 1)]
         lines = rebirth.reincarnate(conn, random.Random(), origin, name or None, inherit, destiny=destiny or None)
         state.delete(conn, "web_death_row")
         lines.append(character.describe_profile(conn))
@@ -191,6 +210,16 @@ def _scene(conn, player) -> dict | None:
     return {"title": sc.get("title", "Incontro"), "text": sc.get("text", ""), "choices": choices}
 
 
+def _duel(conn) -> dict | None:
+    from engine.systems import duel
+    d = duel.get(conn)
+    if not d:
+        return None
+    return {"nome": d["name"], "turno": d["round"], "tu": _bar(max(0, d["hp_p"]), d["pmax"]),
+            "lui": _bar(max(0, d["hp_e"]), d["emax"]), "carica": d.get("charge_e", False),
+            "concentrato": d.get("focus", False)}
+
+
 def _bar(cur: float, mx: float) -> dict:
     return {"cur": round(cur), "max": round(mx), "pct": max(0, min(100, round(100 * cur / mx))) if mx else 0}
 
@@ -247,6 +276,7 @@ def state_snapshot() -> dict:
             "suggerimenti": [{"label": a, "cmd": b} for a, b in (state.get_json(conn, "web_sugg", []) or [])],
             "mete": dests,
             "prigioniero": captivity.active(conn),
+            "duello": _duel(conn),
             "auto": autopilot.config(conn),
         }
     return snap
@@ -258,9 +288,10 @@ def state_snapshot() -> dict:
 
 PANELS = {
     "personaggio": ["status", "rating", "dao", "corpo", "radici", "sangue"],
-    "tesori": ["tesori", "arma", "inventory"],
-    "storia": ["trama", "goals", "arcinemico", "retaggio", "svolte", "bonds"],
-    "mondo": ["era", "regni", "razze", "classifica", "setta", "ritmo"],
+    "tesori": ["tesori", "arma"],
+    "storia": ["trama", "goals", "arcinemico", "retaggio", "svolte"],
+    "legami": ["favori"],
+    "mondo": ["era", "setta", "ritmo"],
     "aiuto": ["help tutto"],
 }
 
@@ -380,3 +411,227 @@ def saves() -> list[dict]:
     files = sorted(qol._saves_dir().glob("*.db"), key=lambda p: p.stat().st_mtime, reverse=True)[:20]
     return [{"name": f.stem, "when": datetime.datetime.fromtimestamp(f.stat().st_mtime).strftime("%d/%m %H:%M")}
             for f in files]
+
+
+# ============================================================
+# Schede strutturate: legami, regni, classifiche, zaino, cronaca
+# ============================================================
+
+def bonds_data() -> list[dict]:
+    from engine.systems import bonds, relations, dialogues, npc_factory
+    from engine.simulation import cultivation
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        rows = conn.execute("SELECT b.kind, b.npc_id, b.reason, n.name, n.status, n.location_id FROM bonds b "
+                            "JOIN npcs n ON n.id=b.npc_id WHERE b.player_id=? AND b.status='active' "
+                            "ORDER BY b.kind, n.name;", (p.id,)).fetchall()
+        reqs = dialogues.requests(conn)
+        out = []
+        for r in rows:
+            loc = conn.execute("SELECT name FROM locations WHERE id=?;", (r["location_id"],)).fetchone()
+            req = reqs.get(str(r["npc_id"]))
+            out.append({"nome": r["name"], "tipo": bonds.KINDS_IT.get(r["kind"], r["kind"]), "kind": r["kind"],
+                        "vivo": r["status"] == "alive", "qui": r["location_id"] == p.location_id,
+                        "dove": loc["name"] if loc else "?", "rapporto": relations.get_disposition(conn, r["npc_id"]).score,
+                        "intimita": dialogues.intimacy(conn, r["npc_id"]),
+                        "regno": cultivation.realm_name(conn, "npc", r["npc_id"]),
+                        "donna": npc_factory.is_female(conn, r["npc_id"]),
+                        "favore": dialogues.describe_one(conn, p, r["npc_id"], req) if req else None,
+                        "perche": r["reason"] or ""})
+    return out
+
+
+def world_data() -> dict:
+    from engine.systems import kingdoms, rankings, races
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        ks = []
+        for _rid, k in kingdoms.all_k(conn).items():
+            king = conn.execute("SELECT name FROM npcs WHERE id=?;", (k.get("king"),)).fetchone()
+            ks.append({"nome": k["name"], "re": "TU" if k.get("ruler_player") else (king["name"] if king else "—"),
+                       "favore": k.get("favor", 0), "rango": kingdoms.rank_of(k.get("favor", 0)),
+                       "guerra": bool(k.get("war"))})
+        top = []
+        for i, (rt, kind, name, _loc, ref) in enumerate(rankings._entries(conn, False), 1):
+            if i <= 15 or kind == "player":
+                from engine.simulation import cultivation
+                top.append({"pos": i, "nome": name, "tu": kind == "player", "potenza": rt,
+                            "regno": cultivation.realm_name(conn, kind, ref)})
+        allr = races.all_r(conn)
+        rc = [{"nome": nm, "rel": allr.get(key, {}).get("rel", 0), "onore": allr.get(key, {}).get("honor", 0),
+               "incontrata": allr.get(key, {}).get("met", False)} for key, (nm, *_r) in races.RACES.items()]
+    return {"regni": ks, "classifica": top, "razze": rc}
+
+
+def items_data() -> list[dict]:
+    with LOCK, transaction() as conn:
+        rows = conn.execute("SELECT i.name, i.item_type, i.rarity, i.description, inv.quantity FROM inventories inv "
+                            "JOIN items i ON i.id=inv.item_id WHERE inv.owner_type='player' AND inv.owner_id=1 "
+                            "AND inv.quantity>0 ORDER BY CASE i.rarity WHEN 'leggendario' THEN 0 WHEN 'prezioso' THEN 1 "
+                            "WHEN 'raro' THEN 2 WHEN 'non_comune' THEN 3 ELSE 4 END, i.name;").fetchall()
+        return [{"nome": r["name"], "tipo": r["item_type"], "rarita": r["rarity"] or "comune",
+                 "desc": r["description"] or "", "n": r["quantity"]} for r in rows]
+
+
+def chronicle_data(all_lives: bool = False) -> list[dict]:
+    from engine.systems import chronicle
+    with LOCK, transaction() as conn:
+        return [{"giorno": r["tick"] // 120 + 1, "vita": r["life_no"], "tipo": r["kind"],
+                 "icona": chronicle.ICON.get(r["kind"], "·"), "testo": r["text"]}
+                for r in chronicle.entries(conn, all_lives)[-300:]]
+
+
+def merit_preview() -> dict:
+    from engine.systems import rebirth
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        if rebirth.hardcore(conn):
+            return {"senza_ritorno": True}
+        m = rebirth.merit(conn, p.id)
+        m["senza_ritorno"] = False
+        return m
+
+
+def voluntary() -> dict:
+    from engine.systems import rebirth
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        return {"log": _clean(rebirth.voluntary(conn, p)), "morto": True}
+
+
+# ============================================================
+# Obiettivi (primari, secondari, missioni) e Persone (alleati e nemici, con la potenza)
+# ============================================================
+
+def objectives_data() -> dict:
+    from engine.systems import (storyline, master_plot, world_arcs, lost_legacy, npc_quests, dialogues, bonds,
+                                bounties, secret_masters, sects, sect_politics, system_quest, svolte, beasts)
+    from engine.simulation import cultivation
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        prim, sec, mis = [], [], []
+        arc = storyline.arc_for(conn, p.id)
+        if arc:
+            idx = storyline.chapter(conn)
+            if idx < len(arc["chapters"]):
+                prim.append({"t": f"«{arc['title']}» — capitolo {idx + 1}/{len(arc['chapters'])}: "
+                                  + storyline._fill(arc["chapters"][idx]["goal"], conn), "cmd": "goals"})
+        prim += [{"t": _clean(g), "cmd": "trama"} for g in master_plot.goals(conn, p)]
+        prim += [{"t": _clean(g), "cmd": "goals"} for g in world_arcs.goals(conn)]
+        lg = lost_legacy.get(conn)
+        if lg:
+            nm = lost_legacy.LEGACIES[lg["key"]][0]
+            if lg.get("holder"):
+                h = conn.execute("SELECT name FROM npcs WHERE id=?;", (lg["holder"],)).fetchone()
+                prim.append({"t": f"Retaggio spezzato ({nm}): riprendi il frammento da {h['name'] if h else '?'}",
+                             "cmd": "retaggio"})
+            else:
+                prim.append({"t": f"Retaggio spezzato ({nm}): {lg['found']}/{lost_legacy.FRAGMENTS} frammenti — "
+                                  f"il prossimo al regno {lost_legacy._next_tier(lg)}", "cmd": "retaggio"})
+        rec = cultivation.get_record(conn, "player", p.id)
+        if rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0:
+            prim.append({"t": "Sei al colmo del regno: tenta lo sfondamento", "cmd": "breakthrough"})
+        nxt = [m for m in svolte.milestones(conn, p) if not m[2]][:2]
+        prim += [{"t": f"Prossima svolta: {nm} — {how}", "cmd": "svolte"} for _i, nm, _d, how in nxt]
+        # secondari
+        for q in npc_quests.active(conn):
+            dest = npc_quests._loc_name(conn, q["dest"]) if q.get("dest") else None
+            sec.append({"t": f"Incarico per {npc_quests._name(conn, q['giver'])}: {q['kind']} "
+                             f"(passo {q['step']}/{q['chain']})" + (f" → {dest}" if dest else ""),
+                        "cmd": f"vai {dest}" if dest and q["dest"] != p.location_id else "incarichi"})
+        for nid, req in dialogues.requests(conn).items():
+            sec.append({"t": "Favore — " + _clean(dialogues.describe_one(conn, p, int(nid), req)), "cmd": "favori"})
+        for nm in bonds.nemeses(conn, p.id):
+            sec.append({"t": f"Nemesi: {nm['name']} ti cerca ({nm['reason']})", "cmd": "bonds"})
+        ab = bounties.active_bounties(conn)
+        if ab:
+            sec.append({"t": f"{len(ab)} ricercati con una taglia", "cmd": "bounties"})
+        for m in secret_masters.available(conn, p.id):
+            sec.append({"t": f"Un maestro segreto è pronto a riceverti: {m['name']}", "cmd": "masters"})
+        for r in beasts.active_rare(conn):
+            sec.append({"t": f"Bestia {r['rarity']} avvistata: {r['name']} a {r['loc'] or '?'}",
+                        "cmd": f"vai {r['loc']}" if r["loc"] else "beast"})
+        # missioni
+        if sects.get_membership(conn, p.id):
+            try:
+                for m in sect_politics._board(conn, p):
+                    mis.append({"t": f"Setta — {m['text']} (per {m['elder_name']}: {m['merit']} merito, "
+                                     f"{m['stones']} pietre)", "cmd": "missioni"})
+            except Exception:
+                pass
+        if system_quest.active(conn):
+            d = system_quest.today(conn, p.id)
+            for q in d["quests"]:
+                pr = min(q["need"], system_quest._progress(conn, p.id, q))
+                mis.append({"t": "Sistema — " + system_quest.QUESTS[q["key"]][0].format(n=q["need"])
+                                 + (" ✔" if q["done"] else f" ({pr}/{q['need']})"),
+                            "cmd": "sistema riscuoti" if pr >= q["need"] and not q["done"] else "sistema"})
+    return {"primari": prim, "secondari": sec, "missioni": mis}
+
+
+def people_data() -> dict:
+    from engine.systems import bonds, perception, power, archrival, hunters, dialogues, relations, npc_factory
+    from engine.simulation import cultivation
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+
+        def card(nid: int, role: str, extra: dict | None = None) -> dict | None:
+            r = conn.execute("SELECT name, status, location_id FROM npcs WHERE id=?;", (nid,)).fetchone()
+            if not r:
+                return None
+            alive = r["status"] == "alive"
+            loc = conn.execute("SELECT name FROM locations WHERE id=?;", (r["location_id"],)).fetchone()
+            c = {"id": nid, "nome": r["name"], "ruolo": role, "vivo": alive, "qui": r["location_id"] == p.location_id,
+                 "dove": loc["name"] if loc else "?", "regno": cultivation.realm_name(conn, "npc", nid),
+                 "potenza": power.combat_rating(conn, "npc", nid) if alive else 0,
+                 "confronto": perception.relative_strength(conn, p.id, nid) if alive else "caduto",
+                 "rapporto": relations.get_disposition(conn, nid, p.id).score,
+                 "donna": npc_factory.is_female(conn, nid)}
+            c.update(extra or {})
+            return c
+
+        allies, enemies, seen = [], [], set()
+        rows = conn.execute("SELECT kind, npc_id, reason FROM bonds WHERE player_id=? AND status='active' "
+                            "ORDER BY kind;", (p.id,)).fetchall()
+        reqs = dialogues.requests(conn)
+        for r in rows:
+            if r["npc_id"] in seen:
+                continue
+            seen.add(r["npc_id"])
+            role = bonds.KINDS_IT.get(r["kind"], r["kind"])
+            if r["kind"] == "dao_partner":
+                role = "compagna del Dao"
+            if r["kind"] == "family" and r["reason"]:
+                role = r["reason"]
+            if r["kind"] == "nemesis":
+                c = card(r["npc_id"], "nemesi", {"perche": r["reason"] or ""})
+                if c:
+                    enemies.append(c)
+                continue
+            req = reqs.get(str(r["npc_id"]))
+            c = card(r["npc_id"], role, {"intimita": dialogues.intimacy(conn, r["npc_id"]),
+                                          "favore": _clean(dialogues.describe_one(conn, p, r["npc_id"], req)) if req else None})
+            if c:
+                allies.append(c)
+        ar = archrival.get(conn)
+        if ar and ar["npc"] not in seen:
+            seen.add(ar["npc"])
+            c = card(ar["npc"], f"arcinemico «{ar['epithet']}» ({ar['gen']}ª generazione)")
+            if c:
+                enemies.append(c)
+        for h in hunters.active_hunters(conn):
+            if h["id"] not in seen:
+                seen.add(h["id"])
+                c = card(h["id"], "cacciatore sulle tue tracce")
+                if c:
+                    enemies.append(c)
+        for r in conn.execute("SELECT r.npc_id FROM npc_player_relations r JOIN npcs n ON n.id=r.npc_id "
+                              "WHERE r.player_id=? AND r.score<=-40 AND n.status='alive' ORDER BY r.score LIMIT 12;",
+                              (p.id,)).fetchall():
+            if r["npc_id"] not in seen:
+                seen.add(r["npc_id"])
+                c = card(r["npc_id"], "ostile")
+                if c:
+                    enemies.append(c)
+        me = {"potenza": power.combat_rating(conn, "player", p.id), "regno": cultivation.realm_name(conn, "player", p.id)}
+    return {"io": me, "alleati": allies, "nemici": enemies}

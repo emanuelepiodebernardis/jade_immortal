@@ -43,6 +43,13 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = formations.cultivation_mult(conn, location_id)
     if m != 1.0:
         out.append((m, lbl))
+    from engine.systems import rebirth
+    m, lbl = rebirth.memory_cult_mult(conn, pid)
+    if m != 1.0:
+        out.append((m, lbl))
+    m, lbl = rebirth.samsara_cult_mult(conn)
+    if m != 1.0:
+        out.append((m, lbl))
     from engine.systems import svolte
     m, lbl = svolte.cultivation_mult(conn)
     if m != 1.0:

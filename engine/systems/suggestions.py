@@ -15,7 +15,8 @@ from engine.core import entities, tick as tick_mod
 from engine.systems import state
 
 KEY = "suggestions"
-MAX = 4
+MAX = 8                 # fino a 8 azioni rapide (tasti 1-8)
+_POOL = 24              # quante candidate si raccolgono prima di scegliere le migliori
 
 
 _SKIP: set[str] = set()
@@ -24,7 +25,7 @@ _SKIP: set[str] = set()
 def _add(out: list, label: str, cmd: str) -> None:
     if cmd in _SKIP:
         return
-    if len(out) < MAX and all(c != cmd for _l, c in out):
+    if len(out) < _POOL and all(c != cmd for _l, c in out):
         out.append((label, cmd))
 
 
@@ -221,6 +222,25 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
             _add(out, f"Parla con {n.name} ({n.archetype or 'sconosciuto'})", f"talk {n.name}")
         break
 
+    # 6b) chi ti è vicino ed è qui: un dialogo, o un favore da esaudire
+    from engine.systems import dialogues
+    reqs = dialogues.requests(conn)
+    for n in entities.npcs_in_location(conn, loc):
+        kind = dialogues.close_kind(conn, player.id, n.id)
+        if not kind or any(c.split()[0] in ("talk", "parla") and n.name.split()[0] in c for _l, c in out):
+            continue
+        req = reqs.get(str(n.id))
+        if req and dialogues._status(conn, player, req)[0]:
+            _add(out, f"Esaudisci il favore di {n.name}", f"favore {n.name.split()[0]}")
+        else:
+            _add(out, f"Parla con {n.name}", f"parla {n.name.split()[0]}")
+        break
+    inj = conn.execute("SELECT COALESCE(SUM(severity),0) s FROM injuries WHERE character_type='player' "
+                       "AND character_id=? AND healed=0;", (player.id,)).fetchone()["s"]
+    out_core: list[tuple[str, str]] = []
+    if inj >= 6:
+        out_core.append(("Riposati e lascia guarire le ferite (fino a domani)", "sleep"))
+
     # 7) ritmo della giornata
     sessions = training.sessions_today(conn, t, "player", player.id)
     from engine.systems import qi as qimod
@@ -242,7 +262,53 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
         ex = pick
         _add(out, f"Esplora verso {ex['direction']}: {ex['dest_name']} (pericolo {ex['danger']})",
              f"move {ex['direction']}")
-    return out
+    return _pick_best(conn, player, out, out_core)
+
+
+# Le 8 azioni rapide: prima ciò che è urgente o a tempo (nell'ordine di priorità raccolto
+# sopra), poi — se c'è posto — le azioni «di routine» che accorpano tanti comandi in uno.
+def _pick_best(conn, player, cand: list, core: list) -> list[tuple[str, str]]:
+    from engine.systems import travel, inner_space, mentor_ring, professions
+    routine: list[tuple[str, str]] = list(core)
+    far = [d for d in travel.destinations(conn, player) if d["loc"] != player.location_id
+           and d["key"] not in ("casa", "setta")]
+    direct = sum(1 for _l, c in cand if c.split()[0] in ("iscriviti", "vai"))
+    if len(far) > direct:
+        routine.append((f"Mete: {len(far)} cos{'a' if len(far) == 1 else 'e'} in corso nel mondo", "mete"))
+    care = False
+    s = inner_space.get(conn)
+    if s and s.get("planted") and tick_mod.get_tick(conn) // 120 >= s.get("ready_day", 0):
+        care = True
+    if mentor_ring.get(conn) and professions.material(conn, player.id, "nuclei") > 0:
+        care = True
+    if care:
+        routine.append(("Cura tutti i tesori (spazio, anello…)", "tesori cura"))
+    routine.append(("Vivi la giornata col pilota automatico (1 giorno)", "auto 1"))
+    out: list[tuple[str, str]] = []
+    keep = max(0, MAX - len(routine))
+    for lab, cmd in cand:
+        if len(out) >= keep:
+            break
+        if cmd not in [c for _l, c in out]:
+            out.append((lab, cmd))
+    # riempitivi: ciò che serve sempre, così gli 8 tasti hanno sempre qualcosa di utile
+    fill: list[tuple[str, str]] = [("Dormi fino all'alba (recuperi Qi, Spirito e ferite)", "sleep")]
+    exits = sorted(entities.get_exits_detailed(conn, player.location_id), key=lambda e: e["danger"])
+    taken = {c for _l, c in cand}
+    for ex in exits:
+        if f"move {ex['direction']}" not in taken:
+            fill.append((f"Vai verso {ex['direction']}: {ex['dest_name']} (pericolo {ex['danger']})",
+                         f"move {ex['direction']}"))
+            break
+    fill += [("Pilota automatico per una settimana", "auto 7"),
+             ("Mete: eventi, casa, setta e luoghi importanti", "mete"),
+             ("Guardati intorno", "look")]
+    for lab, cmd in routine + cand + fill:
+        if len(out) >= MAX:
+            break
+        if cmd not in [c for _l, c in out]:
+            out.append((lab, cmd))
+    return out[:MAX]
 
 
 def store(conn: sqlite3.Connection, sugg: list[tuple[str, str]]) -> None:

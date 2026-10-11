@@ -85,8 +85,9 @@ input, select { background: var(--panel); border: 1px solid var(--line); border-
 .scene .choices { display: flex; flex-direction: column; gap: 6px; }
 .scene .choices small { color: var(--muted); margin-left: 6px; }
 
-#sugg { display: flex; flex-wrap: wrap; gap: 6px; }
-#sugg button { font-size: 13px; }
+#sugg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+#sugg button { font-size: 13px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) { #sugg { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 #sugg .n { color: var(--muted); margin-right: 4px; }
 #cmdform { display: flex; gap: 8px; }
 #cmd { flex: 1; padding: 8px 10px; }
@@ -140,3 +141,35 @@ input, select { background: var(--panel); border: 1px solid var(--line); border-
 .dao .bar i { background: var(--accent); }
 .dao .v { color: var(--muted); white-space: nowrap; }
 #more-npc { font-size: 12px; padding: 2px 8px; border-radius: 12px; }
+
+details.txt { margin-bottom: 6px; }
+details.txt summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 4px 0; }
+.sec { margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+.sec .obj { font-size: 13px; }
+#tabbody h4 { margin: 10px 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.person { margin-bottom: 8px; }
+.person.enemy { border-left: 3px solid var(--bad); }
+.person .w { color: var(--muted); font-size: 13px; }
+.person .pw { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; margin: 4px 0; }
+.person .pw .bar { width: 100%; }
+.person .pw .bar i { background: var(--info); }
+.person .good { color: var(--good); } .person .warn { color: var(--warn); } .person .bad { color: var(--bad); }
+.person .b { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.person .b button { font-size: 12.5px; padding: 3px 8px; }
+.item { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.item button { font-size: 12px; padding: 2px 8px; }
+.r-non_comune span:first-child { color: var(--good); } .r-raro span:first-child { color: var(--info); }
+.r-prezioso span:first-child { color: var(--rare); } .r-leggendario span:first-child { color: var(--warn); font-weight: 600; }
+.crlist { max-height: 340px; overflow-y: auto; margin-top: 6px; font-size: 13px; }
+.cr { padding: 2px 0; border-bottom: 1px dashed var(--line); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+th, td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 500; }
+tr.me td { color: var(--accent); font-weight: 600; }
+.duel { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; font-size: 13px; }
+.duel > div:not(.l-warn) { display: grid; grid-template-columns: 120px 1fr 90px; gap: 8px; align-items: center; }
+.duel .l-warn { font-weight: 600; }
+.duel .bar { width: 100%; height: 10px; }
+.bar.hp i { background: var(--good); } .bar.hp.foe i { background: var(--bad); }
+.duel em { font-style: normal; color: var(--muted); }
+.card ul { margin: 4px 0 8px 18px; padding: 0; font-size: 13px; }

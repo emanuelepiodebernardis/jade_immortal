@@ -956,7 +956,7 @@ def _attack_auto(conn, player, npc, forced) -> str:
 
 
 def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
-                    crit_any, mods, chosen, lines) -> str:
+                    crit_any, mods, chosen, lines, force_died: bool | None = None) -> str:
     wfrac = hp_p / max(1.0, pmax)
     from engine.systems import perception, seclusion
     ratio = perception.strength_ratio(conn, player.id, npc.id)
@@ -971,6 +971,8 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
     death_prob = (0.5 + (0.3 if wfrac > 0.5 else 0.0) + (0.15 if crit_any else 0.0)
                   + mods.get("death_bonus", 0.0))
     died = True if decisive else (rng.random() < min(1.0, death_prob))
+    if force_died is not None:          # duello a turni: decidi tu se finirlo o risparmiarlo
+        died = force_died
     obs: list[str] = []
     combat._apply_outcome(conn, t, rng, ("player", player.id, "Tu"),
                           ("npc", npc.id, npc.name), rounds, died, crit_any,
@@ -1009,6 +1011,9 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         from engine.systems import weapon_spirit as _wsp, archrival as _arc
         lines += _wsp.on_fight(conn, rng, player, True, npc.name, ratio)
         lines += _arc.on_fight(conn, player, npc.id, True, False)
+        from engine.systems import echoes as _ech
+        _lname = conn.execute("SELECT name FROM locations WHERE id=?;", (player.location_id,)).fetchone()
+        _ech.record(conn, npc.id, "risparmiato", f"lo scontro a {_lname['name'] if _lname else 'un luogo lontano'}")
         from engine.systems import bonds as _bonds
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
@@ -1167,6 +1172,9 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
             ag = sect_life.agenda_line(conn, t, player.id)
             extra = f"\nLa setta ti promuove alla classe successiva. {ag or ''}"
         out = f"Il tuo regno si squarcia e si ricompone: ora sei {res['realm']}!{extra}"
+        from engine.systems import rebirth as _rb, chronicle as _chr
+        _rb.remember_realm(conn, cultivation.realm_tier(conn, "player", player.id) or 1)
+        _chr.add(conn, "regno", f"Sfondi fino al regno {res['realm']}.")
         from engine.systems import lifespan
         out += "\n" + lifespan.on_realm_up(conn, player.id)
         from engine.systems import constitutions, dao_heart, heaven_trib
@@ -2052,13 +2060,15 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     if not lost_legacy.get(conn) and not state_flag(conn, "legacy_init"):
         lines += ["  " + ln for ln in lost_legacy.assign(conn, _rng2)]
         _set_flag(conn, "legacy_init")
-    from engine.systems import archrival, kingdoms, races, eras, contests, captivity
+    from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes
     for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense,
-                 archrival, kingdoms, races, eras, contests, captivity):
+                 archrival, kingdoms, races, eras, contests, captivity, echoes):
         lines += ["  " + ln for ln in _mod.daily(conn, t, _rng2, entities.get_player(conn))]
     from engine.systems import beast_eggs, qol
     lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]
     qol.autosave(conn, day)
+    from engine.systems import maintenance
+    maintenance.prune(conn, day)
     dao_heart.daily(conn, t, None, player)
     from engine.systems import lifespan
     lines += ["  " + ln for ln in lifespan.daily_check(conn, player, t)]
@@ -2652,7 +2662,7 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return cmd_raid(conn, player, arg)
     if cmd in ("invade", "invadi", "invasione", "conquista", "conquer"):
         return cmd_invade(conn, player, arg)
-    if cmd in ("challenge", "sfida", "sfidarango", "duello"):
+    if cmd in ("challenge", "sfida", "sfidarango"):
         return cmd_challenge(conn, player, arg)
     if cmd in ("buy", "compra", "acquista"):
         return cmd_buy(conn, player, arg)
@@ -2792,6 +2802,10 @@ def run() -> None:
             return
         if output:
             _say(output)
+        if lifecycle.restart_requested():
+            lifecycle.restart_world()
+            _intro()
+            continue
         # banner di nuovo giorno (se il tempo è avanzato oltre la mezzanotte)
         with transaction() as conn:
             p0 = entities.get_player(conn)

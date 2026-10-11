@@ -93,8 +93,11 @@ def create_character() -> None:
     destiny = _choose_destiny(1)
     name = _choose_name()
     rivals = _choose_rivals()
+    hard = _ask("\nModalità SENZA RITORNO (la morte è definitiva)? [s/N]: ", "n").lower().startswith("s")
     with transaction() as conn:
         from engine.systems import destinies
+        if hard:
+            rebirth.set_hardcore(conn, True)
         applied = character.apply_origin(conn, origin, random.Random())
         d = destinies.apply(conn, destiny)
         destinies.set_rival_level(conn, rivals)
@@ -120,6 +123,22 @@ def handle_death() -> bool:
         print()
         print(rebirth.epilogue_text(row))
         opts = rebirth.inheritance_options(row)
+        hard = rebirth.hardcore(conn)
+    if hard:
+        print("\n☠ SENZA RITORNO: la tua storia finisce qui. Il mondo va negli annali.")
+        print("  [1] Comincia un NUOVO MONDO")
+        print("  [2] Esci")
+        if _pick("> ", 2) != 1:
+            print("(Al prossimo avvio potrai cominciare un nuovo mondo.)")
+            return False
+        name = rebirth.archive_world()
+        print(f"Il vecchio mondo è conservato in database/saves/{name}.")
+        from engine.db import init_db
+        from engine.generators.world_gen import generate_if_empty
+        init_db()
+        generate_if_empty()
+        create_character()
+        return True
     print("\nIl mondo prosegue senza di te. Ma le anime, qui, non si spengono del tutto.")
     print("  [1] Reincarnati in questo stesso mondo")
     print("  [2] Lascia che il mondo prosegua (esci)")
@@ -130,10 +149,19 @@ def handle_death() -> bool:
     origin = _choose_origin()
     destiny = _choose_destiny(life_next)
     name = _choose_name()
-    print("\nCosa porti con te dalla vita passata? (un solo frammento)")
+    with transaction() as conn:
+        nfr = rebirth.fragments_allowed(conn, len(opts) - 1)
+    print(f"\nCosa porti con te dalla vita passata? (fino a {nfr} frammenti)")
     for i, o in enumerate(opts, 1):
         print(f"  [{i}] {o['label']}")
-    inherit = opts[_pick("> ", len(opts)) - 1]
+    inherit = [opts[_pick("Primo frammento: ", len(opts)) - 1]]
+    while inherit[0]["key"] != "none" and len(inherit) < nfr and len(opts) > 2:
+        raw = _ask("Un altro frammento (numero, invio = basta così): ", "")
+        if not (raw.isdigit() and 1 <= int(raw) <= len(opts)):
+            break
+        o = opts[int(raw) - 1]
+        if o not in inherit and o["key"] != "none":
+            inherit.append(o)
     with transaction() as conn:
         lines = rebirth.reincarnate(conn, random.Random(), origin, name, inherit,
                                     destiny=destiny)
@@ -148,3 +176,20 @@ def player_is_dead() -> bool:
         p = entities.get_player(conn)
         return p is None or p.status != "alive"
 
+
+
+def restart_requested() -> bool:
+    from engine.systems import state
+    with transaction() as conn:
+        return state.get(conn, rebirth.RESTART_KEY) == "1"
+
+
+def restart_world() -> None:
+    """'ricomincia conferma': il mondo va in archivio e ne nasce uno nuovo, con un nuovo personaggio."""
+    name = rebirth.archive_world()
+    print(f"Il vecchio mondo è conservato in database/saves/{name}.")
+    from engine.db import init_db
+    from engine.generators.world_gen import generate_if_empty
+    init_db()
+    generate_if_empty()
+    create_character()

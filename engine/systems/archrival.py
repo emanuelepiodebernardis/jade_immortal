@@ -131,6 +131,8 @@ def scene(conn, d: dict) -> dict:
             "text": f"{name} ti sbarra la strada, più forte di quanto ricordassi.{mem}",
             "ctx": {"npc_id": d["npc"], "npc_name": name}, "sticky": True,
             "choices": [{"label": "Lo affronti", "effects": {}, "command": f"attack {name}"},
+                        {"label": "Lo affronti a turni (ogni mossa la scegli tu)", "effects": {},
+                         "command": f"duello {name}"},
                         {"label": "Lo eviti: non è ancora il momento", "effects": {"heart": -2},
                          "text": "Ride alle tue spalle mentre ti allontani."}]}
 
@@ -143,6 +145,8 @@ def on_fight(conn, player, npc_id: int, won: bool, killed: bool) -> list[str]:
     out = []
     if won:
         d["losses"] += 1
+        from engine.systems import chronicle
+        chronicle.add(conn, "nemico", f"{'Uccidi' if killed else 'Sconfiggi'} l'arcinemico {name} «{d['epithet']}».")
         if not killed:
             scar = random.choice(["Mi hai spezzato il braccio", "Mi hai sfregiato il volto", "Mi hai umiliato davanti a tutti",
                                   "Mi hai lasciato a terra nel fango", "Mi hai spezzato la spada"])

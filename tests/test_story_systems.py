@@ -296,3 +296,21 @@ def test_death_epilogue_and_rebirth_in_same_world(conn):
     assert "+100 pietre" in out
     assert "Reliquia" in out
     assert "vita n.2" in rebirth.describe_lives(conn)
+
+
+def test_eight_quick_actions_urgent_first_routine_always_there(conn):
+    p = _player(conn)
+    sugg = suggestions.compute(conn, p)
+    assert suggestions.MAX == 8
+    assert 4 <= len(sugg) <= 8
+    cmds = [c for _l, c in sugg]
+    assert len(set(cmds)) == len(cmds)
+    assert "auto 1" in cmds                       # il pilota automatico è sempre a portata di tasto
+    suggestions.store(conn, sugg)
+    out = loop.dispatch(conn, str(len(sugg)))
+    assert out.startswith(f"(→ {sugg[-1][1]})")
+    # ciò che è urgente resta in testa
+    from engine.systems import state
+    state.set_json(conn, "captivity", {"captor": "x", "since": 0})
+    first = suggestions.compute(conn, _player(conn))[0][1]
+    assert first != "auto 1"

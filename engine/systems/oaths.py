@@ -170,6 +170,9 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
         for r in bonds._active(conn, player.id, kind):
             if r["npc_status"] != "alive":
                 bonds.end_bond(conn, player.id, r["npc_id"], kind, "morto")
+                from engine.systems import chronicle
+                chronicle.add(conn, "lutto", f"{r['name']}, " + ("la tua compagna del Dao" if kind == "dao_partner"
+                                                                else "il tuo fratello giurato") + ", cade.")
                 if kind == "dao_partner":
                     heart_demon.add_bonus(conn, -0.1)
                     out.append(f"✝ {r['name']}, la tua compagna del Dao, è caduta. Una crepa si apre nel "

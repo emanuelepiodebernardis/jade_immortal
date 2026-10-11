@@ -119,6 +119,9 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "incarico <n> | incarichi      — accetti una richiesta | i tuoi incarichi in corso e dove andare",
         "consegna                      — consegni erbe o pillole per un incarico di guarigione",
         "giura <nome>                  — giuri fratellanza (rapporto ≥ 70) — 'chiama <nome>' per chiamarlo",
+        "duello <nome>                 — DUELLO A TURNI: colpisci, tecniche, difendi, concentrati, fuggi; alla fine decidi tu",
+        "parla <nome>                  — con chi ti è vicino (famiglia, compagna, maestro, fratelli…): un DIALOGO a scelta",
+        "favori | favore <nome>        — i FAVORI che ti hanno chiesto | esaudiscine uno (cresce l'intimità; da 2 accorrono in tuo aiuto)",
         "proponi <nome>                — lei diventa la tua compagna del Dao (rapporto ≥ 80): doppia coltivazione",
     ]),
     ("bestie", "Bestie spirituali e lignaggi di sangue", [
@@ -173,6 +176,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "bandiera                      — la BANDIERA DELLE ANIME (arte demoniaca)",
     ]),
     ("trama", "La trama, i regni, le razze e le ere", [
+        "cronaca [tutte|esporta]       — la CRONACA della tua vita (e delle vite passate); 'esporta' in un file .md",
         "trama                         — la tua storia: l'atto, le verità scoperte, le scelte che il mondo ricorda",
         "arcinemico                    — il rivale di una vita: cosa ricorda, le cicatrici, i suoi eredi",
         "regni | corte                 — i regni del mondo | la corte del regno in cui ti trovi",
@@ -203,12 +207,15 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
     ("sistema", "Interfaccia", [
         "help [categoria|tutto]        — aiuto (anche 'h')",
         "tutorial                      — i primi passi, con ciò che ti resta da provare",
+        "senza_ritorno si|no           — modalità SENZA RITORNO: la morte è definitiva (niente reincarnazione)",
+        "reincarnati [conferma]        — chiudi questa vita e RINASCI con i benefici di ciò che hai accumulato (merito → Samsara, pietre, tutti i frammenti)",
+        "ricomincia [conferma]         — RICOMINCIA DA ZERO: un mondo nuovo, niente eredità (il mondo vecchio viene archiviato)",
         "salva [nome] | carica <nome>  — salvataggi in slot (più 3 automatici ogni 5 giorni) — 'salvataggi' per l'elenco",
         "mappa                         — mappa della regione intorno a te",
         "codex [sezione]               — luoghi, bestie, Dao, lignaggi, maestri e titoli scoperti",
         "colori <on|off>               — colori nel terminale",
         "hud <on|off>                  — mostra/nasconde la riga di stato dopo ogni comando",
-        "suggest <on|off>              — mostra/nasconde le azioni suggerite numerate",
+        "suggest <on|off>              — mostra/nasconde le 8 azioni rapide numerate (scrivi 1-8 per eseguirle)",
         "quit / exit                   — esci",
     ]),
 ]

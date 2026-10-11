@@ -23,13 +23,18 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
 - una barra di stato sempre visibile (regno ed esperienza, Qi, spirito, cuore del Dao,
   ferite, pietre, giorno, stagione, meteo, era);
 - il luogo con le uscite e i presenti cliccabili (vai, parla, attacca);
-- le **scelte degli incontri** e le **azioni suggerite** come pulsanti, oppure i tasti 1-9;
-- i pannelli **Mete** (Vai / Partecipa), **Mappa** cliccabile, **Personaggio** (con le barre
-  dei Dao), **Tesori**, **Storia**, **Mondo** e **Aiuto** (con salvataggi e caricamenti);
+- le **scelte degli incontri** e le **azioni suggerite** come pulsanti, oppure i tasti 1-8;
+- i pannelli **Mete** (Vai / Partecipa), **Obiettivi** (primari, secondari, missioni),
+  **Mappa** cliccabile, **Personaggio** (con le barre dei Dao), **Alleati e nemici** (con la
+  loro potenza a confronto con la tua), **Tesori** (con i colori di rarità), **Storia**
+  (con la cronaca delle tue vite), **Mondo** e **Partita** (salvataggi, salvataggio automatico
+  ogni 5 giorni, *Reincarnati ora* e *Ricomincia da zero*);
+- i **duelli a turni** con le barre della vita;
 - il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
 - la creazione del personaggio e la rinascita in finestre guidate.
 
-Non serve installare nulla (solo libreria standard) e ascolta solo sul tuo PC. La riga di
+Non serve installare nulla (solo libreria standard) e ascolta solo sul tuo PC
+(`python dashboard.py --rete` per usarla anche dal telefono, sulla Wi-Fi di casa). La riga di
 comando resta sempre disponibile in basso. Non usare terminale e dashboard nello stesso
 momento.
 
@@ -41,8 +46,10 @@ momento.
 ## ✨ Caratteristiche
 
 ### Una storia che è tua 🎴
-- **Azioni suggerite** numerate dopo ogni comando: scrivi `1`, `2`, `3`… per agire senza
-  ricordare 70 comandi (restano tutti disponibili).
+- **8 azioni rapide** numerate dopo ogni comando: scrivi da `1` a `8` per agire senza
+  ricordare 70 comandi (restano tutti disponibili). In testa ciò che è urgente o a tempo,
+  poi le azioni che accorpano tanti comandi in uno: `train`, `tesori cura`, `mete`,
+  il pilota automatico per un giorno o una settimana, il sonno, l'esplorazione.
 - **Incontri a scelta**: mini-scene con prove sulle tue qualità reali e la probabilità di
   riuscita mostrata prima di scegliere.
 - **Storia personale** in 4 capitoli per ogni origine, con il diario `goals`.

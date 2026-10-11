@@ -78,6 +78,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.state_snapshot() if ph == "gioco" else {"fase": ph})
             if path.startswith("/api/pannello/"):
                 return self._json(game.panel(path.rsplit("/", 1)[-1]))
+            if path == "/api/obiettivi":
+                return self._json(game.objectives_data())
+            if path == "/api/persone":
+                return self._json(game.people_data())
+            if path == "/api/merito":
+                return self._json(game.merit_preview())
+            if path == "/api/legami":
+                return self._json(game.bonds_data())
+            if path == "/api/mondo":
+                return self._json(game.world_data())
+            if path == "/api/zaino":
+                return self._json(game.items_data())
+            if path == "/api/cronaca":
+                return self._json(game.chronicle_data("tutte" in url.query))
             if path == "/api/salvataggi":
                 return self._json(game.saves())
             if path == "/api/dao":
@@ -142,10 +156,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.turn(str(b.get("cmd", ""))[:300]))
             if path == "/api/nuovo":
                 return self._json({"log": game.create(b.get("origine", "mortale"), b.get("destino", ""),
-                                                      b.get("nome", ""), b.get("rivali", "normale"))})
+                                                      b.get("nome", ""), b.get("rivali", "normale"),
+                                                      bool(b.get("senza_ritorno")))})
+            if path == "/api/reincarnati":
+                return self._json(game.voluntary())
+            if path == "/api/nuovo_mondo":
+                return self._json({"log": game.new_world()})
             if path == "/api/rinasci":
                 return self._json({"log": game.reincarnate(b.get("origine", "mortale"), b.get("destino", ""),
-                                                           b.get("nome", ""), int(b.get("eredita", 0)))})
+                                                           b.get("nome", ""), b.get("eredita", [0]))})
             if path == "/api/intro":
                 return self._json({"log": game.intro()})
             if path == "/api/auto/stop":

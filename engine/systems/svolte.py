@@ -310,6 +310,8 @@ def check_new(conn, player) -> list[str]:
         if done and mid not in seen:
             seen.add(mid)
             out.append(f"✦ SVOLTA: {nm}! ({how}) — 'svolte' per la strada che ti resta.")
+            from engine.systems import chronicle
+            chronicle.add(conn, "svolta", f"Svolta: {nm}.")
     if out:
         state.set_json(conn, "svolte_seen", sorted(seen))
     return out

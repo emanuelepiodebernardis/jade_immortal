@@ -71,4 +71,6 @@ def grant_title(conn: sqlite3.Connection, title: str) -> bool:
         return False
     cur.append(title)
     set_json(conn, "player_titles", cur)
+    from engine.systems import chronicle
+    chronicle.add(conn, "titolo", f"Nuovo titolo: «{title}»")
     return True

@@ -302,6 +302,12 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
         lines.append(f"Merito della setta +{m}.")
 
     npc = _ctx_npc(conn, ctx)
+    if eff.get("dlg_request"):
+        from engine.systems import dialogues
+        lines.append(dialogues.make_request(conn, player, int(eff["dlg_request"])))
+    if npc and (eff.get("relation") or eff.get("bond")):
+        from engine.systems import echoes
+        echoes.on_choice(conn, ctx, eff, ctx.get("title", "un incontro"))
     if npc and eff.get("relation"):
         d = relations.adjust(conn, npc.id, int(eff["relation"]), t, player.id)
         lines.append(f"{npc.name}: {_rel_word(d.relationship_type)}.")
@@ -496,6 +502,10 @@ def choose(conn: sqlite3.Connection, player: entities.Player, n: int) -> tuple[s
 def _log(conn, t, player, sc, ch) -> None:
     from engine.simulation import event_system as ev
     etype = sc.get("event_type", "fortune")
+    if etype in ("story", "bond") or (sc.get("key") or "").startswith(("trama", "eco", "dialogo")):
+        from engine.systems import chronicle
+        chronicle.add(conn, "storia" if etype == "story" else "scelta",
+                      f"{sc.get('title', 'Incontro')}: {ch['label'].rstrip('.')}.")
     try:
         ev.log_event(
             conn, event_type=etype, tick=t, location_id=player.location_id,
@@ -571,7 +581,53 @@ def maybe_trigger(conn: sqlite3.Connection, player: entities.Player,
     scene = format_scene({"key": enc["key"], "title": enc["title"],
                           "text": varia.ambience(conn, player, t) + " " + enc["text"],
                           "choices": enc["choices"]}, ctx)
+    counts = state.get_json(conn, "encounter_counts", {}) or {}
+    n_seen = counts.get(enc["key"], 0)
+    counts[enc["key"]] = n_seen + 1
+    state.set_json(conn, "encounter_counts", counts)
+    scene = contextualize(conn, player, scene, n_seen, rng)
     state.set(conn, LAST_KEY, str(t))
     seen[enc["key"]] = t
     state.set_json(conn, SEEN_KEY, seen)
     return start_scene(conn, player, scene)
+
+
+_DEJA = ["Ti sembra di aver già vissuto qualcosa di simile, ma non è la stessa storia.",
+         "Il mondo ha un modo strano di ripetersi: stavolta, però, qualcosa è diverso.",
+         "Hai già visto una scena così. Allora eri un altro."]
+
+
+def contextualize(conn, player, scene: dict, n_seen: int, rng: random.Random) -> dict:
+    """La stessa scena cambia con chi sei diventato: la tua fama, la tua infamia, il tuo regno
+    rispetto al luogo, quante volte l'hai già vissuta. Nuove righe di testo e, a volte, scelte
+    nuove (far valere il tuo nome, lasciar parlare la tua aura)."""
+    from engine.systems import reputation
+    from engine.simulation import cultivation
+    sc = dict(scene)
+    sc["choices"] = [dict(c) for c in scene.get("choices", [])]
+    extra = []
+    rep = reputation.get(conn, player.id)
+    tier = cultivation.realm_tier(conn, "player", player.id) or 1
+    loc = entities.get_location(conn, player.location_id)
+    danger = loc.danger_level if loc else 1
+    if n_seen:
+        extra.append(rng.choice(_DEJA))
+    if rep["infamy"] >= 60 and rep["infamy"] > rep["fame"]:
+        extra.append("Chi ti vede abbassa lo sguardo: il tuo nome, da queste parti, fa paura.")
+    elif rep["fame"] >= 80:
+        extra.append(f"Qualcuno ti riconosce e sussurra il tuo nome: {player.name}.")
+    dominant = tier >= max(3, danger // 2 + 2)
+    if dominant:
+        extra.append("La tua aura basta a far tacere tutto intorno: qui nessuno è alla tua altezza.")
+    if extra:
+        sc["text"] = sc.get("text", "") + "\n(" + " ".join(extra) + ")"
+    first = next((c for c in sc["choices"] if c.get("check") and c.get("success")), None)
+    if first and len(sc["choices"]) < 4:
+        if rep["fame"] >= 80 and not (rep["infamy"] > rep["fame"]):
+            sc["choices"].append({"label": "Fai valere il tuo nome",
+                                  "check": dict(first["check"], dc=max(10, int(first["check"].get("dc", 60)) - 15)),
+                                  "success": dict(first["success"]), "failure": dict(first.get("failure", {}))})
+        elif dominant and not any(c.get("command") for c in sc["choices"]):
+            sc["choices"].append({"label": "Lasci che sia la tua aura a parlare",
+                                  "effects": dict(first["success"])})
+    return sc
