@@ -187,3 +187,13 @@ def test_one_command_absorbs_every_essence(conn):
     assert "Assorbi" in out
     left = [r for r in items.player_inventory(conn, 1) if r["item_type"] == "essenza"]
     assert not left, out
+
+
+def test_ascending_to_very_high_sects_never_breaks(conn):
+    """Regressione: oltre il livello 8 la zona di caccia chiedeva un intervallo vuoto (randrange)."""
+    _join(conn)
+    for _ in range(6):
+        sects.generate_invitations(conn, 0, random.Random(5), 1, count=3, bonus=4)
+        out = sect_menu.ascend(conn, _p(conn), "1")
+        assert "Ascendi" in out, out
+    assert (sects.get_membership(conn)["sect_tier"] or 1) > 10

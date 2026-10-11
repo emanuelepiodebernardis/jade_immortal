@@ -1275,3 +1275,15 @@ Nuovi test in `test_menus.py`. Suite totale: **547 passati**.
 - Anche l'azione rapida assorbe tutte le essenze in una volta.
 
 Suite totale: **548 passati**.
+
+---
+
+## Correzione — Ascesa alle sette altissime
+
+- Accettare l'offerta di una setta oltre l'ottavo livello dava l'errore
+  `ValueError: empty range in randrange`. La zona di caccia aveva ancora un tetto all'ottavo
+  regno e chiedeva mostri "tra il livello 11 e il livello 8".
+  - Ora le zone di caccia non hanno più un tetto: i mostri crescono con la setta.
+  - Se serve un regno oltre quelli esistenti, viene creato.
+  - L'estrazione dei livelli non può più ricevere un intervallo vuoto.
+- Nuovo test di regressione: sei ascese di fila fino a una setta oltre il livello 10.

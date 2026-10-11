@@ -24,9 +24,13 @@ MIN_BEASTS = 6
 
 
 def _realm_for(conn, rng, lo, hi):
+    lo = max(1, int(lo))
+    tier = rng.randint(lo, max(lo, int(hi)))          # mai un intervallo vuoto
     by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
-    tier = rng.randint(lo, hi)
-    return by_tier.get(tier, by_tier.get(1)), tier
+    if tier not in by_tier:                            # regni oltre l'ottavo: si creano (senza tetto)
+        from engine.simulation import cultivation
+        return cultivation.ensure_realm(conn, tier), tier
+    return by_tier[tier], tier
 
 
 def _spawn_one(conn, rng, kind, location_id, lo, hi) -> int:
@@ -104,7 +108,8 @@ def replenish_wild(conn: sqlite3.Connection, rng: random.Random) -> int:
 # ============================================================
 
 def hunt_tier_range(sect_tier: int) -> tuple[int, int]:
-    return max(1, sect_tier), min(8, sect_tier + 2)
+    # nessun tetto: le sette oltre la Setta Celeste hanno mostri alla loro altezza
+    return max(1, sect_tier), max(1, sect_tier) + 2
 
 
 def populate_hunt_zone(conn: sqlite3.Connection, rng: random.Random,
