@@ -428,6 +428,18 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("setta", "mysect", "lamiasetta"):
         from engine.systems import sect_menu
         return sect_menu.command(conn, player, arg)
+    if cmd in ("raccogli", "prendi", "raccogli_tutto", "prenditutto"):
+        from engine.systems import auto_collect
+        return auto_collect.collect_everything(conn, player)
+    if cmd in ("autoraccolta", "auto_raccolta", "autoloot"):
+        from engine.systems import auto_collect
+        return auto_collect.toggle(conn, auto_collect.LOOT_KEY, arg, "Raccolta automatica del bottino")
+    if cmd in ("autoassorbi", "auto_assorbi", "autoassorbimento"):
+        from engine.systems import auto_collect
+        return auto_collect.toggle(conn, auto_collect.ABSORB_KEY, arg, "Assorbimento automatico di essenze, nuclei, manuali, incensi")
+    if cmd in ("rendite", "guadagni", "soldi", "entrate", "income"):
+        from engine.systems import income
+        return income.command(conn, player, arg)
     if cmd in ("tecniche", "fucina", "fondi"):
         from engine.systems import technique_forge
         if cmd == "fondi":

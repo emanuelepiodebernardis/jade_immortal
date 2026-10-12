@@ -26,7 +26,7 @@ from engine.core import tick as tick_mod
 from engine.systems import state
 
 KEY = "soul_temper"
-SHARE = 0.4                       # quota nell'allenamento d'insieme
+SHARE = 0.6                       # quota nell'allenamento d'insieme
 
 GRADES = ["Anima Mortale", "Scintilla dell'Anima", "Fiamma dell'Anima", "Lago dell'Anima",
           "Mare della Coscienza", "Senso Divino Compiuto", "Anima di Giada", "Anima d'Oro Immortale",
@@ -79,7 +79,7 @@ def score_bonus(conn, pid: int = 1) -> float:
 
 
 def spirit_pool_bonus(conn, pid: int = 1) -> int:
-    return 12 * grade(conn, pid)
+    return 20 * grade(conn, pid)
 
 
 def add_xp(conn, amount: float) -> list[str]:
@@ -100,7 +100,7 @@ def _gain(conn, pid: int, y: float) -> float:
     from engine.systems import perception
     tier = cultivation.realm_tier(conn, "player", pid) or 1
     anima = perception._anima(conn, "player", pid)
-    return 8.0 * y * (1 + anima / 100) * (1 + 0.15 * (tier - 1))
+    return 12.0 * y * (1 + anima / 100) * (1 + 0.2 * (tier - 1))
 
 
 def session(conn, player, share: float = 1.0, advance: bool = True) -> str:

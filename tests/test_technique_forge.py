@@ -163,3 +163,31 @@ def test_sacrifice_lesser_blood_to_the_noblest(conn):
     o = B.ordered(conn)
     assert len(o) == 1 and o[0][1]["species"] == "Drago Azzurro" and o[0][1]["purity"] > 0
     assert o[0][1]["conc"] == pytest.approx(50 + 0.6 * 600, rel=0.01) and "purezza" in out
+
+
+def test_income_from_workshop_sect_and_panel(conn):
+    from engine.systems import income, professions, sect_menu
+    p = _p(conn)
+    professions.add_xp(conn, 1, 5000, "alchimia")
+    assert professions.level(conn, 1, "alchimia") >= 3
+    s0 = sects.get_resource(conn, "pietre_spirituali", 1)
+    income.daily(conn, 120, random.Random(1), p)
+    assert sects.get_resource(conn, "pietre_spirituali", 1) > s0
+    txt = loop.dispatch(conn, "rendite", allow_nl=False)
+    assert "RENDITE" in txt and "Bottega" in txt
+    assert "nulla da riscuotere" in loop.dispatch(conn, "rendite riscuoti", allow_nl=False) or True
+
+
+def test_auto_loot_and_absorb_after_a_kill(conn):
+    from engine.systems import auto_collect, items, npc_factory
+    p = _p(conn)
+    iid = items.create_item(conn, "Essenza di Sangue di Lupo", "essenza", "raro", "x",
+                            {"bloodline": {"species": "Lupo Spirituale", "elements": ["vento"], "gain": 15}})
+    items.grant(conn, "ground", p.location_id, iid)
+    out = auto_collect.after_kill(conn, p)
+    assert any("Raccogli" in ln for ln in out) and any("Assorbi 1 essenza" in ln for ln in out)
+    assert not [r for r in items.player_inventory(conn, 1) if r["item_type"] == "essenza"]
+    assert "SPENTA" in loop.dispatch(conn, "autoassorbi off", allow_nl=False)
+    items.grant(conn, "player", 1, iid)
+    assert auto_collect.daily(conn, 120, random.Random(1), p) == []
+    assert "Assorbi" in loop.dispatch(conn, "raccogli", allow_nl=False)

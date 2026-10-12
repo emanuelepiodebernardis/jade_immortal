@@ -55,7 +55,7 @@ function addCard(html) {
 }
 
 // ---------------- comandi ----------------
-const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "dominio", "razze", "menu"];
+const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite", "dominio", "razze", "menu"];
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
@@ -258,8 +258,10 @@ async function bagHtml() {
      <span class="muted">${esc(x.tipo)} · ${esc(x.rarita.replace("_", " "))}</span>
      ${x.tipo === "essenza" ? `<button data-cmd="use tutte ${esc(x.nome)}">Assorbi${x.n > 1 ? " tutte" : ""}</button>`
        : `<button data-cmd="use ${esc(x.nome)}">Usa</button>${x.n > 1 ? `<button data-cmd="use tutte ${esc(x.nome)}">Tutte</button>` : ""}`}</div>`).join("") +
-    `<div class="tools">${it.some((x) => x.tipo === "essenza") ? `<button class="primary" data-cmd="use essenze">Assorbi tutte le essenze</button>` : ""}` +
-    `<button data-cmd="use all">Usa tutto ciò che serve</button></div></div>`;
+    `<div class="tools"><button class="primary" data-cmd="raccogli">Raccogli e assorbi tutto</button>` +
+    `<button data-cmd="use all">Usa anche le pillole</button>` +
+    `<button data-cmd="autoraccolta">Raccolta automatica on/off</button>` +
+    `<button data-cmd="autoassorbi">Assorbimento automatico on/off</button></div></div>`;
 }
 
 let allLives = false;

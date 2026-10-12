@@ -1694,3 +1694,36 @@ Nuovo test. Suite totale: **580 passati**.
 - Un sangue più nobile non si sacrifica a uno inferiore. Tra pari resta la raffinazione (70% o 50%).
 
 Nuovi test in `test_worlds.py` e `test_technique_forge.py`. Suite totale: **582 passati**.
+
+---
+
+## Aggiornamento 39 — Rendite, spirito più generoso, raccolta e assorbimento automatici
+
+**Rendite** (pulsante **💰 Rendite**, o `rendite`). Le cose costano sempre di più, quindi le entrate ora crescono con te:
+- **Bottega delle arti**: ogni arte dal livello 3 vende ciò che produci, ogni giorno. Più alto il livello e il regno, più rende. Le arti che pratichi rendono intere, le altre a metà.
+- **Setta**:
+  - lo stipendio del rango (ogni 30 giorni) è molto più alto e cresce con rango e livello della setta;
+  - da **Erede della Setta** in su attingi ogni giorno a una **quota del tesoro della setta**.
+- **Razze**: dall'Anziano in su una rendita quotidiana; da **Sovrano o Eletto** il tesoro della razza.
+- **Regni**: lo stipendio di corte e la rendita del trono crescono con il tuo regno.
+- **Servi** al lavoro: rendono di più.
+- Il pannello mostra quanto rende ogni fonte al giorno e al mese. «Riscuoti tutto» prende in un colpo stipendio, tesoro della tua setta e tributi delle vassalle; lo fa anche il pilota automatico. Ogni 7 giorni arriva un riepilogo della settimana.
+
+**Lo spirito cresce di più e costa di meno:**
+- la tempra rende +50%, e l'allenamento d'insieme ne dà di più (quota da 0,4 a 0,6);
+- la riserva di spirito cresce di più con il regno (+20 a regno invece di +10) e con la tempra (+20 a grado invece di +12);
+- costa meno:
+  - sigillo dell'anima: 20% della riserva (prima 30%);
+  - rinsaldare un sigillo: 12% (prima 20%);
+  - rianimare una salma: 25% (prima 40%);
+  - fondere tecniche: 20% (prima 35%);
+  - allenare una tecnica creata: 10% (prima 20%).
+
+**Meno tasti: raccolta e assorbimento automatici** (accesi di base):
+- **raccolta automatica**: quando abbatti qualcuno, la sua eredità finisce subito nello zaino, senza `loot`;
+- **assorbimento automatico**: essenze di sangue e del Dao, nuclei, manuali e incensi dell'anima si usano appena li ottieni, anche dopo aver risparmiato un campione, e all'alba per ciò che arriva da altre vie. Le pillole restano tue, da usare quando vuoi;
+- il riepilogo è di una riga («🩸 Assorbi 2 essenze.»), più i passaggi di grado e le cose nuove imparate;
+- `raccogli`, o il pulsante «✋ Raccogli tutto», raccoglie e assorbe tutto in un colpo;
+- `autoraccolta on|off` e `autoassorbi on|off` accendono e spengono le due funzioni (pulsanti anche nello zaino).
+
+Nuovi file: `engine/systems/income.py`, `engine/systems/auto_collect.py`. Nuovi test. Suite totale: **584 passati**.

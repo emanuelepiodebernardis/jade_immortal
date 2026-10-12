@@ -212,7 +212,8 @@ def hub(conn, player) -> dict:
             act("Grotta-dimora", "dimora"),
             act("Famiglia, legami e discepoli", "famiglia"),
             act("Il Libro dei Rancori e dei Debiti (faide e alleanze)", "faide"),
-            act("Dominio: servi sigillati, salme, sette vassalle", "dominio")]
+            act("Dominio: servi sigillati, salme, sette vassalle", "dominio"),
+            act("Rendite: quanto guadagni e da dove", "rendite")]
     if own_sect.get(conn):
         acts.append(act("La setta che hai fondato", "setta mia"))
     more = [act("Mete (vai / iscriviti)", "mete"), act("La trama", "trama"), act("La tua storia", "goals"),

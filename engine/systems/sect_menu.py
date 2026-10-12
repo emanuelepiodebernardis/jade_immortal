@@ -362,7 +362,7 @@ def promote(conn, player) -> str:
 
 def stipend_info(conn, player) -> tuple[bool, int, int]:
     m = _m(conn, player.id)
-    amount = 15 * (_rank_idx(m) + 1) * _tier(m)
+    amount = int(50 * (_rank_idx(m) + 1) * _tier(m) * (1 + 0.1 * _tier(m)))   # cresce con rango e setta
     last = state.get_int(conn, STIPEND_KEY, -999)
     left = last + STIPEND_EVERY - _day(conn)
     return left <= 0, amount, max(0, left)

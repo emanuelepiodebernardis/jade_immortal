@@ -267,7 +267,7 @@ def seal(conn, t: int, rng: random.Random, player, npc, beaten: bool) -> str:
     ok, p, why = seal_odds(conn, player.id, npc.id, beaten)
     if not ok:
         return f"Non puoi sigillare {npc.name}: {why}."
-    cost = max(10, int(spmod.max_spirit(conn, player.id) * 0.3))
+    cost = max(10, int(spmod.max_spirit(conn, player.id) * 0.2))
     if not spmod.spend(conn, cost, player.id):
         return f"Ti serve più spirito per imprimere un sigillo ({cost}): riposa o medita."
     tried[str(npc.id)] = _day(conn)
@@ -418,7 +418,7 @@ def revive_command(conn, player, arg: str) -> str:
     stones = 20 * tier
     if sects.get_resource(conn, "pietre_spirituali", player.id) < stones:
         return f"Servono {stones} pietre spirituali per il rito (le ossa bevono Qi)."
-    cost = max(10, int(spmod.max_spirit(conn, player.id) * 0.4))
+    cost = max(10, int(spmod.max_spirit(conn, player.id) * 0.25))
     if not spmod.spend(conn, cost, player.id):
         return f"Ti serve più spirito per il rito ({cost})."
     sects.grant_resource(conn, "pietre_spirituali", -stones, player.id)
@@ -743,7 +743,7 @@ def reinforce(conn, player, s) -> str:
         return "Una salma non ha volontà da tenere a bada: il suo sigillo non si incrina."
     if s["seal"] >= 100:
         return f"Il sigillo su {s['name']} è già saldo."
-    cost = max(8, int(spmod.max_spirit(conn, player.id) * 0.2))
+    cost = max(8, int(spmod.max_spirit(conn, player.id) * 0.12))
     if not spmod.spend(conn, cost, player.id):
         return f"Ti serve più spirito ({cost}) per rinsaldare il sigillo."
     mine, theirs = soul_scores(conn, player.id, s["npc_id"])
@@ -801,7 +801,7 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
     for s in servants(conn):
         tier = _tier(conn, "npc", s["npc_id"])
         if s["role"] == "lavoro":
-            earned += 3 + 2 * tier
+            earned += 5 + 3 * tier
         if s["role"] == "guardia":
             ab = cave_abode.get(conn, player.id)
             if ab and rng.random() < 0.5:

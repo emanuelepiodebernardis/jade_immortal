@@ -36,6 +36,8 @@ def conn(tmp_path: Path, monkeypatch):
 # ---------- bug del loot dopo attack all ----------
 
 def test_loot_lands_at_player_location(conn):
+    from engine.systems import state, auto_collect
+    state.set(conn, auto_collect.LOOT_KEY, "0")          # qui si verifica il bottino a terra
     loc = entities.get_player(conn).location_id
     for i in range(8):
         creature_gen._spawn_one(conn, random.Random(100 + i), "beast", loc, 5, 5)

@@ -286,7 +286,7 @@ def plan(parts: list[dict], conn=None, pid: int = 1, ctx: dict | None = None) ->
 
 def fusion_cost(conn, pid: int, n_parts: int, gen: int) -> tuple[int, int]:
     from engine.systems import spirit as spmod
-    return (max(15, int(spmod.max_spirit(conn, pid) * 0.35)), 40 * _tier(conn, pid) * gen * (n_parts - 1))
+    return (max(12, int(spmod.max_spirit(conn, pid) * 0.2)), 40 * _tier(conn, pid) * gen * (n_parts - 1))
 
 
 def _power(m: dict) -> float:
@@ -415,7 +415,7 @@ def train(conn, player, n: int) -> str:
     if not (1 <= n <= len(lst)):
         return "Quale tecnica creata? 'tecniche allena <n>' (il numero tra le tue tecniche create)."
     x = lst[n - 1]
-    cost = max(10, int(spmod.max_spirit(conn, player.id) * 0.2))
+    cost = max(8, int(spmod.max_spirit(conn, player.id) * 0.1))
     if not spmod.spend(conn, cost, player.id):
         return f"Ti serve più spirito ({cost})."
     from engine.simulation import world_tick

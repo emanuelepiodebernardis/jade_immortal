@@ -187,10 +187,11 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
     for rk, k in d.items():
         # stipendio
         idx = sum(1 for th, _n in RANKS if k["favor"] >= th) - 1
+        ptier = cultivation.realm_tier(conn, "player", player.id) or 1      # lo stipendio cresce con te
         if idx > 0 and day % 5 == 0:
-            sects.grant_resource(conn, "pietre_spirituali", 20 * idx * idx, player.id)
+            sects.grant_resource(conn, "pietre_spirituali", 20 * idx * idx * ptier // 2, player.id)
         if k["ruler_player"] and day % 5 == 0:
-            sects.grant_resource(conn, "pietre_spirituali", 300, player.id)
+            sects.grant_resource(conn, "pietre_spirituali", 300 * ptier, player.id)
         # successione
         if not k["ruler_player"] and rng.random() < 0.006:
             out += _succession(conn, rng, player, rk, d)

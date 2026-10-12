@@ -132,6 +132,15 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "favori | favore <nome>        — i FAVORI che ti hanno chiesto | esaudiscine uno (cresce l'intimità; da 2 accorrono in tuo aiuto)",
         "proponi <nome>                — lei diventa la tua compagna del Dao (rapporto ≥ 80): doppia coltivazione",
     ]),
+    ("raccolta", "Raccolta e assorbimento automatici", [
+        "raccogli                      — raccogli il bottino e assorbi essenze, nuclei, manuali e incensi in un colpo",
+        "autoraccolta on|off           — il bottino dei caduti finisce da solo nello zaino (acceso di base)",
+        "autoassorbi on|off            — essenze, nuclei, manuali e incensi si assorbono appena li ottieni (acceso di base)",
+    ]),
+    ("rendite", "Rendite: come si guadagna", [
+        "rendite                       — il pannello: bottega delle arti, setta, vassalle, servi, razze, corte",
+        "rendite riscuoti              — riscuoti in un colpo stipendio, tesoro della tua setta e tributi",
+    ]),
     ("tecniche", "Tecniche e fucina: fondere le tecniche", [
         "tecniche                      — il PANNELLO DELLE TECNICHE: tutte le tue tecniche e le fusioni proposte (un clic)",
         "tecniche fondi <n> <m> [<k>]  — fondi due o tre tecniche dell'elenco in una tecnica nuova",
@@ -272,7 +281,7 @@ _ALIASES = {
     "casa": "dimora", "discepoli": "dimora", "grotta": "dimora", "radici": "coltivazione",
     "formazioni": "arti", "domatore": "arti", "sangue": "bestie", "lignaggi": "bestie",
     "spirito": "dominio", "anima": "dominio", "servi": "dominio", "sigillo": "dominio", "salme": "dominio",
-    "vassalle": "dominio", "tempra": "dominio", "fucina": "tecniche", "fusione": "tecniche", "mosse": "tecniche", "reliquie": "bestie", "campioni": "bestie",
+    "vassalle": "dominio", "tempra": "dominio", "fucina": "tecniche", "soldi": "rendite", "guadagni": "rendite", "pietre": "rendite", "fusione": "tecniche", "mosse": "tecniche", "reliquie": "bestie", "campioni": "bestie",
     "autopilota": "auto", "pilota": "auto", "etereo": "auto", "anello": "eredita", "cloni": "eredita",
     "famiglia": "eredita", "gu": "eredita", "elementi": "eredita", "retaggio": "eredita",
     "regni": "trama", "razze": "trama", "era": "trama", "ere": "trama", "calamita": "trama",

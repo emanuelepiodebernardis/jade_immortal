@@ -527,6 +527,13 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     _ws = weapon_spirit.on_kill(conn, rng, player)
     if _ws:
         lines.append(_ws)
+    from engine.systems import auto_collect                # bottino raccolto, essenze assorbite: da sole
+    _auto = auto_collect.after_kill(conn, player)
+    if _auto:
+        import re as _re
+        lines = [_re.sub(r"\s*\('use essenze'[^)]*\)", "", ln) for ln in lines
+                 if not (auto_collect.on(conn, auto_collect.LOOT_KEY) and "Usa 'loot'" in ln)]
+        lines += _auto
     return lines
 
 
@@ -1096,6 +1103,9 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         from engine.systems import race_realms as _rr
         if _rr.race_of_npc(conn, npc.id)[0]:
             lines += _rr.on_defeat(conn, t, rng, player, npc, "spare")
+            from engine.systems import auto_collect as _ac
+            if _ac.on(conn, _ac.ABSORB_KEY):
+                lines += _ac.absorb_all(conn, player)
         from engine.systems import bonds as _bonds
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
@@ -1892,9 +1902,10 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     if not lost_legacy.get(conn) and not state_flag(conn, "legacy_init"):
         lines += ["  " + ln for ln in lost_legacy.assign(conn, _rng2)]
         _set_flag(conn, "legacy_init")
-    from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes, race_realms, ascension
+    from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes, race_realms, ascension, income, auto_collect
     for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense,
-                 archrival, kingdoms, races, race_realms, eras, contests, captivity, echoes, ascension):
+                 archrival, kingdoms, races, race_realms, eras, contests, captivity, echoes, ascension, income,
+                 auto_collect):
         lines += ["  " + ln for ln in _mod.daily(conn, t, _rng2, entities.get_player(conn))]
     from engine.systems import beast_eggs, qol
     lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]

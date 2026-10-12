@@ -465,9 +465,7 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
             iid, nm = _essence(conn, k, 4 * st, f"Dono dei {_name(k)}")
             items.grant(conn, "player", player.id, iid)
             out.append(f"🎁 I {_name(k)} ti mandano un dono di sangue: {nm}.")
-        if st >= 5:
-            n = 30 * _tier(conn, "player", player.id)
-            sects.grant_resource(conn, "pietre_spirituali", n, player.id)
+        if st >= 5:                                   # il tesoro della razza: vedi 'rendite' (income)
             if races.all_r(conn)[k]["rel"] < 60 and r.get("path") != "sigillo":
                 races.adjust(conn, k, rel=5)
     return out
