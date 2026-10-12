@@ -134,7 +134,10 @@ def embassy(conn, player, arg: str) -> str:
         sects.grant_resource(conn, "pietre_spirituali", -n, player.id)
         mult = 2 if key == "maree" else 1
         return "\n".join([f"I {nm} accettano il dono."] + adjust(conn, key, rel=max(1, n // 50) * mult, honor=n // 20))
-    if sub in ("prova", "sfida"):
+    if sub in ("prova", "sfida"):                 # ora la prova è il campione della razza (race_realms)
+        from engine.systems import race_realms
+        if key in race_realms.BLOOD:
+            return race_realms.challenge(conn, player, key)
         day = tick_mod.get_tick(conn) // 120
         if day - state.get_int(conn, f"race_trial_{key}", -99) < 7:
             return f"I {nm} ti hanno messo alla prova da poco."

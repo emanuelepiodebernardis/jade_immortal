@@ -82,6 +82,15 @@ FAMILIES = {
                       "Passo dell'Orso", "Ruggito dell'Orso"], "scudo", False),
     "aquila": ("Aquila", ["Occhi dell'Aquila", "Artigli dell'Aquila", "Piume del Tuono",
                           "Ali dell'Aquila", "Becco dell'Aquila"], "stordimento", False),
+    # le razze antiche (vedi race_realms): il sangue dei loro campioni
+    "demone": ("Demone", ["Occhi del Demone", "Artigli del Demone", "Pelle d'Ossidiana",
+                          "Ali del Demone", "Corna del Demone"], "terrore", True),
+    "silvano": ("Spirito Silvano", ["Occhi delle Lucciole", "Rovi Vivi", "Corteccia Antica",
+                                    "Ali di Foglie", "Corna di Cervo Bianco"], "rigenerazione", True),
+    "gigante": ("Gigante", ["Occhi del Gigante", "Pugni di Pietra", "Pelle di Montagna",
+                            "Passo del Titano", "Corna di Roccia"], "scudo", True),
+    "leviatano": ("Leviatano", ["Occhi degli Abissi", "Zanne del Leviatano", "Squame Abissali",
+                                "Pinne della Tempesta", "Coda del Leviatano"], "gelo", True),
     "cinghiale": ("Cinghiale", ["Occhi del Cinghiale", "Zanne del Cinghiale", "Corazza del Cinghiale",
                                 "Carica del Cinghiale", "Zanne Ricurve"], "stordimento", False),
 }

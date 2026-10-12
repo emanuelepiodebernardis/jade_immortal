@@ -114,9 +114,10 @@ def realms(conn, player) -> dict:
         if here:
             racts.append(act(f"{nm}: dona 100 pietre", f"ambasciata {key} dona 100", ok=stones >= 100,
                              why=f"hai {stones} pietre"))
-            racts.append(act(f"{nm}: affronta il loro campione", f"ambasciata {key} prova"))
+            racts.append(act(f"{nm}: affronta il loro campione", f"razza {key} sfida"))
         elif r["land"]:
             racts.append(act(f"{nm}: vai nelle loro terre ({_where(conn, player, r['land'])})", f"vai #{r['land']}"))
+    racts.insert(0, act("I regni delle razze: campioni, sangue, reliquie, la scala fino al trono", "razze", main=True))
     secs.append(section("Le razze antiche", rlines, racts, icon="🐉"))
     return menu("regni", "👑 REGNI, CORTI E RAZZE", [], secs)
 

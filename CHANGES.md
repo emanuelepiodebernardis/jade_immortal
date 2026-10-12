@@ -1515,3 +1515,62 @@ Una setta piegata fino in fondo si arrende e diventa vassalla anche lei, ma con 
 - Corretto «giura» al plurale: quando sono in più, ora giurano.
 
 Nuovi file: `engine/systems/soul_temper.py`, `engine/systems/dominion.py`. Nuovi test: `test_dominion.py` (7). Suite totale: **568 passati**.
+
+---
+
+## Aggiornamento 33 — I regni delle razze: campioni, sangue d'alto lignaggio, reliquie e il trono
+
+Le cinque razze antiche (Draghi, Demoni Celesti, Spiriti dei Boschi, Giganti, Popolo delle Maree) ora hanno un regno vero e proprio. Si apre con `razze` o con il pulsante **🐉 Razze**.
+
+**Campioni.** Nelle terre di ogni razza veglia un campione. Quando lo batti, ne sorge uno di rango più alto:
+- **Draghi:** Guardiano della Rupe, Campione delle Scaglie, Generale del Tuono, Principe dei Draghi, **Re Drago**.
+- **Demoni Celesti:** Sentinella dell'Abisso, Campione delle Fiamme Nere, Generale Demone, Principe Demone, **Imperatore Demone**.
+- **Spiriti dei Boschi:** fino al **Custode dell'Albero Madre**.
+- **Giganti:** fino al **Re dei Giganti**.
+- **Popolo delle Maree:** fino alla **Regina delle Maree**.
+- Oltre il sovrano si risvegliano gli **Antenati**, senza fine.
+
+Lo sfidi con `razza <razza> sfida`, in duello a turni. Quando l'hai battuto, cosa fai di lui conta:
+- **Uccidere**: lascia **sangue d'alto lignaggio** (Drago Celeste, Demone Celeste, Gigante Antico, Leviatano). Gli Spiriti lasciano un'**essenza d'anima**, che tempra lo spirito e risveglia la linfa silvana. Spesso cade anche una **reliquia**. I Demoni approvano; le altre razze se lo ricordano.
+- **Risparmiare**: il campione si inchina e ti dona metà del suo sangue, con molto onore.
+- **Sigillare**: diventa tuo servo e la razza si offende. Marchiare il sovrano ti dà il trono con il terrore.
+
+Le creature potenti uccise nelle terre delle razze lasciano almeno una **traccia** di sangue o di spirito.
+
+**Nuovi lignaggi:** Demone, Spirito Silvano, Gigante e Leviatano. Ognuno ha le sue cinque manifestazioni e un dono in battaglia: terrore, rigenerazione, scudo, gelo.
+
+**Reliquie dei regni** (Scaglia del Re Drago, Corona d'Ossidiana, Seme dell'Albero Madre, Martello del Primo Gigante, Perla della Regina delle Maree…).
+- Dove si trovano:
+  - sui campioni;
+  - esplorando le loro terre;
+  - raramente tra i premi più alti.
+- Cosa puoi farne:
+  - **assorbirle** con `use`, per un balzo enorme del sangue o dell'anima;
+  - **offrirle** con `razza <razza> offri`, per onore e per salire di grado.
+
+**La scala** (`razza <razza> ascendi`, una cerimonia per ogni grado):
+
+| Grado | Requisiti |
+|---|---|
+| Discepolo | rapporto ≥10, e sangue Risvegliato o onore 50 |
+| Campione | 2° campione battuto, e sangue Concentrato o onore 200 |
+| Anziano | 3° campione battuto, sangue Puro, 1 reliquia offerta |
+| Principe | 4° campione battuto, sangue Ancestrale, 2 reliquie offerte |
+| **Sovrano** (via della forza) | il sovrano battuto, sangue Ancestrale, 2 reliquie offerte |
+| **Eletto** (via della pace) | sangue Sacro, 3 reliquie offerte, rapporto ≥80 |
+
+Il **sangue** di cui parla la tabella è il grado del tuo lignaggio affine a quella razza.
+
+Cosa dà ogni grado:
+- una tecnica della razza (Ruggito del Drago, Fiamma Nera dell'Abisso…);
+- un dono di sangue;
+- un titolo.
+
+Benefici dai gradi più alti:
+- dall'**Anziano**: doni di sangue periodici;
+- dal **Principe**: i loro guerrieri accorrono negli scontri difficili;
+- da **Sovrano/Eletto**: tributo quotidiano, e la razza marcia nelle tue guerre (rinforzi nelle guerre di setta, nelle invasioni e nelle guerre dei regni).
+
+Il vecchio `ambasciata <razza> prova` ora porta al duello con il campione.
+
+Nuovo file: `engine/systems/race_realms.py`. Nuovi test: `test_race_realms.py` (5). Suite totale: **573 passati**.

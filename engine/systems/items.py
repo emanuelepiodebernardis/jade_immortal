@@ -116,6 +116,9 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
         lines.append("Il tuo corpo muta: " + ", ".join(bits) + ".")
 
     # arti proibite (l'Arte del Ritorno della Salma) e tempra dello spirito (incensi dell'anima)
+    if effects.get("race_relic"):
+        from engine.systems import race_realms
+        lines += race_realms.absorb_relic(conn, tick, rng, player_id, effects["race_relic"], int(effects.get("power", 1)))
     if effects.get("learn_art") == "salma":
         from engine.systems import dominion
         lines.append(dominion.learn_art(conn))

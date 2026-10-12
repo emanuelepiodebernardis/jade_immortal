@@ -61,6 +61,11 @@ def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
         items.grant(conn, "player", player.id, iid)
         lines.append(f"{_ICON.get(k, '✧')} {it['name']} ({rar.replace('_', ' ')})")
         _remember(conn, it["name"], k, rar, it["desc"])
+    if rank == 1 and rng.random() < 0.02:            # rarissimo: una reliquia delle razze antiche
+        from engine.systems import race_realms
+        rid, rn = race_realms.relic_item(conn, rng.choice(list(race_realms.BLOOD)), rng, 1)
+        items.grant(conn, "player", player.id, rid)
+        lines.append(f"🏺 {rn} (reliquia, leggendario)")
     if rank == 1 and rng.random() < 0.04:            # rarissimo: un'arte proibita
         from engine.systems import dominion
         items.grant(conn, "player", player.id, dominion.salma_manual(conn))

@@ -286,6 +286,8 @@ def seal(conn, t: int, rng: random.Random, player, npc, beaten: bool) -> str:
         f"Un'ultima resistenza, poi il silenzio. Negli occhi di {npc.name} brilla il tuo marchio.",
         f"L'anima di {npc.name} si piega. Da oggi la sua vita è un filo che tieni tu."]))
     lines += _bind(conn, t, rng, player, npc, "sigillo", strength)
+    from engine.systems import race_realms
+    lines += race_realms.on_defeat(conn, t, rng, player, npc, "seal") if race_realms.race_of_npc(conn, npc.id)[0] else []
     dao_heart.adjust(conn, 1, "dominio")
     return "\n".join(lines)
 
@@ -617,7 +619,9 @@ def war_support(conn, exclude: int | None = None) -> tuple[int, list[str]]:
             continue
         tot += _fac_power(conn, int(k)) * 0.5 * e.get("loyalty", 70) / 100
         names.append(f["name"])
-    return int(tot), names
+    from engine.systems import race_realms
+    rp, rn = race_realms.war_power(conn)
+    return int(tot + rp), names + rn
 
 
 def targets(conn, player) -> list:

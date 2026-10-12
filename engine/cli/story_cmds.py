@@ -266,9 +266,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("trono", "throne", "usurpa"):
         from engine.systems import kingdoms
         return kingdoms.seize(conn, player)
-    if cmd in ("razze", "races"):
-        from engine.systems import races
-        return races.describe(conn, player)
+    if cmd in ("razze", "races", "razza"):
+        from engine.systems import race_realms
+        return race_realms.command(conn, player, arg)
     if cmd in ("ambasciata", "embassy"):
         from engine.systems import races
         return races.embassy(conn, player, arg)

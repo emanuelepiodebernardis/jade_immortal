@@ -49,16 +49,16 @@ def menu(key: str, title: str, sub: list[str] | None = None, sections: list[dict
 # ---------------------------------------------------------------- registro
 
 def _builders() -> dict:
-    from engine.systems import sect_menu, world_menus, professions, dominion
+    from engine.systems import sect_menu, world_menus, professions, dominion, race_realms
     return {"setta": sect_menu.build, "arti": world_menus.arts, "regni": world_menus.realms,
             "eventi": world_menus.events, "menu": world_menus.hub, "coltivazione": world_menus.growth,
             "famiglia": world_menus.family_menu, "dimora": world_menus.abode, "faide": world_menus.grudges,
-            "dominio": dominion.menu_build}
+            "dominio": dominion.menu_build, "razze": race_realms.menu_build}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
          "coltivazione": "Coltivazione", "famiglia": "Famiglia", "dimora": "Dimora", "faide": "Faide",
-         "dominio": "Dominio"}
+         "dominio": "Dominio", "razze": "Razze"}
 
 
 def build(conn, player, key: str) -> dict:

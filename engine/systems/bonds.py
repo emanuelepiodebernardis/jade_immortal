@@ -706,8 +706,9 @@ def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     try:
         ratio = perception.strength_ratio(conn, player_id, npc_id)
         out += dialogues.rescuers(conn, player_id, npc_id, ratio)
-        from engine.systems import feuds
+        from engine.systems import feuds, race_realms
         out += feuds.allies_in_battle(conn, player_id, npc_id, ratio)
+        out += race_realms.combat_allies(conn, player_id, npc_id, ratio)
     except Exception:
         pass
     return out

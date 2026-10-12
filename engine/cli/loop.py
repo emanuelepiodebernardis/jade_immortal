@@ -435,6 +435,8 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     lines: list[str] = []
     from engine.systems import feuds                   # chi piange la vittima? (prima che la taglia si chiuda)
     lines += feuds.on_kill(conn, t, rng, player, npc)
+    from engine.systems import race_realms             # campioni delle razze: sangue, reliquie
+    lines += race_realms.on_defeat(conn, t, rng, player, npc, "kill")
     from engine.systems import bounties
     was_outlaw = bounties.get_outlaw(conn, npc.id) is not None
     if was_outlaw:
@@ -1081,6 +1083,9 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         _ech.record(conn, npc.id, "risparmiato", f"lo scontro a {_lname['name'] if _lname else 'un luogo lontano'}")
         from engine.systems import feuds as _feuds         # risparmiare per scelta crea un debito di vita
         lines += _feuds.on_spare(conn, t, rng, player, npc, chosen=force_died is False)
+        from engine.systems import race_realms as _rr
+        if _rr.race_of_npc(conn, npc.id)[0]:
+            lines += _rr.on_defeat(conn, t, rng, player, npc, "spare")
         from engine.systems import bonds as _bonds
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
@@ -1877,9 +1882,9 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     if not lost_legacy.get(conn) and not state_flag(conn, "legacy_init"):
         lines += ["  " + ln for ln in lost_legacy.assign(conn, _rng2)]
         _set_flag(conn, "legacy_init")
-    from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes
+    from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes, race_realms
     for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense,
-                 archrival, kingdoms, races, eras, contests, captivity, echoes):
+                 archrival, kingdoms, races, race_realms, eras, contests, captivity, echoes):
         lines += ["  " + ln for ln in _mod.daily(conn, t, _rng2, entities.get_player(conn))]
     from engine.systems import beast_eggs, qol
     lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]

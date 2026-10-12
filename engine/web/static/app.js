@@ -55,7 +55,7 @@ function addCard(html) {
 }
 
 // ---------------- comandi ----------------
-const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "dominio", "menu"];
+const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "dominio", "razze", "menu"];
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
