@@ -22,8 +22,8 @@ from engine.core import tick as tick_mod
 from engine.systems import state
 
 KEY = "eggs"
-RARITY_ORDER = ["comune", "rara", "leggendaria", "ibrida"]
-HATCH_DAYS = {"comune": 3, "rara": 6, "leggendaria": 10, "ibrida": 14}
+RARITY_ORDER = ["comune", "rara", "leggendaria", "ibrida", "simbolo", "ancestrale", "caos"]
+HATCH_DAYS = {"comune": 3, "rara": 6, "leggendaria": 10, "ibrida": 14, "simbolo": 20, "ancestrale": 30, "caos": 45}
 BREED_LEVEL = 4
 BREED_COOLDOWN = 10
 
@@ -41,7 +41,8 @@ def drop_egg(conn, rng, player, npc_id: int) -> list[str]:
     from engine.systems import beasts, items
     tr = beasts.traits(conn, npc_id)
     rarity = tr["rarity"] or "comune"
-    p = {"comune": 0.04, "rara": 0.25, "leggendaria": 0.3, "ibrida": 0.35}.get(rarity, 0.04)
+    p = {"comune": 0.04, "rara": 0.25, "leggendaria": 0.3, "ibrida": 0.35, "simbolo": 0.3, "ancestrale": 0.25,
+         "caos": 0.2}.get(rarity, 0.04)
     if rng.random() >= p:
         return []
     spec = {"species": tr["species"], "rarity": rarity, "elements": [e for e in (tr["elements"] or "").split(",") if e],
@@ -171,7 +172,7 @@ def breed(conn, player, arg: str) -> str:
     A = {"species": ta["species"], "elements": [e for e in (ta["elements"] or "").split(",") if e], "rarity": ta["rarity"]}
     B = {"species": tb["species"], "elements": [e for e in (tb["elements"] or "").split(",") if e], "rarity": tb["rarity"]}
     hi = max(RARITY_ORDER.index(A["rarity"] or "comune"), RARITY_ORDER.index(B["rarity"] or "comune"))
-    rarity = RARITY_ORDER[min(len(RARITY_ORDER) - 1, hi + 1)]
+    rarity = RARITY_ORDER[hi + 1] if hi < RARITY_ORDER.index("ibrida") else RARITY_ORDER[hi]   # l'ibrido non supera il proprio sangue
     species = _hybrid_species(A, B) if A["species"] != B["species"] else A["species"]
     spec = {"species": species, "rarity": rarity,
             "elements": list(dict.fromkeys(A["elements"] + B["elements"]))[:3],

@@ -96,15 +96,29 @@ def _name(key: str) -> str:
     return races.RACES[key][0]
 
 
-def get(conn) -> dict:
-    d = state.get_json(conn, KEY, {}) or {}
+def _layer(conn) -> int:
+    from engine.systems import ascension
+    return ascension.player_layer(conn)
+
+
+def _key(layer: int) -> str:
+    """Ogni mondo ha i SUOI regni delle razze: campioni, reliquie e gradi ricominciano da capo."""
+    return KEY if layer <= 0 else f"{KEY}_{layer}"
+
+
+def get(conn, layer: int | None = None) -> dict:
+    layer = _layer(conn) if layer is None else layer
+    d = state.get_json(conn, _key(layer), {}) or {}
     for k in BLOOD:
-        d.setdefault(k, {"beaten": 0, "champ": None, "champ_rank": 0, "relics": 0, "standing": 0, "path": ""})
+        if k not in d:
+            # in un mondo nuovo si riparte da zero: al massimo DISCEPOLO, se porti già il loro sangue
+            st = 1 if layer > 0 and blood_grade(conn, k) >= 1 else 0
+            d[k] = {"beaten": 0, "champ": None, "champ_rank": 0, "relics": 0, "standing": st, "path": ""}
     return d
 
 
-def _save(conn, d: dict) -> None:
-    state.set_json(conn, KEY, d)
+def _save(conn, d: dict, layer: int | None = None) -> None:
+    state.set_json(conn, _key(_layer(conn) if layer is None else layer), d)
 
 
 def rank_title(key: str, r: int) -> str:
@@ -120,8 +134,23 @@ def standing_name(key: str, n: int, path: str = "") -> str:
 
 
 def _land(conn, key):
-    """Le terre della razza (se il mondo non ha il tipo di luogo previsto, ne sceglie uno selvaggio)."""
-    from engine.systems import races
+    """Le terre della razza NEL MONDO IN CUI SEI (se il mondo non ha il tipo di luogo previsto, ne sceglie uno
+    selvaggio)."""
+    from engine.systems import races, ascension
+    layer = _layer(conn)
+    if layer > 0:
+        g = get(conn, layer)
+        if g[key].get("land"):
+            return g[key]["land"]
+        plane = ascension.plane_locations(conn, layer)
+        taken = {r.get("land") for r in g.values()}
+        wild = [l for l in plane if conn.execute("SELECT location_type FROM locations WHERE id=?;", (l,)).fetchone()
+                ["location_type"] != "city"] or plane
+        pick = next((x for x in wild if x not in taken), wild[0] if wild else None)
+        if pick:
+            g[key]["land"] = pick
+            _save(conn, g, layer)
+        return pick
     d = races.all_r(conn)
     if d[key].get("land"):
         return d[key]["land"]
@@ -371,12 +400,17 @@ def ascend(conn, player, key: str) -> str:
     t = tick_mod.get_tick(conn)
     rng = random.Random(t + n)
     title = f"{standing_name(key, n, path)}" + ("" if n >= 5 else f" dei {_name(key)}")
+    _ly = _layer(conn)
+    if _ly > 0:
+        from engine.systems import ascension
+        title += f" ({ascension.layer_name(_ly)})"
     lines = [_CEREMONY[key][min(n, 5) - 1], f"✦ Ora sei {title}. ✦"]
     state.grant_title(conn, title)
     # tecnica della razza
     tname = f"{TECH[key]} ({_ROMAN[n - 1]})"
     conn.execute("INSERT INTO learned_techniques (player_id, faction_id, tech_key, name, magnitude, learned_tick) "
-                 "VALUES (?, NULL, ?, ?, ?, ?);", (player.id, f"race:{key}:{n}", tname, 0.04 * n, t))
+                 "VALUES (?, NULL, ?, ?, ?, ?);", (player.id, f"race:{key}:{n}" + (f":{_ly}" if _ly else ""), tname,
+                                                    0.04 * n * (1 + _ly), t))
     lines.append(f"Ti insegnano «{tname}» (+{4 * n}% potenza).")
     lines += bloodlines.gain(conn, t, rng, player, BLOOD[key][0], BLOOD[key][1], 10.0 * n)
     lines += races.adjust(conn, key, rel=10 * n, honor=100 * n)
@@ -500,6 +534,17 @@ def war_power(conn) -> tuple[int, list[str]]:
 
 
 # ============================================================ menu e comandi
+
+def on_arrive(conn, player, layer: int) -> list[str]:
+    """In un mondo nuovo le razze hanno nuovi regni: si riparte, al massimo da Discepolo (se hai il loro sangue)."""
+    g = get(conn, layer)
+    _save(conn, g, layer)
+    kin = [_name(k) for k, r in g.items() if r["standing"] >= 1]
+    out = [f"Anche le razze antiche hanno i loro regni nel nuovo mondo, con campioni più forti: lì ricominci da capo."]
+    if kin:
+        out.append("Porti il sangue dei " + ", ".join(kin) + ": per loro sei già Discepolo. ('razze')")
+    return out
+
 
 def menu_build(conn, player) -> dict:
     from engine.systems.menus import act, bar, menu, section

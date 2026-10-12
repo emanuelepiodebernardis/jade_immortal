@@ -128,14 +128,14 @@ def test_devourer_drinks_blood(conn):
 
 def test_heritage_destiny_and_rebirth(conn):
     destinies.apply(conn, "sangue_drago")
-    assert "drago azzurro" in bloodlines.all_lines(conn)
+    assert "drago delle nubi" in bloodlines.all_lines(conn)
     from engine.systems import rebirth
-    bloodlines.gain(conn, 0, random.Random(1), _p(conn), "Drago Azzurro", ["fulmine", "acqua"], 200)
+    bloodlines.gain(conn, 0, random.Random(1), _p(conn), "Drago delle Nubi", ["fulmine", "acqua"], 200)
     conn.execute("UPDATE players SET status='dead' WHERE id=1;")
     row = rebirth.record_death(conn, _p(conn))
     lines = rebirth.reincarnate(conn, random.Random(1), "mortale", "Nuovo", {"key": "none"})
     assert any("sangue non dimentica" in x for x in lines)
-    assert bloodlines.all_lines(conn)["drago azzurro"]["conc"] > 40
+    assert bloodlines.all_lines(conn)["drago delle nubi"]["conc"] > 40
 
 
 def test_blood_masters_path(conn):

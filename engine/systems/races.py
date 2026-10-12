@@ -163,7 +163,7 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
         nm = RACES[k][0]
         if r["rel"] >= 60 and rng.random() < 0.08:
             if k == "draghi":
-                out += items.apply_effects(conn, t, rng, player.id, {"bloodline": {"species": "Drago Azzurro",
+                out += items.apply_effects(conn, t, rng, player.id, {"bloodline": {"species": "Drago delle Nubi",
                                                                                    "elements": ["fulmine", "acqua"], "gain": 5}})
             elif k == "spiriti":
                 professions.give(conn, player.id, "erbe", 10)

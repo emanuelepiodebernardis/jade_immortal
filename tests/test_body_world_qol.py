@@ -135,7 +135,7 @@ def test_breeding_makes_hybrid(conn):
     cave_abode.upgrade(conn, _p(conn), "stalla")
     state.set(conn, "profession", "domatore")
     state.set(conn, "profession_xp", "100000")
-    for sp in ("Fenice", "Drago Azzurro"):
+    for sp in ("Fenice", "Drago delle Nubi"):
         s = next(x for x in beasts.RARE_SPECIES if x[0] == sp)
         nid, _ = beasts.spawn_rare(conn, random.Random(1), _p(conn), s)
         conn.execute("UPDATE npcs SET location_id=? WHERE id=?;", (_p(conn).location_id, nid))

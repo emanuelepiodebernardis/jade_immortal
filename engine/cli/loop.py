@@ -236,6 +236,10 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     if direction == "up":                         # salire: ciò che è del mondo inferiore resta indietro
         from engine.systems import ascension
         if ascension.layer_of_location(conn, exits[direction]) > ascension.layer_of_location(conn, player.location_id):
+            _cap_up = ascension.cap_at(conn, exits[direction])
+            if (cultivation.realm_tier(conn, "player", player.id) or 1) >= _cap_up:
+                return (f"Oltre questa porta c'è un mondo che regge solo fino al regno {_cap_up}: la tua coltivazione "
+                        "lo ha già superato. Ascendi direttamente a un cielo più alto ('ascendi_mondo').")
             bag = ascension.describe_baggage(conn, player.id)
             t_now = tick.get_tick(conn)
             from engine.systems import state as _st

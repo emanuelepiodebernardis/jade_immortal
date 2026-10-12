@@ -413,7 +413,7 @@ def _progress(conn, pid: int, req: tuple) -> tuple[bool, str]:
         p = character.get_profile(conn, "player", pid)
         return bool(p and p["anomaly"] == req[1]), "portatore dell'Abisso"
     if kind == "beast":
-        order = ["comune", "rara", "leggendaria", "ibrida"]
+        order = beasts.RARITY_ORDER
         pt = beasts.pet(conn, pid)
         v = beasts.traits(conn, pt["npc_id"])["rarity"] if pt else None
         ok = bool(v) and order.index(v) >= order.index(req[1])

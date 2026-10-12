@@ -37,22 +37,65 @@ COMMON_ELEMENT = {"Cinghiale Corazzato": "corpo", "Orso di Ferro": "corpo",
                   "Eco Ancestrale": "anima", "Fiamma Fatua": "fuoco"}
 
 # specie rare/leggendarie/ibride: (nome, rarità, elementi, regno minimo del giocatore, abilità)
+# La scala delle bestie (dal Classico dei Monti e dei Mari e dai romanzi di coltivazione): spirituali e
+# reali, poi imperiali e divine, poi i QUATTRO SIMBOLI, le BESTIE ANCESTRALI e infine il CAOS.
 RARE_SPECIES = [
-    ("Qilin", "rara", ["luce"], 3, None),
-    ("Tigre Bianca", "rara", ["metallo"], 3, None),
-    ("Tartaruga Nera", "rara", ["acqua", "terra"], 3, None),
+    # spirituali e reali
+    ("Volpe Spirituale", "rara", ["illusione"], 3, None),
+    ("Gru delle Nubi", "rara", ["vento"], 3, None),
     ("Serpente Volante", "rara", ["vento"], 3, None),
+    ("Pixiu", "rara", ["terra", "metallo"], 4, None),
+    ("Suanni", "rara", ["fuoco"], 4, None),
     ("Grande Peng", "rara", ["vento", "acqua"], 4, None),
-    ("Fenice", "leggendaria", ["fuoco"], 5, "rinascita"),
-    ("Drago Azzurro", "leggendaria", ["fulmine", "acqua"], 5, "drago"),
-    ("Drago-Fenice", "ibrida", ["fuoco", "fulmine"], 6, "rinascita"),
-    ("Qilin del Tuono", "ibrida", ["luce", "fulmine"], 6, None),
-    ("Fenice di Ghiaccio", "ibrida", ["fuoco", "acqua"], 6, "rinascita"),
+    ("Tartaruga di Giada", "rara", ["acqua", "terra"], 4, None),
+    # imperiali e divine
+    ("Qilin", "leggendaria", ["luce"], 5, None),
+    ("Bai Ze", "leggendaria", ["luce", "anima"], 5, None),
+    ("Volpe a Nove Code", "leggendaria", ["illusione", "fuoco"], 6, None),
+    ("Kun degli Abissi", "leggendaria", ["acqua"], 6, None),
+    ("Fenice", "leggendaria", ["fuoco"], 6, "rinascita"),
+    ("Drago delle Nubi", "leggendaria", ["fulmine", "acqua"], 6, "drago"),
+    ("Drago-Fenice", "ibrida", ["fuoco", "fulmine"], 7, "rinascita"),
+    ("Qilin del Tuono", "ibrida", ["luce", "fulmine"], 7, None),
+    ("Fenice di Ghiaccio", "ibrida", ["fuoco", "acqua"], 7, "rinascita"),
     ("Drago Nero dell'Abisso", "ibrida", ["oscurita", "acqua"], 7, "drago"),
-    ("Tigre Alata del Vento", "ibrida", ["metallo", "vento"], 6, None),
+    ("Tigre Alata del Vento", "ibrida", ["metallo", "vento"], 7, None),
+    # i Quattro Simboli
+    ("Drago Azzurro", "simbolo", ["legno", "fulmine"], 8, "drago"),
+    ("Tigre Bianca", "simbolo", ["metallo"], 8, None),
+    ("Uccello Vermiglio", "simbolo", ["fuoco"], 8, "rinascita"),
+    ("Tartaruga Nera", "simbolo", ["acqua", "terra"], 8, None),
+    # le Bestie Ancestrali (nei mondi superiori)
+    ("Taotie", "ancestrale", ["oscurita", "sangue"], 11, None),
+    ("Qiongqi", "ancestrale", ["vento", "oscurita"], 11, None),
+    ("Taowu", "ancestrale", ["terra", "massacro"], 11, None),
+    ("Kunpeng", "ancestrale", ["acqua", "vento"], 12, None),
+    ("Drago della Torcia", "ancestrale", ["fuoco", "tempo"], 13, "drago"),
+    ("Xiangliu", "ancestrale", ["acqua", "oscurita"], 12, None),
+    # il Caos
+    ("Hundun", "caos", ["caos"], 14, None),
 ]
-RARITY_TAME_PENALTY = {"comune": 0.0, "rara": 0.15, "leggendaria": 0.30, "ibrida": 0.40}
-RARITY_TALENT_FLOOR = {"comune": 0, "rara": 2, "leggendaria": 3, "ibrida": 3}
+RARITY_ORDER = ["comune", "rara", "leggendaria", "ibrida", "simbolo", "ancestrale", "caos"]
+RARITY_TAME_PENALTY = {"comune": 0.0, "rara": 0.15, "leggendaria": 0.30, "ibrida": 0.40, "simbolo": 0.50,
+                       "ancestrale": 0.60, "caos": 0.70}
+RARITY_TALENT_FLOOR = {"comune": 0, "rara": 2, "leggendaria": 3, "ibrida": 3, "simbolo": 3, "ancestrale": 4, "caos": 4}
+RARITY_IT = {"comune": "comune", "rara": "rara", "leggendaria": "leggendaria", "ibrida": "ibrida",
+             "simbolo": "dei Quattro Simboli", "ancestrale": "ancestrale", "caos": "del Caos"}
+# quali classi di bestie abitano ogni mondo: salendo, le bestie minori scompaiono e ne compaiono di più alte
+_PLANE_CLASSES = [("rara", "leggendaria", "ibrida", "simbolo"), ("leggendaria", "ibrida", "simbolo", "ancestrale"),
+                  ("simbolo", "ancestrale", "caos")]
+
+
+def plane_pool(layer: int, ptier: int) -> list[tuple]:
+    classes = _PLANE_CLASSES[min(layer, len(_PLANE_CLASSES) - 1)]
+    pool = [s for s in RARE_SPECIES if s[1] in classes and s[3] <= ptier]
+    if not pool:
+        lo = min(s[3] for s in RARE_SPECIES if s[1] in classes)
+        pool = [s for s in RARE_SPECIES if s[1] in classes and s[3] == lo]
+    if layer >= len(_PLANE_CLASSES):               # oltre: le stesse bestie, ma «del N° Cielo»
+        from engine.systems import ascension
+        pool = [(f"{s[0]} del {ascension.layer_name(layer)}", s[1], s[2], s[3], s[4]) for s in pool]
+    return pool
 
 
 def ensure_table(conn: sqlite3.Connection) -> None:
@@ -118,22 +161,21 @@ def spawn_rare(conn, rng: random.Random, player, species: tuple | None = None) -
     ensure_table(conn)
     ptier = cultivation.realm_tier(conn, "player", player.id) or 1
     if species is None:
-        pool = [s for s in RARE_SPECIES if s[3] <= ptier]
-        if not pool:
-            lo = min(s[3] for s in RARE_SPECIES)
-            pool = [s for s in RARE_SPECIES if s[3] == lo]
-        weights = [{"rara": 6, "leggendaria": 3, "ibrida": 1}[s[1]] for s in pool]
-        species = rng.choices(pool, weights=weights)[0]
+        from engine.systems import ascension
+        pool = plane_pool(ascension.player_layer(conn, player.id), ptier)
+        wmap = {"rara": 6, "leggendaria": 3, "ibrida": 1.5, "simbolo": 1, "ancestrale": 1, "caos": 0.4}
+        species = rng.choices(pool, weights=[wmap.get(s[1], 1) for s in pool])[0]
     name, rarity, els, _min, ability = species
     loc = _wild_spot(conn, player.location_id, rng, rng.randint(2, 4))
     nid = npc_factory.spawn(conn, rng, archetype="vagabondo", location_id=loc,
-                            tier=ptier + (1 if rarity != "rara" else 0), stage=rng.randint(3, 8),
+                            tier=ptier + (0 if rarity == "rara" else 1 if rarity in ("leggendaria", "ibrida") else 2),
+                            stage=rng.randint(3, 8),
                             name=name if not conn.execute("SELECT 1 FROM npcs WHERE name=?;", (name,)).fetchone()
                             else f"{name} {rng.randint(2, 99)}",
                             dao=els[0], dao_comp=30 + ptier * 10,
                             traits={"courage": 90, "pride": 80})
     conn.execute("UPDATE npcs SET kind='beast', archetype='bestia', description=? WHERE id=?;",
-                 (f"Una creatura {rarity}: {name}. Gli elementi danzano attorno a lei.", nid))
+                 (f"Una creatura {RARITY_IT.get(rarity, rarity)}: {name}. Gli elementi danzano attorno a lei.", nid))
     for extra in els[1:]:
         conn.execute("INSERT OR IGNORE INTO character_daos (character_type, character_id, dao_key, "
                      "affinity, comprehension, practiced) VALUES ('npc', ?, ?, 70, ?, 1);",

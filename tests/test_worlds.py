@@ -97,3 +97,32 @@ def test_ascending_makes_the_whole_plane_new_sects_included(conn):
     names = [r["name"] for r in conn.execute("SELECT name, id FROM factions;") if r["id"] in plane]
     others = [r["name"] for r in conn.execute("SELECT name, id FROM factions;") if r["id"] not in plane]
     assert all(n in txt for n in names) and not any(n in txt for n in others)
+
+
+def test_upper_world_has_its_own_beasts_and_race_ladders(conn):
+    from engine.systems import beasts, race_realms, bloodlines
+    pool0 = {s[1] for s in beasts.plane_pool(0, 20)}
+    pool1 = {s[1] for s in beasts.plane_pool(1, 20)}
+    assert "rara" in pool0 and "ancestrale" not in pool0
+    assert "rara" not in pool1 and "ancestrale" in pool1
+    assert "caos" in {s[1] for s in beasts.plane_pool(2, 20)}
+    p = entities.get_player(conn)
+    bloodlines.gain(conn, 0, random.Random(1), p, "Drago delle Nubi", ["fulmine"], 40)
+    d0 = race_realms.get(conn)
+    d0["draghi"]["standing"], d0["draghi"]["beaten"] = 5, 6
+    race_realms._save(conn, d0)
+    _set_tier(conn, 9)
+    out = ascension.ascend(conn, entities.get_player(conn), "conferma")
+    d1 = race_realms.get(conn)
+    assert d1["draghi"]["standing"] == 1 and d1["draghi"]["beaten"] == 0     # si riparte, da Discepolo
+    assert d1["demoni"]["standing"] == 0
+    assert "Discepolo" in out
+    land = race_realms._land(conn, "draghi")
+    assert land in ascension.plane_locations(conn, 1)
+
+
+def test_never_ascend_into_a_weaker_world(conn):
+    _set_tier(conn, 13)                        # salvataggio vecchio: oltre il tetto del Mondo Mortale
+    out = ascension.ascend(conn, entities.get_player(conn), "conferma")
+    layer = ascension.player_layer(conn)
+    assert ascension.world_cap(layer) > 13 and layer == 2, out

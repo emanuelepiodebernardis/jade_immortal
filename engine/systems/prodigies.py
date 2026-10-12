@@ -29,7 +29,7 @@ FORTUNES = [
     ("metodo", "ha trovato un metodo di coltivazione perduto", 2),
     ("illuminazione", "ha avuto un'illuminazione meditando su una cascata", 1),
 ]
-_BEASTS = ["una Fenice", "un Drago Azzurro", "una Tigre Bianca", "un Qilin", "una Tartaruga Nera"]
+_BEASTS = ["una Fenice", "un Drago delle Nubi", "una Volpe a Nove Code", "un Qilin", "un Bai Ze"]
 
 
 def _alive(conn, nid: int) -> bool:

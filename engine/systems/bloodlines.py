@@ -57,7 +57,8 @@ _ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
 EL_ADJ = {"fuoco": "Fuoco", "acqua": "Ghiaccio", "fulmine": "Tuono", "vento": "Vento",
           "terra": "Terra", "metallo": "Metallo", "legno": "Legno", "luce": "Luce",
-          "oscurita": "Tenebra", "corpo": "Carne Ferrea", "anima": "Spirito"}
+          "oscurita": "Tenebra", "corpo": "Carne Ferrea", "anima": "Spirito", "illusione": "Illusione",
+          "sangue": "Sangue", "massacro": "Massacro", "tempo": "Tempo", "caos": "Caos", "spazio": "Spazio"}
 
 # famiglia: (nome, [occhi, artigli, pelle, ali, corno], dono, longeva)
 FAMILIES = {
@@ -93,31 +94,103 @@ FAMILIES = {
                                 "Pinne della Tempesta", "Coda del Leviatano"], "gelo", True),
     "cinghiale": ("Cinghiale", ["Occhi del Cinghiale", "Zanne del Cinghiale", "Corazza del Cinghiale",
                                 "Carica del Cinghiale", "Zanne Ricurve"], "stordimento", False),
+    # --- sangue spirituale e reale ---
+    "volpe": ("Volpe", ["Occhi della Volpe", "Artigli della Volpe", "Pelliccia Argentea",
+                        "Passo Illusorio", "Coda della Volpe"], "confusione", False),
+    "gru": ("Gru", ["Occhi della Gru", "Becco della Gru", "Piume Candide", "Ali della Gru",
+                    "Cresta Vermiglia"], "velocita", True),
+    "pixiu": ("Pixiu", ["Occhi del Pixiu", "Fauci del Pixiu", "Scaglie del Pixiu", "Ali del Pixiu",
+                        "Corno del Pixiu"], "drenaggio", False),
+    "suanni": ("Suanni", ["Occhi del Suanni", "Artigli del Suanni", "Criniera di Fumo", "Balzo del Suanni",
+                          "Ruggito del Suanni"], "terrore", False),
+    # --- sangue imperiale ---
+    "bai ze": ("Bai Ze", ["Occhi di Bai Ze", "Zoccoli di Bai Ze", "Manto di Bai Ze", "Nubi di Bai Ze",
+                          "Corna di Bai Ze"], "equilibrio", True),
+    "nove code": ("Volpe Celeste", ["Occhi della Volpe Celeste", "Artigli Celesti", "Pelliccia di Luna",
+                                    "Passo dei Sogni", "Nove Code"], "confusione", True),
+    "kun": ("Kun", ["Occhi del Kun", "Fauci del Kun", "Pelle Abissale", "Pinne del Kun", "Coda del Kun"],
+            "gelo", True),
+    # --- le Bestie dei Quattro Simboli (四象) ---
+    "drago azzurro": ("Drago Azzurro", ["Occhi del Drago d'Oriente", "Artigli di Giada", "Squame Azzurre",
+                                        "Ali delle Nubi d'Oriente", "Corna dell'Alba"], "pressione", True),
+    "tigre bianca": ("Tigre Bianca", ["Occhi della Tigre d'Occidente", "Artigli d'Argento", "Manto Bianco",
+                                      "Balzo del Vento d'Occidente", "Zanne del Massacro"], "emorragia", True),
+    "uccello vermiglio": ("Uccello Vermiglio", ["Occhi del Sud", "Artigli di Brace", "Piume Vermiglie",
+                                                "Ali del Sole del Sud", "Coda di Fiamma Eterna"], "ustione", True),
+    "tartaruga nera": ("Tartaruga Nera", ["Occhi del Nord", "Morso del Serpente Nero", "Guscio del Nord",
+                                          "Nuoto delle Acque del Nord", "Coda di Serpente Nero"], "guscio", True),
+    # --- le Bestie Ancestrali (太古) ---
+    "taotie": ("Taotie", ["Occhi del Taotie", "Fauci Insaziabili", "Pelle di Bronzo", "Ventre Senza Fondo",
+                          "Corna del Taotie"], "drenaggio", True),
+    "qiongqi": ("Qiongqi", ["Occhi del Qiongqi", "Artigli del Qiongqi", "Pelle d'Ombra", "Ali del Qiongqi",
+                            "Aculei del Qiongqi"], "terrore", True),
+    "taowu": ("Taowu", ["Occhi del Taowu", "Zanne del Taowu", "Pelle Indomita", "Corsa del Taowu",
+                        "Coda del Taowu"], "stordimento", True),
+    "kunpeng": ("Kunpeng", ["Occhi del Kunpeng", "Becco del Kunpeng", "Squame-Piume del Kunpeng",
+                            "Ali che Coprono il Cielo", "Coda dell'Oceano del Nord"], "velocita", True),
+    "drago della torcia": ("Drago della Torcia", ["Occhio del Giorno e della Notte", "Artigli del Tempo",
+                                                  "Squame Rosse", "Respiro delle Stagioni", "Corna della Torcia"],
+                           "accecamento", True),
+    "xiangliu": ("Xiangliu", ["Diciotto Occhi", "Nove Fauci Velenose", "Squame Paludose", "Nove Colli",
+                              "Coda del Diluvio"], "veleno", True),
+    # --- il Caos ---
+    "hundun": ("Hundun", ["Occhi Senza Volto", "Fauci del Caos", "Pelle dell'Informe", "Ali del Vuoto",
+                          "Sei Zampe del Principio"], "confusione", True),
 }
 _GENERIC = ("Bestia", ["Occhi Bestiali", "Artigli Bestiali", "Pelle Bestiale", "Ali Bestiali",
                        "Corna Bestiali"], None, False)
 _KINDS = ["occhi", "artigli", "pelle", "ali", "corno"]
 
-RARITY_GAIN = {"comune": 2.0, "rara": 8.0, "leggendaria": 20.0, "ibrida": 30.0}
+RARITY_GAIN = {"comune": 2.0, "rara": 8.0, "leggendaria": 20.0, "ibrida": 30.0, "simbolo": 45.0,
+               "ancestrale": 70.0, "caos": 110.0}
 
 # RARITÀ DEI LIGNAGGI: il sangue più pregiato è più forte e, nelle fusioni, DOMINA (dà nome, forma e
 # trasformazione); quelli minori vengono assorbiti come tratti secondari.
 FAMILY_RANK = {"cinghiale": 1, "lupo": 1, "orso": 1, "aquila": 1, "serpente": 1,
                "tigre": 2, "peng": 2, "tartaruga": 2,
                "drago": 3, "fenice": 3, "qilin": 3, "demone": 3, "silvano": 3, "gigante": 3, "leviatano": 3}
-RANK_NAME = {0: "selvaggio", 1: "comune", 2: "raro", 3: "leggendario", 4: "divino"}
-RANK_ICON = {0: "·", 1: "★", 2: "★★", 3: "★★★", 4: "✦✦✦✦"}
-RANK_MULT = {0: 0.8, 1: 0.85, 2: 1.0, 3: 1.25, 4: 1.5}
+# La GERARCHIA DEL SANGUE (come nei romanzi di coltivazione: 凡血 · 灵血 · 王血 · 皇血 · 神血 · 四象 · 太古 · 混沌)
+FAMILY_RANK.update({"volpe": 2, "gru": 2, "pixiu": 3, "suanni": 3, "peng": 3, "tartaruga": 3,
+                    "bai ze": 4, "nove code": 4, "kun": 4, "qilin": 4,
+                    "drago": 5, "fenice": 5, "demone": 5, "silvano": 5, "gigante": 5, "leviatano": 5,
+                    "drago azzurro": 6, "tigre bianca": 6, "uccello vermiglio": 6, "tartaruga nera": 6,
+                    "taotie": 7, "qiongqi": 7, "taowu": 7, "kunpeng": 7, "drago della torcia": 7, "xiangliu": 7,
+                    "hundun": 8})
+_RANKS = [("Sangue Selvatico", "·"), ("Sangue Mortale", "★"), ("Sangue Spirituale", "★★"),
+          ("Sangue Reale", "★★★"), ("Sangue Imperiale", "★★★★"), ("Sangue Divino", "✦"),
+          ("Sangue dei Quattro Simboli", "✦✦"), ("Sangue Ancestrale", "✦✦✦"), ("Sangue del Caos", "✦✦✦✦")]
+
+
+class _RankTable(dict):
+    """Nomi, icone e pesi dei ranghi del sangue — senza fine: oltre il Caos si contano i cieli."""
+    def __init__(self, kind):
+        super().__init__()
+        self.kind = kind
+
+    def __missing__(self, r):
+        if self.kind == "name":
+            return _RANKS[r][0] if r < len(_RANKS) else f"Sangue Oltre il Caos ({r - len(_RANKS) + 1}°)"
+        if self.kind == "icon":
+            return _RANKS[r][1] if r < len(_RANKS) else "✦" * 4 + "+" * (r - len(_RANKS) + 1)
+        base = [0.8, 0.85, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0, 2.4]
+        return base[r] if r < len(base) else 2.4 + 0.3 * (r - len(base) + 1)
+
+    def get(self, r, default=None):
+        return self[r]
+
+
+RANK_NAME, RANK_ICON, RANK_MULT = _RankTable("name"), _RankTable("icon"), _RankTable("mult")
 
 
 def line_rank(ln: dict) -> int:
-    """Rarità di un lignaggio: la sua famiglia più pregiata. Due o più famiglie leggendarie fuse = divino."""
+    """Rango di un lignaggio: la sua famiglia più pregiata. Due o più famiglie del rango più alto fuse
+    insieme (dal Reale in su) salgono di un rango: senza fine."""
     ranks = [FAMILY_RANK.get(f, 0) for f in ln.get("families") or []]
     if not ranks:
         return 0
     top = max(ranks)
-    if top >= 3 and sum(1 for r in ranks if r >= 3) >= 2:
-        return 4
+    if top >= 3 and sum(1 for r in ranks if r == top) >= 2:
+        return top + 1
     return top
 
 
@@ -185,8 +258,11 @@ def _strength(conc: float) -> float:
 
 
 def families_of(species: str) -> list[str]:
+    """Le famiglie nel nome della specie; la più specifica vince («Tigre Bianca» non è una tigre qualunque,
+    «Kunpeng» non è un Kun più un Peng)."""
     s = species.lower()
-    return [k for k in FAMILIES if k in s]
+    found = [k for k in FAMILIES if k in s]
+    return [k for k in found if not any(k != o and k in o for o in found)]
 
 
 def _fam(key: str):
@@ -198,7 +274,13 @@ def _fam(key: str):
 # ============================================================
 
 def all_lines(conn) -> dict:
-    return state.get_json(conn, KEY, {}) or {}
+    d = state.get_json(conn, KEY, {}) or {}
+    for ln in d.values():                      # i lignaggi non fusi riconoscono la loro famiglia più specifica
+        if not ln.get("fused_from"):
+            fams = families_of(ln.get("species", ""))
+            if fams:
+                ln["families"] = fams
+    return d
 
 
 def _save(conn, d: dict) -> None:
@@ -227,11 +309,50 @@ def manifestations(line: dict) -> list[tuple[str, str]]:
     return out
 
 
+PURIFY_KEY = "blood_autopurify"
+
+
+def top_lines(d: dict) -> list[str]:
+    """Le chiavi dei lignaggi del rango più alto che possiedi (possono essere più d'uno, alla pari)."""
+    if not d:
+        return []
+    top = max(line_rank(ln) for ln in d.values())
+    return [k for k, ln in d.items() if line_rank(ln) == top]
+
+
+def pour_into_top(d: dict, src: dict, amount: float, exclude: str | None = None) -> list[tuple[str, float, float]]:
+    """Versa `amount` di un sangue meno nobile nei lignaggi del rango più alto, IN PARTI UGUALI.
+    Ritorna [(chiave, concentrazione aggiunta, purezza aggiunta)]."""
+    tops = [k for k in top_lines(d) if k != exclude]
+    if not tops:
+        return []
+    out = []
+    share = 0.6 * amount / len(tops)
+    for k in tops:
+        tl = d[k]
+        diff = max(1, line_rank(tl) - line_rank(src))
+        pur = round((0.05 + 0.15 * diff * min(1.0, amount / max(1.0, tl["conc"]))) / len(tops), 3)
+        tl["conc"] = round(tl["conc"] + share, 2)
+        tl["purity"] = round(tl.get("purity", 0.0) + pur, 3)
+        out.append((k, share, pur))
+    return out
+
+
 def gain(conn, t: int, rng: random.Random, player, species: str, elements: list[str],
          amount: float) -> list[str]:
-    """Aggiunge concentrazione al lignaggio di una specie (lo crea se nuovo)."""
+    """Aggiunge concentrazione al lignaggio di una specie (lo crea se nuovo). Con la PURIFICAZIONE
+    automatica accesa, il sangue meno nobile di quello che già possiedi viene subito sacrificato ai
+    lignaggi più nobili (in parti uguali), rendendoli più puri."""
     d = all_lines(conn)
     key = species.lower()
+    src = {"families": families_of(species), "conc": amount}
+    if state.flag(conn, PURIFY_KEY, False) and d and key not in d and line_rank(src) < max(line_rank(x) for x in d.values()):
+        res = pour_into_top(d, src, amount)
+        if res:
+            _save(conn, d)
+            names = " e ".join(d[k]["name"] for k, _g, _p in res)
+            return [f"🩸 Il sangue di {species}, meno nobile, viene divorato dal {names}: +{sum(g for _k, g, _p in res):.0f}, "
+                    f"più puro."]
     # se il sangue di questa specie è già confluito in un lignaggio fuso, va lì
     for k, ln in d.items():
         if key in ln.get("fused_from", []):
@@ -334,14 +455,15 @@ def on_beast_kill(conn, t: int, rng, player, npc_id: int) -> list[str]:
         return []
     if b["rarity"] == "comune" and rng.random() >= 0.35:
         return []
-    rar = {"comune": "non_comune", "rara": "raro", "leggendaria": "prezioso", "ibrida": "prezioso"}[b["rarity"]]
+    rar = {"comune": "non_comune", "rara": "raro", "leggendaria": "prezioso", "ibrida": "prezioso"}.get(
+        b["rarity"], "leggendario")
     nm = f"Essenza di Sangue di {b['species']}"
     iid = items.create_item(conn, nm, "essenza", rar, "Sangue raffinato di una bestia: assorbilo con 'use'.",
                             {"bloodline": {"species": b["species"], "elements": b["elements"],
                                            "gain": b["gain"]}})
     items.grant(conn, "player", player.id, iid)
     out = [f"Dalla bestia raccogli un'{nm}! ('use essenze' per assorbirle tutte)"]
-    if b["rarity"] in ("leggendaria", "ibrida") and rng.random() < 0.6:
+    if b["rarity"] not in ("comune", "rara") and rng.random() < 0.6:
         tn = f"Nucleo Antico di {b['species']}"
         iid = items.create_item(conn, tn, "pillola", "prezioso", "Il cuore cristallizzato di una bestia sacra.",
                                 {"cultivation_progress": round(0.5 + 0.1 * b["tier"], 2),
@@ -379,14 +501,14 @@ def on_new_life(conn, origin_key: str, rng: random.Random) -> list[str]:
     """Sangue ereditario dall'origine (clan) — chiamato alla creazione del personaggio."""
     if origin_key != "clan":
         return []
-    sp = rng.choice([("Tigre Bianca", ["metallo"]), ("Tartaruga Nera", ["acqua", "terra"]),
-                     ("Serpente Volante", ["vento"]), ("Qilin", ["luce"])])
+    sp = rng.choice([("Tigre di Giada", ["metallo"]), ("Volpe Spirituale", ["illusione"]),
+                     ("Serpente Volante", ["vento"]), ("Gru delle Nubi", ["vento"])])
     return [grant_heritage(conn, sp[0], sp[1], 12)]
 
 
 def on_destiny(conn, key: str) -> list[str]:
     if key == "sangue_drago":
-        return [grant_heritage(conn, "Drago Azzurro", ["fulmine", "acqua"], 15)]
+        return [grant_heritage(conn, "Drago delle Nubi", ["fulmine", "acqua"], 15)]
     if key == "fenice":
         return [grant_heritage(conn, "Fenice", ["fuoco"], 15)]
     return []

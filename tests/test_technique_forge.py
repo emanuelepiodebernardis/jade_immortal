@@ -132,7 +132,7 @@ def test_rarer_blood_dominates_fusions_and_names_stay_short(conn):
     rng = random.Random(4)
     p = _p(conn)
     B.gain(conn, 0, rng, p, "Cinghiale Corazzato", ["corpo"], 300)
-    B.gain(conn, 0, rng, p, "Drago Azzurro", ["fulmine", "acqua"], 100)
+    B.gain(conn, 0, rng, p, "Drago delle Nubi", ["fulmine", "acqua"], 100)
     B.gain(conn, 0, rng, p, "Lupo Spirituale", ["vento"], 100)
     o = B.ordered(conn)
     assert B.line_rank(o[0][1]) == 1 and B.RANK_MULT[3] > B.RANK_MULT[1]
@@ -145,7 +145,7 @@ def test_rarer_blood_dominates_fusions_and_names_stay_short(conn):
     B.gain(conn, 0, rng, p, "Fenice Rossa", ["fuoco"], 100)
     B.fuse(conn, p, "1 2")
     ln = B.ordered(conn)[0][1]
-    assert ln["species"].startswith(("Drago-Fenice", "Fenice-Drago")) and B.line_rank(ln) == 4
+    assert ln["species"].startswith(("Drago-Fenice", "Fenice-Drago")) and B.line_rank(ln) == 6
 
 
 def test_sacrifice_lesser_blood_to_the_noblest(conn):
@@ -154,14 +154,14 @@ def test_sacrifice_lesser_blood_to_the_noblest(conn):
     p = _p(conn)
     B.gain(conn, 0, rng, p, "Cinghiale Corazzato", ["corpo"], 400)
     B.gain(conn, 0, rng, p, "Lupo Spirituale", ["vento"], 200)
-    B.gain(conn, 0, rng, p, "Drago Azzurro", ["fulmine", "acqua"], 50)
+    B.gain(conn, 0, rng, p, "Drago delle Nubi", ["fulmine", "acqua"], 50)
     assert blood_menu.noblest(conn) == 3                  # il drago, anche se meno concentrato
     assert "non si piega" in blood_menu.refine(conn, p, "3 a 1")
     txt = loop.dispatch(conn, "sangue", allow_nl=False)
     assert "Sacrifica i 2 sangui meno nobili" in txt
     out = loop.dispatch(conn, "sangue sacrifica tutti", allow_nl=False)
     o = B.ordered(conn)
-    assert len(o) == 1 and o[0][1]["species"] == "Drago Azzurro" and o[0][1]["purity"] > 0
+    assert len(o) == 1 and o[0][1]["species"] == "Drago delle Nubi" and o[0][1]["purity"] > 0
     assert o[0][1]["conc"] == pytest.approx(50 + 0.6 * 600, rel=0.01) and "purezza" in out
 
 

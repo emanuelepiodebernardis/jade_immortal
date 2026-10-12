@@ -1727,3 +1727,50 @@ Nuovi test in `test_worlds.py` e `test_technique_forge.py`. Suite totale: **582 
 - `autoraccolta on|off` e `autoassorbi on|off` accendono e spengono le due funzioni (pulsanti anche nello zaino).
 
 Nuovi file: `engine/systems/income.py`, `engine/systems/auto_collect.py`. Nuovi test. Suite totale: **584 passati**.
+
+---
+
+## Aggiornamento 40 — La gerarchia del sangue, le bestie di ogni mondo, mai un mondo più debole
+
+**Nove ranghi di sangue**, ispirati ai romanzi di coltivazione e al Classico dei Monti e dei Mari:
+
+| Rango | Lignaggi | Peso in battaglia |
+|---|---|---|
+| · Sangue Selvatico | | ×0,8 |
+| ★ Mortale | Cinghiale, Lupo, Orso, Aquila, Serpente | ×0,85 |
+| ★★ Spirituale | Tigre, Volpe, Gru | ×1 |
+| ★★★ Reale | Pixiu, Suanni, Peng, Tartaruga | ×1,15 |
+| ★★★★ Imperiale | Qilin, Bai Ze, Volpe a Nove Code, Kun | ×1,3 |
+| ✦ Divino | Drago, Fenice, i sangui delle razze | ×1,5 |
+| ✦✦ dei Quattro Simboli | Drago Azzurro, Tigre Bianca, Uccello Vermiglio, Tartaruga Nera | ×1,75 |
+| ✦✦✦ Ancestrale | Taotie, Qiongqi, Taowu, Kunpeng, Drago della Torcia, Xiangliu | ×2,0 |
+| ✦✦✦✦ del Caos | Hundun | ×2,4 |
+
+- Ogni nuova famiglia ha le sue cinque manifestazioni e il suo dono in battaglia.
+- Due famiglie del rango più alto fuse insieme salgono di un rango, senza fine: oltre il Caos c'è il «Sangue Oltre il Caos».
+- Il nome riconosce la famiglia più specifica: «Tigre Bianca» non è una tigre qualunque. I lignaggi già posseduti si aggiornano da soli; per esempio la Tartaruga Nera diventa dei Quattro Simboli.
+- Il Drago Azzurro ora è uno dei Quattro Simboli. Il drago dei destini e dei doni dei Draghi diventa «Drago delle Nubi».
+
+**Il sacrificio si divide in parti uguali:**
+- `sangue sacrifica <n>`, o il pulsante su ogni lignaggio: un sangue già assorbito viene offerto ai lignaggi del rango più alto. Se sono più d'uno, il 60% si divide **in parti uguali** tra loro, con la purezza.
+- `sangue sacrifica tutti`: tutti i meno nobili, tranne i sangui delle razze, che servono ai loro regni.
+- **Purificazione automatica** (`sangue purifica`, spenta di base): il sangue meno nobile che assorbi va subito ai lignaggi più nobili invece di diventare un lignaggio a sé.
+
+**Le bestie rare di ogni mondo:**
+- **Mondo Mortale**: bestie spirituali, reali, imperiali, divine e i Quattro Simboli.
+- **Mondo Spirituale**: dalle divine alle **Bestie Ancestrali**.
+- **Dal terzo mondo**: i Quattro Simboli, le Ancestrali e il **Caos**.
+- Oltre ancora, le stesse bestie «del N° Cielo».
+
+Le bestie più alte hanno regno più alto, sono più difficili da domare, hanno talento migliore e lasciano più sangue. Le uova di bestie fino ai Quattro Simboli esistono; incrociando, un ibrido non supera mai il proprio sangue.
+
+**Ogni mondo ha i suoi regni delle razze:**
+- campioni, reliquie e gradi ripartono da zero;
+- se porti già il sangue di una razza, lì sei subito **Discepolo**, non di più;
+- le terre delle razze sono nel nuovo mondo, i campioni sono più forti, e le tecniche e i titoli della razza portano il nome del mondo.
+
+**Mai un mondo più debole:**
+- l'ascensione salta direttamente al primo mondo il cui tetto supera il tuo regno (succedeva con i salvataggi oltre il vecchio tetto);
+- `up` non attraversa più una porta verso un mondo che non regge la tua coltivazione.
+
+Nuovi test. Suite totale: **586 passati**.

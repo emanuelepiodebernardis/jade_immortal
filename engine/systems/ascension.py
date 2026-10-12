@@ -229,6 +229,9 @@ def arrive(conn, player, layer: int) -> list[str]:
         chronicle.add(conn, "scelta", f"Lascia {m['sect_name']} nel mondo inferiore.")
     rng = random.Random(tick_mod.get_tick(conn) * 31 + layer)
     out += populate_plane(conn, rng, layer, cultivation.realm_tier(conn, "player", player.id) or 1)
+    from engine.systems import race_realms
+    if not state.get(conn, race_realms._key(layer)):
+        out += race_realms.on_arrive(conn, player, layer)
     return out
 
 
@@ -288,6 +291,8 @@ def ascend(conn, player, arg: str = "") -> str:
     tier = cultivation.realm_tier(conn, "player", player.id) or 1
     here = layer_of_location(conn, player.location_id)
     target = here + 1
+    while world_cap(target) <= tier:          # mai in un mondo che non regge la tua coltivazione: si salta oltre
+        target += 1
     cap = world_cap(here)
     rec = cultivation.get_record(conn, "player", player.id)
     perfect = tier > cap or (tier == cap and rec and (rec["stage"] or 1) >= cultivation.STAGES_PER_REALM
@@ -298,14 +303,15 @@ def ascend(conn, player, arg: str = "") -> str:
                 f"esperienza piena), poi potrai ascendere.")
     if arg.strip().lower() not in ("conferma", "si", "sì", "ok"):
         bag = describe_baggage(conn, player.id)
-        return (f"☁ Sei alla Grande Perfezione del {layer_name(here)}. Sopra di te, il {layer_name(target)}.\n"
+        return (f"☁ Sei alla Grande Perfezione del {layer_name(here)}. Sopra di te, il {layer_name(target)}"
+                f" (regge fino al regno {world_cap(target)}).\n"
                 + (f"Ascendendo lascerai indietro tutto ciò che appartiene a questo mondo:\n{bag}\n"
                    "(Prima puoi usarli: 'use all', 'use essenze'.)\n" if bag else "")
                 + "Resteranno tuoi l'arma, le tecniche, i Dao, la bestia e i legami.\n"
                 "Scrivi 'ascendi_mondo conferma' quando sei pronto.")
     lost = _leave_behind(conn, player.id)
     rise = []
-    if tier == cap:                       # la Porta stessa è lo sfondamento al regno successivo
+    if tier == cap and tier + 1 <= world_cap(target):   # la Porta stessa è lo sfondamento al regno successivo
         r = cultivation._breakthrough_success(conn, "player", player.id, tier, tick_mod.get_tick(conn),
                                               player.name, player.location_id, None, [])
         rise.append(f"Il Qi del cielo superiore ti attraversa: sei ora {realm_name_for_tier(tier + 1)}!")

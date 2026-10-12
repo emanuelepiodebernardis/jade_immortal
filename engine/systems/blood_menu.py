@@ -135,32 +135,61 @@ def _pour(conn, player, src: int, dst: int) -> list[str]:
     return out
 
 
+def sacrifice_to_top(conn, player, keys: list[str]) -> list[str]:
+    """Sacrifica i lignaggi `keys` ai lignaggi del RANGO PIÙ ALTO, divisi in parti uguali tra loro."""
+    from engine.systems import bloodlines as B
+    d = B.all_lines(conn)
+    before = {k: B.grade_index(ln["conc"]) for k, ln in d.items()}
+    gained: dict[str, list[float]] = {}
+    for k in keys:
+        src = d.get(k)
+        if not src or k in B.top_lines(d):
+            continue
+        d.pop(k)
+        for kk, g, p in B.pour_into_top(d, src, src["conc"]):
+            gained.setdefault(kk, [0.0, 0.0])
+            gained[kk][0] += g
+            gained[kk][1] += p
+    B._save(conn, d)
+    out = []
+    for kk, (g, p) in gained.items():
+        ln = d[kk]
+        out.append(f"🩸 {ln['name']}: +{g:.0f} concentrazione, purezza +{int(p * 100)}% "
+                   f"(ora {B.grade_name(ln['conc'])}, purezza {int(100 * ln.get('purity', 0))}%).")
+        if B.grade_index(ln["conc"]) > before.get(kk, 0):
+            out += B._on_grade_up(conn, ln, before[kk], B.grade_index(ln["conc"]))
+    return out
+
+
 def refine(conn, player, arg: str) -> str:
-    """'sangue sacrifica <n> a <m>' / 'sangue raffina <n> in <m>' / 'sangue sacrifica tutti'."""
+    """'sangue sacrifica <n>' (ai più nobili, in parti uguali) / 'sangue sacrifica <n> a <m>' /
+    'sangue raffina <n> in <m>' / 'sangue sacrifica tutti'."""
     from engine.systems import bloodlines as B
     from engine.simulation import world_tick
     o = B.ordered(conn)
+    d = B.all_lines(conn)
+    tops = B.top_lines(d)
     if arg.strip().lower() in ("tutti", "tutto", "meno nobili"):
-        top = noblest(conn)
-        if not top:
-            return "Nel tuo sangue non scorre nulla da sacrificare."
-        target = o[top - 1][0]
-        victims = [k for k, ln in o if B.line_rank(ln) < B.line_rank(o[top - 1][1])]
-        if not victims:
-            return f"Nessun lignaggio è meno nobile del {o[top - 1][1]['name']}."
-        out = [f"Nel silenzio della meditazione offri al {o[top - 1][1]['name']} tutti i sangui meno nobili."]
-        for k in victims:
-            cur = B.ordered(conn)
-            src = next(i for i, (kk, _l) in enumerate(cur, 1) if kk == k)
-            dst = next(i for i, (kk, _l) in enumerate(cur, 1) if kk == target)
-            out += _pour(conn, player, src, dst)
+        victims = [k for k, ln in o if k not in tops and not _race_of(ln)]   # i sangui delle razze restano (servono ai loro regni)
+        if not o or not victims:
+            return "Nessun lignaggio è meno nobile dei tuoi lignaggi più alti."
+        names = " e ".join(d[k]["name"] for k in tops)
+        out = [f"Nel silenzio della meditazione offri tutti i sangui meno nobili al {names}."]
+        out += sacrifice_to_top(conn, player, victims)
         world_tick.advance(conn, 120)
-        ln = B.all_lines(conn)[target]
-        out.append(f"✦ Il {ln['name']}: {B.grade_name(ln['conc'])}, purezza {int(100 * ln.get('purity', 0))}%. ✦")
+        return "\n".join(out)
+    nums = [x for x in arg.replace(" in ", " ").replace(" a ", " ").split() if x.isdigit()]
+    if len(nums) == 1 and 1 <= int(nums[0]) <= len(o):
+        k, ln = o[int(nums[0]) - 1]
+        if k in tops:
+            return f"Il {ln['name']} è già tra i tuoi lignaggi più nobili: non ha a chi essere sacrificato."
+        out = [f"Offri il {ln['name']} ai tuoi lignaggi più nobili."] + sacrifice_to_top(conn, player, [k])
+        world_tick.advance(conn, tick_mod.cost_of("cultivate"))
         return "\n".join(out)
     p = [x for x in arg.replace(" in ", " ").replace(" a ", " ").split() if x.isdigit()]
     if len(p) != 2 or p[0] == p[1] or not all(1 <= int(x) <= len(o) for x in p):
-        return "Usa: sangue sacrifica <n> a <m> (o 'sangue sacrifica tutti': i meno nobili al più nobile)."
+        return ("Usa: sangue sacrifica <n> (ai lignaggi più nobili, in parti uguali), sangue sacrifica <n> a <m>, "
+                "o 'sangue sacrifica tutti'.")
     out = _pour(conn, player, int(p[0]), int(p[1]))
     world_tick.advance(conn, tick_mod.cost_of("cultivate"))
     return "\n".join(out)
@@ -180,13 +209,17 @@ def menu_build(conn, player) -> dict:
     acts = [act(f"Assorbi tutte le essenze ({ess})", "use essenze", ok=ess > 0, why="nessuna essenza", main=ess > 0),
             act("I regni delle razze (sangue d'alto lignaggio)", "razze")]
     top = noblest(conn)
+    tops = B.top_lines(B.all_lines(conn))
     if top:
-        tl = o[top - 1][1]
-        low = [ln for _k, ln in o if B.line_rank(ln) < B.line_rank(tl)]
+        low = [ln for k, ln in o if k not in tops and not _race_of(ln)]
         if low:
-            g = sum(sacrifice_preview(ln, tl)[0] for ln in low)
-            acts.insert(1, act(f"Sacrifica i {len(low)} sangui meno nobili al {tl['name']} (+{g:.0f}, più puro)",
-                               "sangue sacrifica tutti"))
+            g = 0.6 * sum(ln["conc"] for ln in low)
+            who = (f"al {o[top - 1][1]['name']}" if len(tops) == 1 else f"ai {len(tops)} lignaggi più nobili, in parti uguali")
+            acts.insert(1, act(f"Sacrifica i {len(low)} sangui meno nobili {who} (+{g:.0f}, più puri; i sangui delle "
+                               "razze restano)", "sangue sacrifica tutti"))
+    pur_on = state.flag(conn, B.PURIFY_KEY, False)
+    acts.append(act(f"Purificazione automatica: {'ACCESA' if pur_on else 'SPENTA'} (il sangue meno nobile che "
+                    "assorbi va subito ai più nobili)", "sangue purifica"))
     if not o:
         head.append("Nel tuo sangue non scorre ancora nulla. Le bestie d'alto livello e rare lasciano essenze; i "
                     "campioni delle razze antiche lasciano il sangue più alto.")
@@ -236,15 +269,14 @@ def menu_build(conn, player) -> dict:
         acts = []
         if g >= B.SACRED:
             acts.append(act("Trasformati in questa forma", f"trasformati {i}"))
-        if top and i != top:
-            tl = o[top - 1][1]
-            if B.line_rank(ln) < B.line_rank(tl):
-                gain, pur, _k = sacrifice_preview(ln, tl)
-                acts.append(act(f"Sacrificalo al #{top} {tl['name']} (+{gain:.0f}, purezza +{int(pur * 100)}%)",
-                                f"sangue sacrifica {i} a {top}"))
-            elif B.line_rank(ln) == B.line_rank(tl):
-                acts.append(act(f"Versalo nel #{top} {tl['name']} (+{sacrifice_preview(ln, tl)[0]:.0f})",
-                                f"sangue raffina {i} in {top}"))
+        if top and k not in tops:
+            share = 0.6 * ln["conc"] / max(1, len(tops))
+            acts.append(act(f"Sacrificalo ai più nobili (+{share:.0f} a ciascuno dei {len(tops)})" if len(tops) > 1
+                            else f"Sacrificalo al #{top} {o[top - 1][1]['name']} (+{share:.0f}, più puro)",
+                            f"sangue sacrifica {i}"))
+        elif top and i != top and B.line_rank(ln) == B.line_rank(o[top - 1][1]):
+            acts.append(act(f"Versalo nel #{top} {o[top - 1][1]['name']} (+{sacrifice_preview(ln, o[top - 1][1])[0]:.0f})",
+                            f"sangue raffina {i} in {top}"))
         if rk:
             acts.append(act(f"Razza affine: {race_realms._name(rk)}", "razze"))
         rk_ = B.line_rank(ln)
@@ -266,6 +298,12 @@ def command(conn, player, arg: str) -> str:
     a = arg.strip().lower()
     if a in ("info", "elenco", "lista", "tutti"):
         return bloodlines.describe(conn, player)
+    if a.startswith("purifica"):
+        val = not state.flag(conn, bloodlines.PURIFY_KEY, False)
+        state.set(conn, bloodlines.PURIFY_KEY, "1" if val else "0")
+        return (f"Purificazione automatica {'ACCESA' if val else 'SPENTA'}: "
+                + ("il sangue meno nobile che assorbirai andrà subito ai tuoi lignaggi più nobili, in parti uguali."
+                   if val else "ogni sangue che assorbi resta un lignaggio a sé."))
     if a.startswith(("raffina", "versa", "sacrifica", "offri")):
         return refine(conn, player, a.split(maxsplit=1)[1] if " " in a else "")
     return menus.show(conn, player, "sangue")
