@@ -131,7 +131,8 @@ function renderScene(s) {
   box.hidden = false;
   const du = s.duello ? `<div class="duel"><div><span>Tu</span><div class="bar hp"><i style="width:${s.duello.tu.pct}%"></i></div><em>${s.duello.tu.cur}/${s.duello.tu.max}</em></div>
     <div><span>${esc(s.duello.nome)}</span><div class="bar hp foe"><i style="width:${s.duello.lui.pct}%"></i></div><em>${s.duello.lui.cur}/${s.duello.lui.max}</em></div>
-    ${s.duello.carica ? `<div class="l-warn">⚠ Sta raccogliendo il qi: difenditi!</div>` : ""}</div>` : "";
+    <div class="muted">Stile: ${esc(s.duello.stile)}${s.duello.vantaggio > 1 ? " · ☸ elemento a tuo favore (+25%)" : s.duello.vantaggio < 1 ? " · ☸ elemento a suo favore (−15%)" : ""}</div>
+    ${s.duello.carica ? `<div class="l-warn">⚠ Sta raccogliendo il qi: difenditi! (attento alle finte dei subdoli)</div>` : ""}</div>` : "";
   // nel duello le barre grafiche sostituiscono quelle di testo del terminale
   const txt = s.duello ? s.scena.text.split("\n").filter((l) => !l.includes("█") && !l.includes("·····") && !l.startsWith("⚠")).join("\n") : s.scena.text;
   box.innerHTML = `<h3>✦ ${esc(s.scena.title)}</h3>${du}<p>${esc(txt)}</p><div class="choices">` +

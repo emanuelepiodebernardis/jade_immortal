@@ -16,6 +16,17 @@ Il nemico a volte RACCOGLIE IL QI per un colpo pesante: te lo dice un turno prim
 e difendersi al momento giusto è la differenza tra vincere e cadere.
 Quando cade, decidi tu: lo FINISCI o lo RISPARMI (e il mondo se lo ricorda). Gli effetti sono
 gli stessi dello scontro automatico: bottino, fama, karma, arcinemico, nemesi, echi…
+
+TATTICA
+  · ELEMENTI: il tuo Dao più forte contro il suo, secondo il ciclo dei Cinque Elementi
+    (il Fuoco fonde il Metallo, il Metallo taglia il Legno, il Legno spacca la Terra, la Terra
+    argina l'Acqua, l'Acqua spegne il Fuoco; Luce e Oscurità si feriscono a vicenda, il Fulmine
+    domina l'Acqua). In vantaggio colpisci +25%, in svantaggio −15%.
+  · STILI: ogni avversario combatte a modo suo — l'IMPETUOSO carica spesso e colpisce duro ma si
+    scopre; il PRUDENTE si chiude in difesa; il SUBDOLO finge le cariche (non sempre il colpo
+    pesante arriva davvero); l'EQUILIBRATO non ha punti deboli evidenti.
+  · PILLOLE: a metà duello puoi ingoiare una pillola (perdi il turno, recuperi un quarto della vita;
+    una Pillola Curativa la metà).
 """
 
 from __future__ import annotations
@@ -55,11 +66,63 @@ def start(conn, player, arg: str) -> str:
     pa = combat.combat_power(conn, "player", player.id)
     pd = combat.combat_power(conn, "npc", npc.id)
     sc = combat.duel_scale(pa, pd) * _length(conn, player, npc)
+    style = _style(conn, npc.id)
+    adv, adv_txt = _elements(conn, player.id, npc.id)
     d = {"npc": npc.id, "name": npc.name, "hp_p": pa["vitality"] * sc, "pmax": pa["vitality"] * sc,
          "hp_e": pd["vitality"] * sc, "emax": pd["vitality"] * sc, "round": 0, "charge_e": False,
-         "focus": False, "cd": {}, "crit": False, "log": [f"⚔ DUELLO: tu contro {npc.name}."]}
+         "focus": False, "cd": {}, "crit": False, "style": style, "adv": adv, "feint": False,
+         "log": [f"⚔ DUELLO: tu contro {npc.name}."]}
     _save(conn, d)
-    return _next_turn(conn, player)
+    intro = [f"Stile di {npc.name}: {STYLES[style][0]} — {STYLES[style][1]}"]
+    if adv_txt:
+        intro.append(adv_txt)
+    return _next_turn(conn, player, intro)
+
+
+# ---------------- tattica: stili ed elementi ----------------
+# stile -> (nome, descrizione, prob. di caricare, moltiplicatore attacco, moltiplicatore danno subito)
+STYLES = {"impetuoso": ("IMPETUOSO", "carica spesso e colpisce duro, ma si scopre", 0.38, 1.15, 1.2),
+          "prudente": ("PRUDENTE", "si chiude in difesa e aspetta il tuo errore", 0.15, 0.9, 0.8),
+          "subdolo": ("SUBDOLO", "finge le cariche: non sempre il colpo pesante arriva", 0.3, 1.0, 1.0),
+          "equilibrato": ("EQUILIBRATO", "nessun punto debole evidente", 0.25, 1.0, 1.0)}
+_BEATS = {"fuoco": "metallo", "metallo": "legno", "legno": "terra", "terra": "acqua", "acqua": "fuoco",
+          "luce": "oscurita", "oscurita": "luce", "fulmine": "acqua"}
+_EL_IT = {"fuoco": "Fuoco", "metallo": "Metallo", "legno": "Legno", "terra": "Terra", "acqua": "Acqua",
+          "luce": "Luce", "oscurita": "Oscurità", "fulmine": "Fulmine"}
+
+
+def _style(conn, npc_id: int) -> str:
+    tr = entities.get_npc_traits(conn, npc_id) or {}
+    if tr.get("greed", 50) >= 70 and tr.get("honor", 50) <= 40:
+        return "subdolo"
+    if tr.get("pride", 50) >= 75 or tr.get("ambition", 50) >= 80 or tr.get("courage", 50) >= 80:
+        return "impetuoso"
+    if tr.get("courage", 50) <= 35 or tr.get("compassion", 50) >= 75:
+        return "prudente"
+    return "equilibrato"
+
+
+def _top_element(conn, ctype: str, cid: int) -> str | None:
+    r = conn.execute("SELECT dao_key FROM character_daos WHERE character_type=? AND character_id=? AND dao_key IN "
+                     f"({','.join('?' * len(_EL_IT))}) AND comprehension>0 ORDER BY comprehension DESC LIMIT 1;",
+                     (ctype, cid, *_EL_IT)).fetchone()
+    return r["dao_key"] if r else None
+
+
+def _elements(conn, pid: int, npc_id: int) -> tuple[float, str]:
+    a, b = _top_element(conn, "player", pid), _top_element(conn, "npc", npc_id)
+    if not a or not b or a == b:
+        return 1.0, ""
+    if _BEATS.get(a) == b:
+        return 1.25, f"☸ Il tuo {_EL_IT[a]} domina il suo {_EL_IT[b]}: colpisci +25%."
+    if _BEATS.get(b) == a:
+        return 0.85, f"☸ Il suo {_EL_IT[b]} domina il tuo {_EL_IT[a]}: colpisci −15%."
+    return 1.0, ""
+
+
+def _pills(conn, pid: int) -> list:
+    from engine.systems import items
+    return [r for r in items.player_inventory(conn, pid) if r["item_type"] == "pillola"]
 
 
 # Durata: un duello tra pari dura 5-8 scambi; con l'arcinemico o una nemesi 10-12.
@@ -99,7 +162,9 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
     d["round"] += 1
     rng = random.Random(tick_mod.get_tick(conn) * 31 + d["round"] + d["npc"])
     # il nemico decide: a volte raccoglie il qi per un colpo pesante (e si vede)
-    d["charge_e"] = rng.random() < 0.25 and d["round"] > 1
+    st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
+    d["charge_e"] = rng.random() < st[2] and d["round"] > 1
+    d["feint"] = d["charge_e"] and d.get("style") == "subdolo" and rng.random() < 0.5
     _save(conn, d)
     lines = list(extra or [])
     lines.append(f"Turno {d['round']}.  Tu  {_bar(d['hp_p'], d['pmax'])}  "
@@ -124,9 +189,14 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
     if not d["focus"]:
         choices.append({"label": "Concentrati (colpo devastante al prossimo turno)", "effects": {},
                         "command": "duello_azione concentrati"})
+    pills = _pills(conn, player.id)
+    if pills and d["hp_p"] < d["pmax"] * 0.7:
+        cur = next((x for x in pills if "Curativa" in x["name"]), pills[0])
+        choices.append({"label": f"Ingoi {cur['name']} (perdi il turno, recuperi vita)", "effects": {},
+                        "command": "duello_azione pillola"})
     choices.append({"label": "Fuggi", "effects": {}, "command": "duello_azione fuggi"})
     sc = {"key": "duello", "title": f"Duello con {d['name']} — turno {d['round']}", "event_type": "combat",
-          "sticky": True, "text": "\n".join(lines), "choices": choices[:6],
+          "sticky": True, "text": "\n".join(lines), "choices": choices[:7],
           "ctx": {"npc_id": d["npc"], "npc_name": d["name"]}}
     return encounters.start_scene(conn, player, sc, force=True) or ""
 
@@ -170,6 +240,17 @@ def act(conn, player, arg: str) -> str:
     elif what == "concentrati":
         d["focus"] = True
         lines.append("Respiri, raccogli tutto il tuo qi in un solo punto…")
+    elif what == "pillola":
+        from engine.systems import items
+        pills = _pills(conn, player.id)
+        if pills:
+            cur = next((x for x in pills if "Curativa" in x["name"]), pills[0])
+            heal = d["pmax"] * (0.5 if "Curativa" in cur["name"] else 0.25)
+            d["hp_p"] = min(d["pmax"], d["hp_p"] + heal)
+            items.use_item(conn, t, rng, player.id, cur["name"])
+            lines.append(f"Ingoi {cur['name']}: il calore ti risale nelle vene, le ferite si richiudono.")
+        else:
+            lines.append("Frughi nella cintura: niente pillole.")
     else:
         mult, strikes, name = 1.0, 1, None
         if what == "tecnica" and len(parts) > 1:
@@ -189,6 +270,8 @@ def act(conn, player, arg: str) -> str:
             mult *= 1.9
             d["focus"] = False
         lines.append(f"⚔ Scateni {name}!" if name else loop._player_normal_line(None, rng))
+        st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
+        mult *= d.get("adv", 1.0) * st[4]            # elementi e stile (l'impetuoso si scopre, il prudente no)
         dealt, crit_any = 0.0, False
         for _ in range(strikes):
             dmg, crit = combat._strike(pa["attack"] * mult, pd["defense"] * (1 - mods.get("pierce", 0.0)), rng)
@@ -202,7 +285,13 @@ def act(conn, player, arg: str) -> str:
         _save(conn, d)
         return _won(conn, player, lines)
     # il nemico risponde
-    emult = 1.7 if d["charge_e"] else 1.0
+    st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
+    feint = d.get("feint")
+    emult = (1.0 if feint else 1.7 if d["charge_e"] else 1.0) * st[3]
+    if feint:
+        lines.append(f"  Era una finta! {d['name']} non carica affatto: colpisce normale, e ride della tua guardia.")
+        if what == "difendi":
+            taken = 0.7                               # ti eri preparato al colpo sbagliato
     edmg, ecrit = combat._strike(pd["attack"] * emult, pa["defense"], rng)
     edmg *= taken
     d["hp_p"] -= edmg

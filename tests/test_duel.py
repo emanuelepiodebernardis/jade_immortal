@@ -82,3 +82,29 @@ def test_flee_and_kill(conn):
         if "dilegui" in r or not duel.get(conn):
             break
     assert duel.get(conn) is None or _p(conn).status != "alive"
+
+
+def test_duel_styles_elements_and_pills():
+    from engine.systems import duel
+    assert set(duel.STYLES) == {"impetuoso", "prudente", "subdolo", "equilibrato"}
+    assert duel._BEATS["fuoco"] == "metallo" and duel._BEATS["acqua"] == "fuoco"
+
+
+def test_pill_in_duel_heals_and_style_is_shown(conn):
+    from engine.systems import items
+    nid, first = _foe(conn)
+    iid = items.create_item(conn, "Pillola Curativa", "pillola", "comune", "x", {"heal_injuries": True})
+    items.grant(conn, "player", 1, iid, 2)
+    out = loop.dispatch(conn, f"duello {first}", allow_nl=False)
+    assert "Stile di" in out
+    d = duel.get(conn)
+    d["hp_p"] = d["pmax"] * 0.3
+    duel._save(conn, d)
+    encounters.clear(conn)
+    duel._next_turn(conn, _p(conn))
+    sc = encounters.pending(conn)
+    assert any("Ingoi" in c["label"] for c in sc["choices"])
+    before = duel.get(conn)["hp_p"]
+    loop.dispatch(conn, "duello_azione pillola", allow_nl=False)
+    d2 = duel.get(conn)
+    assert d2 is None or d2["hp_p"] > before - d2["pmax"] * 0.3      # ha curato (al netto del colpo subito)

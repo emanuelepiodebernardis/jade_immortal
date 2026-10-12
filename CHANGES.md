@@ -1422,3 +1422,32 @@ Nuovi test: `test_worlds.py` (3), `test_feuds.py` (4). Suite totale: **556 passa
 - Il rancore ha una barra rossa.
 
 Nuovi test: `test_sagas.py` (2), nuove verifiche in `test_dashboard.py`. Suite totale: **559 passati**.
+
+---
+
+## Aggiornamento 31 — Duelli tattici e riordino del codice
+
+**Lo stile dell'avversario.** Ogni duellante ha uno stile, letto dai suoi tratti:
+- **Impetuoso**: carica spesso e colpisce forte, ma si scopre.
+- **Prudente**: si difende e incassa meno.
+- **Subdolo**: finta. Dove sembra caricare, a volte non c'è nulla: chi si difende per niente perde il tempo.
+- **Equilibrato**: nessun eccesso.
+
+Lo stile si annuncia all'inizio del duello e resta visibile nel pannello della dashboard.
+
+**Vantaggio elementale.** Si confronta il Dao più profondo dei due:
+- **ciclo dei cinque elementi**: metallo > legno > terra > acqua > fuoco > metallo;
+- **luce e oscurità**: ciascuna vince sull'altra;
+- **fulmine**: vince sull'acqua.
+
+Chi ha il vantaggio infligge **+25%** di danni, chi è in svantaggio **−15%**. Il duello lo dice all'inizio («Il tuo fuoco divora il suo metallo…»).
+
+**Pillole in duello.** Sotto il 70% di vita compare la scelta «Ingoi …»: una pillola qualsiasi cura il 25%, una *Curativa* il 50%. Costa il turno.
+
+**Riordino del codice.** I comandi di setta del terminale sono stati spostati da `loop.py` (2950 → 2530 righe) in `engine/cli/cmd_sect.py`. Comprendono:
+- sette, iscrizione, inviti, tecniche e sfide di rango;
+- razzie, invasioni, guerre e ritorno alla sede.
+
+`loop.py` li reimporta, quindi nulla cambia per chi li usa.
+
+Nuovi test in `test_duel.py` (2). Suite totale: **561 passati**.
