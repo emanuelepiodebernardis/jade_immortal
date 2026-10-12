@@ -502,7 +502,8 @@ def combat(conn, player_id: int, fx) -> list[str]:
     intro = []
     pr = fx.p.prof
     for k, ln in d.items():
-        s = _strength(ln["conc"]) * RANK_MULT.get(line_rank(ln), 1.0)     # il sangue più raro pesa di più
+        s = (_strength(ln["conc"]) * RANK_MULT.get(line_rank(ln), 1.0)    # il sangue più raro pesa di più
+             * (1 + 0.1 * ln.get("purity", 0.0)))                      # e il sangue purificato ancora di più
         g = grade_index(ln["conc"])
         kinds = {kd for kd, _n in manifestations(ln)}
         if "occhi" in kinds:

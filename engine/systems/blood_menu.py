@@ -71,7 +71,7 @@ def fusion_suggestions(conn, limit: int = 4) -> list[tuple[list[int], str]]:
     for i, j in sorted(conf):                              # prima chi risolve un conflitto
         if i in pure and j in pure:
             out.append(([i, j], "risolve un conflitto"))
-    top = sorted(pure[:8], key=lambda i: (-B.line_rank(o[i - 1][1]), i))[:6]
+    top = sorted(pure[:8], key=lambda i: (-B.line_rank(o[i - 1][1]), i))[:6]  # noqa: F841
     for i, j in itertools.combinations(top, 2):
         if ([i, j], "risolve un conflitto") not in out:
             out.append(([i, j], ""))
@@ -88,28 +88,81 @@ def _preview(conn, idx: list[int]) -> tuple[str, float, str]:
     return res["species"], res["conc"], f"{B.grade_name(res['conc'])}, {B.RANK_NAME[rank]}"
 
 
-def refine(conn, player, arg: str) -> str:
-    """Versa il lignaggio n nel lignaggio m (70% se hanno famiglia o elemento in comune, altrimenti 50%)."""
+def noblest(conn) -> int | None:
+    """Il numero (#) del lignaggio più nobile: rarità più alta, poi concentrazione."""
     from engine.systems import bloodlines as B
-    p = [x for x in arg.replace("in", " ").split() if x.isdigit()]
     o = B.ordered(conn)
-    if len(p) != 2 or p[0] == p[1] or not all(1 <= int(x) <= len(o) for x in p):
-        return "Usa: sangue raffina <n> in <m> (i numeri del menu del sangue)."
-    (ka, la), (kb, lb) = o[int(p[0]) - 1], o[int(p[1]) - 1]
+    if not o:
+        return None
+    return 1 + max(range(len(o)), key=lambda i: (B.line_rank(o[i][1]), o[i][1]["conc"]))
+
+
+def sacrifice_preview(la: dict, lb: dict) -> tuple[float, float, str]:
+    """(concentrazione ceduta, purezza guadagnata, tipo) versando la in lb."""
+    from engine.systems import bloodlines as B
+    ra, rb = B.line_rank(la), B.line_rank(lb)
+    if ra < rb:                                   # sacrificio: il sangue nobile divora il meno nobile
+        gain = 0.6 * la["conc"]
+        purity = 0.05 + 0.15 * (rb - ra) * min(1.0, la["conc"] / max(1.0, lb["conc"]))
+        return gain, round(purity, 3), "sacrificio"
     share = set(la.get("families") or []) & set(lb.get("families") or []) or set(la["elements"]) & set(lb["elements"])
-    rate = 0.7 if share else 0.5
+    return (0.7 if share else 0.5) * la["conc"], 0.0, "raffinazione"
+
+
+def _pour(conn, player, src: int, dst: int) -> list[str]:
+    from engine.systems import bloodlines as B
+    o = B.ordered(conn)
+    (ka, la), (kb, lb) = o[src - 1], o[dst - 1]
+    if B.line_rank(la) > B.line_rank(lb):
+        return [f"Il {la['name']} è più nobile del {lb['name']}: non si piega a un sangue inferiore. "
+                f"Fai il contrario, o fondili."]
+    gain, purity, kind = sacrifice_preview(la, lb)
     d = B.all_lines(conn)
     before = B.grade_index(lb["conc"])
-    d[kb]["conc"] = round(lb["conc"] + rate * la["conc"], 1)
+    d[kb]["conc"] = round(lb["conc"] + gain, 1)
+    if purity:
+        d[kb]["purity"] = round(lb.get("purity", 0.0) + purity, 3)
     d.pop(ka, None)
     B._save(conn, d)
-    from engine.simulation import world_tick
-    world_tick.advance(conn, tick_mod.cost_of("cultivate"))
-    out = [f"Lasci che il {la['name']} si sciolga nel {lb['name']}: ne assorbe il {int(rate * 100)}%.",
-           f"🩸 {lb['name']}: concentrazione {d[kb]['conc']:.0f} ({B.grade_name(d[kb]['conc'])})."]
+    if kind == "sacrificio":
+        out = [f"🩸 Offri il {la['name']} al {lb['name']}: il sangue più nobile lo divora e si fa più puro "
+               f"(+{gain:.0f} concentrazione, purezza +{int(purity * 100)}%)."]
+    else:
+        out = [f"Lasci che il {la['name']} si sciolga nel {lb['name']} (+{gain:.0f} concentrazione)."]
     after = B.grade_index(d[kb]["conc"])
     if after > before:
         out += B._on_grade_up(conn, d[kb], before, after)
+    return out
+
+
+def refine(conn, player, arg: str) -> str:
+    """'sangue sacrifica <n> a <m>' / 'sangue raffina <n> in <m>' / 'sangue sacrifica tutti'."""
+    from engine.systems import bloodlines as B
+    from engine.simulation import world_tick
+    o = B.ordered(conn)
+    if arg.strip().lower() in ("tutti", "tutto", "meno nobili"):
+        top = noblest(conn)
+        if not top:
+            return "Nel tuo sangue non scorre nulla da sacrificare."
+        target = o[top - 1][0]
+        victims = [k for k, ln in o if B.line_rank(ln) < B.line_rank(o[top - 1][1])]
+        if not victims:
+            return f"Nessun lignaggio è meno nobile del {o[top - 1][1]['name']}."
+        out = [f"Nel silenzio della meditazione offri al {o[top - 1][1]['name']} tutti i sangui meno nobili."]
+        for k in victims:
+            cur = B.ordered(conn)
+            src = next(i for i, (kk, _l) in enumerate(cur, 1) if kk == k)
+            dst = next(i for i, (kk, _l) in enumerate(cur, 1) if kk == target)
+            out += _pour(conn, player, src, dst)
+        world_tick.advance(conn, 120)
+        ln = B.all_lines(conn)[target]
+        out.append(f"✦ Il {ln['name']}: {B.grade_name(ln['conc'])}, purezza {int(100 * ln.get('purity', 0))}%. ✦")
+        return "\n".join(out)
+    p = [x for x in arg.replace(" in ", " ").replace(" a ", " ").split() if x.isdigit()]
+    if len(p) != 2 or p[0] == p[1] or not all(1 <= int(x) <= len(o) for x in p):
+        return "Usa: sangue sacrifica <n> a <m> (o 'sangue sacrifica tutti': i meno nobili al più nobile)."
+    out = _pour(conn, player, int(p[0]), int(p[1]))
+    world_tick.advance(conn, tick_mod.cost_of("cultivate"))
     return "\n".join(out)
 
 
@@ -126,6 +179,14 @@ def menu_build(conn, player) -> dict:
                     "SANGUE IN RIVOLTA quando ne assorbi altro. Fondili o raffinali per placarli.")
     acts = [act(f"Assorbi tutte le essenze ({ess})", "use essenze", ok=ess > 0, why="nessuna essenza", main=ess > 0),
             act("I regni delle razze (sangue d'alto lignaggio)", "razze")]
+    top = noblest(conn)
+    if top:
+        tl = o[top - 1][1]
+        low = [ln for _k, ln in o if B.line_rank(ln) < B.line_rank(tl)]
+        if low:
+            g = sum(sacrifice_preview(ln, tl)[0] for ln in low)
+            acts.insert(1, act(f"Sacrifica i {len(low)} sangui meno nobili al {tl['name']} (+{g:.0f}, più puro)",
+                               "sangue sacrifica tutti"))
     if not o:
         head.append("Nel tuo sangue non scorre ancora nulla. Le bestie d'alto livello e rare lasciano essenze; i "
                     "campioni delle razze antiche lasciano il sangue più alto.")
@@ -164,7 +225,8 @@ def menu_build(conn, player) -> dict:
         mf = B.manifestations(ln)
         gifts = [B._fam(f)[2] for f in ln.get("families", []) if B._fam(f)[2]]
         rk = _race_of(ln)
-        lines = [f"Elementi: {', '.join(B.EL_ADJ.get(e, e) for e in ln['elements'])}"
+        lines = [(f"Purezza {int(100 * ln['purity'])}% · " if ln.get("purity") else "")
+                 + f"Elementi: {', '.join(B.EL_ADJ.get(e, e) for e in ln['elements'])}"
                  + (f" · dono: {', '.join(gifts)}" if gifts and g >= B.PURE else "")
                  + (" · lignaggio fuso" if ln.get("fused_from") else ""),
                  ("Manifestazioni: " + ", ".join(n for _k, n in mf)) if mf else "Nessuna manifestazione ancora.",
@@ -174,8 +236,15 @@ def menu_build(conn, player) -> dict:
         acts = []
         if g >= B.SACRED:
             acts.append(act("Trasformati in questa forma", f"trasformati {i}"))
-        if i != 1:
-            acts.append(act(f"Versalo nel #1 ({o[0][1]['name']})", f"sangue raffina {i} in 1"))
+        if top and i != top:
+            tl = o[top - 1][1]
+            if B.line_rank(ln) < B.line_rank(tl):
+                gain, pur, _k = sacrifice_preview(ln, tl)
+                acts.append(act(f"Sacrificalo al #{top} {tl['name']} (+{gain:.0f}, purezza +{int(pur * 100)}%)",
+                                f"sangue sacrifica {i} a {top}"))
+            elif B.line_rank(ln) == B.line_rank(tl):
+                acts.append(act(f"Versalo nel #{top} {tl['name']} (+{sacrifice_preview(ln, tl)[0]:.0f})",
+                                f"sangue raffina {i} in {top}"))
         if rk:
             acts.append(act(f"Razza affine: {race_realms._name(rk)}", "razze"))
         rk_ = B.line_rank(ln)
@@ -197,6 +266,6 @@ def command(conn, player, arg: str) -> str:
     a = arg.strip().lower()
     if a in ("info", "elenco", "lista", "tutti"):
         return bloodlines.describe(conn, player)
-    if a.startswith(("raffina", "versa")):
+    if a.startswith(("raffina", "versa", "sacrifica", "offri")):
         return refine(conn, player, a.split(maxsplit=1)[1] if " " in a else "")
     return menus.show(conn, player, "sangue")

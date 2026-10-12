@@ -79,9 +79,10 @@ def maybe_declare(conn, tick, rng, player, observations) -> int:
         "SELECT id, name, tier, home_location_id FROM factions "
         "WHERE id<>? AND status='active' AND leader_id IS NOT NULL ORDER BY tier DESC;",
         (pfac,)).fetchall()
-    from engine.systems import dominion
+    from engine.systems import dominion, ascension
     vs = dominion.vassal_ids(conn)
-    rivals = [r for r in rivals if r["id"] not in vs]       # le tue vassalle non ti fanno guerra
+    plane = ascension.faction_layer(conn, pfac)            # si fa guerra solo tra sette dello stesso mondo
+    rivals = [r for r in rivals if r["id"] not in vs and ascension.faction_layer(conn, r["id"]) == plane]
     if not rivals:
         return 0
     enemy = rng.choice(rivals[: max(1, len(rivals) // 2 + 1)])

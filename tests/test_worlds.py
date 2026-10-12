@@ -73,3 +73,27 @@ def test_ascension_needs_perfection_and_leaves_items_behind(conn):
     p = entities.get_player(conn)
     assert ascension.layer_of_location(conn, p.location_id) == 1
     assert ascension.cap_at(conn, p.location_id) == 12
+
+
+def test_ascending_makes_the_whole_plane_new_sects_included(conn):
+    p = entities.get_player(conn)
+    hq = conn.execute("SELECT id, home_location_id FROM factions WHERE home_location_id IS NOT NULL LIMIT 1;").fetchone()
+    conn.execute("UPDATE players SET location_id=? WHERE id=1;", (hq["home_location_id"],))
+    loop.dispatch(conn, "join", allow_nl=False)
+    conn.execute("INSERT OR IGNORE INTO sect_memberships (player_id, faction_id, rank, joined_tick) VALUES (1, ?, "
+                 "'Discepolo Esterno', 0);", (hq["id"],)) if not sects.get_membership(conn, 1) else None
+    assert sects.get_membership(conn, 1)
+    _set_tier(conn, 9)
+    out = ascension.ascend(conn, entities.get_player(conn), "conferma")
+    assert ascension.player_layer(conn) == 1
+    assert sects.get_membership(conn, 1) is None and "resta nel mondo inferiore" in out
+    plane = ascension.plane_faction_ids(conn, 1)
+    assert len(plane) == ascension.PLANE_SECTS
+    lo, hi = ascension.plane_range(1)
+    for r in conn.execute("SELECT id FROM npcs WHERE status='alive' AND location_id IN (%s);"
+                          % ",".join("?" * len(ascension.plane_locations(conn, 1))), ascension.plane_locations(conn, 1)):
+        assert lo <= (cultivation.realm_tier(conn, "npc", r["id"]) or 1) <= hi
+    txt = loop.dispatch(conn, "sects", allow_nl=False)
+    names = [r["name"] for r in conn.execute("SELECT name, id FROM factions;") if r["id"] in plane]
+    others = [r["name"] for r in conn.execute("SELECT name, id FROM factions;") if r["id"] not in plane]
+    assert all(n in txt for n in names) and not any(n in txt for n in others)

@@ -638,7 +638,9 @@ def targets(conn, player) -> list:
     vs = vassal_ids(conn)
     rows = conn.execute("SELECT id, name, tier, influence FROM factions WHERE status='active' "
                         "ORDER BY tier DESC, influence DESC;").fetchall()
-    return [r for r in rows if r["id"] not in vs and r["id"] not in mine and r["id"] != own]
+    from engine.systems import ascension
+    plane = ascension.plane_faction_ids(conn, ascension.player_layer(conn, player.id))
+    return [r for r in rows if r["id"] not in vs and r["id"] not in mine and r["id"] != own and r["id"] in plane]
 
 
 def attack(conn, player, arg: str) -> str:

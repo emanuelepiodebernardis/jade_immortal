@@ -84,6 +84,9 @@ def _sects(conn, player) -> str:
     from engine.systems import power
     rows = conn.execute("SELECT id, name, influence, tier, status FROM factions "
                         "WHERE COALESCE(status,'active')!='destroyed';").fetchall()
+    from engine.systems import ascension                  # la classifica del mondo in cui ti trovi
+    plane = ascension.plane_faction_ids(conn, ascension.player_layer(conn, player.id))
+    rows = [f for f in rows if f["id"] in plane] or rows
     scored = []
     for f in rows:
         mem = [r["id"] for r in conn.execute(

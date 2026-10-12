@@ -1670,3 +1670,27 @@ Nuovo file: `engine/systems/blood_menu.py`. Nuovo test. Suite totale: **579 pass
 Esempio: Cinghiale + Drago + Lupo → **Sangue di Drago di Tuono e Ghiaccio** (leggendario), con Cinghiale e Lupo come tratti minori.
 
 Nuovo test. Suite totale: **580 passati**.
+
+---
+
+## Aggiornamento 38 — Ogni mondo è un piano a sé · il sacrificio del sangue
+
+**Salire di mondo vale per tutto, anche per le sette.**
+- Con `ascendi_mondo conferma`, o con `up` attraverso una porta già aperta, il tuo posto nella setta del mondo inferiore **resta lì**: nel nuovo mondo non sei più membro di niente e gli inviti pendenti decadono. Cerchi una setta del nuovo mondo con `sette`.
+- **Ogni mondo superiore ha le sue sette**: quattro, dalla più piccola alla più alta che quel mondo regga. Ognuna ha patriarca, anziani, discepoli e zona di caccia. La mappa del nuovo mondo è più grande (12 luoghi).
+- **Gli abitanti sono di quel mondo e in linea con la tua forza**:
+  - tutti nascono tra il primo regno sopra il mondo inferiore e il tetto del mondo;
+  - chi era rimasto indietro (anche nei salvataggi vecchi) viene riportato al livello del suo mondo;
+  - ogni 5 giorni chi è morto viene rimpiazzato.
+- **Sette, classifiche, guerre e assalti** riguardano solo il mondo in cui ti trovi:
+  - l'elenco delle sette, il menu della setta per chi non è iscritto e la classifica delle sette;
+  - le guerre tra sette (solo tra sette dello stesso mondo) e i bersagli delle vassalle;
+  - le sette superiori che ti invitano nascono nel mondo in cui sei.
+
+**Sacrificare il sangue meno nobile** (menu 🩸 Sangue):
+- `sangue sacrifica <n> a <m>`, o il pulsante «Sacrificalo al #…»: un lignaggio meno raro viene divorato da uno più nobile. Il nobile ne prende il 60% e diventa più **puro**: più grande la differenza di rarità, più purezza.
+- **La purezza** rafforza il lignaggio in battaglia: +10% per ogni 100% di purezza.
+- `sangue sacrifica tutti`, o il pulsante in cima al menu: tutti i sangui meno nobili vanno insieme al lignaggio più nobile, che è quello più raro, anche se meno concentrato.
+- Un sangue più nobile non si sacrifica a uno inferiore. Tra pari resta la raffinazione (70% o 50%).
+
+Nuovi test in `test_worlds.py` e `test_technique_forge.py`. Suite totale: **582 passati**.

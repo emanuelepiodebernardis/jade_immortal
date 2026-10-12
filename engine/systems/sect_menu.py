@@ -385,7 +385,8 @@ def stipend(conn, player) -> str:
 def _not_member(conn, player) -> dict:
     from engine.systems import sects, own_sect
     from engine.systems.travel import _distance, _loc_name
-    rows = sects.joinable_sects(conn)
+    from engine.systems import ascension
+    rows = sects.joinable_sects(conn, ascension.player_layer(conn, player.id))
     here = sects.sect_at_location(conn, player.location_id)
     acts, lines = [], []
     if here:

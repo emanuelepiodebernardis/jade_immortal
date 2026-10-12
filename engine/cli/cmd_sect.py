@@ -158,7 +158,8 @@ def cmd_raid(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
 
 def cmd_sects(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import sects
-    rows = sects.joinable_sects(conn)
+    from engine.systems import ascension
+    rows = sects.joinable_sects(conn, ascension.player_layer(conn, player.id))
     if not rows:
         return "Non si conoscono sette in questo mondo."
     m = sects.get_membership(conn, player.id)

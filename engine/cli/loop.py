@@ -244,7 +244,15 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
                 return ("Oltre la Porta Celeste nulla del mondo inferiore sopravvive:\n" + bag +
                         "\nScrivi di nuovo 'up' per attraversarla comunque.")
             lost = ascension._leave_behind(conn, player.id)
+    _from_layer = None
+    if direction == "up":
+        from engine.systems import ascension
+        _from_layer = ascension.layer_of_location(conn, player.location_id)
     entities.move_player(conn, player.id, exits[direction])
+    if _from_layer is not None:
+        _to = ascension.layer_of_location(conn, exits[direction])
+        if _to > _from_layer:
+            lost = lost + ascension.arrive(conn, entities.get_player(conn, player.id), _to)
     if lost:
         obs_lost = "\n".join(lost) + "\n"
     else:
@@ -1884,9 +1892,9 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     if not lost_legacy.get(conn) and not state_flag(conn, "legacy_init"):
         lines += ["  " + ln for ln in lost_legacy.assign(conn, _rng2)]
         _set_flag(conn, "legacy_init")
-    from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes, race_realms
+    from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes, race_realms, ascension
     for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense,
-                 archrival, kingdoms, races, race_realms, eras, contests, captivity, echoes):
+                 archrival, kingdoms, races, race_realms, eras, contests, captivity, echoes, ascension):
         lines += ["  " + ln for ln in _mod.daily(conn, t, _rng2, entities.get_player(conn))]
     from engine.systems import beast_eggs, qol
     lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]

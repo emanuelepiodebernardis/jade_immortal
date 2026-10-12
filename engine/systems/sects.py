@@ -98,13 +98,17 @@ def element_bonus(conn: sqlite3.Connection, dao_key: str, player_id: int = 1) ->
     return 1.0
 
 
-def joinable_sects(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    """Fazioni con una sede: sette a cui ci si può iscrivere."""
-    return conn.execute(
+def joinable_sects(conn: sqlite3.Connection, layer: int | None = None) -> list[sqlite3.Row]:
+    """Fazioni con una sede: sette a cui ci si può iscrivere. Con 'layer', solo quelle di quel mondo."""
+    rows = conn.execute(
         "SELECT f.id, f.name, f.home_location_id, f.tier, f.element, l.name AS hq_name "
         "FROM factions f JOIN locations l ON l.id=f.home_location_id "
         "WHERE f.status='active' ORDER BY f.tier DESC, f.influence DESC;"
     ).fetchall()
+    if layer is None:
+        return rows
+    from engine.systems import ascension
+    return [r for r in rows if ascension.layer_of_location(conn, r["home_location_id"]) == layer]
 
 
 def sect_at_location(conn: sqlite3.Connection, location_id: int) -> sqlite3.Row | None:
@@ -267,8 +271,10 @@ def generate_invitations(conn: sqlite3.Connection, tick: int, rng,
 def _create_greater_sect(conn, rng, name, tier, element, tick) -> int:
     """Crea la setta superiore come fazione reale (con leader scalato al livello)."""
     from engine.generators import npc_gen
-    home = conn.execute(
-        "SELECT id FROM locations ORDER BY danger_level DESC, id LIMIT 1;").fetchone()["id"]
+    from engine.systems import ascension as _asc            # la setta nasce nel mondo in cui ti trovi
+    plane = _asc.plane_locations(conn, _asc.player_layer(conn))
+    q = "SELECT id FROM locations" + (" WHERE id IN (%s)" % ",".join("?" * len(plane)) if plane else "")
+    home = conn.execute(q + " ORDER BY danger_level DESC, id LIMIT 1;", plane).fetchone()["id"]
     cur = conn.execute(
         "INSERT INTO factions (name, home_location_id, influence, wealth, description, "
         "goals, tier, element, status) VALUES (?, ?, ?, ?, ?, '[]', ?, ?, 'active');",

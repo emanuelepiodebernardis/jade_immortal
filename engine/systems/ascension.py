@@ -119,6 +119,129 @@ def layer_of_location(conn, location_id: int | None) -> int:
     return int(m.get(str(r["region_id"]), 0))
 
 
+def player_layer(conn, pid: int = 1) -> int:
+    r = conn.execute("SELECT location_id FROM players WHERE id=?;", (pid,)).fetchone()
+    return layer_of_location(conn, r["location_id"] if r else None)
+
+
+def faction_layer(conn, fid: int) -> int:
+    r = conn.execute("SELECT home_location_id FROM factions WHERE id=?;", (fid,)).fetchone()
+    return layer_of_location(conn, r["home_location_id"] if r else None)
+
+
+def plane_locations(conn, layer: int) -> list[int]:
+    m = {int(k): v for k, v in (state.get_json(conn, REGIONS_KEY, {}) or {}).items()}
+    return [r["id"] for r in conn.execute("SELECT id, region_id FROM locations ORDER BY id;")
+            if m.get(r["region_id"], 0) == layer]
+
+
+def plane_faction_ids(conn, layer: int) -> set[int]:
+    locs = set(plane_locations(conn, layer))
+    return {r["id"] for r in conn.execute("SELECT id, home_location_id FROM factions WHERE status='active';")
+            if r["home_location_id"] in locs}
+
+
+def plane_range(layer: int) -> tuple[int, int]:
+    """I regni di chi è nato in quel mondo: dal primo sopra il mondo inferiore al tetto."""
+    return (1 if layer <= 0 else world_cap(layer - 1) + 1), world_cap(layer)
+
+
+PLANE_SECTS = 4
+
+
+def populate_plane(conn, rng: random.Random, layer: int, ptier: int) -> list[str]:
+    """Riempie un mondo superiore: le sue sette (dalla più piccola alla più alta che quel mondo regga) e i
+    suoi abitanti, tutti nati per QUEL mondo e in linea con la tua forza. Non tocca il Mondo Mortale."""
+    if layer <= 0:
+        return []
+    from engine.systems import npc_factory
+    from engine.generators import faction_gen
+    locs = plane_locations(conn, layer)
+    if not locs:
+        return []
+    lo, hi = plane_range(layer)
+    t = tick_mod.get_tick(conn)
+    out = []
+    have = plane_faction_ids(conn, layer)
+    lo_t, hi_t = world_cap(layer - 1) - 1, world_cap(layer) - 2      # livelli delle sette di questo mondo
+    tiers = sorted(max(1, lo_t + round(i * (hi_t - lo_t) / max(1, PLANE_SECTS - 1))) for i in range(PLANE_SECTS))
+    rows = {r["id"]: r for r in conn.execute("SELECT id, location_type, owner_faction_id FROM locations WHERE id IN (%s);"
+                                             % ",".join("?" * len(locs)), locs)}
+    homes = [l for l in locs if rows[l]["location_type"] == "city" and not rows[l]["owner_faction_id"]]
+    homes += [l for l in locs if rows[l]["location_type"] in ("mountain", "ruin") and not rows[l]["owner_faction_id"]]
+    wild = [l for l in locs if rows[l]["location_type"] != "city"] or locs
+    used_f = {r["name"] for r in conn.execute("SELECT name FROM factions;")}
+    new_names = []
+    for tier in tiers[len(have):]:
+        if not homes:
+            break
+        home = homes.pop(0)
+        fname = faction_gen._faction_name(rng, used_f)
+        used_f.add(fname)
+        cur = conn.execute("INSERT INTO factions (name, home_location_id, influence, wealth, description, goals, tier, "
+                           "element, status, alignment, hunt_zone_id) VALUES (?, ?, ?, ?, ?, '[]', ?, ?, 'active', ?, ?);",
+                           (fname, home, 50 + 8 * tier, 50 + 8 * tier, f"Una setta del {layer_name(layer)}.", tier,
+                            rng.choice(["spada", "fulmine", "anima", "corpo", "fuoco", "acqua", "spazio", "tempo", None]),
+                            rng.choice(["ortodossa", "ortodossa", "eterodossa", "demoniaca"]), rng.choice(wild)))
+        fid = cur.lastrowid
+        conn.execute("UPDATE locations SET owner_faction_id=? WHERE id=?;", (fid, home))
+        top = min(hi, 2 + tier)
+        lid = npc_factory.spawn(conn, rng, archetype="patriarca", location_id=home, tier=top, faction_id=fid, tick=t)
+        conn.execute("UPDATE factions SET leader_id=? WHERE id=?;", (lid, fid))
+        for _ in range(2):
+            npc_factory.spawn(conn, rng, archetype="anziano", location_id=home, tier=max(lo, top - 1), faction_id=fid, tick=t)
+        for _ in range(4):
+            npc_factory.spawn(conn, rng, archetype=rng.choice(["discepolo", "guardia"]), location_id=home,
+                              tier=max(lo, min(top - 1, ptier + rng.randint(-1, 1))), faction_id=fid, tick=t)
+        new_names.append(f"{fname} ({tier})")
+    # abitanti: se il mondo si è svuotato, ne nascono di nuovi, in linea con la tua forza
+    alive = conn.execute("SELECT COUNT(*) c FROM npcs WHERE status='alive' AND location_id IN (%s);"
+                         % ",".join("?" * len(locs)), locs).fetchone()["c"]
+    target = 12 + 7 * len(plane_faction_ids(conn, layer))
+    for _ in range(max(0, min(12, target - alive))):
+        npc_factory.spawn(conn, rng, archetype=rng.choice(["vagabondo", "eremita", "mercante", "discepolo", "guardia"]),
+                          location_id=rng.choice(locs), tier=max(lo, min(hi, ptier + rng.randint(-1, 1))), tick=t)
+    # chi è rimasto indietro rispetto al proprio mondo (salvataggi vecchi) viene riportato al suo livello
+    from engine.simulation import cultivation
+    for r in conn.execute("SELECT id FROM npcs WHERE status='alive' AND location_id IN (%s);"
+                          % ",".join("?" * len(locs)), locs).fetchall():
+        if (cultivation.realm_tier(conn, "npc", r["id"]) or 1) < lo:
+            rid = cultivation.ensure_realm(conn, lo)
+            conn.execute("UPDATE cultivation_records SET realm_id=? WHERE character_type='npc' AND character_id=?;",
+                         (rid, r["id"]))
+            conn.execute("UPDATE npcs SET realm_id=? WHERE id=?;", (rid, r["id"]))
+    if new_names:
+        out.append(f"Le sette del {layer_name(layer)}: " + ", ".join(new_names) + ". ('sette')")
+    return out
+
+
+def arrive(conn, player, layer: int) -> list[str]:
+    """Arrivi in un mondo superiore: tutto, qui, è di questo mondo — anche le sette."""
+    from engine.systems import sects, chronicle
+    from engine.simulation import cultivation
+    out = []
+    m = sects.get_membership(conn, player.id)
+    if m and faction_layer(conn, m["faction_id"]) < layer:
+        conn.execute("DELETE FROM sect_memberships WHERE player_id=?;", (player.id,))
+        conn.execute("UPDATE sect_invitations SET resolved=1 WHERE player_id=? AND resolved=0;", (player.id,))
+        out.append(f"Il tuo posto in {m['sect_name']} resta nel mondo inferiore: qui nessuno sa chi eri. "
+                   f"Le sette del {layer_name(layer)} ti osservano — cercane una ('sette').")
+        chronicle.add(conn, "scelta", f"Lascia {m['sect_name']} nel mondo inferiore.")
+    rng = random.Random(tick_mod.get_tick(conn) * 31 + layer)
+    out += populate_plane(conn, rng, layer, cultivation.realm_tier(conn, "player", player.id) or 1)
+    return out
+
+
+def daily(conn, t: int, rng: random.Random, player) -> list[str]:
+    """Nei mondi superiori, chi muore viene rimpiazzato da nuovi coltivatori di quel mondo."""
+    layer = player_layer(conn, player.id)
+    if layer <= 0 or (t // 120) % 5:
+        return []
+    from engine.simulation import cultivation
+    populate_plane(conn, rng, layer, cultivation.realm_tier(conn, "player", player.id) or 1)
+    return []
+
+
 def cultivation_mult(conn, location_id: int | None) -> tuple[float, str]:
     lay = layer_of_location(conn, location_id)
     if lay <= 0:
@@ -137,7 +260,7 @@ def _generate_layer(conn, rng: random.Random, layer: int, ptier: int) -> int:
     m[str(region)] = layer
     state.set_json(conn, REGIONS_KEY, m)
     used = {r["name"].split(" ", 1)[-1] for r in conn.execute("SELECT name FROM locations;")}
-    cells = world_gen._carve_cluster(rng, 8)
+    cells = world_gen._carve_cluster(rng, 12)
     ids: dict = {}
     for cell in sorted(cells):
         ltype = "city" if cell == (0, 0) else rng.choices(["city", "mountain", "ruin", "forbidden_zone"],
@@ -151,33 +274,8 @@ def _generate_layer(conn, rng: random.Random, layer: int, ptier: int) -> int:
     for a, d, b in world_gen._edges_for_cluster(cells):
         conn.execute("INSERT OR IGNORE INTO location_connections (from_location_id, to_location_id, direction) "
                      "VALUES (?, ?, ?);", (ids[a], ids[b], d))
-    locs = list(ids.values())
     start = ids[(0, 0)]
-    # sette antiche del nuovo mondo
-    from engine.generators import faction_gen
-    used_f = {r["name"] for r in conn.execute("SELECT name FROM factions;")}
-    cities = [l for l in locs if conn.execute("SELECT location_type FROM locations WHERE id=?;",
-                                              (l,)).fetchone()["location_type"] == "city"]
-    for home in (cities or [start])[:2]:
-        fname = faction_gen._faction_name(rng, used_f)
-        cur = conn.execute("INSERT INTO factions (name, home_location_id, influence, wealth, description, goals, "
-                           "tier, element, status, alignment) VALUES (?, ?, ?, ?, ?, '[]', ?, ?, 'active', ?);",
-                           (fname, home, 60 + 10 * layer, 60, f"Una setta antica del {layer_name(layer)}.",
-                            3 + 2 * layer, rng.choice(["spada", "fulmine", "anima", "corpo", None]),
-                            rng.choice(["ortodossa", "ortodossa", "eterodossa", "demoniaca"])))
-        fid = cur.lastrowid
-        conn.execute("UPDATE locations SET owner_faction_id=? WHERE id=?;", (fid, home))
-        lid = npc_factory.spawn(conn, rng, archetype="patriarca", location_id=home, tier=ptier + 2,
-                                faction_id=fid, tick=tick_mod.get_tick(conn))
-        conn.execute("UPDATE factions SET leader_id=? WHERE id=?;", (lid, fid))
-        for _ in range(4):
-            npc_factory.spawn(conn, rng, archetype=rng.choice(["discepolo", "anziano", "guardia"]),
-                              location_id=home, tier=max(1, ptier + rng.randint(-1, 1)), faction_id=fid,
-                              tick=tick_mod.get_tick(conn))
-    for _ in range(8):
-        npc_factory.spawn(conn, rng, archetype=rng.choice(["vagabondo", "eremita", "mercante", "discepolo"]),
-                          location_id=rng.choice(locs), tier=max(1, ptier + rng.randint(-2, 1)),
-                          tick=tick_mod.get_tick(conn))
+    populate_plane(conn, rng, layer, ptier)
     return start
 
 
@@ -217,7 +315,8 @@ def ascend(conn, player, arg: str = "") -> str:
         if dest:
             _link(conn, player.location_id, dest)
             entities.move_player(conn, player.id, dest)
-            return "\n".join([f"Riapri la Porta Celeste e risali al {layer_name(target)}."] + lost + rise)
+            return "\n".join([f"Riapri la Porta Celeste e risali al {layer_name(target)}."] + lost + rise
+                              + arrive(conn, entities.get_player(conn, player.id), target))
     rng = random.Random(tick_mod.get_tick(conn) * 997 + target)
     dest = _generate_layer(conn, rng, target, tier)
     _link(conn, player.location_id, dest)
@@ -231,13 +330,15 @@ def ascend(conn, player, arg: str = "") -> str:
     world_tick.advance(conn, 120)
     title = f"Asceso al {layer_name(target)}"
     state.grant_title(conn, title)
+    plane = arrive(conn, entities.get_player(conn, player.id), target)
     return (f"✦ Il cielo si squarcia. Una scala di luce ti solleva oltre le nuvole, oltre le stelle… ✦\n"
             + "\n".join(lost + rise) + ("\n" if lost or rise else "") +
             f"Sei giunto nel {layer_name(target)}. Il Qi qui è così denso che respirarlo è già coltivare "
             f"(coltivazione ×{1 + 0.3 * target:.1f}). Qui, però, sei di nuovo uno tra tanti: questo mondo "
             f"regge fino al regno {world_cap(target)} ({realm_name_for_tier(world_cap(target))}).\n"
             f"La vita ti si allunga di {100 * target} anni. ✧ Nuovo titolo: «{title}» ✧\n"
-            "('down' per tornare indietro attraverso la porta)")
+            + ("\n".join(plane) + "\n" if plane else "")
+            + "('down' per tornare indietro attraverso la porta)")
 
 
 def _link(conn, a: int, b: int) -> None:
