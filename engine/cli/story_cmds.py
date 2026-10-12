@@ -393,8 +393,8 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         from engine.systems import autopilot
         return autopilot.command(conn, player, arg)
     if cmd in ("sangue", "lignaggi", "bloodline", "bloodlines", "lignaggio"):
-        from engine.systems import bloodlines
-        return bloodlines.describe(conn, player)
+        from engine.systems import blood_menu
+        return blood_menu.command(conn, player, arg)
     if cmd in ("fondi_sangue", "fondisangue", "fusione_sangue"):
         from engine.systems import bloodlines
         return bloodlines.fuse(conn, player, arg)

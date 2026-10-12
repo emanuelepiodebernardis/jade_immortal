@@ -110,3 +110,18 @@ def test_failed_fusion_leaves_insight(conn, monkeypatch):
 
 
 _real_plan = TF.plan
+
+
+def test_blood_menu_lists_lines_and_refines(conn):
+    from engine.systems import bloodlines, blood_menu
+    rng = random.Random(3)
+    p = _p(conn)
+    bloodlines.gain(conn, 0, rng, p, "Drago Celeste", ["fulmine", "acqua"], 120)
+    bloodlines.gain(conn, 0, rng, p, "Fenice Rossa", ["fuoco"], 100)
+    bloodlines.gain(conn, 0, rng, p, "Lupo Spirituale", ["vento"], 20)
+    txt = loop.dispatch(conn, "sangue", allow_nl=False)
+    assert "IL SANGUE E I LIGNAGGI" in txt and "Drago Celeste" in txt and "Fondi #1 + #2" in txt
+    assert "SANGUE IN RIVOLTA" in txt                    # acqua contro fuoco
+    out = blood_menu.refine(conn, p, "3 in 1")
+    assert "Lupo" in out and len(bloodlines.ordered(conn)) == 2
+    assert "LIGNAGGI DI SANGUE" in loop.dispatch(conn, "sangue info", allow_nl=False)

@@ -1625,3 +1625,21 @@ Nuovo file: `engine/systems/technique_forge.py`. Nuovi test: `test_technique_for
 Con il salvataggio di prova il pannello passa da bloccato a 0,01 secondi: 42 tecniche attive su 560. Anche i combattimenti sono più veloci, perché scelgono tra molte meno mosse.
 
 Nuovo test in `test_technique_forge.py`. Suite totale: **578 passati**.
+
+---
+
+## Aggiornamento 36 — Il menu del sangue
+
+Si apre con il pulsante **🩸 Sangue** o con `sangue`. Tutti i lignaggi si gestiscono in un posto solo:
+- **le essenze nello zaino**: «Assorbi tutte le essenze» con un clic. Il menu conta anche le reliquie e avvisa dei **conflitti** tra lignaggi con elementi opposti, che rischiano il sangue in rivolta;
+- **la trasformazione**: un pulsante per ogni lignaggio Sacro («Diventa Drago…»), con l'attesa del riposo del sangue;
+- **le fusioni proposte**: prima quelle che risolvono un conflitto, poi i tre lignaggi più forti, poi le coppie migliori. Per ognuna mostra in anteprima il nome del lignaggio che nascerà, il grado e la concentrazione;
+- **ogni lignaggio** (i 12 più forti):
+  - una barra verso il grado successivo;
+  - elementi, dono, manifestazioni, tecnica innata e trasformazione;
+  - la **razza affine** (Draghi, Demoni, Spiriti, Giganti, Maree), con il collegamento al suo regno.
+- **raffinazione** (`sangue raffina <n> in <m>`, o il pulsante «Versalo nel #1»): un lignaggio debole si scioglie in uno forte. Il forte ne assorbe il 70%, o il 50% se i due non hanno famiglia o elemento in comune. Serve a togliere doppioni e conflitti senza perdere tutto.
+
+L'elenco testuale di prima resta con `sangue info`, anche nel pannello Personaggio.
+
+Nuovo file: `engine/systems/blood_menu.py`. Nuovo test. Suite totale: **579 passati**.

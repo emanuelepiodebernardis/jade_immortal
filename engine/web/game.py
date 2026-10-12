@@ -308,7 +308,7 @@ def _soul(conn, pid) -> str:
 # ============================================================
 
 PANELS = {
-    "personaggio": ["status", "rating", "dao", "corpo", "radici", "sangue"],
+    "personaggio": ["status", "rating", "dao", "corpo", "radici", "sangue info"],
     "tesori": ["tesori", "arma"],
     "storia": ["trama", "goals", "arcinemico", "retaggio", "svolte"],
     "legami": ["favori"],

@@ -15,6 +15,7 @@ avanzamento, e le AZIONI che puoi fare da lì. Le stesse strutture vengono mostr
   dimora          la grotta-dimora: produzione, ali, «potenzia al massimo» in un colpo
   famiglia        la famiglia, i legami (parla, favori, duelli con rivali e nemesi), i discepoli
   tecniche        tutte le tue tecniche e la FUCINA: fondile in tecniche nuove con un clic
+  sangue          i lignaggi: essenze, fusioni, raffinazione, trasformazione
   dominio         servi sigillati, salme rianimate, sette vassalle (tributi, tecniche, guerre)
 """
 
@@ -50,18 +51,18 @@ def menu(key: str, title: str, sub: list[str] | None = None, sections: list[dict
 # ---------------------------------------------------------------- registro
 
 def _builders() -> dict:
-    from engine.systems import sect_menu, world_menus, professions, dominion, race_realms, technique_forge
+    from engine.systems import sect_menu, world_menus, professions, dominion, race_realms, technique_forge, blood_menu
     return {"setta": sect_menu.build, "arti": world_menus.arts, "regni": world_menus.realms,
             "eventi": world_menus.events, "menu": world_menus.hub, "coltivazione": world_menus.growth,
             "famiglia": world_menus.family_menu, "dimora": world_menus.abode, "faide": world_menus.grudges,
             "dominio": dominion.menu_build, "razze": race_realms.menu_build,
-            "tecniche": technique_forge.menu_build}
+            "tecniche": technique_forge.menu_build, "sangue": blood_menu.menu_build}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
          "coltivazione": "Coltivazione", "famiglia": "Famiglia", "dimora": "Dimora", "faide": "Faide",
          "dominio": "Dominio", "razze": "Razze",
-         "tecniche": "Tecniche"}
+         "tecniche": "Tecniche", "sangue": "Sangue"}
 
 
 def build(conn, player, key: str) -> dict:
