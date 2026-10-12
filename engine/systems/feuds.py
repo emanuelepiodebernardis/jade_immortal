@@ -152,16 +152,25 @@ def _spawn_avenger(conn, rng, victim, relation: str) -> int:
     return nid
 
 
-def on_kill(conn, t: int, rng: random.Random, player, npc) -> list[str]:
-    """Hai ucciso un umano: chi giurerà vendetta?"""
+_CAUSE_WORD = {"sigillo": "giura di spezzare il sigillo che hai impresso nell'anima di",
+               "salma": "giura di dare pace alla salma profanata di"}
+
+
+def on_kill(conn, t: int, rng: random.Random, player, npc, cause: str = "kill") -> list[str]:
+    """Hai ucciso un umano (o ne hai sigillato l'anima, o ne hai rianimato la salma):
+    chi giurerà vendetta?"""
     ensure_table(conn)
     r = conn.execute("SELECT kind, war_id FROM npcs WHERE id=?;", (npc.id,)).fetchone()
     if not r or (r["kind"] not in (None, "human")):
         return []
+    if cause != "kill" and conn.execute(
+            "SELECT 1 FROM feuds WHERE kind='faida' AND victim_id=? AND status IN ('giurata','in caccia','ignoto');",
+            (npc.id,)).fetchone():
+        return []                                    # qualcuno lo sta già vendicando
     lines = []
     # il vendicatore stesso è caduto: la faida passa alla generazione successiva
     mine = conn.execute("SELECT * FROM feuds WHERE kind='faida' AND npc_id=? AND status IN "
-                        "('giurata','in caccia','ignoto');", (npc.id,)).fetchone()
+                        "('giurata','in caccia','ignoto');", (npc.id,)).fetchone() if cause == "kill" else None
     gen = 1
     if mine:
         conn.execute("UPDATE feuds SET status='vendicata', note='caduto per mano tua' WHERE id=?;", (mine["id"],))
@@ -174,6 +183,10 @@ def on_kill(conn, t: int, rng: random.Random, player, npc) -> list[str]:
     n, mult = _prominence(conn, npc)
     if r["war_id"]:
         mult *= 0.6                                  # in guerra si muore: il rancore è più tiepido
+    if cause == "sigillo":
+        mult *= 0.6                                  # è vivo: si spera ancora di riaverlo
+    elif cause == "salma":
+        mult *= 1.2                                  # la profanazione brucia più della morte
     from engine.systems import reputation
     masked = reputation.is_disguised(conn, player.id)
     witnesses = conn.execute("SELECT COUNT(*) c FROM npcs WHERE location_id=? AND status='alive' AND id<>? "
@@ -193,23 +206,30 @@ def on_kill(conn, t: int, rng: random.Random, player, npc) -> list[str]:
         inten = int(min(100, REL[rel][1] * mult + 10 * (gen - 1)))
         ready = _day(conn) + rng.randint(lo, hi) * (2 if not knows else 1)
         conn.execute("INSERT INTO feuds (kind, npc_id, victim_id, victim_name, relation, intensity, status, knows, "
-                     "gen, since_tick, ready_day, place) VALUES ('faida', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+                     "gen, since_tick, ready_day, place, note) VALUES ('faida', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
                      (aid, npc.id, npc.name, rel, inten, "giurata" if knows else "ignoto", knows, gen, t,
-                      ready, place))
+                      ready, place, None if cause == "kill" else cause))
         sworn.append((aid, rel))
     if sworn:
         names = []
         for aid, rel in sworn:
             nm = conn.execute("SELECT name FROM npcs WHERE id=?;", (aid,)).fetchone()["name"]
             names.append(f"{REL_LABEL.get(rel, rel)} {nm}" if rel != "setta" else f"la sua setta (l'anziano {nm})")
-        if knows:
+        many = len(names) > 1
+        who = ", ".join(names)
+        who = who[0].upper() + who[1:]
+        if cause != "kill":
+            verb = _CAUSE_WORD[cause].replace("giura ", "giurano " if many else "giura ", 1)
+            lines.append(f"🩸 {who} {verb} {npc.name}. ('faide')")
+        elif knows:
             lines.append(f"🩸 La morte di {npc.name} non resterà senza risposta: " + ", ".join(names) +
-                         " giura vendetta. ('faide')")
+                         (" giurano" if many else " giura") + " vendetta. ('faide')")
         else:
-            lines.append(f"🩸 Nessuno ti ha visto. Ma {', '.join(names)} giura di trovare chi ha ucciso "
+            lines.append(f"🩸 Nessuno ti ha visto. Ma {', '.join(names)} {'giurano' if many else 'giura'} di trovare chi ha ucciso "
                          f"{npc.name}. ('faide')")
         from engine.systems import chronicle
-        chronicle.add(conn, "nemico", f"Uccide {npc.name}: " + ", ".join(names) + " giura vendetta.")
+        chronicle.add(conn, "nemico", (f"Uccide {npc.name}: " if cause == "kill" else
+                                       f"Per {npc.name} ({cause}): ") + ", ".join(names) + " giura vendetta.")
     return lines
 
 
@@ -304,7 +324,8 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
             if day >= f["ready_day"] and rng.random() < 0.08:
                 conn.execute("UPDATE feuds SET status='giurata', knows=1, ready_day=? WHERE id=?;",
                              (day + rng.randint(3, 10), f["id"]))
-                out.append(f"🩸 Voci da {f['place']}: {f['name']} ha scoperto chi ha ucciso {f['victim_name']}.")
+                what = {"sigillo": "tiene in catene", "salma": "ha profanato"}.get(f["note"] or "", "ha ucciso")
+                out.append(f"🩸 Voci da {f['place']}: {f['name']} ha scoperto chi {what} {f['victim_name']}.")
             continue
         if day < f["ready_day"] or encounters.pending(conn):
             continue
@@ -330,6 +351,12 @@ def scene(conn, player, f) -> dict:
     first = name.split()[0]
     cost = _cost(conn, f)
     text = _HUNT_TEXT.get(f["relation"], _HUNT_TEXT["fratello"]).format(victim=f["victim_name"], place=f["place"])
+    if f["note"] == "sigillo":
+        text = (f"{name} ti sbarra la strada. «{f['victim_name']} porta il tuo marchio nell'anima. "
+                "Spezzalo, o lo spezzerò io insieme alla tua testa.»")
+    elif f["note"] == "salma":
+        text = (f"{name} trema di rabbia. «Hai strappato {f['victim_name']} alla morte per farne il tuo cane. "
+                "Gli darò pace — passando sul tuo corpo.»")
     if f["gen"] > 1:
         text += f"\n(È la {f['gen']}ª generazione di questa faida: il sangue chiama sangue.)"
     victim_bad = conn.execute("SELECT 1 FROM outlaws WHERE npc_id=?;", (f["victim_id"] or -1,)).fetchone()
@@ -342,6 +369,13 @@ def scene(conn, player, f) -> dict:
     ]
     if victim_bad:
         choices[2]["label"] += " (era un ricercato: hai la verità dalla tua)"
+    if f["note"] in ("sigillo", "salma"):
+        from engine.systems import dominion
+        if dominion.servant(conn, f["victim_id"] or -1):
+            vf = f["victim_name"].split()[0]
+            choices.insert(1, {"label": f"Liberi {f['victim_name']} davanti ai suoi occhi (la faida si chiude)",
+                               "effects": {}, "command": f"servo {vf} libera"})
+            choices = choices[:5]
     return {"key": "vendetta", "title": f"Faida: {REL_LABEL.get(f['relation'], '')} di {f['victim_name']}",
             "event_type": "combat", "sticky": True, "text": text, "choices": choices,
             "ctx": {"npc_id": f["npc_id"], "npc_name": name}}

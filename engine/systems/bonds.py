@@ -27,7 +27,7 @@ from engine.systems import relations, state
 KINDS_IT = {"companion": "compagno di viaggio", "master": "maestro",
             "rival": "rivale", "nemesis": "nemesi", "beast": "bestia spirituale",
             "disciple": "discepolo", "sworn": "fratello giurato", "dao_partner": "compagna del Dao",
-            "family": "famiglia"}
+            "family": "famiglia", "servo": "servo (sigillo dell'anima)", "scorta": "servo di scorta"}
 RECRUIT_MIN = 40              # rapporto minimo per chiedere a qualcuno di seguirti
 MASTER_MIN = 50               # rapporto minimo per diventare discepolo
 MAX_NEMESES = 2
@@ -89,6 +89,8 @@ def tag(conn: sqlite3.Connection, npc_id: int, player_id: int = 1) -> str | None
         return "tuo maestro"
     if "rival" in k:
         return "tuo rivale"
+    if "servo" in k:
+        return "tuo servo"
     return None
 
 
@@ -97,7 +99,7 @@ def protected_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
     try:
         return {r["npc_id"] for r in conn.execute(
             "SELECT npc_id FROM bonds WHERE player_id=? AND status='active' "
-            "AND kind IN ('companion','master','beast','disciple','sworn','dao_partner','family');", (player_id,))}
+            "AND kind IN ('companion','master','beast','disciple','sworn','dao_partner','family','servo');", (player_id,))}
     except sqlite3.OperationalError:
         return set()
 
@@ -108,7 +110,7 @@ def pinned_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
         t = tick_mod.get_tick(conn)
         return {r["npc_id"] for r in conn.execute(
             "SELECT npc_id FROM bonds WHERE player_id=? AND status='active' AND "
-            "(kind IN ('companion','beast','disciple','dao_partner') OR (kind='nemesis' AND ready_tick<=?));",
+            "(kind IN ('companion','beast','disciple','dao_partner','scorta','servo') OR (kind='nemesis' AND ready_tick<=?));",
             (player_id, t))}
     except sqlite3.OperationalError:
         return set()
@@ -166,7 +168,7 @@ def follow_player(conn: sqlite3.Connection, player_id: int, location_id: int) ->
     try:
         conn.execute(
             "UPDATE npcs SET location_id=? WHERE status='alive' AND id IN ("
-            "SELECT npc_id FROM bonds WHERE player_id=? AND kind IN ('companion','beast','dao_partner') "
+            "SELECT npc_id FROM bonds WHERE player_id=? AND kind IN ('companion','beast','dao_partner','scorta') "
             "AND status='active');",
             (location_id, player_id))
     except sqlite3.OperationalError:
@@ -697,8 +699,9 @@ def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     from engine.systems import clones, puppets
     out += clones.combat_allies(conn, player_id)
     out += puppets.combat_allies(conn, player_id, fx)
-    from engine.systems import oaths
+    from engine.systems import oaths, dominion
     out += oaths.combat_allies(conn, player_id, npc_id)
+    out += dominion.combat_allies(conn, player_id, npc_id, fx)
     from engine.systems import dialogues, perception
     try:
         ratio = perception.strength_ratio(conn, player_id, npc_id)

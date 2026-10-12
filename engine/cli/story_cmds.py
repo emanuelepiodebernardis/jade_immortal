@@ -428,6 +428,23 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("setta", "mysect", "lamiasetta"):
         from engine.systems import sect_menu
         return sect_menu.command(conn, player, arg)
+    if cmd in ("tempra", "temprati", "spirito", "anima"):
+        from engine.systems import soul_temper
+        if arg.strip().lower() in ("info", "stato", "?"):
+            return soul_temper.describe(conn, player)
+        return soul_temper.session(conn, player)
+    if cmd in ("sigilla", "marchia", "asservisci", "soggioga", "sottometti"):
+        from engine.systems import dominion
+        return dominion.seal_command(conn, player, arg)
+    if cmd in ("rianima", "resuscita", "salma"):
+        from engine.systems import dominion
+        return dominion.revive_command(conn, player, arg)
+    if cmd in ("dominio", "servitori", "vassalli", "vassalle"):
+        from engine.systems import dominion
+        return dominion.command(conn, player, arg)
+    if cmd in ("servo", "serva"):
+        from engine.systems import dominion
+        return dominion.servant_command(conn, player, arg)
     if cmd in ("faide", "rancori", "debiti", "vendette", "faida"):
         from engine.systems import feuds
         return feuds.command(conn, player, arg)

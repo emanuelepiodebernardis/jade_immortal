@@ -55,7 +55,7 @@ function addCard(html) {
 }
 
 // ---------------- comandi ----------------
-const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "menu"];
+const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "dominio", "menu"];
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
@@ -94,6 +94,7 @@ function renderTop(s) {
   setBar("#b-esp", s.esperienza);
   setBar("#b-qi", s.qi.pct); $("#v-qi").textContent = `${s.qi.cur}/${s.qi.max}`;
   setBar("#b-sp", s.spirito.pct); $("#v-sp").textContent = `${s.spirito.cur}/${s.spirito.max}`;
+  if (s.anima) $("#b-sp").closest(".meter").title = `Spirito — ${s.anima}`;
   const c = $("#t-cuore");
   c.textContent = `Cuore ${s.cuore.val} · ${s.cuore.label}`;
   c.className = "chip" + (s.cuore.val < 30 ? " bad" : s.cuore.val < 50 ? " warn" : "");

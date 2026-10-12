@@ -209,7 +209,8 @@ def hub(conn, player) -> dict:
             act("Coltivazione: allenamento, sfondamento, Dao, dimora", "coltivazione"),
             act("Grotta-dimora", "dimora"),
             act("Famiglia, legami e discepoli", "famiglia"),
-            act("Il Libro dei Rancori e dei Debiti (faide e alleanze)", "faide")]
+            act("Il Libro dei Rancori e dei Debiti (faide e alleanze)", "faide"),
+            act("Dominio: servi sigillati, salme, sette vassalle", "dominio")]
     if own_sect.get(conn):
         acts.append(act("La setta che hai fondato", "setta mia"))
     more = [act("Mete (vai / iscriviti)", "mete"), act("La trama", "trama"), act("La tua storia", "goals"),
@@ -232,12 +233,20 @@ def growth(conn, player) -> dict:
     sess = training.sessions_today(conn, t, "player", player.id)
     secs = []
     secs.append(section("Allenamento", [f"Sessioni di oggi: {sess} (le prime rendono di più)."], [
-        act("Allenati: Qi, Dao e arti insieme", "train", main=True),
+        act("Allenati: Qi, Dao, spirito e arti insieme", "train", main=True),
         act("Medita solo sul Qi", "cultivate"),
         act("Ritiro a porte chiuse per 5 giorni", "ritiro 5"),
         act("Ritiro di 20 giorni", "ritiro 20"),
         act("Dormi fino all'alba", "sleep")],
         [bar("Strato " + str(stage) + "/10", prog * 100)], icon="☯"))
+    from engine.systems import soul_temper as ST, perception as _perc
+    sg, sxp, slo, shi = ST.progress(conn)
+    secs.append(section("Spirito (tempra dell'anima)", [
+        f"{ST.grade_name(sg)} (grado {sg}) · punteggio di spirito {_perc.spirit_score(conn, 'player', player.id):.0f}",
+        "Lo spirito decide chi puoi sigillare, allarga la riserva per le tecniche Dao e il senso divino."], [
+        act("Tempra lo spirito (seduta dedicata)", "tempra", main=True),
+        act("Il tuo dominio: servi, salme, sette vassalle", "dominio")],
+        [bar("Verso il grado " + str(sg + 1), 100 * (sxp - slo) / max(1, shi - slo), tone="info")], icon="🌀"))
     trib = dao_powers.tribulation_due(conn, player.id) > 0
     secs.append(section("Sfondamento", [cultivation.realm_label(conn, "player", player.id)], [
         act("Tenta lo sfondamento al regno successivo", "breakthrough", ok=ready,

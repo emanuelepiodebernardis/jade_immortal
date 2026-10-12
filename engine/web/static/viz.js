@@ -13,6 +13,7 @@ const V = (() => {
     ["⚔", "combattimento, duelli, guerre", "--bad"], ["☯", "coltivazione, Qi, sfondamenti", "--good"],
     ["☸", "Dao e comprensione", "--info"], ["♥", "legami e intimità", "--rare"],
     ["🩸", "faide e vendette", "--bad"], ["🤝", "debiti di vita, alleati", "--good"],
+    ["⛓ 💀", "servi sigillati, salme rianimate", "--rare"], ["🏯", "sette vassalle", "--warn"], ["🌀", "spirito, tempra dell'anima", "--info"],
     ["⛩", "setta e merito", "--accent"], ["👑", "regni e corti", "--warn"],
     ["✦", "eventi e svolte della storia", "--rare"], ["⚠", "pericolo", "--warn"],
     ["☠ ✝", "morte, caduti", "--bad"], ["✧", "guadagni, titoli", "--good"],
@@ -113,13 +114,14 @@ const V = (() => {
   const GROUP = {
     io: ["--accent", "Tu"], famiglia: ["--info", "Famiglia"], legame: ["--good", "Legami"], debito: ["--good", "Debiti di vita"],
     nemico: ["--bad", "Nemici"], faida: ["--bad", "Faide"], vittima: ["--muted", "Caduti"],
+    servo: ["--rare", "Servi"], vassalla: ["--warn", "Sette vassalle"],
   };
-  const EDGE = { famiglia: "--info", legame: "--good", debito: "--good", nemico: "--bad", faida: "--bad", sangue: "--muted", parentela: "--muted" };
+  const EDGE = { famiglia: "--info", legame: "--good", debito: "--good", nemico: "--bad", faida: "--bad", sangue: "--muted", parentela: "--muted", servo: "--rare" };
   function graph(d) {
     const nodes = d.nodi || [], edges = d.archi || [];
     if (nodes.length <= 1) return `<div class="card"><b>La rete</b><div class="empty">Nessun legame ancora: la rete si disegna man mano che vivi.</div></div>`;
     const W = 420, H = 400, cx = W / 2, cy = H / 2;
-    const order = ["famiglia", "legame", "debito", "nemico", "faida"];
+    const order = ["famiglia", "legame", "servo", "vassalla", "debito", "nemico", "faida"];
     const ring = nodes.filter((n) => order.includes(n.group)).sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group));
     const pos = { io: [cx, cy] };
     ring.forEach((n, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / ring.length; pos[n.id] = [cx + 130 * Math.cos(a), cy + 130 * Math.sin(a), a]; });

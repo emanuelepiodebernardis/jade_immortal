@@ -91,6 +91,8 @@ def _leave_behind(conn, pid: int = 1) -> list[str]:
     if b["stones"]:
         out.append(f"Le tue {b['stones']} pietre spirituali, al cospetto del Qi superiore, ne valgono "
                    f"{b['stones_after']}.")
+    from engine.systems import dominion
+    out += dominion.leave_behind(conn, pid)
     return out
 
 

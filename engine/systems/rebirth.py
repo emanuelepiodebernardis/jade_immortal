@@ -518,6 +518,10 @@ def _purge_player(conn, pid: int) -> None:
     # non sono più le tue
     conn.execute("UPDATE npcs SET hunting=0 WHERE hunting=1;")
     conn.execute("UPDATE sect_wars SET status='lost' WHERE status='active';")
+    try:                                             # i servi della vita passata tornano liberi
+        conn.execute("UPDATE servants SET status='libero' WHERE status='attivo';")
+    except Exception:
+        pass
     for r in conn.execute("SELECT key FROM game_state;").fetchall():
         if r["key"] not in _WORLD_KEYS and not r["key"].startswith("world_"):
             conn.execute("DELETE FROM game_state WHERE key=?;", (r["key"],))

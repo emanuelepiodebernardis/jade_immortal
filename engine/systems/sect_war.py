@@ -79,6 +79,9 @@ def maybe_declare(conn, tick, rng, player, observations) -> int:
         "SELECT id, name, tier, home_location_id FROM factions "
         "WHERE id<>? AND status='active' AND leader_id IS NOT NULL ORDER BY tier DESC;",
         (pfac,)).fetchall()
+    from engine.systems import dominion
+    vs = dominion.vassal_ids(conn)
+    rivals = [r for r in rivals if r["id"] not in vs]       # le tue vassalle non ti fanno guerra
     if not rivals:
         return 0
     enemy = rng.choice(rivals[: max(1, len(rivals) // 2 + 1)])
@@ -188,6 +191,9 @@ def resolve(conn, tick, rng, player, observations) -> int:
     einf = conn.execute("SELECT influence FROM factions WHERE id=?;",
                         (war["enemy_faction_id"],)).fetchone()
     p_strength = (pinf["influence"] if pinf else 30) + (war["score_player"] or 0) * 12
+    from engine.systems import dominion
+    v_bonus, v_names = dominion.war_support(conn, exclude=war["enemy_faction_id"])
+    p_strength += v_bonus
     e_strength = (einf["influence"] if einf else 30) + (war["score_enemy"] or 0) * 10 + enemies_left * 8
     won = p_strength >= e_strength
     lname = conn.execute("SELECT name FROM locations WHERE id=?;",
@@ -212,6 +218,8 @@ def resolve(conn, tick, rng, player, observations) -> int:
                      (war["enemy_faction_id"],))
         msg = (f"SCONFITTA a {lname}: la tua setta è piegata e perde influenza."
                + ("" if (war["score_player"] or 0) else " La tua assenza è pesata."))
+    if v_names:
+        msg += f" (Al tuo fianco le vassalle: {', '.join(v_names)}, +{v_bonus}.)"
     conn.execute("UPDATE npcs SET war_id=NULL WHERE war_id=?;", (war["id"],))
     from engine.simulation import event_system as ev
     ev.log_event(

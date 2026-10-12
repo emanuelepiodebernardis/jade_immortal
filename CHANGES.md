@@ -1451,3 +1451,67 @@ Chi ha il vantaggio infligge **+25%** di danni, chi è in svantaggio **−15%**.
 `loop.py` li reimporta, quindi nulla cambia per chi li usa.
 
 Nuovi test in `test_duel.py` (2). Suite totale: **561 passati**.
+
+---
+
+## Aggiornamento 32 — Lo spirito, il Sigillo dell'Anima, le salme e le sette vassalle
+
+**Tempra dello Spirito (炼神).** È una terza via di coltivazione, accanto al Qi e al Dao.
+- Si allena con `tempra`, una seduta dedicata. Anche `train` la allena, con una quota minore.
+- I gradi non hanno fine: Anima Mortale, Scintilla, Fiamma, Lago, Mare della Coscienza, Senso Divino Compiuto, Anima di Giada, Anima d'Oro Immortale, Anima Sovrana, Anima Eterna, e oltre l'Anima del N° Cielo.
+- Ogni grado fa crescere:
+  - il **punteggio di spirito**;
+  - la riserva di Spirito per le tecniche Dao;
+  - il senso divino.
+- Esistono anche gli *incensi dell'anima*, tra i premi.
+
+**Sigillo dell'Anima (魂印)** — `sigilla <nome>`.
+- Si usa su chi hai sconfitto senza ucciderlo, entro un giorno. Funziona anche alla fine di un duello vinto, con la scelta «gli marchi l'anima».
+- Va bene su persone, bestie e spiriti.
+- Regola: il tuo spirito deve essere più forte del suo. Senza combattere serve un'anima almeno 2,5 volte più forte.
+- La probabilità cresce con il distacco. Scende per patriarchi, gente d'onore e orgogliosi; sale per bestie e spiriti.
+- Se fallisci:
+  - l'anima ti respinge;
+  - i più fieri possono bruciare la propria anima pur di non servirti;
+  - altri ti giurano odio.
+- Il servo ti consegna **tutti i suoi beni** e riceve un compito:
+  - **scorta**: ti segue e combatte con te;
+  - **lavoro**: porta pietre;
+  - **guardia**: veglia sulla dimora;
+  - **reggente**: un patriarca governa la sua setta per te.
+- Il sigillo si **incrina** se l'anima del servo cresce fino a sfidare la tua. Si può rinsaldare; altrimenti il servo si ribella e diventa una nemesi.
+- La famiglia può giurare di spezzare il sigillo. È una faida: nella scena puoi liberarlo davanti ai suoi occhi per chiuderla.
+- Liberare un servo può lasciarti un debito di vita, oppure un nemico.
+
+**Sette vassalle.** Marchiare un patriarca rende la sua setta tua vassalla. Una vassalla:
+- apre il suo tesoro (pietre e tesori, una volta sola);
+- ti versa un **tributo** ogni giorno (`dominio riscuoti`, o il pilota automatico);
+- ti insegna le sue **tecniche segrete**, pagate in pietre;
+- **combatte per te**:
+  - rinforzi nelle guerre tra sette e nelle invasioni;
+  - una scelta in più nelle guerre dei regni;
+  - assalti agli ordini (`dominio attacca <setta>`, ogni 3 giorni).
+
+Una setta piegata fino in fondo si arrende e diventa vassalla anche lei, ma con poca lealtà. Il vassallaggio finisce se il patriarca muore o se si sceglie un nuovo patriarca senza il tuo sigillo.
+
+**Arte del Ritorno della Salma (炼尸)** — `rianima <nome>`.
+- Si impara dal *Canone del Ritorno della Salma*, che si trova:
+  - nelle eredità demoniache;
+  - di rado, tra i premi più alti;
+  - negli archivi delle sette vassalle demoniache.
+- Riporta in piedi un caduto morto da non più di due giorni, come servo senza volontà: non si ribella, non cresce, combatte.
+- È un'arte proibita: costa karma e infamia davanti ai testimoni, e la famiglia giura di dare pace alla salma.
+- Un patriarca rianimato entro un giorno e senza testimoni torna sul **trono come burattino**, finché gli anziani non se ne accorgono.
+
+**Dashboard.**
+- Nuovo menu **⛓ Dominio**.
+- Nella rete delle relazioni compaiono i servi e le sette vassalle.
+- La legenda ha nuovi simboli.
+- Il grado dell'anima compare nella barra dello Spirito.
+
+**Altre modifiche.**
+- Non puoi più attaccare per sbaglio un tuo servo: l'attacco cerca un altro bersaglio con lo stesso nome.
+- Ascendendo, servi e vassalle restano nel mondo inferiore. Rinascendo, tornano liberi.
+- Corretto «giura» al plurale: quando sono in più, ora giurano.
+
+Nuovi file: `engine/systems/soul_temper.py`, `engine/systems/dominion.py`. Nuovi test: `test_dominion.py` (7). Suite totale: **568 passati**.

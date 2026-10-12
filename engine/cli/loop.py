@@ -545,6 +545,10 @@ def cmd_attack(conn: sqlite3.Connection, player: entities.Player, arg: str) -> s
     if a in ("creatures", "creature", "mostri", "beasts", "all creatures"):
         return _attack_all(conn, player, only="creature")
     npc, forced, target = _parse_attack_arg(conn, player, arg)
+    from engine.systems import dominion as _dom
+    npc, why = _dom.not_my_servant(conn, player, npc, target)
+    if why:
+        return why
     if npc is None:
         hint = _target_elsewhere_hint(conn, player, target)
         return f"Non vedi nessuno di nome '{target}' qui." + (f"\n{hint}" if hint else "")
@@ -1002,6 +1006,8 @@ def _attack_auto(conn, player, npc, forced) -> str:
     if (fx.p.hp / pmax) >= (fx.e.hp / emax):
         lines.append(f"Dopo un lungo, estenuante scontro {npc.name} cede e si ritira. "
                      f"Resti ferito. ({rounds} round)")
+        from engine.systems import dominion as _dom
+        lines += _dom.after_defeat(conn, player, npc)
     else:
         lines.append(f"Dopo un lungo, estenuante scontro hai la peggio e ti ritiri, "
                      f"ferito. ({rounds} round)")
@@ -1009,7 +1015,7 @@ def _attack_auto(conn, player, npc, forced) -> str:
 
 
 def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
-                    crit_any, mods, chosen, lines, force_died: bool | None = None) -> str:
+                    crit_any, mods, chosen, lines, force_died: bool | None = None, seal: bool = False) -> str:
     wfrac = hp_p / max(1.0, pmax)
     from engine.systems import perception, seclusion
     ratio = perception.strength_ratio(conn, player.id, npc.id)
@@ -1054,6 +1060,12 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         lines += _wsp.on_fight(conn, rng, player, True, npc.name, ratio)
         lines += _arc.on_fight(conn, player, npc.id, True, True)
         lines += _after_player_kill(conn, t, rng, player, npc, chosen)
+    elif seal:                                    # duello vinto: ne marchi l'anima
+        from engine.systems import dominion as _dom, weapon_spirit as _wsp, archrival as _arc
+        lines += _wsp.on_fight(conn, rng, player, True, npc.name, ratio)
+        lines += _arc.on_fight(conn, player, npc.id, True, False)
+        _dom.note_defeated(conn, npc.id)
+        lines.append(_dom.seal(conn, t, rng, player, npc, True))
     else:
         lines.append(rng.choice([
             f"{npc.name} è gravemente ferito e si ritira dallo scontro. ({rounds} round)",
@@ -1073,6 +1085,9 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
             lines.append(nem)
+        else:
+            from engine.systems import dominion as _dom
+            lines += _dom.after_defeat(conn, player, npc)
     return "\n".join(lines)
 
 
@@ -1843,6 +1858,8 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in sect_menu.daily(conn, t, random.Random(t * 79 + day), player)]
     from engine.systems import feuds
     lines += ["  " + ln for ln in feuds.daily(conn, t, random.Random(t * 83 + day), player)]
+    from engine.systems import dominion
+    lines += ["  " + ln for ln in dominion.daily(conn, t, random.Random(t * 89 + day), player)]
     from engine.systems import history
     history.record(conn, player.id)
     lines += ["  " + ln for ln in face.daily(conn, t, random.Random(t * 73 + day), player)]

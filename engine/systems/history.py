@@ -28,13 +28,13 @@ def snapshot(conn, pid: int = 1) -> dict:
         fame = rep["fame"]
     except Exception:
         fame = 0
-    from engine.systems import karma
+    from engine.systems import karma, soul_temper
     k = karma.get_karma(conn, "player", pid)
     return {"d": tick_mod.get_tick(conn) // 120 + 1, "tier": tier, "stage": stage,
             "lvl": round(tier + (stage - 1) / 10 + (rec["progress"] if rec else 0) / 10, 2),
             "power": round(power.combat_rating(conn, "player", pid)),
             "dao": int(dao), "stones": sects.get_resource(conn, "pietre_spirituali", pid),
-            "fame": int(fame), "karma": int(k or 0)}
+            "fame": int(fame), "karma": int(k or 0), "anima": soul_temper.grade(conn, pid)}
 
 
 def record(conn, pid: int = 1) -> None:

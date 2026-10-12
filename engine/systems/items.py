@@ -115,6 +115,16 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
     if bits:
         lines.append("Il tuo corpo muta: " + ", ".join(bits) + ".")
 
+    # arti proibite (l'Arte del Ritorno della Salma) e tempra dello spirito (incensi dell'anima)
+    if effects.get("learn_art") == "salma":
+        from engine.systems import dominion
+        lines.append(dominion.learn_art(conn))
+    sx = float(effects.get("soul_xp", 0) or 0)
+    if sx:
+        from engine.systems import soul_temper
+        lines.append(f"Il fumo dell'incenso ti scende nell'anima: spirito +{sx:g}.")
+        lines += soul_temper.add_xp(conn, sx)
+
     # avanzamento della coltivazione (pillole)
     cp = float(effects.get("cultivation_progress", 0) or 0)
     if cp:

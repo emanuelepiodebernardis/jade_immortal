@@ -50,7 +50,7 @@ def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
         n = int((120 if rank == 1 else 70 if rank == 2 else 40 if rank == 3 else 15) * tier * scale)
         sects.grant_resource(conn, "pietre_spirituali", n, player.id)
         lines.append(f"💰 {n} pietre spirituali")
-    pool = kinds or ["pillola", "essenza", "manuale", "nucleo", "tesoro"]
+    pool = kinds or ["pillola", "essenza", "manuale", "nucleo", "tesoro", "incenso"]
     if rank >= 4:
         pool = [k for k in pool if k in ("pillola", "nucleo")] or pool
     n_items = 3 if rank == 1 else 2 if rank == 2 else 1
@@ -61,10 +61,17 @@ def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
         items.grant(conn, "player", player.id, iid)
         lines.append(f"{_ICON.get(k, '✧')} {it['name']} ({rar.replace('_', ' ')})")
         _remember(conn, it["name"], k, rar, it["desc"])
+    if rank == 1 and rng.random() < 0.04:            # rarissimo: un'arte proibita
+        from engine.systems import dominion
+        items.grant(conn, "player", player.id, dominion.salma_manual(conn))
+        lines.append("☠ Canone del Ritorno della Salma (leggendario)")
+        _remember(conn, "Canone del Ritorno della Salma", "manuale", "leggendario", "Arte proibita delle salme.")
     return lines
 
 
-_ICON = {"pillola": "💊", "essenza": "☸", "manuale": "📜", "nucleo": "◆", "tesoro": "🏺"}
+_ICON = {"pillola": "💊", "essenza": "☸", "manuale": "📜", "nucleo": "◆", "tesoro": "🏺", "incenso": "🌀"}
+_INCENSE = ["Incenso del Mare Quieto", "Incenso dei Mille Pensieri", "Incenso della Lanterna d'Anima",
+            "Incenso del Sonno di Giada", "Incenso del Loto Silente"]
 
 
 def _make(rng, kind: str, tier: int, ridx: int, scale: float) -> dict:
@@ -89,6 +96,9 @@ def _make(rng, kind: str, tier: int, ridx: int, scale: float) -> dict:
                 "grow_soul": "Anima"}[stat]
         return {"name": f"Nucleo di {word}", "type": "nucleo", "desc": f"Innesta {word.lower()} permanente.",
                 "eff": {stat: int((2 + tier) * p)}}
+    if kind == "incenso":
+        return {"name": rng.choice(_INCENSE), "type": "pillola", "desc": "Tempra lo spirito (la forza dell'anima).",
+                "eff": {"soul_xp": round((10 + 6 * tier) * p * min(2.0, scale), 1)}}
     a, b = rng.choice(_TREASURE)
     return {"name": f"{a} {b}", "type": "tesoro", "desc": "Un tesoro antico: usarlo ne libera l'essenza.",
             "eff": {"cultivation_progress": round((0.15 + 0.05 * tier) * p, 2), "grow_soul": int(tier * p),

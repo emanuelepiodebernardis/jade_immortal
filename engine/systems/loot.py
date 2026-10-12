@@ -133,6 +133,16 @@ def on_player_kill(conn: sqlite3.Connection, tick: int, rng: random.Random,
         drops.append((
             "Borsa di Pietre Spirituali", "tesoro", rarity,
             "Le ricchezze accumulate dal caduto.", {"stones": stones}))
+        # 4b) le eredità DEMONIACHE a volte custodiscono l'Arte del Ritorno della Salma
+        al = conn.execute("SELECT f.alignment FROM npcs n JOIN factions f ON f.id=n.faction_id WHERE n.id=?;",
+                          (npc.id,)).fetchone()
+        p_art = 0.03 if tier >= 6 else 0.0
+        if al and (al["alignment"] or "") == "demoniaca":
+            p_art = 0.35 if archetype == "patriarca" else 0.12
+        if rng.random() < p_art:
+            drops.append(("Canone del Ritorno della Salma", "manuale", "leggendario",
+                          "Un'arte proibita: insegna a riportare in piedi i caduti come servi senza volontà.",
+                          {"learn_art": "salma"}))
         # 5) la sua ARMA — droppa quasi sempre per i patriarchi, spesso per gli altri
         if archetype == "patriarca" or rng.random() < 0.6:
             wdrop = _weapon_drop(conn, rng, npc.id, tier)

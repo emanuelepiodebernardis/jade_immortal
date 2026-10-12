@@ -642,6 +642,9 @@ def _routine(conn, p, cfg: dict) -> list[str]:
         ab = cave_abode.get(conn, p.id)
         if ab and ab["loc"] == p.location_id and any(v > 0 for v in (ab.get("stock") or {}).values()):
             run("dimora raccogli")
+        from engine.systems import dominion
+        if any(int(e.get("acc", 0)) for e in dominion.vassals(conn).values()):
+            run("dominio riscuoti")
     if cfg.get("potenzia"):
         ab = cave_abode.get(conn, p.id)
         if ab and ab["loc"] == p.location_id:

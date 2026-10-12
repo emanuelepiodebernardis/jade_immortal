@@ -12,6 +12,7 @@ In una sola azione:
         Dao profondi (Destino, Tempo, Spazio) ×0.35
     I progressi frazionari non si perdono: si accumulano sessione dopo sessione.
   · pratichi la tua arte (alchimia, forgia, formazioni…): un po' di esperienza a ogni sessione.
+  · tempri lo SPIRITO (la forza dell'anima: vedi soul_temper), con una quota minore.
 
 Anche qui valgono il rendimento decrescente della giornata, la setta affine, il Dao del Tempo,
 le ere, la dimora e tutto ciò che accelera la coltivazione. Le meditazioni dedicate
@@ -105,6 +106,10 @@ def train(conn, player) -> str:
             bits.append(f"{nm} {lv1}" + (" ↑" if lv1 > lv0 else (f" (+{gain})" if gain else "")))
         state.set_json(conn, "prof_frac_map", fracs)
         out.append("Arti: " + ", ".join(bits) + ".")
+
+    # 4) lo Spirito: la terza via, temprata insieme al resto
+    from engine.systems import soul_temper
+    out.append(soul_temper.session(conn, player, share=soul_temper.SHARE, advance=False))
 
     world_tick.advance(conn, tick_mod.cost_of("cultivate"))
     out += extra_qi + notes

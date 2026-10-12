@@ -42,6 +42,8 @@ def spirit_score(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
             base += (prof["soul_residue"] or 0) * 0.05      # presenza abissale
         base += absorption.evolution_bonuses(conn, cid).get("spirit", 0)
         base += tribulation.boon_bonuses(conn, cid)["spirit"]   # Anima Folgorata
+        from engine.systems import soul_temper
+        base += soul_temper.score_bonus(conn, cid)                # tempra dello spirito
     return base
 
 

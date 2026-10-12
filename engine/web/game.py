@@ -275,6 +275,7 @@ def state_snapshot() -> dict:
             "esperienza": round((rec["progress"] if rec else 0) * 100),
             "qi": _bar(qimod.get_qi(conn, p.id), qimod.max_qi(conn, p.id)),
             "spirito": _bar(spmod.get_spirit(conn, p.id), spmod.max_spirit(conn, p.id)),
+            "anima": _soul(conn, p.id),
             "cuore": {"val": heart, "label": dao_heart.heart_label(heart)},
             "ferite": {"n": len(wounds), "max": max((w["severity"] for w in wounds), default=0)},
             "eta": lifespan.label(conn, p.id),
@@ -294,6 +295,12 @@ def state_snapshot() -> dict:
             "auto": autopilot.config(conn),
         }
     return snap
+
+
+def _soul(conn, pid) -> str:
+    from engine.systems import soul_temper, perception
+    g = soul_temper.grade(conn, pid)
+    return f"{soul_temper.grade_name(g)} (grado {g}) · spirito {perception.spirit_score(conn, 'player', pid):.0f}"
 
 
 # ============================================================
@@ -752,9 +759,9 @@ def graph_data() -> dict:
             edges.append({"a": "io", "b": m["id"], "label": m["role"], "kind": "famiglia"})
         for r in conn.execute("SELECT kind, npc_id, reason FROM bonds WHERE player_id=? AND status='active';",
                               (p.id,)).fetchall():
-            if r["kind"] == "family":
+            if r["kind"] in ("family", "scorta"):
                 continue
-            g = "nemico" if r["kind"] in ("nemesis", "rival") else "legame"
+            g = "nemico" if r["kind"] in ("nemesis", "rival") else "servo" if r["kind"] == "servo" else "legame"
             node(r["npc_id"], g)
             edges.append({"a": "io", "b": r["npc_id"], "label": bonds.KINDS_IT.get(r["kind"], r["kind"]), "kind": g})
         ar = archrival.get(conn)
@@ -772,6 +779,18 @@ def graph_data() -> dict:
         for d in feuds.debts(conn):
             node(d["npc_id"], "debito")
             edges.append({"a": d["npc_id"], "b": "io", "label": "ti deve la vita", "kind": "debito"})
+        from engine.systems import dominion
+        for k, e in dominion.vassals(conn).items():
+            f = conn.execute("SELECT name FROM factions WHERE id=?;", (int(k),)).fetchone()
+            if not f:
+                continue
+            sid = f"setta{k}"
+            nodes.append({"id": sid, "label": "🏯 " + f["name"], "nome": f["name"], "group": "vassalla", "vivo": True,
+                          "qui": False, "forza": 0})
+            if e.get("via") and e["via"] in seen:
+                edges.append({"a": e["via"], "b": sid, "label": "governa per te", "kind": "servo"})
+            else:
+                edges.append({"a": "io", "b": sid, "label": "vassalla", "kind": "servo"})
     return {"nodi": nodes, "archi": edges}
 
 

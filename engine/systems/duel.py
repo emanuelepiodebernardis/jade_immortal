@@ -61,6 +61,10 @@ def start(conn, player, arg: str) -> str:
     if encounters.pending(conn):
         return "Prima risolvi ciò che hai davanti."
     npc, _forced, target = loop._parse_attack_arg(conn, player, arg or "")
+    from engine.systems import dominion
+    npc, why = dominion.not_my_servant(conn, player, npc, target)
+    if why:
+        return why
     if npc is None:
         return f"Non vedi nessuno di nome '{target}' qui. (duello <nome>)"
     pa = combat.combat_power(conn, "player", player.id)
@@ -313,10 +317,15 @@ def _won(conn, player, lines: list[str]) -> str:
           "choices": [{"label": "Lo finisci", "effects": {}, "command": "duello_azione finisci"},
                       {"label": "Lo risparmi (il mondo se lo ricorderà)", "effects": {},
                        "command": "duello_azione risparmia"}]}
+    from engine.systems import dominion
+    ok, p, why = dominion.seal_odds(conn, player.id, d["npc"], True)
+    sc["choices"].append({"label": (f"Gli marchi l'anima: sarà tuo servo (~{int(p * 100)}%)" if ok
+                                    else f"Sigillo dell'anima — impossibile: {why}"),
+                          "effects": {}, "command": "duello_azione sigilla"})
     return encounters.start_scene(conn, player, sc, force=True) or ""
 
 
-def finish(conn, player, kill: bool) -> str:
+def finish(conn, player, kill: bool, seal: bool = False) -> str:
     from engine.cli import loop
     d = get(conn)
     if not d or d["hp_e"] > 0:
@@ -328,7 +337,7 @@ def finish(conn, player, kill: bool) -> str:
     t = tick_mod.get_tick(conn)
     rng = random.Random(t * 17 + d["npc"])
     return loop._auto_end_enemy(conn, t, rng, player, npc, d["round"], max(1.0, d["hp_p"]), d["pmax"],
-                                d.get("crit", False), {}, None, [], force_died=kill)
+                                d.get("crit", False), {}, None, [], force_died=kill, seal=seal)
 
 
 def command(conn, player, arg: str) -> str:
@@ -337,4 +346,12 @@ def command(conn, player, arg: str) -> str:
         return finish(conn, player, True)
     if a in ("risparmia", "grazia"):
         return finish(conn, player, False)
+    if a in ("sigilla", "marchia"):
+        from engine.systems import dominion
+        d = get(conn)
+        if d and d["hp_e"] <= 0:
+            ok, _p, why = dominion.seal_odds(conn, player.id, d["npc"], True)
+            if not ok:
+                return _won(conn, player, [f"Non puoi marchiarne l'anima: {why}."])
+        return finish(conn, player, False, seal=True)
     return act(conn, player, a)

@@ -78,6 +78,9 @@ def lead_invasion(conn: sqlite3.Connection, tick: int, rng: random.Random, playe
     if target["id"] == m["faction_id"]:
         return {"status": "own", "lines": ["Questa è la TUA setta: non puoi invaderla."]}
 
+    from engine.systems import dominion
+    if target["id"] in dominion.vassal_ids(conn):
+        return {"status": "own", "lines": [f"{target['name']} è già tua vassalla: non c'è nulla da conquistare."]}
     my_fac = m["faction_id"]
     my_name = m["sect_name"]
     loc = player.location_id
@@ -101,6 +104,10 @@ def lead_invasion(conn: sqlite3.Connection, tick: int, rng: random.Random, playe
     # il GIOCATORE affronta i difensori più forti; gli alleati si occupano del resto
     from engine.cli import loop as _loop          # riuso del motore di combattimento
     ally_power = sum(_power(conn, "npc", a["id"]) for a in allies)
+    v_bonus, v_names = dominion.war_support(conn, exclude=target["id"])
+    if v_names:
+        ally_power += v_bonus * 3
+        lines.append("Le tue vassalle mandano i loro discepoli: " + ", ".join(v_names) + ".")
     routed = 0
     for d in defenders:
         dp = _power(conn, "npc", d["id"])

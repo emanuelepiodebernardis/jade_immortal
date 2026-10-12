@@ -275,5 +275,11 @@ def war(conn, player) -> str:
                        "success": {"kingdom_favor": [rk, 60], "stones": 50 * tier, "npc_leaves": True,
                                    "text": "Il fianco nemico crolla: la battaglia è vinta."},
                        "failure": {"injury": 4, "kingdom_favor": [rk, 10], "text": "La carica si infrange."}}]}
+    from engine.systems import dominion
+    v_bonus, v_names = dominion.war_support(conn)
+    if v_names:
+        sc["choices"].append({"label": f"Mandi in prima linea le tue sette vassalle ({', '.join(v_names[:3])})",
+                              "effects": {"kingdom_favor": [rk, 40 + v_bonus], "fame": 4, "npc_leaves": True,
+                                          "text": "Le bandiere delle tue vassalle travolgono il fronte nemico."}})
     sc = encounters.format_scene(sc, {"npc_name": npc_factory.unique_name(rng, conn=conn)})
     return encounters.start_scene(conn, player, sc, force=True) or ""

@@ -62,9 +62,10 @@ def _migrate(conn) -> None:
                  "rarity TEXT NOT NULL, price INTEGER NOT NULL, effects TEXT NOT NULL, "
                  "sold INTEGER DEFAULT 0);")
     # legami (compagni/maestro/rivali/nemesi) e vite passate (reincarnazione)
-    from engine.systems import bonds, rebirth, feuds
+    from engine.systems import bonds, rebirth, feuds, dominion
     bonds.ensure_table(conn)
     feuds.ensure_table(conn)
+    dominion.ensure_table(conn)
     rebirth.ensure_table(conn)
     from engine.systems import beasts
     beasts.ensure_table(conn)

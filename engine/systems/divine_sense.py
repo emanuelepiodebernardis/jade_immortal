@@ -36,7 +36,8 @@ def toggle(conn, arg: str) -> str:
 def _sense(conn, pid: int) -> int:
     r = conn.execute("SELECT comprehension FROM character_daos WHERE character_type='player' AND character_id=? "
                      "AND dao_key='anima';", (pid,)).fetchone()
-    return (r["comprehension"] or 0) if r else 0
+    from engine.systems import soul_temper
+    return ((r["comprehension"] or 0) if r else 0) + 5 * soul_temper.grade(conn, pid)
 
 
 def scan(conn, player, arg: str) -> str:

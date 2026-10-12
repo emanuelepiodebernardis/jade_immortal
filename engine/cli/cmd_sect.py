@@ -91,6 +91,9 @@ def cmd_raid(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     m = sects.get_membership(conn, player.id)
     if m and m["faction_id"] == hq["id"]:
         return "Questa è la TUA setta: non puoi razziarla. ('leave' prima, se proprio vuoi.)"
+    from engine.systems import dominion
+    if hq["id"] in dominion.vassal_ids(conn):
+        return f"{hq['name']} è tua vassalla: ciò che ha è già tuo ('dominio')."
     members = conn.execute(
         "SELECT id, name FROM npcs WHERE faction_id=? AND status='alive' AND kind='human' "
         "AND location_id=? ORDER BY id;", (hq["id"], player.location_id)).fetchall()
