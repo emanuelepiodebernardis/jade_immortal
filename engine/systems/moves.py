@@ -67,8 +67,10 @@ def _set_cooldown(conn: sqlite3.Connection, player_id: int, move_key: str,
         (_state_key(player_id, move_key), str(ready_tick)))
 
 
-def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
-    """Tutte le mosse che il giocatore possiede ora, con stato del cooldown."""
+def available_moves(conn: sqlite3.Connection, player_id: int = 1, all_moves: bool = False) -> list[dict]:
+    """Le mosse che il giocatore possiede ora, con stato del cooldown. Di ogni CATEGORIA (stesso Dao o
+    stessa combinazione di Dao) si carica solo la più forte: le altre restano tue ma, superate, non si usano
+    più ('all_moves=True' le include tutte)."""
     out: list[dict] = []
     from engine.core import tick as tickmod
     now_tick = tickmod.get_tick(conn)
@@ -83,9 +85,10 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
 
     # tecniche segrete apprese -> burst attivabili (forza e costo dalla magnitude)
     for t in guild.learned(conn, player_id):
-        mag = t["magnitude"] or 0
+        mag = guild.effective_magnitude(t["magnitude"] or 0)
         key = f"tec{t['tech_key'].replace(':', '_')}"
-        out.append({"key": key, "name": t["name"], "cooldown": TECH_COOLDOWN,
+        nm = t["name"] + (f" (×{t['copies']})" if t["copies"] > 1 else "")
+        out.append({"key": key, "name": nm, "cooldown": TECH_COOLDOWN,
                     "qi_cost": int(40 + mag * 200), "spirit_cost": 0, "fuel": "qi",
                     "mods": {"attack_mult": 1.0 + mag * 4, "death_bonus": 0.15},
                     "desc": "tecnica segreta scatenata", "source": "tecnica"})
@@ -130,6 +133,9 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
             m["affordable"] = cur_sp >= m["spirit_cost"]
         else:
             m["affordable"] = cur_qi >= m["qi_cost"]
+    if not all_moves:
+        from engine.systems import technique_forge
+        out = technique_forge.prune(conn, player_id, out)
     return out
 
 

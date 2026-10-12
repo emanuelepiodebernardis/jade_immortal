@@ -63,10 +63,24 @@ def slots(conn, pid: int = 1) -> int:
 
 # ============================================================ le tue tecniche, con i loro Dao
 
+_NAME_TAGS = {"spada": "spada", "lancia": "lancia", "asta": "lancia", "sciabola": "sciabola", "arco": "arco",
+              "pugno": "pugno", "bastone": "bastone", "corpo": "corpo", "fulmine": "fulmine", "tuono": "fulmine",
+              "fuoco": "fuoco", "fiamm": "fuoco", "acqua": "acqua", "marea": "acqua", "ghiaccio": "acqua",
+              "terra": "terra", "montagna": "terra", "vento": "vento", "metallo": "metallo", "legno": "legno",
+              "foresta": "legno", "quercia": "legno", "luce": "luce", "ombra": "oscurita", "oscurit": "oscurita",
+              "tenebr": "oscurita", "anima": "anima", "spirit": "anima", "istante": "tempo", "tempo": "tempo",
+              "spazio": "spazio", "destino": "destino", "sangue": "sangue", "stell": "stelle"}
+
+
+def _tags_from_name(name: str) -> list[str]:
+    low = name.lower()
+    return list(dict.fromkeys(v for k, v in _NAME_TAGS.items() if k in low))
+
+
 def _learned_tags(conn, pid) -> dict[str, list[str]]:
-    from engine.systems import race_realms
+    from engine.systems import race_realms, guild
     out = {}
-    for r in conn.execute("SELECT tech_key, faction_id FROM learned_techniques WHERE player_id=?;", (pid,)).fetchall():
+    for r in guild.learned(conn, pid):
         tags: list[str] = []
         k = r["tech_key"] or ""
         if r["faction_id"]:
@@ -76,16 +90,18 @@ def _learned_tags(conn, pid) -> dict[str, list[str]]:
         if k.startswith("race:"):
             rk = k.split(":")[1]
             tags += race_realms.BLOOD.get(rk, (None, []))[1][:1]
+        if not tags:
+            tags = _tags_from_name(r["name"])
         out[f"tec{k.replace(':', '_')}"] = tags
     return out
 
 
-def techniques(conn, pid: int = 1) -> list[dict]:
-    """Tutte le tecniche (le stesse mosse del combattimento), ognuna con i suoi Dao ('tags')."""
-    from engine.systems import moves, weapons
-    lt = _learned_tags(conn, pid)
+def _annotate(conn, pid: int, moves_list: list[dict]) -> list[dict]:
+    """Aggiunge a ogni mossa i suoi Dao ('tags')."""
+    from engine.systems import weapons
+    lt = _learned_tags(conn, pid) if any(m.get("source") == "tecnica" for m in moves_list) else {}
     out = []
-    for m in moves.available_moves(conn, pid):
+    for m in moves_list:
         src = m.get("source", "")
         if src == "arma":
             tags = [weapons.get_weapon(conn, pid) or "corpo"]
@@ -103,6 +119,44 @@ def techniques(conn, pid: int = 1) -> list[dict]:
             tags = []
         out.append({**m, "tags": [t for t in tags if t], "gen": m.get("gen", 0)})
     return out
+
+
+def category(m: dict) -> str:
+    """La categoria di una tecnica: i suoi Dao (uno, o la combinazione di 2, 3, 4… Dao). Senza Dao noti,
+    la tecnica fa categoria a sé con la sua famiglia di nome."""
+    if m.get("tags"):
+        return "+".join(sorted(m["tags"]))
+    import re
+    return m.get("source", "") + ":" + re.sub(r"\s*\(×\d+\)|\s*\([IVX]+\)$", "", m["name"]).split()[0].lower()
+
+
+def prune(conn, pid: int, moves_list: list[dict]) -> list[dict]:
+    """Di ogni categoria tiene solo la tecnica più forte; le altre (superate) non si caricano più.
+    Le tecniche create nella fucina restano sempre (sono scelte tue)."""
+    ann = _annotate(conn, pid, moves_list)
+    best: dict[str, int] = {}
+    for i, m in enumerate(ann):
+        if m.get("source") == "creata":
+            continue
+        c = category(m)
+        if c not in best or _power(m) > _power(ann[best[c]]):
+            best[c] = i
+    keep = set(best.values()) | {i for i, m in enumerate(ann) if m.get("source") == "creata"}
+    return [ann[i] for i in range(len(ann)) if i in keep]
+
+
+def techniques(conn, pid: int = 1, everything: bool = False) -> list[dict]:
+    """Le tue tecniche (le stesse mosse del combattimento), con i loro Dao. Di base solo la più forte di
+    ogni categoria; everything=True include anche quelle superate."""
+    from engine.systems import moves
+    if everything:
+        return _annotate(conn, pid, moves.available_moves(conn, pid, all_moves=True))
+    return moves.available_moves(conn, pid)
+
+
+def superseded(conn, pid: int = 1) -> int:
+    from engine.systems import moves
+    return len(moves.available_moves(conn, pid, all_moves=True)) - len(moves.available_moves(conn, pid))
 
 
 def _cost(m: dict) -> float:
@@ -158,14 +212,23 @@ def _modifier(tags: list[str], name: str) -> str:
 
 
 def _core(name: str) -> str:
-    name = name.split(" — ")[0]
+    import re
+    name = re.sub(r"\s*\(×\d+\)", "", name.split(" — ")[0])
     for pre in ("Arte Suprema: ", "Armonia degli Opposti: "):
         name = name.replace(pre, "")
     w = name.replace("…", "").split()
     return " ".join(w[:4])
 
 
-def plan(parts: list[dict], conn=None, pid: int = 1) -> dict:
+def _ctx(conn, pid: int) -> dict:
+    """Ciò che serve a stimare le fusioni, letto UNA volta sola (non per ogni coppia)."""
+    from engine.systems import soul_temper
+    comp = {r["dao_key"]: (r["comprehension"] or 0) for r in conn.execute(
+        "SELECT dao_key, comprehension FROM character_daos WHERE character_type='player' AND character_id=?;", (pid,))}
+    return {"grade": soul_temper.grade(conn, pid), "insight": state.get_int(conn, INSIGHT, 0), "comp": comp}
+
+
+def plan(parts: list[dict], conn=None, pid: int = 1, ctx: dict | None = None) -> dict:
     """Il risultato previsto di una fusione (nome, effetti, costo, probabilità)."""
     a = parts[0]
     tags = list(dict.fromkeys(t for p in parts for t in p["tags"]))
@@ -206,19 +269,15 @@ def plan(parts: list[dict], conn=None, pid: int = 1) -> dict:
         name = f"Armonia degli Opposti: {name}"
     elif "risonanza" in kinds and len(parts) == 2:
         name = f"{name} Risonante" if "Risonante" not in name else name
-    if gen >= 3 or len(parts) >= 3:
+    if (gen >= 3 or len(parts) >= 3) and not name.startswith("Arte Suprema"):
         name = f"Arte Suprema: {name}"
     # riuscita
     chance = 0.55 + chance_mod - 0.1 * (len(parts) - 2) - 0.04 * (gen - 1)
-    if conn is not None:
-        from engine.systems import soul_temper
-        chance += 0.02 * soul_temper.grade(conn, pid) + 0.08 * state.get_int(conn, INSIGHT, 0)
-        comp = 0
-        for t in tags:
-            r = conn.execute("SELECT comprehension FROM character_daos WHERE character_type='player' AND character_id=? "
-                             "AND dao_key=?;", (pid, t)).fetchone()
-            comp += (r["comprehension"] or 0) if r else 0
-        chance += 0.0015 * min(200, comp)
+    if ctx is None and conn is not None:
+        ctx = _ctx(conn, pid)
+    if ctx is not None:
+        chance += 0.02 * ctx["grade"] + 0.08 * ctx["insight"]
+        chance += 0.0015 * min(200, sum(ctx["comp"].get(t, 0) for t in tags))
     return {"name": name, "mods": mods, "tags": tags, "fuel": "spirit" if spirit else "qi",
             "spirit_cost": int(total) if spirit else 0, "qi_cost": 0 if spirit else int(total * 2),
             "cooldown": max(p.get("cooldown", 2) for p in parts), "gen": gen, "kinds": kinds,
@@ -230,18 +289,29 @@ def fusion_cost(conn, pid: int, n_parts: int, gen: int) -> tuple[int, int]:
     return (max(15, int(spmod.max_spirit(conn, pid) * 0.35)), 40 * _tier(conn, pid) * gen * (n_parts - 1))
 
 
-def suggestions(conn, pid: int = 1, limit: int = 6) -> list[tuple[list[int], dict]]:
-    techs = techniques(conn, pid)
+def _power(m: dict) -> float:
+    md = m.get("mods", {})
+    return md.get("attack_mult", 1.0) + 0.2 * md.get("extra_strikes", 0) + md.get("pierce", 0) + md.get("death_bonus", 0)
+
+
+PAIR_POOL, TRIPLE_POOL, LIST_MAX = 24, 10, 25          # si provano le coppie tra le 24 tecniche più forti, le terne tra le 10
+
+
+def suggestions(conn, pid: int = 1, limit: int = 6, techs: list[dict] | None = None) -> list[tuple[list[int], dict]]:
+    techs = techs if techs is not None else techniques(conn, pid)
+    ctx = _ctx(conn, pid)
+    order = sorted(range(len(techs)), key=lambda i: -_power(techs[i]))
+    pool2, pool3 = sorted(order[:PAIR_POOL]), sorted(order[:TRIPLE_POOL])
     out = []
-    for i, j in itertools.combinations(range(len(techs)), 2):
+    for i, j in itertools.combinations(pool2, 2):
         if set(techs[i]["tags"]) == set(techs[j]["tags"]) and techs[i]["source"] == techs[j]["source"] == "dao":
             continue                                           # la tecnica fusa dei Dao li contiene già
-        p = plan([techs[i], techs[j]], conn, pid)
+        p = plan([techs[i], techs[j]], conn, pid, ctx)
         out.append(([i + 1, j + 1], p))
-    if len(techs) >= 3:
+    if len(pool3) >= 3:
         best3 = None
-        for c in itertools.combinations(range(len(techs)), 3):
-            p = plan([techs[k] for k in c], conn, pid)
+        for c in itertools.combinations(pool3, 3):
+            p = plan([techs[k] for k in c], conn, pid, ctx)
             v = p["mods"]["attack_mult"] * p["chance"]
             if best3 is None or v > best3[0]:
                 best3 = (v, [k + 1 for k in c], p)
@@ -409,7 +479,7 @@ def menu_build(conn, player) -> dict:
     else:
         stones = sects.get_resource(conn, "pietre_spirituali", player.id)
         cur_sp = spmod.get_spirit(conn, player.id)
-        sug = suggestions(conn, player.id)
+        sug = suggestions(conn, player.id, techs=techs)
         acts = []
         lines = [f"Tecniche create: {len(lst)}/{slots(conn, player.id)} · spirito {cur_sp}"
                  f"/{spmod.max_spirit(conn, player.id)} · intuizioni {state.get_int(conn, INSIGHT, 0)}"]
@@ -423,9 +493,23 @@ def menu_build(conn, player) -> dict:
                             f" · ×{p['mods']['attack_mult']:.2f} · {int(p['chance'] * 100)}% · {_BOND_IT[p['kinds'][0]]}",
                             "tecniche fondi " + " ".join(map(str, idx)), ok=ok, why=why, main=k == 0))
         secs.append(section("Fucina: fusioni proposte (un clic per tentare)", lines, acts, icon="⚒"))
-    lines = [f"#{i} {_ICON.get(m['source'], '•')} {m['name']} — {summary(m)}"
-             + (f" · Dao: {', '.join(m['tags'])}" if m["tags"] else "") for i, m in enumerate(techs, 1)]
-    secs.append(section("Tutte le tue tecniche (i numeri # servono per 'tecniche fondi <n> <m>')", lines,
+    show_all = state.flag(conn, "forge_show_all", False)
+    ranked = sorted(range(len(techs)), key=lambda i: -_power(techs[i]))
+    shown = sorted(ranked if show_all else ranked[:LIST_MAX])
+    lines = [f"#{i + 1} {_ICON.get(techs[i]['source'], '•')} {techs[i]['name']} — {summary(techs[i])}"
+             + (f" · Dao: {', '.join(techs[i]['tags'])}" if techs[i]["tags"] else "") for i in shown]
+    hidden = len(techs) - len(shown)
+    if hidden > 0:
+        lines.append(f"… e altre {hidden} tecniche più deboli (mostrate solo le {LIST_MAX} più forti).")
+    old = superseded(conn, player.id)
+    if old:
+        lines.append(f"({old} tecniche superate restano tue ma non si caricano più: di ogni Dao o combinazione di "
+                     "Dao conta solo la più forte.)")
+    toggle = (act(f"Mostra tutte le {len(techs)} tecniche", "tecniche tutte") if hidden > 0 else
+              act("Mostra solo le più forti", "tecniche forti") if show_all and len(techs) > LIST_MAX else None)
+    secs.append(section(f"Le tue tecniche attive: {len(techs)} — la più forte per ogni Dao e combinazione "
+                        "(i numeri # servono per 'tecniche fondi <n> <m>')", lines,
+                        ([toggle] if toggle else []) +
                         [act("Tecniche della setta", "techniques"), act("Tecniche delle vassalle", "dominio tecniche")],
                         icon="📜"))
     cm = {m["forge_id"]: m for m in custom_moves(conn, player.id)}
@@ -452,6 +536,9 @@ def command(conn, player, arg: str) -> str:
             return fuse(conn, player, sug[0][0])
         idxs = [int(x) for x in p[1:] if x.isdigit()]
         return fuse(conn, player, idxs)
+    if sub in ("tutte", "forti"):
+        state.set(conn, "forge_show_all", "1" if sub == "tutte" else "0")
+        return menus.show(conn, player, "tecniche")
     if sub in ("allena", "esercita") and len(p) > 1 and p[1].isdigit():
         return train(conn, player, int(p[1]))
     if sub in ("rinomina", "nome") and len(p) > 2 and p[1].isdigit():

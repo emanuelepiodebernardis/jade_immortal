@@ -52,7 +52,24 @@ def test_panel_lists_techniques_and_proposes_fusions(conn):
     sug = TF.suggestions(conn, 1)
     assert sug and sug[0][1]["name"]
     txt = menus.render(conn, menus.build(conn, _p(conn), "tecniche"))
-    assert "Fucina" in txt and "Tutte le tue tecniche" in txt
+    assert "Fucina" in txt and "Le tue tecniche attive" in txt
+
+
+def test_only_the_strongest_of_each_category_is_loaded(conn):
+    _setup(conn)
+    for i, mag in enumerate((0.1, 0.3, 0.05)):
+        conn.execute("INSERT INTO learned_techniques (player_id, faction_id, tech_key, name, magnitude, learned_tick) "
+                     "VALUES (1, NULL, ?, ?, ?, 0);", (f"legacy:x{i}", f"Arte del Fuoco {i}", mag))
+    every = TF.techniques(conn, 1, everything=True)
+    active = TF.techniques(conn, 1)
+    fire = [m for m in active if TF.category(m) == "fuoco"]
+    assert len(fire) == 1 and len(active) < len(every)
+    assert TF.superseded(conn, 1) == len(every) - len(active)
+    # i doppioni con lo stesso nome sono una tecnica sola, padroneggiata più volte
+    conn.execute("INSERT INTO learned_techniques (player_id, faction_id, tech_key, name, magnitude, learned_tick) "
+                 "VALUES (1, NULL, 'legacy:y1', 'Arte del Fuoco 1', 0.3, 0);")
+    names = [m["name"] for m in TF.techniques(conn, 1, everything=True)]
+    assert "Arte del Fuoco 1 (×2)" in names
 
 
 def test_fusion_creates_a_new_move_that_grows(conn):

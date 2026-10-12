@@ -1605,3 +1605,23 @@ I posti per le tecniche create crescono con la tempra dello spirito e con il reg
 Comandi: `tecniche`, `tecniche fondi <n> <m> [<k>]`, `tecniche fondi migliore`, `tecniche allena <n>`, `tecniche rinomina <n> <nome>`, `tecniche dimentica <n>`. Il vecchio elenco delle tecniche della setta resta con `techniques`.
 
 Nuovo file: `engine/systems/technique_forge.py`. Nuovi test: `test_technique_forge.py` (4). Suite totale: **577 passati**.
+
+---
+
+## Aggiornamento 35 — Tecniche: solo la più forte di ogni categoria (il pannello non si blocca più)
+
+**Il problema.** Con un personaggio avanzato le tecniche apprese erano diventate più di 500. Erano soprattutto manuali delle eredità con lo stesso nome: «Arte Suprema della Spada» c'era 210 volte. Ognuna diventava una mossa, e per proporre le fusioni la fucina provava milioni di combinazioni. Il pannello non si apriva e teneva bloccato il gioco.
+
+**Le soluzioni.**
+- **I doppioni con lo stesso nome sono una tecnica sola.** Nel pannello compare per esempio «Arte Suprema della Spada (×210)». La potenza complessiva del personaggio resta identica: nessun salvataggio perde forza.
+- **Di ogni categoria si carica solo la più forte.** La categoria è il Dao della tecnica, oppure la sua combinazione di 2, 3, 4 o più Dao. Le tecniche superate restano tue ma non si caricano più, né nel pannello né in combattimento. Il pannello dice quante sono. Le tecniche create nella fucina restano tutte.
+- **Come mossa, una tecnica molto padroneggiata cresce in modo graduale.** Il moltiplicatore cresce piano oltre una certa soglia, invece di sommarsi all'infinito.
+- **La fucina è più veloce:**
+  - legge i dati una volta sola;
+  - prova le coppie tra le 24 tecniche più forti e le terne tra le 10 più forti;
+  - nell'elenco mostra le 25 più forti (`tecniche tutte` per vederle tutte).
+- **Le tecniche delle eredità senza setta** prendono il Dao dal nome («…della Spada» → spada), così entrano nelle categorie e nelle fusioni.
+
+Con il salvataggio di prova il pannello passa da bloccato a 0,01 secondi: 42 tecniche attive su 560. Anche i combattimenti sono più veloci, perché scelgono tra molte meno mosse.
+
+Nuovo test in `test_technique_forge.py`. Suite totale: **578 passati**.

@@ -111,9 +111,19 @@ def is_learned(conn: sqlite3.Connection, tech_key: str, player_id: int = 1) -> b
 
 
 def learned(conn: sqlite3.Connection, player_id: int = 1) -> list[sqlite3.Row]:
+    """Le tecniche apprese, RAGGRUPPATE per nome: dieci manuali di «Arte Suprema della Spada» sono una
+    tecnica sola, padroneggiata dieci volte (copies) e con la potenza sommata."""
     return conn.execute(
-        "SELECT tech_key, name, magnitude FROM learned_techniques WHERE player_id=?;",
-        (player_id,)).fetchall()
+        "SELECT MIN(tech_key) AS tech_key, name, SUM(magnitude) AS magnitude, COUNT(*) AS copies, "
+        "MIN(faction_id) AS faction_id FROM learned_techniques WHERE player_id=? GROUP BY name "
+        "ORDER BY MIN(id);", (player_id,)).fetchall()
+
+
+def effective_magnitude(mag: float) -> float:
+    """Potenza di una tecnica come MOSSA: piena fino a 0,4, poi cresce piano (logaritmo)."""
+    import math
+    mag = mag or 0.0
+    return mag if mag <= 0.4 else 0.4 * (1 + 0.5 * math.log(mag / 0.4))
 
 
 def learn(conn: sqlite3.Connection, tick: int, rank: int, player_id: int = 1) -> dict:
