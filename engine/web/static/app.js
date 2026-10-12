@@ -44,7 +44,7 @@ function addLog(text, cmd) {
 }
 
 // ---------------- comandi ----------------
-const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "menu"];
+const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "menu"];
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
@@ -102,13 +102,13 @@ function renderPlace(s) {
   h += `<div class="exits">` + s.uscite.map((e) =>
     `<button data-cmd="move ${e.dir}" title="pericolo ${e.danger}">${DIR[e.dir] || e.dir} → ${esc(e.name)}</button>`).join("") + `</div>`;
   if (s.presenti.length) {
-    const many = s.presenti.length > 8 && !showAllNpcs;
-    const list = many ? s.presenti.slice(0, 8) : s.presenti;
+    const many = s.presenti.length > 6 && !showAllNpcs;
+    const list = many ? s.presenti.slice(0, 6) : s.presenti;
     h += `<div class="npcs">` + list.map((n) => {
       const first = n.name.split(" ")[0];
-      return `<span class="npc" title="${esc(n.tag)}">${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
+      return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
         <button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button></span>`;
-    }).join("") + (many ? `<button id="more-npc">+ altri ${s.presenti.length - 8}</button>` : "") + `</div>`;
+    }).join("") + (many ? `<button id="more-npc">+ altri ${s.presenti.length - 6}</button>` : "") + `</div>`;
   }
   $("#place").innerHTML = h;
   const m = $("#more-npc"); if (m) m.onclick = () => { showAllNpcs = true; renderPlace(S); };

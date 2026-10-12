@@ -208,7 +208,8 @@ def hub(conn, player) -> dict:
             act("Eventi del mondo", "eventi"),
             act("Coltivazione: allenamento, sfondamento, Dao, dimora", "coltivazione"),
             act("Grotta-dimora", "dimora"),
-            act("Famiglia, legami e discepoli", "famiglia")]
+            act("Famiglia, legami e discepoli", "famiglia"),
+            act("Il Libro dei Rancori e dei Debiti (faide e alleanze)", "faide")]
     if own_sect.get(conn):
         acts.append(act("La setta che hai fondato", "setta mia"))
     more = [act("Mete (vai / iscriviti)", "mete"), act("La trama", "trama"), act("La tua storia", "goals"),
@@ -383,3 +384,56 @@ def abode(conn, player) -> dict:
         secs.append(section(f"{nm} — livello {lv}", [f"Ora: {A.EFFECT[k](lv)} · al prossimo: {A.EFFECT[k](lv + 1)}"],
                             acts))
     return menu("dimora", f"⌂ {ab['name'].upper()}", [], secs)
+
+
+# ================================================================ RANCORI E DEBITI
+
+_ST = {"giurata": "si prepara", "in caccia": "ti ha trovato", "ignoto": "cerca ancora l'assassino",
+       "debito": "ti deve la vita", "alleato": "accorrerà al tuo fianco", "chiusa": "chiusa col risarcimento",
+       "riconciliata": "riconciliata", "vendicata": "caduto", "saldato": "debito saldato"}
+
+
+def grudges(conn, player) -> dict:
+    from engine.systems import feuds as F, perception
+    from engine.systems.travel import _loc_name
+    F.ensure_table(conn)
+    day = tick_mod.get_tick(conn) // 120
+    secs = []
+    fs = F.feuds(conn)
+    if not fs:
+        secs.append(section("Faide", ["Nessuno ti cerca per vendetta. Ogni vita che togli, però, lascia qualcuno."],
+                            icon="🩸"))
+    for f in fs:
+        here = f["location_id"] == player.location_id
+        first = f["name"].split()[0]
+        try:
+            cmp_ = perception.relative_strength(conn, player.id, f["npc_id"])
+        except Exception:
+            cmp_ = ""
+        lines = [f"{F.REL_LABEL.get(f['relation'], f['relation']).capitalize()} di {f['victim_name']} "
+                 f"(ucciso a {f['place']}) — {_ST.get(f['status'], f['status'])}"
+                 + (f" · {f['gen']}ª generazione" if f["gen"] > 1 else ""),
+                 (f"Si trova a {_loc_name(conn, f['location_id'])}" if f["knows"] else "Non sa chi sei")
+                 + (f" · {cmp_}" if cmp_ else "")
+                 + (f" · arriverà tra circa {max(0, f['ready_day'] - day)} giorni" if f["status"] == "giurata" else "")]
+        cost = F._cost(conn, f)
+        acts = [act(f"Duello con {f['name']}", f"duello {first}" if here else f"faide duello {f['id']}", ok=here or f["knows"],
+                    why="non sa ancora chi sei"),
+                act(f"Risarcisci la famiglia ({cost} pietre)", f"faide risarcisci {f['id']}",
+                    ok=_stones(conn, player.id) >= cost and f["knows"], why=f"servono {cost} pietre"),
+                act("Raccontagli la verità", f"faide verita {f['id']}", ok=bool(f["knows"]), why="non sa chi sei")]
+        if not here and f["location_id"]:
+            acts.append(act("Vai da lui", f"vai #{f['location_id']}"))
+        secs.append(section(f"🩸 {f['name']}", lines, acts, [bar("Rancore", f["intensity"])]))
+    ds = F.debts(conn)
+    d_lines = [f"🤝 {d['name']} — risparmiato a {d['place']}: {_ST.get(d['status'], d['status'])}" for d in ds]
+    secs.append(section("Debiti di vita", d_lines or ["Nessuno ti deve la vita. Risparmiare chi hai battuto crea alleati."],
+                        [act(f"Vai da {d['name']}", f"vai #{d['location_id']}") for d in ds
+                         if d["location_id"] and d["location_id"] != player.location_id][:4], icon="🤝"))
+    old = [r for r in F._rows(conn, "faida", active=False) if r["status"] in ("chiusa", "riconciliata", "vendicata")]
+    old += [r for r in F._rows(conn, "debito", active=False) if r["status"] == "saldato"]
+    if old:
+        secs.append(section("Conti chiusi", [f"{r['name']} ({r['victim_name']}): {_ST.get(r['status'], r['status'])}"
+                                              + (f" — {r['note']}" if r["note"] else "") for r in old[-8:]], icon="📜"))
+    return menu("faide", "🩸 IL LIBRO DEI RANCORI E DEI DEBITI",
+                [f"Faide aperte: {len(fs)} · debiti di vita: {len(ds)}"], secs)

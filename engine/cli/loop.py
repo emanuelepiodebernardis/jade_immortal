@@ -9,6 +9,7 @@ Il parser resta volutamente semplice. Il mondo è generato proceduralmente
 from __future__ import annotations
 
 import random
+import re
 import sqlite3
 
 from engine.core import entities, tick
@@ -184,10 +185,44 @@ def _danger_tag(level: int) -> str:
     return f"[pericolo {level}: {word}]"
 
 
+_ARR = re.compile(r"^(.+?) arriva da (.+)\.$")
+_DEP = re.compile(r"^(.+?) si allontana verso (.+)\.$")
+
+
+def _names_line(label: str, names: list[str]) -> str:
+    shown = names[:6]
+    more = f" e altri {len(names) - 6}" if len(names) > 6 else ""
+    return f"  · {label}: " + ", ".join(shown) + more + "."
+
+
 def _format_observations(obs: list[str]) -> str:
+    """Le osservazioni del mondo, raccolte: chi arriva, chi se ne va, chi è solo di passaggio
+    (non più una riga per ogni passo di ogni persona)."""
     if not obs:
         return ""
-    return "\n".join("  · " + o for o in obs)
+    last: dict[str, str] = {}
+    first: dict[str, str] = {}
+    other: list[str] = []
+    for o in obs:
+        m = _ARR.match(o) or _DEP.match(o)
+        if not m:
+            if o not in other:
+                other.append(o)
+            continue
+        kind = "in" if _ARR.match(o) else "out"
+        first.setdefault(m.group(1), kind)
+        last[m.group(1)] = kind
+    came = [n for n, k in last.items() if k == "in" and first[n] == "in"]
+    went = [n for n, k in last.items() if k == "out" and first[n] == "out"]
+    passing = [n for n in last if n not in came and n not in went]
+    lines = ["  · " + o for o in other]
+    if came:
+        lines.append(_names_line("Arrivano", came))
+    if went:
+        lines.append(_names_line("Se ne vanno", went))
+    if passing:
+        lines.append(_names_line("Di passaggio", passing))
+    return "\n".join(lines)
 
 
 def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
@@ -197,7 +232,23 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     exits = entities.get_exits(conn, player.location_id)
     if direction not in exits:
         return f"Non puoi andare a {direction} da qui."
+    lost: list[str] = []
+    if direction == "up":                         # salire: ciò che è del mondo inferiore resta indietro
+        from engine.systems import ascension
+        if ascension.layer_of_location(conn, exits[direction]) > ascension.layer_of_location(conn, player.location_id):
+            bag = ascension.describe_baggage(conn, player.id)
+            t_now = tick.get_tick(conn)
+            from engine.systems import state as _st
+            if bag and _st.get_int(conn, "up_confirm_tick", -1) != t_now:
+                _st.set(conn, "up_confirm_tick", str(t_now))
+                return ("Oltre la Porta Celeste nulla del mondo inferiore sopravvive:\n" + bag +
+                        "\nScrivi di nuovo 'up' per attraversarla comunque.")
+            lost = ascension._leave_behind(conn, player.id)
     entities.move_player(conn, player.id, exits[direction])
+    if lost:
+        obs_lost = "\n".join(lost) + "\n"
+    else:
+        obs_lost = ""
     # il mondo simula durante lo spostamento (scope attivo intorno alla NUOVA posizione)
     obs = world_tick.advance(conn, tick.cost_of("move"))
     from engine.systems import qi as qimod
@@ -206,7 +257,7 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     spmod.restore_fraction(conn, 0.15, player.id)
     new_tick = tick.get_tick(conn)
     moved = entities.get_player(conn, player.id)
-    out = f"Tick {new_tick}\n" + render_location(conn, moved)
+    out = obs_lost + f"Tick {new_tick}\n" + render_location(conn, moved)
     if obs:
         out += "\nNel frattempo:\n" + _format_observations(obs)
     return out + _after_arrival(conn, moved)
@@ -382,6 +433,8 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     """Ricompense/conseguenze quando il giocatore uccide un bersaglio.
     Condiviso tra modalità automatica e a turni."""
     lines: list[str] = []
+    from engine.systems import feuds                   # chi piange la vittima? (prima che la taglia si chiuda)
+    lines += feuds.on_kill(conn, t, rng, player, npc)
     from engine.systems import bounties
     was_outlaw = bounties.get_outlaw(conn, npc.id) is not None
     if was_outlaw:
@@ -1014,6 +1067,8 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
         from engine.systems import echoes as _ech
         _lname = conn.execute("SELECT name FROM locations WHERE id=?;", (player.location_id,)).fetchone()
         _ech.record(conn, npc.id, "risparmiato", f"lo scontro a {_lname['name'] if _lname else 'un luogo lontano'}")
+        from engine.systems import feuds as _feuds         # risparmiare per scelta crea un debito di vita
+        lines += _feuds.on_spare(conn, t, rng, player, npc, chosen=force_died is False)
         from engine.systems import bonds as _bonds
         nem = _bonds.on_enemy_fled(conn, t, rng, player, npc)
         if nem:
@@ -1148,6 +1203,9 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
     rng = random.Random(t * 131 + player.id)
     # il DEMONE INTERIORE può sbarrarti la strada (una volta per regno)
     rec = cultivation.get_record(conn, "player", player.id)
+    from engine.systems import ascension as _asc
+    if _asc.at_world_peak(conn, player.id) and rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0:
+        arg = "!"                                 # al tetto del mondo non c'è sfondamento: niente demone
     if arg.strip() != "!" and rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0:
         from engine.systems import heart_demon, encounters
         tier = cultivation.realm_tier(conn, "player", player.id) or 1
@@ -1162,7 +1220,12 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
     if status == "not_ready":
         return "Non sei ancora pronto. Continua a coltivare."
     if status == "peak":
-        return "Hai già raggiunto la vetta: Immortale di Giada."
+        return "Hai già raggiunto la vetta."
+    if status == "world_peak":
+        from engine.systems import ascension
+        return (f"☁ Sei alla Grande Perfezione, ma il {ascension.layer_name(res['layer'])} non regge un regno "
+                f"più alto del {res['cap']}°: il Cielo stesso ti trattiene. Non c'è più nulla da sfondare qui.\n"
+                "Resta solo l'ASCENSIONE: 'ascendi_mondo' (lascerai indietro gli oggetti di questo mondo).")
     if status == "success":
         from engine.systems import sects, sect_life
         extra = ""
@@ -2088,6 +2151,8 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in sect_politics.daily(conn, t, random.Random(t * 71 + day), player)]
     from engine.systems import sect_menu
     lines += ["  " + ln for ln in sect_menu.daily(conn, t, random.Random(t * 79 + day), player)]
+    from engine.systems import feuds
+    lines += ["  " + ln for ln in feuds.daily(conn, t, random.Random(t * 83 + day), player)]
     lines += ["  " + ln for ln in face.daily(conn, t, random.Random(t * 73 + day), player)]
     from engine.systems import weapon_spirit as _wsp
     lines += ["  " + ln for ln in _wsp.on_days(conn, player, 1)]
@@ -2531,6 +2596,10 @@ def cmd_spare(conn: sqlite3.Connection, player: entities.Player, arg: str) -> st
     msg = sect_war.on_enemy_defeated(conn, t, player, target["id"], "spare")
     obs = world_tick.advance(conn, tick.cost_of("short_rest"))
     out = f"Sopraffai {target['name']} e gli concedi la vita. " + (msg or "")
+    from engine.systems import feuds
+    _sp = feuds.on_spare(conn, t, random.Random(t + target["id"]), player, entities.get_npc(conn, target["id"]), True)
+    if _sp:
+        out += "\n" + "\n".join(_sp)
     if obs:
         out += "\n" + _format_observations(obs)
     return out

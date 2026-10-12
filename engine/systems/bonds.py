@@ -701,7 +701,10 @@ def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     out += oaths.combat_allies(conn, player_id, npc_id)
     from engine.systems import dialogues, perception
     try:
-        out += dialogues.rescuers(conn, player_id, npc_id, perception.strength_ratio(conn, player_id, npc_id))
+        ratio = perception.strength_ratio(conn, player_id, npc_id)
+        out += dialogues.rescuers(conn, player_id, npc_id, ratio)
+        from engine.systems import feuds
+        out += feuds.allies_in_battle(conn, player_id, npc_id, ratio)
     except Exception:
         pass
     return out

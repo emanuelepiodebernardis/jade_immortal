@@ -57,6 +57,11 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
              "gara prova" if gc["joined"] else "gara iscriviti")
 
     # 1) minacce immediate
+    from engine.systems import feuds
+    for f in feuds.feuds(conn):
+        if f["location_id"] == loc and f["knows"]:
+            _add(out, f"Duello con {f['name']} (faida per {f['victim_name']})", f"duello {f['name'].split()[0]}")
+            break
     for nm in bonds.nemeses(conn, player.id):
         if nm["location_id"] == loc:
             _add(out, f"Affronta la tua nemesi {nm['name']}", f"attack {nm['name']}")

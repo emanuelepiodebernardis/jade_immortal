@@ -71,7 +71,7 @@ def _spawn_classmates(conn, rng, faction_id, location_id, tier, n) -> list[int]:
     from engine.generators import npc_gen, dao_gen
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
-    realm_id = by_tier.get(tier, by_tier.get(1))
+    realm_id = cultivation.ensure_realm(conn, max(1, tier))
     # le sette di livello alto hanno discepoli più affilati (stesso regno, più maestria)
     srow = conn.execute("SELECT tier FROM factions WHERE id=?;", (faction_id,)).fetchone()
     sect_tier = (srow["tier"] if srow and srow["tier"] else 1)

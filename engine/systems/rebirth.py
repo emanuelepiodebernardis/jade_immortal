@@ -97,7 +97,7 @@ _EPILOGUES = [
      "Nessuno ti ha sconfitto. Hai chiuso gli occhi quando hai deciso tu, come chi posa un pennello "
      "a opera finita, e la ruota delle vite ti ha accolto. Tornerai — e ricorderai."),
     ("immortale", "L'Immortale di Giada",
-     lambda f: f["tier"] >= 8,
+     lambda f: f["tier"] >= 10,
      "Pochi, in diecimila anni, salgono tanto in alto. Il tuo nome entra nelle preghiere "
      "dei coltivatori, inciso accanto a quello degli antichi."),
     ("divoratore", "Il Divoratore di Mondi",
@@ -498,6 +498,8 @@ def inheritance_options(row: sqlite3.Row) -> list[dict]:
 
 
 def _purge_player(conn, pid: int) -> None:
+    # chi dava la caccia alla vita precedente non riconosce la nuova: i cacciatori si fermano
+    conn.execute("UPDATE npcs SET hunting=0 WHERE hunting=1;")
     tables = [r["name"] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")]
     for tb in tables:

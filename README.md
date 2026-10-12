@@ -109,8 +109,12 @@ momento.
 
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.
-- **Nessun tetto**: oltre l'*Immortale di Giada* (regno 8) i regni si generano da soli con
-  nomi ascendenti (*Sovrano Celeste*, *Re degli Immortali*, … e poi numerali romani).
+- **Ogni mondo ha il suo tetto**: il Mondo Mortale regge nove regni (Condensazione del Qi,
+  Fondazione, Nucleo d'Oro, Anima Nascente, Trasformazione dello Spirito, Raffinamento del Vuoto,
+  Unione del Corpo, Grande Veicolo, Superamento della Tribolazione). Alla Grande Perfezione
+  del nono si **ascende** (lasciando indietro gli oggetti del mondo inferiore) e si diventa
+  *Immortale di Giada*; ogni mondo superiore aggiunge tre regni (Immortale Celeste, Immortale
+  d'Oro, Santo, Imperatore del Dao, Caos Primordiale…), senza fine.
 - Breakthrough con probabilità di **fallimento** (che tempra il corpo) e di **morte**;
   ogni fallimento ti rende più pronto al tentativo successivo.
 

@@ -99,11 +99,16 @@ _MODIFIERS = {
     "illusione": "Illusorio", "stelle": "Stellare", "vuoto": "del Nulla", "creazione": "Generatore",
 }
 
-_GRADE = ["", "iniziato", "adepto", "esperto", "maestro", "gran maestro", "dominatore", "legislatore"]
+_GRADE = ["", "iniziato", "adepto", "esperto", "maestro", "gran maestro", "dominatore", "legislatore",
+          "sovrano", "origine", "antenato"]
+_BEYOND = ["Sovranità", "Origine", "Antenato"]          # oltre la Legge: nomi per ogni Dao
 
 
 def _main_name(dao_key: str, idx: int) -> str:
     names = _MAIN_NAMES.get(dao_key)
+    if idx >= 8:
+        suffix = dt._dao_suffix(_dao_label(dao_key))
+        return f"{_BEYOND[min(idx - 8, len(_BEYOND) - 1)]} {suffix}"
     if names:
         return names[min(idx, len(names) - 1)]
     suffix = dt._dao_suffix(_dao_label(dao_key))
@@ -213,7 +218,7 @@ def dao_techniques(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
         "source": "dao", "fuel": "spirit", "main": main_key,
         "mod": secondaries[0][0] if secondaries else None,
         "fused": [main_key] + [k for k, _ in secondaries],
-        "grade": _GRADE[min(main_idx, 7)]})
+        "grade": _GRADE[min(main_idx, len(_GRADE) - 1)]})
 
     # ---- tecniche SINGOLE dei Dao secondari (varietà) ----
     for k, c in secondaries:
@@ -224,7 +229,7 @@ def dao_techniques(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
             "mods": _profile_mods(k, idx, dt.dao_combat_bonus(c), 0.0),
             "desc": "tecnica del Dao (affatica lo Spirito)", "source": "dao",
             "fuel": "spirit", "main": k, "mod": None,
-            "fused": [k], "grade": _GRADE[min(idx, 7)]})
+            "fused": [k], "grade": _GRADE[min(idx, len(_GRADE) - 1)]})
     return out
 
 

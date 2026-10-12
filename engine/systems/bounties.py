@@ -98,10 +98,9 @@ def _spawn_successor(conn, fallen_id, tick) -> None:
     old = conn.execute("SELECT notoriety, crime FROM outlaws WHERE npc_id=?;", (fallen_id,)).fetchone()
     if old is None:
         return
-    new_notor = min(8, old["notoriety"] + 1)
-    tier = min(8, cultivation.realm_tier(conn, "npc", fallen_id) + 1)   # più forte del precedente
-    by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
-    realm_id = by_tier.get(tier, by_tier.get(1))
+    new_notor = old["notoriety"] + 1                                  # la fama del ricercato non ha tetto
+    tier = cultivation.realm_tier(conn, "npc", fallen_id) + 1           # più forte del precedente
+    realm_id = cultivation.ensure_realm(conn, tier)
     rng = __import__("random").Random(tick * 7 + fallen_id)
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     name = npc_gen._unique_name(rng, used)

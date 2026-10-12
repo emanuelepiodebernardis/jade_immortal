@@ -24,10 +24,10 @@ def conn(tmp_path: Path, monkeypatch):
     c.close()
 
 
-def test_eight_realms_seeded(conn):
+def test_nine_mortal_realms_seeded(conn):
     rows = conn.execute("SELECT tier, name FROM cultivation_realms ORDER BY tier;").fetchall()
-    assert [r["tier"] for r in rows] == list(range(1, 9))
-    assert rows[-1]["name"] == "Immortale di Giada"
+    assert [r["tier"] for r in rows] == list(range(1, 10))
+    assert rows[-1]["name"] == "Superamento della Tribolazione"
 
 
 def test_player_starts_tier1_with_record(conn):

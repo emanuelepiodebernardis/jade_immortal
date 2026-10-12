@@ -63,9 +63,20 @@ def effective_level(conn: sqlite3.Connection, ctype: str, cid: int) -> int:
     return (realm_tier(conn, ctype, cid) - 1) * STAGES_PER_REALM + stage_of(conn, ctype, cid)
 
 
+def stage_phase(stage: int, progress: float = 0.0) -> str:
+    """Le fasi di ogni regno: iniziale (1-3), intermedia (4-6), avanzata (7-9), picco (10);
+    al picco con l'esperienza piena, la Grande Perfezione (大圆满)."""
+    if stage >= STAGES_PER_REALM:
+        return "Grande Perfezione" if progress >= 1.0 else "picco"
+    return "iniziale" if stage <= 3 else "intermedia" if stage <= 6 else "avanzata"
+
+
 def realm_label(conn: sqlite3.Connection, ctype: str, cid: int) -> str:
-    """Es. 'Condensazione del Qi · Strato 4/10'."""
-    return f"{realm_name(conn, ctype, cid)} · Strato {stage_of(conn, ctype, cid)}/{STAGES_PER_REALM}"
+    """Es. 'Condensazione del Qi · Strato 4/10 (intermedia)'."""
+    st = stage_of(conn, ctype, cid)
+    rec = get_record(conn, ctype, cid)
+    ph = stage_phase(st, rec["progress"] if rec else 0.0)
+    return f"{realm_name(conn, ctype, cid)} · Strato {st}/{STAGES_PER_REALM} ({ph})"
 
 
 def realm_name(conn: sqlite3.Connection, ctype: str, cid: int) -> str:
@@ -205,9 +216,14 @@ def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
     tier = realm_tier(conn, ctype, cid)
     if rec is None:
         return {"status": "no_record"}
-    # nessun tetto: la via sale all'infinito (i regni oltre l'8 si generano da soli)
+    # la via sale all'infinito, ma ogni MONDO regge solo fino a un certo regno: oltre si ascende
     if not (stage_of(conn, ctype, cid) >= STAGES_PER_REALM and rec["progress"] >= 1.0):
         return {"status": "not_ready"}
+    from engine.systems import ascension
+    cap = ascension.cap_at(conn, _char_location(conn, ctype, cid))
+    if tier >= cap:
+        return {"status": "world_peak", "cap": cap,
+                "layer": ascension.layer_of_location(conn, _char_location(conn, ctype, cid))}
 
     fails = rec["bt_failures"] or 0
     p_success, fate_death = _bt_success(conn, ctype, cid, rec, tier, consume=True)

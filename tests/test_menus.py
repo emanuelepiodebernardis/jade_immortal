@@ -189,11 +189,14 @@ def test_one_command_absorbs_every_essence(conn):
     assert not left, out
 
 
-def test_ascending_to_very_high_sects_never_breaks(conn):
-    """Regressione: oltre il livello 8 la zona di caccia chiedeva un intervallo vuoto (randrange)."""
+def test_ascending_sects_stops_at_the_world_top(conn):
+    """Si sale di setta fino alla più alta che il mondo regga (poi si ascende al mondo superiore);
+    regressione: oltre il livello 8 la zona di caccia chiedeva un intervallo vuoto (randrange)."""
     _join(conn)
-    for _ in range(6):
-        sects.generate_invitations(conn, 0, random.Random(5), 1, count=3, bonus=4)
+    for _ in range(8):
+        if not sects.generate_invitations(conn, 0, random.Random(5), 1, count=3, bonus=4):
+            break
         out = sect_menu.ascend(conn, _p(conn), "1")
         assert "Ascendi" in out, out
-    assert (sects.get_membership(conn)["sect_tier"] or 1) > 10
+    assert (sects.get_membership(conn)["sect_tier"] or 1) == sects.max_sect_tier(conn, 1)
+    assert sect_menu.requirements(conn, 1)["top"]

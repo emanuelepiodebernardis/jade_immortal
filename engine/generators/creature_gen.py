@@ -42,6 +42,9 @@ def _spawn_one(conn, rng, kind, location_id, lo, hi) -> int:
     i = 2
     while name in used:
         name = f"{base} {i}"; i += 1
+    from engine.systems import ascension               # il tetto del mondo vale anche per le bestie
+    cap = ascension.cap_at(conn, location_id)
+    lo, hi = min(lo, cap), min(hi, cap)
     realm_id, tier = _realm_for(conn, rng, lo, hi)
     archetype = {"beast": "bestia", "demon": "demone", "spirit": "spirito"}[kind]
     desc = {"beast": "Una bestia selvaggia dagli occhi feroci.",
@@ -81,7 +84,7 @@ def seed_creatures(conn: sqlite3.Connection, rng: random.Random) -> None:
         loc = rng.choice(wild)
         danger = conn.execute("SELECT danger_level FROM locations WHERE id=?;", (loc,)).fetchone()["danger_level"]
         kind = rng.choices(["beast", "demon", "spirit"], weights=[5, 2, 2])[0]
-        lo = max(1, danger - 1); hi = min(8, danger + 1)
+        lo = max(1, danger - 1); hi = danger + 1
         _spawn_one(conn, rng, kind, loc, lo, hi)
 
 
@@ -98,7 +101,7 @@ def replenish_wild(conn: sqlite3.Connection, rng: random.Random) -> int:
         loc = rng.choice(wild)
         danger = conn.execute("SELECT danger_level FROM locations WHERE id=?;", (loc,)).fetchone()["danger_level"]
         kind = rng.choices(["beast", "demon", "spirit"], weights=[5, 2, 2])[0]
-        _spawn_one(conn, rng, kind, loc, max(1, danger - 1), min(8, danger + 1))
+        _spawn_one(conn, rng, kind, loc, max(1, danger - 1), danger + 1)
         spawned += 1
     return spawned
 

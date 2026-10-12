@@ -188,3 +188,6 @@ tr.me td { color: var(--accent); font-weight: 600; }
 .mact button[disabled] { opacity: .55; cursor: not-allowed; }
 .mact button small { display: block; color: var(--muted); font-size: 11px; }
 .mbar .bar i { background: var(--accent); }
+
+#place .npc.foe { border: 1px solid var(--bad); }
+#place .npc.friend { border: 1px solid var(--good); }

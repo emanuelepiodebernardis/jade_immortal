@@ -63,7 +63,7 @@ def theme_label(theme: str) -> str:
 
 
 def _rating_to_tier(rating: int) -> int:
-    return max(1, min(8, 1 + rating // 150))
+    return max(1, 1 + rating // 150)
 
 
 def _spawn_classed_npc(conn, rng, loc, klass, rating, tick) -> int:
@@ -78,10 +78,11 @@ def _spawn_classed_npc(conn, rng, loc, klass, rating, tick) -> int:
     if klass == "dao":
         rtier = max(1, tier - 2)
     elif klass == "qi":
-        rtier = min(8, tier + 1)
+        rtier = tier + 1
     else:
         rtier = tier
-    realm_id = by_tier.get(rtier, by_tier.get(1))
+    from engine.simulation import cultivation as _cult
+    realm_id = _cult.ensure_realm(conn, max(1, rtier))
     cur = conn.execute(
         "INSERT INTO npcs (name, location_id, status, description, archetype, kind, "
         "realm_id, last_active_tick) VALUES (?, ?, 'alive', ?, ?, 'human', ?, ?);",

@@ -81,9 +81,9 @@ def _spawn_hunter(conn: sqlite3.Connection, tick: int, rng: random.Random,
         return None
     loc = rng.choice(far)["id"]
     ptier = cultivation.realm_tier(conn, "player", player.id) or 1
-    htier = max(2, min(8, ptier + (1 if tier >= 2 else 0)))   # pari o superiore al giocatore
-    by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
-    realm_id = by_tier.get(htier, by_tier.get(1))
+    htier = max(2, ptier + (1 if tier >= 2 else 0))            # pari o superiore al giocatore, senza tetto
+    from engine.simulation import cultivation as _cult
+    realm_id = _cult.ensure_realm(conn, htier)
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     name = npc_gen._unique_name(rng, used)
     is_elder = rng.random() < 0.5

@@ -1,12 +1,20 @@
 """
-ASCENSIONE AI MONDI SUPERIORI (飞升) — infiniti strati di mondo.
+ASCENSIONE AI MONDI SUPERIORI (飞升) — infiniti strati di mondo, ognuno col suo TETTO.
 
-Questo mondo è solo il primo gradino. Dal 9° regno puoi aprire la PORTA CELESTE e
-salire a un Mondo Superiore: un nuovo continente, generato al momento, con sette più
-antiche, coltivatori del tuo livello e oltre, Qi più denso (si coltiva più in fretta).
-Da lì, ogni 3 regni, un'altra porta: non c'è un ultimo mondo.
+Ogni mondo regge solo fino a un certo regno: il Mondo Mortale fino al 9° (Superamento della
+Tribolazione), ogni mondo superiore tre regni in più (12, 15, 18…). Nessuno, in quel mondo, può
+andare oltre: né tu né chi ci vive. Arrivato alla GRANDE PERFEZIONE del regno più alto, lo
+sfondamento non è più possibile: resta solo l'ASCENSIONE.
 
-  ascendi_mondo       apri la Porta Celeste dal punto in cui ti trovi (regno ≥ 9, poi 12, 15…)
+Ascendere è rinascere in un cielo più alto:
+  · attraversi la Porta Celeste e diventi subito il primo regno del nuovo mondo
+    (dal Mondo Mortale: Immortale di Giada);
+  · NON puoi portare nulla del mondo inferiore: oggetti, pillole, materiali si dissolvono nel
+    passaggio, e le pietre spirituali valgono un decimo (il Qi del cielo superiore è di un altro
+    ordine). Restano tuoi solo ciò che è legato all'anima: arma, tecniche, Dao, bestia, legami;
+  · il nuovo mondo ha sette più antiche, Qi più denso e coltivatori che ti superano.
+
+  ascendi_mondo [conferma]  apri la Porta Celeste (prima ti dice cosa lascerai indietro)
   mondi               gli strati di mondo che hai raggiunto
   up / down           attraversi le porte già aperte (su / giù)
 """
@@ -36,6 +44,67 @@ def reached(conn) -> int:
 
 def required_tier(layer: int) -> int:
     return 9 + 3 * layer
+
+
+def world_cap(layer: int) -> int:
+    """Il regno più alto che un mondo può reggere (Mondo Mortale: 9; poi 12, 15, 18…)."""
+    return 9 + 3 * layer
+
+
+def cap_at(conn, location_id: int | None) -> int:
+    return world_cap(layer_of_location(conn, location_id))
+
+
+def clamp_tier(conn, location_id: int | None, tier: int) -> int:
+    """Nessuno nasce, in un mondo, più forte di quanto quel mondo possa reggere."""
+    return max(1, min(int(tier), cap_at(conn, location_id)))
+
+
+def at_world_peak(conn, pid: int = 1) -> bool:
+    from engine.simulation import cultivation
+    p = entities.get_player(conn, pid)
+    return (cultivation.realm_tier(conn, "player", pid) or 1) >= cap_at(conn, p.location_id)
+
+
+def baggage(conn, pid: int = 1) -> dict:
+    """Ciò che si perde salendo: oggetti, materiali e i nove decimi delle pietre."""
+    from engine.systems import items, sects, professions
+    inv = items.player_inventory(conn, pid)
+    mats = {k: professions.material(conn, pid, k) for k in professions.MATERIALS}
+    stones = sects.get_resource(conn, "pietre_spirituali", pid)
+    return {"items": sum(r["quantity"] for r in inv), "names": [r["name"] for r in inv][:8],
+            "mats": {k: v for k, v in mats.items() if v}, "stones": stones, "stones_after": stones // 10}
+
+
+def _leave_behind(conn, pid: int = 1) -> list[str]:
+    from engine.systems import sects, professions
+    b = baggage(conn, pid)
+    conn.execute("DELETE FROM inventories WHERE owner_type='player' AND owner_id=?;", (pid,))
+    for k in professions.MATERIALS:
+        sects.grant_resource(conn, k, -professions.material(conn, pid, k), pid)
+    sects.grant_resource(conn, "pietre_spirituali", b["stones_after"] - b["stones"], pid)
+    out = []
+    if b["items"]:
+        out.append(f"I {b['items']} oggetti del mondo inferiore si sfaldano come cenere nel passaggio.")
+    if b["mats"]:
+        out.append("Erbe, minerali e nuclei si dissolvono: la loro essenza qui non vale nulla.")
+    if b["stones"]:
+        out.append(f"Le tue {b['stones']} pietre spirituali, al cospetto del Qi superiore, ne valgono "
+                   f"{b['stones_after']}.")
+    return out
+
+
+def describe_baggage(conn, pid: int = 1) -> str:
+    b = baggage(conn, pid)
+    lines = []
+    if b["items"]:
+        lines.append(f"  · {b['items']} oggetti dello zaino (" + ", ".join(b["names"]) +
+                     ("…" if b["items"] > len(b["names"]) else "") + ")")
+    if b["mats"]:
+        lines.append("  · i materiali: " + ", ".join(f"{v} {k}" for k, v in b["mats"].items()))
+    if b["stones"]:
+        lines.append(f"  · le pietre: da {b['stones']} a {b['stones_after']}")
+    return "\n".join(lines)
 
 
 def layer_of_location(conn, location_id: int | None) -> int:
@@ -110,26 +179,43 @@ def _generate_layer(conn, rng: random.Random, layer: int, ptier: int) -> int:
     return start
 
 
-def ascend(conn, player) -> str:
+def ascend(conn, player, arg: str = "") -> str:
     from engine.simulation import cultivation, world_tick
     from engine.systems import encounters, reputation, lifespan
+    from engine.generators.cultivation_gen import realm_name_for_tier
     if encounters.pending(conn):
         return "Prima risolvi ciò che hai davanti."
     tier = cultivation.realm_tier(conn, "player", player.id) or 1
     here = layer_of_location(conn, player.location_id)
     target = here + 1
-    if "up" in entities.get_exits(conn, player.location_id):
-        return "Qui la Porta Celeste è già aperta: 'up' per attraversarla."
-    if tier < required_tier(here):
-        return (f"La Porta Celeste non si apre per te: per lasciare il {layer_name(here)} serve "
-                f"almeno il regno {required_tier(here)}.")
+    cap = world_cap(here)
+    rec = cultivation.get_record(conn, "player", player.id)
+    perfect = tier > cap or (tier == cap and rec and (rec["stage"] or 1) >= cultivation.STAGES_PER_REALM
+                             and rec["progress"] >= 1.0)
+    if tier < cap or not perfect:
+        return (f"La Porta Celeste non si apre per te. Il {layer_name(here)} regge fino al regno "
+                f"{cap} ({realm_name_for_tier(cap)}): raggiungine la GRANDE PERFEZIONE (strato 10, "
+                f"esperienza piena), poi potrai ascendere.")
+    if arg.strip().lower() not in ("conferma", "si", "sì", "ok"):
+        bag = describe_baggage(conn, player.id)
+        return (f"☁ Sei alla Grande Perfezione del {layer_name(here)}. Sopra di te, il {layer_name(target)}.\n"
+                + (f"Ascendendo lascerai indietro tutto ciò che appartiene a questo mondo:\n{bag}\n"
+                   "(Prima puoi usarli: 'use all', 'use essenze'.)\n" if bag else "")
+                + "Resteranno tuoi l'arma, le tecniche, i Dao, la bestia e i legami.\n"
+                "Scrivi 'ascendi_mondo conferma' quando sei pronto.")
+    lost = _leave_behind(conn, player.id)
+    rise = []
+    if tier == cap:                       # la Porta stessa è lo sfondamento al regno successivo
+        r = cultivation._breakthrough_success(conn, "player", player.id, tier, tick_mod.get_tick(conn),
+                                              player.name, player.location_id, None, [])
+        rise.append(f"Il Qi del cielo superiore ti attraversa: sei ora {realm_name_for_tier(tier + 1)}!")
     if target <= reached(conn):
         # strato già esistente: apri una nuova porta verso la sua città d'arrivo
         dest = state.get_json(conn, "world_layer_gates", {}).get(str(target))
         if dest:
             _link(conn, player.location_id, dest)
             entities.move_player(conn, player.id, dest)
-            return f"Riapri la Porta Celeste e risali al {layer_name(target)}."
+            return "\n".join([f"Riapri la Porta Celeste e risali al {layer_name(target)}."] + lost + rise)
     rng = random.Random(tick_mod.get_tick(conn) * 997 + target)
     dest = _generate_layer(conn, rng, target, tier)
     _link(conn, player.location_id, dest)
@@ -144,8 +230,10 @@ def ascend(conn, player) -> str:
     title = f"Asceso al {layer_name(target)}"
     state.grant_title(conn, title)
     return (f"✦ Il cielo si squarcia. Una scala di luce ti solleva oltre le nuvole, oltre le stelle… ✦\n"
+            + "\n".join(lost + rise) + ("\n" if lost or rise else "") +
             f"Sei giunto nel {layer_name(target)}. Il Qi qui è così denso che respirarlo è già coltivare "
-            f"(coltivazione ×{1 + 0.3 * target:.1f}). Qui, però, sei di nuovo uno tra tanti.\n"
+            f"(coltivazione ×{1 + 0.3 * target:.1f}). Qui, però, sei di nuovo uno tra tanti: questo mondo "
+            f"regge fino al regno {world_cap(target)} ({realm_name_for_tier(world_cap(target))}).\n"
             f"La vita ti si allunga di {100 * target} anni. ✧ Nuovo titolo: «{title}» ✧\n"
             "('down' per tornare indietro attraverso la porta)")
 

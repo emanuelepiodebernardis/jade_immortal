@@ -65,7 +65,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "delve                         — scendi al piano successivo del reame (in fondo, la Sala dell'Eredità)",
         "assemblea [iscriviti|1|2|3]   — la GRANDE ASSEMBLEA dell'Alleanza Marziale: iscrizione e incontri",
         "asta [offri <lotto> <pietre>] — la casa d'aste (in città, quando è aperta)",
-        "ascendi_mondo                 — (regno 9, poi 12, 15…) apri la Porta Celeste verso un mondo superiore",
+        "ascendi_mondo [conferma]      — alla Grande Perfezione del regno più alto del mondo (9, poi 12, 15…) ascendi: diventi il primo regno del mondo superiore, ma lasci indietro oggetti, materiali e 9/10 delle pietre",
         "mondi                         — gli strati di mondo raggiunti — 'up'/'down' per attraversare le porte",
         "sistema [riscuoti|negozio|compra <n>] — (Trasmigratore) missioni e negozio del Sistema",
     ]),

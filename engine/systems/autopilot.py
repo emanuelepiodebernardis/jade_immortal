@@ -302,7 +302,9 @@ def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | Non
                        "AND character_id=? AND healed=0;", (player.id,)).fetchone()["s"]
     from engine.simulation import cultivation
     rec = cultivation.get_record(conn, "player", player.id)
+    from engine.systems import ascension
     if cfg.get("sfonda") and rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and inj == 0 \
+            and not ascension.at_world_peak(conn, player.id) \
             and cultivation.breakthrough_odds(conn, "player", player.id)["death"] <= cfg.get("rischio", 10) / 100:
         return "breakthrough"
     if inj >= 9:
@@ -450,7 +452,13 @@ def _stop_reason(conn, player, before: dict, rng_keys: set[str], cfg: dict | Non
         if nxt and nxt["fire_tick"] - t <= training.DAY_TICKS:
             return "un torneo o una sfida di setta è imminente"
     rec = cultivation.get_record(conn, "player", p.id)
-    if rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0:
+    from engine.systems import ascension
+    if rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and ascension.at_world_peak(conn, p.id):
+        tier = cultivation.realm_tier(conn, "player", p.id) or 1
+        if state.get_int(conn, "auto_peak_warned", 0) != tier:
+            state.set(conn, "auto_peak_warned", str(tier))
+            return "sei alla Grande Perfezione del mondo: non resta che ascendere ('ascendi_mondo')"
+    elif rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0:
         tier = cultivation.realm_tier(conn, "player", p.id) or 1
         odds = cultivation.breakthrough_odds(conn, "player", p.id)
         if not (cfg or DEFAULT).get("sfonda"):

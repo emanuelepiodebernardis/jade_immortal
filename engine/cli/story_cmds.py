@@ -140,7 +140,7 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return loop.cmd_move(conn, player, cmd)
     if cmd in ("ascendi_mondo", "ascensione", "porta_celeste"):
         from engine.systems import ascension
-        return ascension.ascend(conn, player)
+        return ascension.ascend(conn, player, arg)
     if cmd in ("mondi", "worlds", "strati"):
         from engine.systems import ascension
         return ascension.describe(conn, player)
@@ -428,6 +428,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("setta", "mysect", "lamiasetta"):
         from engine.systems import sect_menu
         return sect_menu.command(conn, player, arg)
+    if cmd in ("faide", "rancori", "debiti", "vendette", "faida"):
+        from engine.systems import feuds
+        return feuds.command(conn, player, arg)
     if cmd in ("menu", "menù"):
         from engine.systems import menus
         return menus.show(conn, player, "menu")

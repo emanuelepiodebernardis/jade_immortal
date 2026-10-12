@@ -91,7 +91,9 @@ def requirements(conn, pid: int) -> dict:
     need_r = t + 2 + ref
     earned = state.get_int(conn, EARNED_KEY, 0)
     need_m = int(MERIT_PER_TIER * t * (1.5 ** ref))
-    return {"realm": realm, "need_realm": need_r, "earned": earned, "need_merit": need_m,
+    from engine.systems import sects
+    top = sects.current_sect_tier(conn, pid) >= sects.max_sect_tier(conn, pid)
+    return {"top": top, "realm": realm, "need_realm": need_r, "earned": earned, "need_merit": need_m,
             "pct": max(realm / need_r, earned / need_m) * 100,
             "by_strength": realm >= need_r, "by_merit": earned >= need_m, "refusals": ref}
 
@@ -159,6 +161,8 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
         txt = show_scene(conn, player)
         return [txt] if txt else []
     r = requirements(conn, player.id)
+    if r["top"]:
+        return []                         # la setta più alta di questo mondo: oltre c'è solo l'ascensione
     if r["by_strength"] or r["by_merit"]:
         txt = open_offer(conn, t, rng, player, "forza" if r["by_strength"] else "merito")
         return [txt or "Gli emissari delle sette superiori ti cercano: 'setta ascesa'."]
@@ -435,10 +439,15 @@ def build(conn, player) -> dict:
     if invs:
         a_acts += [act(f"Sali a {i['name']} — {i['hint']}", f"setta ascendi {i['slot']}", main=True) for i in invs]
         a_acts.append(act("Resta per lealtà (premi e offerte più alte la prossima volta)", "setta rifiuta"))
+    elif r["top"]:
+        a_acts.append(act("Ascendi al mondo superiore (lì ci sono sette più grandi)", "ascendi_mondo",
+                          ok=__import__("engine.systems.ascension", fromlist=["x"]).at_world_peak(conn, player.id),
+                          why="prima raggiungi il regno più alto di questo mondo"))
     else:
         a_acts.append(act("Sali alla setta superiore", "setta ascesa", ok=False,
                           why="gli emissari arriveranno quando supererai la soglia"))
     secs.append(section("Ascesa alle sette superiori", [
+        "Sei nella setta più alta che questo mondo possa reggere." if r["top"] else "",
         f"Forza: regno {r['realm']}/{r['need_realm']}" + (" ✓" if r["by_strength"] else ""),
         f"Merito guadagnato qui: {r['earned']}/{r['need_merit']}" + (" ✓" if r["by_merit"] else ""),
         "Oppure: vinci il torneo mensile."], a_acts,

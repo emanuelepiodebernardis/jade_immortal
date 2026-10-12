@@ -54,12 +54,26 @@ def start(conn, player, arg: str) -> str:
         return f"Non vedi nessuno di nome '{target}' qui. (duello <nome>)"
     pa = combat.combat_power(conn, "player", player.id)
     pd = combat.combat_power(conn, "npc", npc.id)
-    sc = combat.duel_scale(pa, pd)
+    sc = combat.duel_scale(pa, pd) * _length(conn, player, npc)
     d = {"npc": npc.id, "name": npc.name, "hp_p": pa["vitality"] * sc, "pmax": pa["vitality"] * sc,
          "hp_e": pd["vitality"] * sc, "emax": pd["vitality"] * sc, "round": 0, "charge_e": False,
          "focus": False, "cd": {}, "crit": False, "log": [f"⚔ DUELLO: tu contro {npc.name}."]}
     _save(conn, d)
     return _next_turn(conn, player)
+
+
+# Durata: un duello tra pari dura 5-8 scambi; con l'arcinemico o una nemesi 10-12.
+DUEL_HP = 0.3
+GRUDGE_HP = 0.5
+
+
+def _length(conn, player, npc) -> float:
+    from engine.systems import bonds
+    kinds = bonds.bond_kinds(conn, npc.id, player.id)
+    from engine.systems import archrival
+    a = archrival.get(conn)
+    big = bool(kinds & {"nemesis", "rival"}) or bool(a and a.get("npc") == npc.id)
+    return GRUDGE_HP if big else DUEL_HP
 
 
 def _moves(conn, player) -> list[dict]:

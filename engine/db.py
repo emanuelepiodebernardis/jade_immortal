@@ -43,6 +43,15 @@ def init_db(db_path: Path | str = DB_PATH, schema_path: Path | str = SCHEMA_PATH
 
 def _migrate(conn) -> None:
     """Aggiunge colonne nuove a tabelle preesistenti (salvataggi vecchi). Idempotente."""
+    # nomi dei regni aggiornati (Aggiornamento 29): i livelli restano, cambiano solo i nomi
+    try:
+        from engine.generators.cultivation_gen import realm_name_for_tier
+        for r in conn.execute("SELECT id, tier, name FROM cultivation_realms;").fetchall():
+            nm = realm_name_for_tier(r[1])
+            if r[2] != nm:
+                conn.execute("UPDATE cultivation_realms SET name=? WHERE id=?;", (nm, r[0]))
+    except Exception:
+        pass
     # nuove tabelle (per salvataggi creati prima della loro introduzione)
     conn.execute("CREATE TABLE IF NOT EXISTS pending_reports ("
                  "id INTEGER PRIMARY KEY, player_id INTEGER NOT NULL, tick INTEGER NOT NULL, "
@@ -53,8 +62,9 @@ def _migrate(conn) -> None:
                  "rarity TEXT NOT NULL, price INTEGER NOT NULL, effects TEXT NOT NULL, "
                  "sold INTEGER DEFAULT 0);")
     # legami (compagni/maestro/rivali/nemesi) e vite passate (reincarnazione)
-    from engine.systems import bonds, rebirth
+    from engine.systems import bonds, rebirth, feuds
     bonds.ensure_table(conn)
+    feuds.ensure_table(conn)
     rebirth.ensure_table(conn)
     from engine.systems import beasts
     beasts.ensure_table(conn)

@@ -30,11 +30,11 @@ def conn(tmp_path: Path, monkeypatch):
 # ---------- Parte A: regni infiniti ----------
 
 def test_realm_name_generator_infinite():
-    assert realm_name_for_tier(8) == "Immortale di Giada"
-    assert realm_name_for_tier(9) == "Sovrano Celeste"
+    assert realm_name_for_tier(9) == "Superamento della Tribolazione"   # il tetto del Mondo Mortale
+    assert realm_name_for_tier(10) == "Immortale di Giada"              # il primo regno oltre
     # oltre i titoli si cicla con un numerale → mai esauribile
-    assert realm_name_for_tier(19) == "Sovrano Celeste II"
-    assert realm_name_for_tier(8 + 10 * 3 + 1).endswith("IV")
+    assert realm_name_for_tier(25) == "Immortale di Giada II"
+    assert realm_name_for_tier(9 + 15 * 3 + 1).endswith("IV")
 
 
 def test_ensure_realm_creates_new_tier(conn):
@@ -45,15 +45,20 @@ def test_ensure_realm_creates_new_tier(conn):
     assert cultivation.ensure_realm(conn, 12) == rid
 
 
-def test_breakthrough_beyond_jade_immortal(conn):
+def test_breakthrough_up_to_the_world_cap_then_ascension(conn):
     t8 = conn.execute("SELECT id FROM cultivation_realms WHERE tier=8;").fetchone()["id"]
     conn.execute("UPDATE players SET realm_id=? WHERE id=1;", (t8,))
     conn.execute("UPDATE cultivation_records SET realm_id=?, stage=10, progress=1.0, bt_failures=? "
                  "WHERE character_type='player' AND character_id=1;", (t8, cultivation.BT_GUARANTEE))
     res = cultivation.attempt_breakthrough(conn, "player", 1, tick=0, rng=random.Random(1))
-    assert res["status"] == "success"            # niente più 'peak': si sale oltre l'8
+    assert res["status"] == "success"
     assert cultivation.realm_tier(conn, "player", 1) == 9
-    assert cultivation.realm_name(conn, "player", 1) == "Sovrano Celeste"
+    assert cultivation.realm_name(conn, "player", 1) == "Superamento della Tribolazione"
+    # al 9° il Mondo Mortale non regge altro: lo sfondamento si ferma, resta l'ascensione
+    conn.execute("UPDATE cultivation_records SET stage=10, progress=1.0, bt_failures=? "
+                 "WHERE character_type='player' AND character_id=1;", (cultivation.BT_GUARANTEE,))
+    res = cultivation.attempt_breakthrough(conn, "player", 1, tick=0, rng=random.Random(1))
+    assert res["status"] == "world_peak" and res["cap"] == 9
 
 
 # ---------- Parte B: nuovi elementi + fusione ----------

@@ -1287,3 +1287,73 @@ Suite totale: **548 passati**.
   - Se serve un regno oltre quelli esistenti, viene creato.
   - L'estrazione dei livelli non può più ricevere un intervallo vuoto.
 - Nuovo test di regressione: sei ascese di fila fino a una setta oltre il livello 10.
+
+---
+
+## Aggiornamento 29 — Il tetto dei mondi, rancori e debiti, nomi nuovi
+
+**Ogni mondo ha il suo tetto** (`ascension.py`)
+- Il **Mondo Mortale** regge nove regni: nessuno, lì, può andare oltre il nono. Né tu, né gli
+  NPC, né le bestie, né i maestri delle sette: anche chi nasce e chi cresce si ferma al tetto.
+- Alla **Grande Perfezione** del nono regno lo sfondamento non c'è più: resta l'**ascensione**
+  (`ascendi_mondo`, che prima ti dice cosa lascerai e poi chiede `conferma`).
+  - Attraversando la Porta diventi subito il primo regno del mondo superiore: *Immortale di Giada*.
+  - Non porti nulla del mondo inferiore: oggetti, pillole e materiali si dissolvono, le pietre
+    valgono un decimo. Restano tuoi arma, tecniche, Dao, bestia e legami.
+  - Anche salire da una porta già aperta (`up`) lascia indietro gli oggetti, con un avviso prima.
+- Ogni mondo superiore regge tre regni in più (12, 15, 18…).
+- Anche le sette hanno un tetto: in ogni mondo si sale fino alla setta più grande che quel mondo
+  regga, poi l'ascesa successiva è quella al mondo superiore.
+- Il pilota automatico non tenta più sfondamenti impossibili e si ferma una volta per dirti che
+  puoi ascendere.
+
+**Nomi nuovi** — i livelli restano gli stessi, cambiano solo i nomi (anche nei salvataggi)
+- **Regni del Mondo Mortale**: Condensazione del Qi, Fondazione, Nucleo d'Oro, Anima Nascente,
+  Trasformazione dello Spirito, Raffinamento del Vuoto, Unione del Corpo, Grande Veicolo,
+  Superamento della Tribolazione.
+- **Oltre** (tre per mondo):
+  - Mondo degli Immortali: Immortale di Giada, Immortale Celeste, Immortale Mistico;
+  - Cielo d'Oro: Immortale d'Oro, dell'Unità Suprema, della Grande Rete;
+  - Mondo dei Santi: Mezzo Santo, Santo, Santo Supremo;
+  - Reame del Dao: Re del Dao, Imperatore del Dao, Antenato del Dao;
+  - Mare del Caos: Caos Primordiale, Origine Senza Origine, Oltre il Principio;
+  - poi i nomi ricominciano con un numerale, senza fine.
+- **Fasi di ogni regno**: strati 1-3 *iniziale*, 4-6 *intermedia*, 7-9 *avanzata*, 10 *picco*.
+  Con l'esperienza piena, *Grande Perfezione*.
+- **Maestria nei Dao**: oltre a *legislatore* ci sono *sovrano*, *origine* e *antenato*. Ogni Dao
+  ha le sue tecniche di Sovranità, di Origine e di Antenato.
+
+**Rancori e debiti** (`faide`, `feuds.py`) — ogni vittima lascia qualcuno
+- Chi uccidi può avere chi giura vendetta: padre o madre (più forti), fratelli, figli (più
+  deboli, ma tornano anni dopo e sono i più temibili), il maestro, un fratello giurato, un
+  allievo. Se era un anziano o un patriarca, anche la sua setta.
+  - Quanti e quanto accaniti dipende da chi era la vittima. Un ricercato non lascia quasi rancori
+    (la sua famiglia se ne vergogna); chi muore in guerra lascia rancori più tiepidi.
+  - Se agivi mascherato e senza testimoni, non sanno chi cercare. Ci mettono molto di più, e a
+    volte non lo scoprono mai.
+- Il vendicatore si allena, poi ti trova, con una scena scritta per ogni legame. Puoi:
+  - **duellare**: se lo uccidi, la faida passa alla generazione successiva, fino alla terza
+    (titolo: *Colui che Spezzò una Stirpe*);
+  - **risarcire** la famiglia con le pietre: non funziona se il rancore è troppo profondo;
+  - **raccontare la verità**: funziona soprattutto se la vittima era un ricercato;
+  - **andartene**: il rancore cresce.
+  Se lo sconfiggi e lo risparmi, a volte depone la spada per sempre.
+- **Risparmiare per scelta** (duello o `spare`) crea un **debito di vita**. Chi ha onore lo
+  ripaga: con un dono (pietre e una pillola), con un segreto, oppure diventa un alleato che
+  accorre al tuo fianco nelle battaglie difficili. La sua setta ti guarda con favore.
+- Il **Libro dei Rancori e dei Debiti** (`faide`, pulsante *🩸 Faide* nella dashboard) mostra
+  ogni faida (rancore, generazione, dove si trova, chi è più forte) con duello, risarcimento e
+  verità a portata di tasto. Mostra anche i debiti di vita e i conti chiusi.
+
+**Difetti corretti e ritocchi**
+- **Fascia alta**: invasioni, guerre tra sette, cacciatori, ricercati, zone e bestie non sono più
+  fermi all'ottavo regno, e i regni mancanti si creano quando servono. La simulazione è arrivata
+  al regno 10 senza errori.
+- **Avvisi raccolti**: "5 giovani geni ti hanno superato: …" in una riga sola. Chi va e viene
+  diventa "Arrivano / Se ne vanno / Di passaggio" invece di una riga per ogni passo.
+- **Duelli più rapidi**: 5-8 scambi tra pari, 10-12 con arcinemico, nemesi o rivali.
+- **Scheda del luogo** nella dashboard: prima nemici e legami (bordo rosso o verde), poi i
+  ricercati e le figure di rango; il resto in "+ altri".
+- I cacciatori della vita precedente non inseguono più chi è appena rinato.
+
+Nuovi test: `test_worlds.py` (3), `test_feuds.py` (4). Suite totale: **556 passati**.

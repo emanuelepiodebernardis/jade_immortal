@@ -74,7 +74,7 @@ def maybe_spawn(conn: sqlite3.Connection, tick: int, rng, player, observations) 
                 retaliation = True
     from engine.simulation import cultivation
     pr = cultivation.realm_tier(conn, "player", player.id) if player else 1
-    threat = max(2, min(8, pr + rng.choice([-1, 0, 1])))
+    threat = max(2, pr + rng.choice([-1, 0, 1]))                  # nessun tetto
     kind = rng.choices(["beast_tide", "demon_incursion", "spirit_incursion"],
                        weights=[3, 2, 2])[0]
     wave = rng.randint(3, 5)
@@ -87,7 +87,7 @@ def maybe_spawn(conn: sqlite3.Connection, tick: int, rng, player, observations) 
     from engine.generators import creature_gen
     ck = _KIND_CREATURE[kind]
     for _ in range(wave):
-        nid = creature_gen._spawn_one(conn, rng, ck, loc, max(1, threat - 1), min(8, threat + 1))
+        nid = creature_gen._spawn_one(conn, rng, ck, loc, max(1, threat - 1), threat + 1)
         conn.execute("UPDATE npcs SET event_id=? WHERE id=?;", (eid, nid))
     # le invasioni forti sono guidate da un CAMPIONE: più tosto, e va abbattuto per vincere
     champion_note = ""
@@ -251,7 +251,7 @@ def escalate(conn: sqlite3.Connection, tick: int, rng, observations) -> int:
             add = rng.randint(1, 2)
             for _ in range(add):
                 nid = creature_gen._spawn_one(conn, rng, ck, loc,
-                                              max(1, threat - 1), min(8, threat + 1))
+                                              max(1, threat - 1), threat + 1)
                 conn.execute("UPDATE npcs SET event_id=? WHERE id=?;", (ev["id"], nid))
             conn.execute("UPDATE world_events SET wave_total=wave_total+?, "
                          "wave_remaining=wave_remaining+? WHERE id=?;", (add, add, ev["id"]))

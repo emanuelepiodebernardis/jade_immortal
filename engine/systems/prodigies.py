@@ -101,13 +101,21 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
             out.append(f"Voci dal mondo: {nm} {txt}.")
         if power.combat_rating(conn, "npc", nid) > me:
             new_above.add(nid)
-    for nid in new_above - above:
-        nm = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
-        out.append(f"⚠ {nm} ti ha superato: ora è più forte di te. Si dice che lo vada raccontando in giro.")
-    for nid in above - new_above:
-        if _alive(conn, nid):
-            nm = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
-            out.append(f"Hai superato {nm}: ora sei tu il più forte dei due.")
+    def _names(ids_):
+        return [conn.execute("SELECT name FROM npcs WHERE id=?;", (i,)).fetchone()["name"] for i in ids_]
+
+    def _list(ns):
+        return ns[0] if len(ns) == 1 else ", ".join(ns[:-1]) + " e " + ns[-1]
+    up = _names(sorted(new_above - above))              # una riga sola, non una per nome
+    if len(up) == 1:
+        out.append(f"⚠ {up[0]} ti ha superato: ora è più forte di te. Si dice che lo vada raccontando in giro.")
+    elif up:
+        out.append(f"⚠ {len(up)} giovani geni ti hanno superato: {_list(up)}. Ne parlano in tutte le locande.")
+    down = _names([i for i in sorted(above - new_above) if _alive(conn, i)])
+    if len(down) == 1:
+        out.append(f"✧ Hai superato {down[0]}: ora sei tu il più forte dei due.")
+    elif down:
+        out.append(f"✧ Hai superato {len(down)} giovani geni: {_list(down)}.")
     state.set_json(conn, "prodigies_above", sorted(new_above))
     out += _chronicle(conn, t, rng, player)
     return out

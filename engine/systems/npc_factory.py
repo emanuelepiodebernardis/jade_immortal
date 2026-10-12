@@ -77,6 +77,9 @@ def spawn(conn: sqlite3.Connection, rng: random.Random, *, archetype: str,
     if traits:
         tr.update({k: max(0, min(100, v)) for k, v in traits.items()})
     desc = npc_gen.make_description(archetype, tr)
+    if location_id is not None:                   # nessuno nasce più forte di quanto il suo mondo regga
+        from engine.systems import ascension
+        tier = ascension.clamp_tier(conn, location_id, tier)
     realm_id = realm_id_for(conn, tier)
     stage = stage if stage is not None else rng.randint(2, 8)
     stage = max(1, min(10, stage))
@@ -120,6 +123,13 @@ def raise_npc(conn: sqlite3.Connection, npc_id: int, stages: int) -> dict:
     while stage > 10:
         stage -= 10
         tier += 1
+    from engine.systems import ascension               # il tetto del mondo vale per tutti
+    loc = conn.execute("SELECT location_id FROM npcs WHERE id=?;", (npc_id,)).fetchone()
+    cap = ascension.cap_at(conn, loc["location_id"] if loc else None)
+    if rec["tier"] >= cap:                            # già al tetto (o oltre, da vecchi salvataggi): si ferma
+        tier, stage = rec["tier"], min(10, max(rec["stage"], stage if tier == rec["tier"] else 10))
+    elif tier > cap:
+        tier, stage = cap, 10
     rid = realm_id_for(conn, tier)
     conn.execute(
         "UPDATE cultivation_records SET realm_id=?, stage=?, qi_level=?, body_level=?, "

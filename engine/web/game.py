@@ -247,8 +247,18 @@ def state_snapshot() -> dict:
             exits.append({"dir": d, "name": r["name"] if r else "?", "danger": r["danger_level"] if r else 0})
         npcs = []
         from engine.cli import loop
-        for n in entities.npcs_in_location(conn, p.location_id)[:30]:
-            npcs.append({"name": n.name, "tag": _clean(loop._npc_tag(conn, n) or "")})
+        from engine.systems import bonds as _bonds
+        for n in entities.npcs_in_location(conn, p.location_id)[:40]:
+            tag = _clean(loop._npc_tag(conn, n) or "")
+            kinds = _bonds.bond_kinds(conn, n.id, p.id) - {"family"}
+            # chi conta per te in cima: legami e nemici, ricercati, figure di rango; poi gli altri
+            pri = (0 if kinds & {"nemesis", "rival"} else 1 if kinds else
+                   2 if "RICERCATO" in tag else 3 if (n.archetype or "") in ("patriarca", "anziano") else
+                   5 if (conn.execute("SELECT kind FROM npcs WHERE id=?;", (n.id,)).fetchone()["kind"]
+                         or "human") != "human" else 4)
+            npcs.append({"name": n.name, "tag": tag, "pri": pri,
+                         "rel": "nemico" if kinds & {"nemesis", "rival"} else ("legame" if kinds else "")})
+        npcs.sort(key=lambda x: x["pri"])
         dests = []
         for i, d in enumerate(travel.destinations(conn, p), 1):
             dist = travel._distance(conn, p.location_id, d["loc"])

@@ -47,8 +47,8 @@ def ally_disciples(conn, war):
 
 def _spawn_disciple(conn, tick, rng, faction_id, loc, tier, kind_word):
     from engine.generators import npc_gen, dao_gen
-    by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
-    realm_id = by_tier.get(max(1, min(8, tier)), by_tier.get(1))
+    from engine.simulation import cultivation
+    realm_id = cultivation.ensure_realm(conn, max(1, tier))
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     name = npc_gen._unique_name(rng, used)
     cur = conn.execute(
@@ -89,7 +89,7 @@ def maybe_declare(conn, tick, rng, player, observations) -> int:
         return 0
     from engine.simulation import cultivation
     ptier = cultivation.realm_tier(conn, "player", player.id) or 1
-    dtier = max(2, min(8, max(ptier, enemy["tier"] or 2)))
+    dtier = max(2, ptier, enemy["tier"] or 2)                     # nessun tetto: la guerra sale con te
     n_enemy = rng.randint(4, 6)
     n_ally = rng.randint(2, 3)
     cur = conn.execute(

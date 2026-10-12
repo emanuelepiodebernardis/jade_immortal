@@ -231,6 +231,13 @@ def current_sect_tier(conn: sqlite3.Connection, player_id: int = 1) -> int:
     return (m["sect_tier"] if m and m["sect_tier"] else 1) if m else 0
 
 
+def max_sect_tier(conn: sqlite3.Connection, player_id: int = 1) -> int:
+    """La setta più alta che il mondo in cui ti trovi può reggere (il suo Patriarca è al tetto del mondo)."""
+    from engine.systems import ascension
+    loc = conn.execute("SELECT location_id FROM players WHERE id=?;", (player_id,)).fetchone()
+    return max(2, ascension.cap_at(conn, loc["location_id"] if loc else None) - 2)
+
+
 def generate_invitations(conn: sqlite3.Connection, tick: int, rng,
                          player_id: int = 1, count: int = 7, bonus: int = 0) -> list[sqlite3.Row]:
     """I rappresentanti di sette superiori si presentano (dati leggeri).
@@ -239,11 +246,14 @@ def generate_invitations(conn: sqlite3.Connection, tick: int, rng,
     if pending_invitations(conn, player_id):
         return pending_invitations(conn, player_id)
     cur_tier = max(1, current_sect_tier(conn, player_id))
+    top = max_sect_tier(conn, player_id)
+    if cur_tier >= top:
+        return []                                 # sei già nella setta più alta che questo mondo regga
     elements = ["corpo", "fulmine", "spada", "anima", "fuoco", "acqua",
                 "metallo", "vento", "luce", "oscurita", "spazio", "tempo"]
     for slot in range(1, count + 1):
         jump = 1 if slot == 1 else rng.choices([1, 2, 3], weights=[5, 3, 1])[0]
-        t = cur_tier + jump + bonus                                    # nessun tetto: si sale sempre
+        t = min(top, cur_tier + jump + bonus)       # fino alla setta più alta del mondo; oltre, si ascende
         el = rng.choice(elements)
         name = f"{rng.choice(_GREAT_PREFIX)} {rng.choice(_GREAT_SUFFIX)}"
         hint = f"{tier_name(t)} · affine al {_dao_display(conn, el)}"
@@ -266,7 +276,8 @@ def _create_greater_sect(conn, rng, name, tier, element, tick) -> int:
          "Una setta superiore, lontana e potente.", tier, element))
     fid = cur.lastrowid
     from engine.simulation import cultivation
-    lr_tier = 2 + tier                            # maestri scalati al livello (anche oltre l'8)
+    from engine.systems import ascension
+    lr_tier = ascension.clamp_tier(conn, home, 2 + tier)   # maestri scalati al livello, entro il tetto del mondo
     realm_id = cultivation.ensure_realm(conn, lr_tier)
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     lname = npc_gen._unique_name(rng, used)

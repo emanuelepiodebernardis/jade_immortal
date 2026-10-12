@@ -58,6 +58,10 @@ DAO_THRESHOLDS = [
     (250,  "gran maestro",  0.55, "Tecnica Suprema"),
     (500,  "dominatore",    0.80, "Dominio"),
     (1000, "legislatore",   1.20, "Legge"),
+    # oltre la Legge: titoli di maestria (la potenza resta quella della Legge, cresce il prestigio)
+    (2500, "sovrano",       1.20, "Sovranità"),
+    (5000, "origine",       1.20, "Origine"),
+    (10000, "antenato",     1.20, "Antenato"),
 ]
 
 
@@ -106,7 +110,7 @@ def combat_dao_factor(conn: sqlite3.Connection, ctype: str, cid: int) -> float:
 # --- Punti-statistica DIRETTI dai livelli di Dao -------------------------------
 # Oltre alle percentuali, ogni soglia raggiunta versa punti DIRETTI in una statistica.
 # Cumulativi e indicizzati come DAO_THRESHOLDS (principiante..legislatore).
-DAO_TIER_POINTS = [0, 2, 5, 10, 20, 35, 55, 85]
+DAO_TIER_POINTS = [0, 2, 5, 10, 20, 35, 55, 85, 85, 85, 85]
 
 # Ogni Dao alimenta una statistica precisa.
 DAO_STAT = {

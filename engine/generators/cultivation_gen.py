@@ -12,24 +12,33 @@ from __future__ import annotations
 import random
 import sqlite3
 
-# tier -> nome del regno
+# tier -> nome del regno. I nove regni del MONDO MORTALE (il nono è il suo tetto): la scala
+# classica dei romanzi di coltivazione (练气 筑基 金丹 元婴 化神 炼虚 合体 大乘 渡劫).
 REALMS = [
-    (1, "Condensazione del Qi"),
-    (2, "Fondazione"),
-    (3, "Nucleo Aureo"),
-    (4, "Anima Nascente"),
-    (5, "Trasformazione dello Spirito"),
-    (6, "Fusione Spirituale"),
-    (7, "Tribolazione Mahayana"),
-    (8, "Immortale di Giada"),
+    (1, "Condensazione del Qi"),           # 练气 — si raccoglie il Qi del cielo e della terra
+    (2, "Fondazione"),                     # 筑基 — il Qi diventa una base solida
+    (3, "Nucleo d'Oro"),                   # 金丹 — il Qi si condensa in un nucleo
+    (4, "Anima Nascente"),                 # 元婴 — dal nucleo nasce un'anima bambina
+    (5, "Trasformazione dello Spirito"),   # 化神 — lo spirito tocca le leggi del mondo
+    (6, "Raffinamento del Vuoto"),         # 炼虚 — si tempra il proprio vuoto interiore
+    (7, "Unione del Corpo"),               # 合体 — corpo, anima e Dao diventano una cosa sola
+    (8, "Grande Veicolo"),                 # 大乘 — il Mahayana: la vetta dei mortali
+    (9, "Superamento della Tribolazione"), # 渡劫 — l'ultima prova del Cielo, prima di ascendere
 ]
 
-# Oltre l'Immortale di Giada la via NON finisce: i regni salgono all'infinito e i loro
-# nomi sono generati automaticamente (titoli ascendenti + numerale quando si esauriscono).
+# Oltre il Mondo Mortale (tre regni per ogni mondo superiore) i regni dell'immortalità, poi
+# santi, signori del Dao e il caos primordiale; esauriti i nomi, si ricomincia con un numerale.
 _ASCENDING_REALMS = [
-    "Sovrano Celeste", "Re degli Immortali", "Monarca del Dao", "Divinità Nascente",
-    "Divinità Suprema", "Antico Celeste", "Signore dell'Eternità", "Dao Vivente",
-    "Origine del Cielo", "Vuoto Primordiale",
+    # Mondo degli Immortali (10-12)
+    "Immortale di Giada", "Immortale Celeste", "Immortale Mistico",
+    # Cielo d'Oro (13-15) — 金仙, 太乙金仙, 大罗金仙
+    "Immortale d'Oro", "Immortale d'Oro dell'Unità Suprema", "Immortale d'Oro della Grande Rete",
+    # Mondo dei Santi (16-18)
+    "Mezzo Santo", "Santo", "Santo Supremo",
+    # Reame del Dao (19-21)
+    "Re del Dao", "Imperatore del Dao", "Antenato del Dao",
+    # Mare del Caos (22-24) — 混元
+    "Caos Primordiale", "Origine Senza Origine", "Oltre il Principio",
 ]
 
 _ROMAN = [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
