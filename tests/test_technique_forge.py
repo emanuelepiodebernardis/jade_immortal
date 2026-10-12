@@ -125,3 +125,24 @@ def test_blood_menu_lists_lines_and_refines(conn):
     out = blood_menu.refine(conn, p, "3 in 1")
     assert "Lupo" in out and len(bloodlines.ordered(conn)) == 2
     assert "LIGNAGGI DI SANGUE" in loop.dispatch(conn, "sangue info", allow_nl=False)
+
+
+def test_rarer_blood_dominates_fusions_and_names_stay_short(conn):
+    from engine.systems import bloodlines as B
+    rng = random.Random(4)
+    p = _p(conn)
+    B.gain(conn, 0, rng, p, "Cinghiale Corazzato", ["corpo"], 300)
+    B.gain(conn, 0, rng, p, "Drago Azzurro", ["fulmine", "acqua"], 100)
+    B.gain(conn, 0, rng, p, "Lupo Spirituale", ["vento"], 100)
+    o = B.ordered(conn)
+    assert B.line_rank(o[0][1]) == 1 and B.RANK_MULT[3] > B.RANK_MULT[1]
+    res = B.fusion_result([ln for _k, ln in o])
+    assert res["families"] == ["drago"] and set(res["minor"]) == {"cinghiale", "lupo"}
+    assert res["species"].startswith("Drago di ") and res["species"].count(" e ") <= 1
+    out = B.fuse(conn, p, "1 2 3")
+    assert "domina" in out and len(B.ordered(conn)) == 1
+    # due leggendari alla pari: nome combinato, rarità divina
+    B.gain(conn, 0, rng, p, "Fenice Rossa", ["fuoco"], 100)
+    B.fuse(conn, p, "1 2")
+    ln = B.ordered(conn)[0][1]
+    assert ln["species"].startswith(("Drago-Fenice", "Fenice-Drago")) and B.line_rank(ln) == 4

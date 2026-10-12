@@ -1643,3 +1643,30 @@ Si apre con il pulsante **🩸 Sangue** o con `sangue`. Tutti i lignaggi si gest
 L'elenco testuale di prima resta con `sangue info`, anche nel pannello Personaggio.
 
 Nuovo file: `engine/systems/blood_menu.py`. Nuovo test. Suite totale: **579 passati**.
+
+---
+
+## Aggiornamento 37 — La rarità del sangue: il più pregiato domina
+
+**Rarità dei lignaggi.** Ogni lignaggio ha una rarità, che compare nel menu del sangue:
+
+| Rarità | Lignaggi |
+|---|---|
+| · selvaggio | sangue di bestia senza famiglia |
+| ★ comune | Cinghiale, Lupo, Orso, Aquila, Serpente |
+| ★★ raro | Tigre, Peng, Tartaruga |
+| ★★★ leggendario | Drago, Fenice, Qilin, e i sangui delle razze: Demone, Spirito Silvano, Gigante, Leviatano |
+| ✦✦✦✦ divino | due o più famiglie leggendarie fuse insieme |
+
+**Il sangue più raro è più forte.** In battaglia ogni lignaggio pesa secondo la sua rarità: ×0,8 selvaggio, ×0,85 comune, ×1 raro, ×1,25 leggendario, ×1,5 divino.
+
+**Nelle fusioni domina il sangue più pregiato:**
+- le famiglie più rare diventano la **forma principale**: danno il nome, le manifestazioni e la trasformazione;
+- le altre restano come **tratti minori**: compaiono nel menu, mantengono metà del loro dono e contano per le razze affini;
+- se ci sono più famiglie alla pari al livello più alto, il nome le **combina**, ma al massimo due («Drago-Fenice»; con tre o più: «Drago-Fenice dai 3 Sangui»);
+- nel nome entrano al massimo **due elementi**: niente più «di Carne Ferrea e Terra e Metallo»;
+- se il lignaggio che nasce ha lo stesso nome di uno che hai già, i due confluiscono in uno solo.
+
+Esempio: Cinghiale + Drago + Lupo → **Sangue di Drago di Tuono e Ghiaccio** (leggendario), con Cinghiale e Lupo come tratti minori.
+
+Nuovo test. Suite totale: **580 passati**.

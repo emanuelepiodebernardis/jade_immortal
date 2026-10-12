@@ -150,7 +150,7 @@ def blood_grade(conn, key: str) -> int:
     fams = set(BLOOD[key][2])
     best = -1
     for ln in bloodlines.all_lines(conn).values():
-        if fams & set(ln.get("families", [])) or any(f in ln.get("species", "").lower() for f in fams):
+        if fams & (set(ln.get("families", [])) | set(ln.get("minor", []))) or any(f in ln.get("species", "").lower() for f in fams):
             best = max(best, bloodlines.grade_index(ln.get("conc", 0)))
     return best
 

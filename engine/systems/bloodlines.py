@@ -100,6 +100,54 @@ _KINDS = ["occhi", "artigli", "pelle", "ali", "corno"]
 
 RARITY_GAIN = {"comune": 2.0, "rara": 8.0, "leggendaria": 20.0, "ibrida": 30.0}
 
+# RARITÀ DEI LIGNAGGI: il sangue più pregiato è più forte e, nelle fusioni, DOMINA (dà nome, forma e
+# trasformazione); quelli minori vengono assorbiti come tratti secondari.
+FAMILY_RANK = {"cinghiale": 1, "lupo": 1, "orso": 1, "aquila": 1, "serpente": 1,
+               "tigre": 2, "peng": 2, "tartaruga": 2,
+               "drago": 3, "fenice": 3, "qilin": 3, "demone": 3, "silvano": 3, "gigante": 3, "leviatano": 3}
+RANK_NAME = {0: "selvaggio", 1: "comune", 2: "raro", 3: "leggendario", 4: "divino"}
+RANK_ICON = {0: "·", 1: "★", 2: "★★", 3: "★★★", 4: "✦✦✦✦"}
+RANK_MULT = {0: 0.8, 1: 0.85, 2: 1.0, 3: 1.25, 4: 1.5}
+
+
+def line_rank(ln: dict) -> int:
+    """Rarità di un lignaggio: la sua famiglia più pregiata. Due o più famiglie leggendarie fuse = divino."""
+    ranks = [FAMILY_RANK.get(f, 0) for f in ln.get("families") or []]
+    if not ranks:
+        return 0
+    top = max(ranks)
+    if top >= 3 and sum(1 for r in ranks if r >= 3) >= 2:
+        return 4
+    return top
+
+
+def fusion_result(picks: list[dict]) -> dict:
+    """Il lignaggio che nasce fondendo `picks`: le famiglie più rare diventano la forma principale
+    (al massimo due nel nome), le altre restano tratti minori; nel nome al massimo due elementi."""
+    srt = sorted(picks, key=lambda x: (-line_rank(x), -x["conc"]))
+    fams: list[str] = []
+    for ln in srt:
+        for f in (ln.get("families") or []) + (ln.get("minor") or []):
+            if f not in fams:
+                fams.append(f)
+    top = max((FAMILY_RANK.get(f, 0) for f in fams), default=0)
+    main = [f for f in fams if FAMILY_RANK.get(f, 0) == top and f in FAMILIES]
+    minor = [f for f in fams if f not in main]
+    els: list[str] = []
+    for ln in srt:
+        for e in ln["elements"]:
+            if e not in els:
+                els.append(e)
+    if not main:
+        noun = "Chimera"
+    elif len(main) <= 2:
+        noun = "-".join(_fam(f)[0] for f in main)
+    else:
+        noun = f"{_fam(main[0])[0]}-{_fam(main[1])[0]} dai {len(main)} Sangui"
+    species = f"{noun} di " + " e ".join(EL_ADJ.get(e, e.title()) for e in els[:2])
+    return {"species": species, "families": main, "minor": minor, "elements": els,
+            "conc": 0.9 * sum(ln["conc"] for ln in picks)}
+
 
 # ============================================================
 # Gradi e calcoli
@@ -390,21 +438,27 @@ def fuse(conn, player, arg: str) -> str:
             if e not in els:
                 els.append(e)
         srcs += [k] + ln.get("fused_from", [])
-    noun = "-".join(_fam(f)[0] for f in fams if f in FAMILIES) or "Chimera"
-    species = f"{noun} di " + " e ".join(EL_ADJ.get(e, e.title()) for e in els)
-    conc = 0.9 * sum(ln["conc"] for _k, ln in picks)
+    res = fusion_result([ln for _k, ln in picks])
+    species, conc = res["species"], res["conc"]
     d = all_lines(conn)
     for k, _ln in picks:
         d.pop(k, None)
     key = species.lower()
-    new = _new_line(species, els, fams, srcs)
+    if key in d:                                       # stesso nome di un lignaggio già tuo: confluisce lì
+        conc += d.pop(key)["conc"]
+    new = _new_line(species, res["elements"], res["families"], srcs)
+    new["minor"] = res["minor"]
     new["conc"] = round(conc, 1)
     d[key] = new
     _save(conn, d)
     from engine.simulation import world_tick
     world_tick.advance(conn, 120)
     msg = (f"Per un giorno intero il tuo sangue ribolle: i lignaggi si divorano e rinascono come uno solo.\n"
-           f"✦ Nasce il {new['name']} — {grade_name(new['conc'])} (concentrazione {new['conc']:.0f}). ✦")
+           f"✦ Nasce il {new['name']} — {grade_name(new['conc'])}, {RANK_NAME[line_rank(new)]} "
+           f"(concentrazione {new['conc']:.0f}). ✦")
+    low = [_fam(f)[0] for f in new["minor"] if f in FAMILIES]
+    if low:
+        msg += "\nIl sangue più pregiato domina: " + ", ".join(low) + " vi restano come tratti minori."
     if len(picks) >= 3 and state.grant_title(conn, "Crogiolo dei Lignaggi"):
         msg += "\n✧ Nuovo titolo: «Crogiolo dei Lignaggi» ✧"
     elif state.grant_title(conn, "Sangue Fuso"):
@@ -448,7 +502,7 @@ def combat(conn, player_id: int, fx) -> list[str]:
     intro = []
     pr = fx.p.prof
     for k, ln in d.items():
-        s = _strength(ln["conc"])
+        s = _strength(ln["conc"]) * RANK_MULT.get(line_rank(ln), 1.0)     # il sangue più raro pesa di più
         g = grade_index(ln["conc"])
         kinds = {kd for kd, _n in manifestations(ln)}
         if "occhi" in kinds:
@@ -468,7 +522,9 @@ def combat(conn, player_id: int, fx) -> list[str]:
                 st = combat_states.STATE_OF_DAO.get(e)
                 if st:
                     fx.add_proc("p", st, min(0.45, 0.12 + 0.02 * s), 1.2 + 0.1 * s, f"sangue:{k}")
-            for f in ln["families"]:
+            for f in ln["families"] + [m for m in ln.get("minor", []) if m in FAMILIES]:
+                if f in ln.get("minor", []) and (tick_mod.get_tick(conn) + len(f)) % 2:
+                    continue                                   # i tratti minori si manifestano a metà
                 gift = _fam(f)[2]
                 if gift == "rinascita" and g >= 4:
                     fx.p.lethal_saves += 1

@@ -41,7 +41,7 @@ def _relics(conn, pid) -> int:
 
 def _race_of(ln: dict) -> str | None:
     from engine.systems import race_realms
-    fams = set(ln.get("families") or [])
+    fams = set(ln.get("families") or []) | set(ln.get("minor") or [])
     for k, b in race_realms.BLOOD.items():
         if fams & set(b[2]):
             return k
@@ -71,7 +71,7 @@ def fusion_suggestions(conn, limit: int = 4) -> list[tuple[list[int], str]]:
     for i, j in sorted(conf):                              # prima chi risolve un conflitto
         if i in pure and j in pure:
             out.append(([i, j], "risolve un conflitto"))
-    top = pure[:6]
+    top = sorted(pure[:8], key=lambda i: (-B.line_rank(o[i - 1][1]), i))[:6]
     for i, j in itertools.combinations(top, 2):
         if ([i, j], "risolve un conflitto") not in out:
             out.append(([i, j], ""))
@@ -83,19 +83,9 @@ def fusion_suggestions(conn, limit: int = 4) -> list[tuple[list[int], str]]:
 def _preview(conn, idx: list[int]) -> tuple[str, float, str]:
     from engine.systems import bloodlines as B
     o = B.ordered(conn)
-    picks = [o[i - 1][1] for i in idx]
-    fams, els = [], []
-    for ln in picks:
-        for f in ln["families"] or ["bestia"]:
-            if f not in fams:
-                fams.append(f)
-        for e in ln["elements"]:
-            if e not in els:
-                els.append(e)
-    noun = "-".join(B._fam(f)[0] for f in fams if f in B.FAMILIES) or "Chimera"
-    species = f"{noun} di " + " e ".join(B.EL_ADJ.get(e, e.title()) for e in els)
-    conc = 0.9 * sum(ln["conc"] for ln in picks)
-    return species, conc, B.grade_name(conc)
+    res = B.fusion_result([o[i - 1][1] for i in idx])
+    rank = B.line_rank({"families": res["families"]})
+    return res["species"], res["conc"], f"{B.grade_name(res['conc'])}, {B.RANK_NAME[rank]}"
 
 
 def refine(conn, player, arg: str) -> str:
@@ -188,7 +178,11 @@ def menu_build(conn, player) -> dict:
             acts.append(act(f"Versalo nel #1 ({o[0][1]['name']})", f"sangue raffina {i} in 1"))
         if rk:
             acts.append(act(f"Razza affine: {race_realms._name(rk)}", "razze"))
-        secs.append(section(f"#{i} {ln['name']} — {B.grade_name(ln['conc'])}", lines, acts,
+        rk_ = B.line_rank(ln)
+        if ln.get("minor"):
+            lines.insert(1, "Tratti minori assorbiti: " + ", ".join(B._fam(f)[0] for f in ln["minor"] if f in B.FAMILIES))
+        secs.append(section(f"#{i} {B.RANK_ICON[rk_]} {ln['name']} — {B.grade_name(ln['conc'])} · {B.RANK_NAME[rk_]}",
+                            lines, acts,
                             [bar(f"verso {B.grade_name(nxt)}", pct, f"{ln['conc']:.0f}/{nxt:.0f}", tone="bad")]))
     if len(o) > LIST_MAX:
         secs.append(section("Altri lignaggi", [f"… e altri {len(o) - LIST_MAX} lignaggi più deboli: 'sangue info' "
