@@ -428,6 +428,11 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("setta", "mysect", "lamiasetta"):
         from engine.systems import sect_menu
         return sect_menu.command(conn, player, arg)
+    if cmd in ("tecniche", "fucina", "fondi"):
+        from engine.systems import technique_forge
+        if cmd == "fondi":
+            arg = "fondi " + arg
+        return technique_forge.command(conn, player, arg)
     if cmd in ("tempra", "temprati", "spirito", "anima"):
         from engine.systems import soul_temper
         if arg.strip().lower() in ("info", "stato", "?"):

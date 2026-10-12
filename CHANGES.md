@@ -1574,3 +1574,34 @@ Benefici dai gradi più alti:
 Il vecchio `ambasciata <razza> prova` ora porta al duello con il campione.
 
 Nuovo file: `engine/systems/race_realms.py`. Nuovi test: `test_race_realms.py` (5). Suite totale: **573 passati**.
+
+---
+
+## Aggiornamento 34 — La fucina delle tecniche
+
+Un solo pannello per tutte le tecniche: si apre con `tecniche` o con il pulsante **⚒ Tecniche**. Fondere due tecniche in una nuova richiede un clic.
+
+**Il pannello mostra:**
+- **tutte le tue tecniche** con i loro effetti: moltiplicatore, perforazione, colpi in più, letalità, difesa e costo in Qi o spirito. Ci sono la mossa dell'arma, le tecniche segrete di sette, razze e manuali, le tecniche dei Dao, i colpi speciali e le tecniche create da te. Ognuna mostra anche i Dao da cui nasce;
+- **le fusioni proposte**: le 6 combinazioni migliori, anche a tre tecniche, con il nome della tecnica che nascerà, la potenza prevista e la probabilità di riuscita. Un pulsante per ciascuna;
+- **le tecniche create**, con una barra del livello e i pulsanti *Allenala* e *Dimenticala*.
+
+**Come si fonde.** Conta il legame tra i Dao delle tecniche:
+- **Risonanza** (stesso Dao): più potenza.
+- **Generazione** (Legno→Fuoco→Terra→Metallo→Acqua→Legno): più potenza e più riuscita.
+- **Intento** (arma + elemento).
+- **Conflitto** (Fuoco contro Acqua, Luce contro Ombra): molto più difficile, ma se riesce nasce un'**Armonia degli Opposti**.
+
+La riuscita cresce con la tempra dello spirito e con la comprensione dei Dao coinvolti. Fallire costa spirito e a volte una ferita, ma lascia un'**intuizione**: ogni tentativo fallito alza la riuscita del successivo.
+
+**Le tecniche create:**
+- combattono subito: si scelgono da sole in combattimento e compaiono nei duelli;
+- **crescono** usandole o allenandole, con livelli senza tetto;
+- si possono **rinominare**;
+- si possono **fondere di nuovo** (generazioni senza fine). Le tecniche create usate come ingredienti confluiscono nella nuova, e ogni generazione aggiunge un po' meno potenza.
+
+I posti per le tecniche create crescono con la tempra dello spirito e con il regno.
+
+Comandi: `tecniche`, `tecniche fondi <n> <m> [<k>]`, `tecniche fondi migliore`, `tecniche allena <n>`, `tecniche rinomina <n> <nome>`, `tecniche dimentica <n>`. Il vecchio elenco delle tecniche della setta resta con `techniques`.
+
+Nuovo file: `engine/systems/technique_forge.py`. Nuovi test: `test_technique_forge.py` (4). Suite totale: **577 passati**.

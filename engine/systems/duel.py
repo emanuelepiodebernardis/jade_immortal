@@ -269,6 +269,8 @@ def act(conn, player, arg: str) -> str:
                 strikes += int(mods.get("extra_strikes", 0))
                 d["cd"][m["key"]] = d["round"] + 3
                 name = m["name"]
+                from engine.systems import technique_forge
+                technique_forge.on_use(conn, m)
                 taken *= mods.get("taken_mult", 1.0)
         if d["focus"]:
             mult *= 1.9

@@ -208,6 +208,7 @@ def hub(conn, player) -> dict:
             act("Regni, corti e razze antiche", "regni"),
             act("Eventi del mondo", "eventi"),
             act("Coltivazione: allenamento, sfondamento, Dao, dimora", "coltivazione"),
+            act("Tecniche e fucina: fondi le tue tecniche in tecniche nuove", "tecniche"),
             act("Grotta-dimora", "dimora"),
             act("Famiglia, legami e discepoli", "famiglia"),
             act("Il Libro dei Rancori e dei Debiti (faide e alleanze)", "faide"),
@@ -258,7 +259,8 @@ def growth(conn, player) -> dict:
     for d in dao_training.trainable_daos(conn, player.id)[:8]:
         d_acts.append(act(f"Medita sul {d['name']} (comprensione {d['comprehension']})",
                           f"comprehend {d['dao_key']}"))
-    d_acts += [act("Tutti i tuoi Dao", "dao"), act("Svolte e Dao tutto tuo", "svolte")]
+    d_acts += [act("Tutti i tuoi Dao", "dao"), act("Svolte e Dao tutto tuo", "svolte"),
+               act("Tecniche e fucina (fondi le tecniche)", "tecniche")]
     secs.append(section("Dao", [], d_acts, icon="☸"))
     g = gongfa.active(conn, player.id)
     g_acts = [act(f"Pratica: {m['name']}", f"gongfa pratica {i}", ok=m is not g, why="lo pratichi già")

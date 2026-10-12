@@ -132,6 +132,14 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "favori | favore <nome>        — i FAVORI che ti hanno chiesto | esaudiscine uno (cresce l'intimità; da 2 accorrono in tuo aiuto)",
         "proponi <nome>                — lei diventa la tua compagna del Dao (rapporto ≥ 80): doppia coltivazione",
     ]),
+    ("tecniche", "Tecniche e fucina: fondere le tecniche", [
+        "tecniche                      — il PANNELLO DELLE TECNICHE: tutte le tue tecniche e le fusioni proposte (un clic)",
+        "tecniche fondi <n> <m> [<k>]  — fondi due o tre tecniche dell'elenco in una tecnica nuova",
+        "tecniche fondi migliore       — la fusione più promettente, in un colpo",
+        "tecniche allena <n>           — alleni una tecnica creata (cresce anche usandola in battaglia)",
+        "tecniche rinomina <n> <nome>  — le dai il tuo nome | tecniche dimentica <n> — la lasci andare",
+        "techniques                    — le tecniche segrete della setta, da apprendere col merito",
+    ]),
     ("dominio", "Spirito e dominio: tempra, sigilli dell'anima, salme, sette vassalle", [
         "tempra                        — TEMPRA DELLO SPIRITO: la terza via accanto a Qi e Dao (anche 'train' la allena)",
         "tempra info                   — grado dell'anima e punteggio di spirito",
@@ -262,7 +270,7 @@ _ALIASES = {
     "casa": "dimora", "discepoli": "dimora", "grotta": "dimora", "radici": "coltivazione",
     "formazioni": "arti", "domatore": "arti", "sangue": "bestie", "lignaggi": "bestie",
     "spirito": "dominio", "anima": "dominio", "servi": "dominio", "sigillo": "dominio", "salme": "dominio",
-    "vassalle": "dominio", "tempra": "dominio", "reliquie": "bestie", "campioni": "bestie",
+    "vassalle": "dominio", "tempra": "dominio", "fucina": "tecniche", "fusione": "tecniche", "mosse": "tecniche", "reliquie": "bestie", "campioni": "bestie",
     "autopilota": "auto", "pilota": "auto", "etereo": "auto", "anello": "eredita", "cloni": "eredita",
     "famiglia": "eredita", "gu": "eredita", "elementi": "eredita", "retaggio": "eredita",
     "regni": "trama", "razze": "trama", "era": "trama", "ere": "trama", "calamita": "trama",

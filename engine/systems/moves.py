@@ -116,6 +116,8 @@ def available_moves(conn: sqlite3.Connection, player_id: int = 1) -> list[dict]:
 
     from engine.systems import dao_techniques
     out.extend(dao_techniques.dao_techniques(conn, player_id))
+    from engine.systems import technique_forge           # le tecniche create nella fucina
+    out.extend(technique_forge.custom_moves(conn, player_id))
 
     from engine.systems import qi as qimod, spirit as spmod
     cur_qi = qimod.get_qi(conn, player_id)

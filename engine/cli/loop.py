@@ -908,6 +908,8 @@ def _attack_auto(conn, player, npc, forced) -> str:
                     qimod.spend(conn, chosen["qi_cost"], player.id)
                 local_cd[chosen["key"]] = rounds + 3
                 mods = chosen["mods"]
+                from engine.systems import technique_forge as _tf
+                _tf.on_use(conn, chosen)
                 strikes = 1 + int(mods.get("extra_strikes", 0)) + _space["extra_strikes"]
                 if chosen["source"] == "dao":
                     lines.append(f"◈ {_dao_tech_line(chosen, rng)} "
