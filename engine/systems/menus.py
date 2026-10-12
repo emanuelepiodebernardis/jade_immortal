@@ -27,8 +27,9 @@ def act(label: str, cmd: str, ok: bool = True, why: str = "", main: bool = False
     return {"label": label, "cmd": cmd, "ok": bool(ok), "why": why if not ok else "", "main": main}
 
 
-def bar(label: str, pct: float, text: str = "") -> dict:
-    return {"label": label, "pct": max(0, min(100, int(pct))), "text": text}
+def bar(label: str, pct: float, text: str = "", tone: str = "") -> dict:
+    """tone: '' (verde) · 'bad' (rosso: rancore, pericolo) · 'warn' · 'info' · 'rare'."""
+    return {"label": label, "pct": max(0, min(100, int(pct))), "text": text, "tone": tone}
 
 
 def section(title: str, lines: list[str] | None = None, actions: list[dict] | None = None,

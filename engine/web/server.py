@@ -77,6 +77,18 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/stato":
                 ph = game.phase()
                 return self._json(game.state_snapshot() if ph == "gioco" else {"fase": ph})
+            if path == "/api/grafici":
+                return self._json(game.charts_data())
+            if path == "/api/rete":
+                return self._json(game.graph_data())
+            if path == "/api/libro":
+                return self._json(game.book_data())
+            if path.startswith("/immagini/"):
+                base = (Path(__file__).resolve().parents[2] / "immagini")
+                f = (base / path[len("/immagini/"):]).resolve()
+                if base.resolve() in f.parents and f.is_file():
+                    return self._file(f)
+                return self._send(404, b"non trovato", "text/plain")
             if path.startswith("/api/menu/"):
                 return self._json(game.menu_data(path.rsplit("/", 1)[-1]))
             if path.startswith("/api/pannello/"):
@@ -118,7 +130,8 @@ class Handler(BaseHTTPRequestHandler):
     def _file(self, f: Path) -> None:
         # tipi espliciti: su Windows il registro a volte associa .js a text/plain
         ctype = {".html": "text/html", ".js": "application/javascript", ".css": "text/css",
-                 ".svg": "image/svg+xml", ".png": "image/png"}.get(f.suffix.lower()) \
+                 ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                 ".webp": "image/webp", ".gif": "image/gif"}.get(f.suffix.lower()) \
             or mimetypes.guess_type(str(f))[0] or "application/octet-stream"
         if ctype.startswith("text/") or ctype in ("application/javascript",):
             ctype += "; charset=utf-8"
@@ -131,6 +144,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         game.STOP.clear()
+        s0 = game.summary_snapshot()
 
         def emit(obj):
             self.wfile.write(("data: " + json.dumps(obj, ensure_ascii=False) + "\n\n").encode("utf-8"))
@@ -139,14 +153,16 @@ class Handler(BaseHTTPRequestHandler):
         try:
             for i in range(days):
                 if game.STOP.is_set():
-                    emit({"fine": True, "stop": "interrotto da te"})
+                    emit({"fine": True, "stop": "interrotto da te",
+                          "riepilogo": game.summary_diff(s0, game.summary_snapshot())})
                     return
                 r = game.auto_day()
                 emit({"giorno": i + 1, "di": days, "log": r["log"]})
                 if r["stop"]:
-                    emit({"fine": True, "stop": r["stop"]})
+                    emit({"fine": True, "stop": r["stop"],
+                          "riepilogo": game.summary_diff(s0, game.summary_snapshot()) if r["stop"] != "morto" else {}})
                     return
-            emit({"fine": True, "stop": None})
+            emit({"fine": True, "stop": None, "riepilogo": game.summary_diff(s0, game.summary_snapshot())})
         except (BrokenPipeError, ConnectionResetError):
             game.STOP.set()
 

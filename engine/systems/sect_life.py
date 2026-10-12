@@ -175,6 +175,11 @@ def _run_tournament(conn, tick, rng, player_id, faction_id, kind, observer, obse
     from engine.systems import combat_narration as cn
     bar = "─" * 40
     lines = [bar, f"⚔  {label.upper()} — {sect}", bar]
+    _OPEN = ["La campana di bronzo risuona tre volte: sulla Piattaforma del Drago si alza la polvere.",
+             "Gli anziani prendono posto sotto i baldacchini; i discepoli esterni si arrampicano sugli alberi per vedere.",
+             "Bandiere con il sigillo della setta schioccano al vento; il Patriarca stesso osserva da lontano.",
+             "Prima dello scontro, il silenzio: si sente solo il respiro dei contendenti e il ronzio del Qi."]
+    lines.append(rng.choice(_OPEN))
 
     # gli incontri del GIOCATORE contro ogni compagno, raccontati
     if cohort:
@@ -206,16 +211,28 @@ def _run_tournament(conn, tick, rng, player_id, faction_id, kind, observer, obse
     conn.execute("UPDATE sect_memberships SET class_rank=? WHERE player_id=?;",
                  (player_rank, player_id))
     stones = REWARDS.get(player_rank, 10)
-    from engine.systems import sects, reputation
+    from engine.systems import sects, reputation, guild, rewards
+    # i premi della setta: crescono col suo livello e con il tuo regno
+    srow = conn.execute("SELECT tier FROM factions WHERE id=?;", (faction_id,)).fetchone()
+    stier = (srow["tier"] if srow and srow["tier"] else 1)
+    merit = {1: 40, 2: 25, 3: 15}.get(player_rank, 5) * stier
+    guild.add_merit(conn, merit, player_id)
+    from engine.core import entities as _ents
+    prize_lines = rewards.grant(conn, rng, _ents.get_player(conn, player_id), rank=player_rank,
+                                scale=1.0 + 0.25 * (stier - 1), stones=False) if player_rank <= 3 else []
     sects.grant_resource(conn, "pietre_spirituali", stones, player_id)
     fame_gain = {1: 30, 2: 15, 3: 6}.get(player_rank, 0)
     if fame_gain:
         reputation.adjust(conn, player_id, fame=fame_gain)
     ordinal = {1: "1°", 2: "2°", 3: "3°", 4: "4°"}.get(player_rank, f"{player_rank}°")
-    award = f"Premio: +{stones} pietre spirituali"
+    award = f"Premio: +{stones} pietre spirituali, +{merit} merito"
     if fame_gain:
         award += f", +{fame_gain} fama"
     lines.append(f"Ti classifichi {ordinal} su {total}. {award}.")
+    if prize_lines:
+        lines.append("Dal tesoro della setta: " + ", ".join(prize_lines) + ".")
+    if player_rank == 1 and state_title_first(conn, sect):
+        lines.append(f"✧ Nuovo titolo: «Campione di {sect}» ✧")
     if player_rank == 1:
         lines.append("Sei salito sul gradino più alto: la tua setta ti acclama.")
         promo = sects.promote_rank(conn, player_id)
@@ -257,6 +274,11 @@ def _run_tournament(conn, tick, rng, player_id, faction_id, kind, observer, obse
             reports.push(conn, player_id, tick, note)
             if observations is not None:
                 observations.append(note)
+
+
+def state_title_first(conn, sect: str) -> bool:
+    from engine.systems import state
+    return bool(state.grant_title(conn, f"Campione di {sect}"))
 
 
 # ---------- promozione di classe ----------

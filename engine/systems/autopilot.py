@@ -46,6 +46,7 @@ CONDUCTS = ["virtuosa", "prudente", "opportunista", "spietata"]
 _WILD = ("mountain", "ruin", "forbidden_zone")
 DEFAULT = {"attivita": {"allena": 5, "coltiva": 0, "dao": 0, "caccia": 2, "raccolta": 1, "lavoro": 1, "insegna": 1},
            "bersagli": "bestie", "rischio": 10, "assorbi": False, "loot": True, "oggetti": True, "sfonda": False,
+           "routine": True, "potenzia": False, "setta": False,
            "condotta": "prudente",
            "fermate": {"reame": True, "assemblea": True, "asta": False, "invasione": True, "elemento": True}}
 _STOP_KEY = {"realm": "reame", "assembly": "assemblea", "auction": "asta", "event": "invasione",
@@ -91,7 +92,8 @@ def configure(conn, arg: str) -> str:
         c["bersagli"] = rest[0].lower()
     elif what == "condotta" and rest and rest[0].lower() in CONDUCTS:
         c["condotta"] = rest[0].lower()
-    elif what in ("assorbi", "loot", "oggetti", "sfonda") and rest and _yes(rest[0]) is not None:
+    elif what in ("assorbi", "loot", "oggetti", "sfonda", "routine", "potenzia", "setta") and rest \
+            and _yes(rest[0]) is not None:
         c[what] = _yes(rest[0])
     elif what in ("rischio", "risk") and rest and rest[0].rstrip("%").isdigit():
         c["rischio"] = max(0, min(100, int(rest[0].rstrip("%"))))
@@ -114,6 +116,9 @@ def describe(conn) -> str:
             f"Bottino: {'sì' if c['loot'] else 'no'}   Usa oggetti: {'sì' if c['oggetti'] else 'no'}   "
             f"Sfonda da solo: {'sì' if c['sfonda'] else 'no'} (rischio accettato {c.get('rischio', 10)}%)\n"
             f"  Condotta negli incontri: {c['condotta']}\n"
+            f"  Faccende (stipendio, missioni, raccolto della dimora): {'sì' if c.get('routine', True) else 'no'}   "
+            f"Potenzia la dimora: {'sì' if c.get('potenzia') else 'no'}   "
+            f"Setta (iscriviti, accetta l'ascesa): {'sì' if c.get('setta') else 'no'}\n"
             "  Si ferma anche per: " + ", ".join(f"{k} {'sì' if v else 'no'}" for k, v in c["fermate"].items())
             + " ('auto imposta fermati asta si')\n"
             "Avvia con 'auto <giorni>' (max 60). Si ferma da solo davanti agli eventi importanti; "
@@ -597,6 +602,7 @@ def run(conn, player, days: int) -> str:
             if cfg["oggetti"] and _usable_items(conn, player.id):
                 out = loop.dispatch(conn, "use all", allow_nl=False) or ""
                 notes += [ln.strip() for ln in out.splitlines() if any(k in ln for k in _NOTABLE)]
+            notes += _routine(conn, entities.get_player(conn, player.id), cfg)
             done_days += 1
             conn.commit()
             from engine.cli import story_cmds
@@ -611,6 +617,44 @@ def run(conn, player, days: int) -> str:
     except KeyboardInterrupt:
         reason = "interrotto da te"
     return _report(conn, player.id, s0, done_days, reason, notes)
+
+
+def _routine(conn, p, cfg: dict) -> list[str]:
+    """Le faccende che si fanno da sé, usando i menu: stipendio, missioni, dimora, setta."""
+    from engine.cli import loop
+    from engine.systems import sect_menu, sects, cave_abode, encounters
+    if encounters.pending(conn):
+        return []
+    out: list[str] = []
+
+    def run(cmd):
+        txt = loop.dispatch(conn, cmd, allow_nl=False) or ""
+        out.append(txt.splitlines()[0][:140] if txt else cmd)
+
+    m = sects.get_membership(conn, p.id)
+    if cfg.get("routine", True):
+        if m and sect_menu.stipend_info(conn, p)[0]:
+            run("setta stipendio")
+        if m and state.get_json(conn, "sect_mission"):
+            txt = loop.dispatch(conn, "missioni completa", allow_nl=False) or ""
+            if txt.startswith("Missione compiuta"):
+                out.append(txt.splitlines()[0])
+        ab = cave_abode.get(conn, p.id)
+        if ab and ab["loc"] == p.location_id and any(v > 0 for v in (ab.get("stock") or {}).values()):
+            run("dimora raccogli")
+    if cfg.get("potenzia"):
+        ab = cave_abode.get(conn, p.id)
+        if ab and ab["loc"] == p.location_id:
+            steps, _c = cave_abode.plan_max(ab, sects.get_resource(conn, "pietre_spirituali", p.id))
+            if steps:
+                run("dimora potenzia max")
+    if cfg.get("setta"):
+        if not m and sects.sect_at_location(conn, p.location_id):
+            run("join")
+        elif m and sect_menu.offers(conn, p.id):
+            best = max(sect_menu.offers(conn, p.id), key=lambda r: r["tier"])
+            run(f"setta ascendi {best['slot']}")
+    return out
 
 
 def _usable_items(conn, pid: int) -> bool:

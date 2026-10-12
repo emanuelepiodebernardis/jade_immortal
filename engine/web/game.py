@@ -408,6 +408,33 @@ def auto_day() -> dict:
     return {"log": rep, "stop": stop}
 
 
+def summary_snapshot() -> dict:
+    """Istantanea per il riepilogo del pilota automatico."""
+    from engine.systems import history, feuds, items, state
+    from engine.simulation import cultivation
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        if p is None:
+            return {}
+        s = history.snapshot(conn, p.id)
+        s.update({"regno": cultivation.realm_label(conn, "player", p.id),
+                  "kills": state.get_int(conn, "kills_total", 0), "titoli": list(state.titles(conn)),
+                  "faide": len(feuds.feuds(conn)), "debiti": len(feuds.debts(conn)),
+                  "oggetti": sum(r["quantity"] for r in items.player_inventory(conn, p.id))})
+        return s
+
+
+def summary_diff(a: dict, b: dict) -> dict:
+    if not a or not b:
+        return {}
+    pw = (b["power"] / a["power"]) if a.get("power") else 1
+    return {"giorni": b["d"] - a["d"], "regno_da": a["regno"], "regno_a": b["regno"],
+            "potenza": round(pw, 2), "dao": b["dao"] - a["dao"], "pietre": b["stones"] - a["stones"],
+            "fama": b["fame"] - a["fame"], "karma": b["karma"] - a["karma"], "uccisioni": b["kills"] - a["kills"],
+            "titoli": [t for t in b["titoli"] if t not in a["titoli"]], "faide": b["faide"] - a["faide"],
+            "debiti": b["debiti"] - a["debiti"], "oggetti": b["oggetti"] - a["oggetti"]}
+
+
 def dao_data() -> list[dict]:
     """I Dao del personaggio con la soglia successiva (per le barre del pannello)."""
     from engine.systems import dao_training as dt, train_all
@@ -657,5 +684,152 @@ def people_data() -> dict:
                 c = card(r["npc_id"], "ostile")
                 if c:
                     enemies.append(c)
+        from engine.systems import feuds
+        for f in feuds.feuds(conn):
+            if f["npc_id"] not in seen:
+                seen.add(f["npc_id"])
+                c = card(f["npc_id"], f"{feuds.REL_LABEL.get(f['relation'], '')} di {f['victim_name']} (faida)",
+                         {"perche": f"rancore {f['intensity']}/100" + ("" if f["knows"] else " · non sa chi sei")})
+                if c:
+                    enemies.append(c)
+        for d in feuds.debts(conn):
+            if d["npc_id"] not in seen:
+                seen.add(d["npc_id"])
+                c = card(d["npc_id"], "ti deve la vita" if d["status"] == "debito" else "alleato (debito di vita)")
+                if c:
+                    allies.append(c)
         me = {"potenza": power.combat_rating(conn, "player", p.id), "regno": cultivation.realm_name(conn, "player", p.id)}
     return {"io": me, "alleati": allies, "nemici": enemies}
+
+
+# ============================================================
+# Grafici, rete delle relazioni, Libro
+# ============================================================
+
+def charts_data() -> dict:
+    """Serie storiche (un punto al giorno) e radar degli attributi."""
+    from engine.systems import history
+    from engine.simulation import combat
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        cp = combat.combat_power(conn, "player", p.id)
+        from engine.systems import qi as qimod, spirit as spmod
+        dao = conn.execute("SELECT COALESCE(SUM(comprehension),0) s FROM character_daos WHERE character_type='player' "
+                           "AND character_id=?;", (p.id,)).fetchone()["s"]
+        radar = {"Attacco": cp["attack"], "Difesa": cp["defense"], "Vitalità": cp["vitality"],
+                 "Spirito": spmod.max_spirit(conn, p.id), "Qi": qimod.max_qi(conn, p.id), "Dao": dao}
+        hist = history.series(conn)
+        if not hist or hist[-1]["d"] != tick_mod.get_tick(conn) // 120 + 1:
+            hist = hist + [history.snapshot(conn, p.id)]
+    return {"storia": hist, "radar": {k: round(float(v), 1) for k, v in radar.items()}}
+
+
+def graph_data() -> dict:
+    """La rete: famiglia, legami, nemici, faide (con le vittime da cui nascono), debiti di vita."""
+    from engine.systems import bonds, feuds, archrival, family, power
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        me = power.combat_rating(conn, "player", p.id) or 1
+        nodes, edges, seen = [{"id": "io", "label": p.name, "group": "io", "vivo": True, "qui": True}], [], set()
+
+        def node(nid, group, label=None):
+            if nid in seen:
+                return
+            r = conn.execute("SELECT name, status, location_id FROM npcs WHERE id=?;", (nid,)).fetchone()
+            if not r:
+                return
+            seen.add(nid)
+            alive = r["status"] == "alive"
+            nodes.append({"id": nid, "label": label or r["name"], "nome": r["name"], "group": group, "vivo": alive,
+                          "qui": r["location_id"] == p.location_id, "loc": r["location_id"],
+                          "forza": round(power.combat_rating(conn, "npc", nid) / me, 2) if alive else 0})
+
+        fam = family.get(conn)
+        for m in (fam or {}).get("members", []):
+            node(m["id"], "famiglia")
+            edges.append({"a": "io", "b": m["id"], "label": m["role"], "kind": "famiglia"})
+        for r in conn.execute("SELECT kind, npc_id, reason FROM bonds WHERE player_id=? AND status='active';",
+                              (p.id,)).fetchall():
+            if r["kind"] == "family":
+                continue
+            g = "nemico" if r["kind"] in ("nemesis", "rival") else "legame"
+            node(r["npc_id"], g)
+            edges.append({"a": "io", "b": r["npc_id"], "label": bonds.KINDS_IT.get(r["kind"], r["kind"]), "kind": g})
+        ar = archrival.get(conn)
+        if ar:
+            node(ar["npc"], "nemico")
+            edges.append({"a": "io", "b": ar["npc"], "label": "arcinemico", "kind": "nemico"})
+        for f in feuds.feuds(conn):
+            node(f["npc_id"], "faida")
+            if f["victim_id"]:
+                node(f["victim_id"], "vittima")
+                edges.append({"a": f["npc_id"], "b": f["victim_id"],
+                              "label": feuds.REL_LABEL.get(f["relation"], f["relation"]), "kind": "parentela"})
+                edges.append({"a": "io", "b": f["victim_id"], "label": "ucciso da te", "kind": "sangue"})
+            edges.append({"a": f["npc_id"], "b": "io", "label": f"vendetta {f['intensity']}", "kind": "faida"})
+        for d in feuds.debts(conn):
+            node(d["npc_id"], "debito")
+            edges.append({"a": d["npc_id"], "b": "io", "label": "ti deve la vita", "kind": "debito"})
+    return {"nodi": nodes, "archi": edges}
+
+
+def book_data() -> dict:
+    """Il Libro: tesori, bestie, sangue, reliquie, nemici e maestri — tutto ciò che hai incontrato."""
+    import os
+    from engine.systems import (items, bloodlines, beasts, celestial_elements, archrival, bonds, feuds,
+                                secret_masters, state as st)
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        pages = []
+
+        def add(cat, name, sub="", rar="", desc="", facts=None):
+            pages.append({"cat": cat, "nome": name, "sub": sub, "rarita": rar or "", "desc": desc or "",
+                          "fatti": facts or []})
+        inv = {r["name"]: r for r in items.player_inventory(conn, p.id)}
+        for nm, r in inv.items():
+            add("tesori", nm, r["item_type"], r["rarity"], r["description"], [f"Nello zaino: {r['quantity']}"])
+        for nm, e in (st.get_json(conn, "world_book_items", {}) or {}).items():
+            if nm not in inv:
+                add("tesori", nm, e.get("kind", ""), e.get("rarity", ""), e.get("desc", ""), [f"Ottenuto {e.get('n', 1)} volt{'a' if e.get('n', 1) == 1 else 'e'}"])
+        for k, ln in bloodlines.ordered(conn):
+            add("sangue", ln.get("name", k), f"sangue di {ln.get('species', '?')}", "leggendario", "",
+                [f"Concentrazione: {round(float(ln.get('conc', 0)), 1)}%",
+                 "Elementi: " + (", ".join(ln.get("elements") or []) or "—")]
+                + ([f"Fuso da: {', '.join(ln['fused_from'])}"] if ln.get("fused_from") else []))
+        pet = beasts.pet(conn, p.id)
+        if pet:
+            tr = beasts.traits(conn, pet["npc_id"])
+            add("bestie", pet["name"], f"la tua bestia — {tr['species']}", tr["rarity"], "",
+                [f"Talento: {tr['talent']}", f"Elementi: {tr['elements']}"])
+        for r in beasts.active_rare(conn):
+            add("bestie", r["name"], "bestia rara nel mondo", r["rarity"], "",
+                [f"Avvistata a {r['loc']}"] if r["loc"] else [])
+        for nm in st.get_json(conn, "world_codex_bestie", []) or []:
+            if not any(x["nome"] == nm for x in pages if x["cat"] == "bestie"):
+                add("bestie", nm, "incontrata in battaglia", "comune")
+        for el, v in (celestial_elements.owned(conn) or {}).items():
+            names = v.get("names") or [el]
+            pw = float(v.get("power", 0))
+            add("reliquie", names[-1], f"elemento celeste ({el})", "leggendario", "",
+                [f"Potenza: {round(pw, 1)}", f"Grado: {celestial_elements.grade(pw)}"]
+                + ([f"Assorbiti: {', '.join(names)}"] if len(names) > 1 else []))
+        ar = archrival.get(conn)
+        if ar:
+            r = conn.execute("SELECT name, status FROM npcs WHERE id=?;", (ar["npc"],)).fetchone()
+            if r:
+                add("nemici", r["name"], f"arcinemico «{ar['epithet']}»", "prezioso", "",
+                    [f"Generazione: {ar['gen']}", f"Vittorie tue: {ar.get('wins', 0)}", f"Sconfitte: {ar.get('losses', 0)}",
+                     "Vivo" if r["status"] == "alive" else "Caduto"])
+        for r in bonds.nemeses(conn, p.id):
+            add("nemici", r["name"], "nemesi", "raro", "")
+        for f in feuds.feuds(conn):
+            add("nemici", f["name"], f"{feuds.REL_LABEL.get(f['relation'], '')} di {f['victim_name']}", "raro",
+                "Ha giurato vendetta.", [f"Rancore: {f['intensity']}/100", f"Generazione: {f['gen']}"])
+        for k in secret_masters.learned(conn):
+            add("maestri", str(k), "maestro segreto", "prezioso")
+        imgs = []
+        folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "immagini")
+        if os.path.isdir(folder):
+            imgs = sorted(f for f in os.listdir(folder) if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".gif")))
+        conn.rollback()
+    return {"pagine": pages, "immagini": imgs}

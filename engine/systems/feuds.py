@@ -47,6 +47,7 @@ REL = {"padre": (1, 85, (8, 25)), "madre": (1, 80, (8, 25)), "fratello": (0, 75,
        "maestro": (1, 70, (10, 30)), "giurato": (0, 65, (5, 20)), "setta": (2, 60, (10, 30)),
        "allievo": (-1, 80, (20, 50))}
 MAX_GEN = 3
+MAX_ACTIVE = 8          # oltre, il mondo ricorda ma nessun altro giura (il libro non diventa un elenco infinito)
 
 
 def ensure_table(conn) -> None:
@@ -145,7 +146,9 @@ def _spawn_avenger(conn, rng, victim, relation: str) -> int:
         # stessa famiglia, stesso cognome
         r = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()
         given = r["name"].split()[-1]
-        conn.execute("UPDATE npcs SET name=? WHERE id=?;", (f"{surname} {given}", nid))
+        new = f"{surname} {given}"
+        if not conn.execute("SELECT 1 FROM npcs WHERE name=?;", (new,)).fetchone():   # nomi sempre unici
+            conn.execute("UPDATE npcs SET name=? WHERE id=?;", (new, nid))
     return nid
 
 
@@ -180,6 +183,8 @@ def on_kill(conn, t: int, rng: random.Random, player, npc) -> list[str]:
     place = lname["name"] if lname else "un luogo lontano"
     sworn = []
     for rel in _pick_relations(rng, npc, n, _fac(conn, npc.id)):
+        if len(feuds(conn)) >= MAX_ACTIVE:
+            break
         chance = min(0.95, 0.55 * mult + 0.1 * gen)
         if rng.random() > chance:
             continue

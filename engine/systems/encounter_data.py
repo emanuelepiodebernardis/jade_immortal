@@ -358,3 +358,8 @@ ENCOUNTERS: list[dict] = [
         ],
     },
 ]
+
+
+# Le SAGHE: incontri a più atti (vedi encounter_sagas.py)
+from engine.systems.encounter_sagas import SAGAS as _SAGAS   # noqa: E402
+ENCOUNTERS += _SAGAS

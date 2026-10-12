@@ -27,6 +27,7 @@ function lineClass(l) {
   if (/[⚡☯🧭]/.test(l)) return "l-info";
   return "";
 }
+let logFilter = "tutto";
 function addLog(text, cmd) {
   if (!text && !cmd) return;
   const box = $("#log");
@@ -34,12 +35,22 @@ function addLog(text, cmd) {
   div.className = "entry";
   let html = cmd ? `<div class="you">› ${esc(cmd)}</div>` : "";
   html += (text || "").split("\n").map((l) => {
-    const c = lineClass(l);
-    return c ? `<span class="${c}">${esc(l)}</span>` : esc(l);
-  }).join("\n");
+    const c = lineClass(l), cat = V.category(l);
+    const hide = logFilter !== "tutto" && cat !== logFilter ? " hidden" : "";
+    return `<div class="ln cat-${cat}${c ? " " + c : ""}"${hide}>${esc(l) || "&nbsp;"}</div>`;
+  }).join("");
   div.innerHTML = html;
   box.appendChild(div);
   while (box.children.length > 300) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+
+function addCard(html) {
+  const box = $("#log");
+  const div = document.createElement("div");
+  div.className = "entry card-entry";
+  div.innerHTML = html;
+  box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
 
@@ -163,11 +174,12 @@ async function loadTab(name) {
   b.innerHTML = `<div class="empty">Carico…</div>`;
   try {
     if (name === "obiettivi") { b.innerHTML = await objectivesHtml(); return; }
-    if (name === "persone") { b.innerHTML = await peopleHtml(); return; }
+    if (name === "persone") { GRAPH = await api("/api/rete"); b.innerHTML = V.graph(GRAPH) + await peopleHtml(); return; }
+    if (name === "libro") { BOOK = await api("/api/libro"); b.innerHTML = V.book(BOOK, bookCat); return; }
     let head = "";
-    if (name === "personaggio") head = await daoBars();
+    if (name === "personaggio") head = V.charts(await api("/api/grafici")) + await daoBars();
     if (name === "tesori") head = `<div class="tools"><button class="primary" data-cmd="tesori cura">✧ Cura tutti i tesori</button></div>` + await bagHtml();
-    if (name === "aiuto") head = await gameHtml();
+    if (name === "aiuto") head = await gameHtml() + V.legend();
     if (name === "storia") head = await chronicleHtml();
     if (name === "mondo") head = await worldHtml();
     const parts = PANEL_TEXT[name] ? await api("/api/pannello/" + name) : [];
@@ -180,7 +192,7 @@ function menuHtml(m) {
   let h = `<div class="card menuhead"><h3>${esc(m.title)}</h3>${m.sub.map((s) => `<div class="muted">${esc(s)}</div>`).join("")}</div>`;
   for (const s of m.sections) {
     h += `<div class="card sec msec"><b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
-    for (const b of s.bars) h += `<div class="mbar"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
+    for (const b of s.bars) h += `<div class="mbar ${b.tone || ""}"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
     for (const l of s.lines) h += `<div class="mline">${esc(l)}</div>`;
     if (s.actions.length) h += `<div class="mact">` + s.actions.map((a) => a.ok
       ? `<button class="${a.main ? "primary" : ""}" data-cmd="${esc(a.cmd)}" title="${esc(a.cmd)}">${esc(a.label)}</button>`
@@ -190,6 +202,7 @@ function menuHtml(m) {
   return h + (m.foot ? `<div class="muted">${esc(m.foot)}</div>` : "");
 }
 
+let GRAPH = null, BOOK = null, bookCat = "tutto";
 const TITLES = { status: "Stato", rating: "Potenza e classe", dao: "Dao (dettaglio)", corpo: "Corpo e cuore",
   radici: "Radici spirituali", sangue: "Lignaggi di sangue", tesori: "Tesori (dettaglio)", arma: "Arma",
   trama: "La trama", goals: "Diario degli obiettivi", arcinemico: "Arcinemico", retaggio: "Retaggio spezzato",
@@ -343,8 +356,9 @@ function autoStart() {
     if (d.fine) {
       es.close(); es = null; busy = false;
       $("#auto-go").hidden = false; $("#auto-stop").hidden = true;
-      if (d.stop) addLog(`⏸ Il pilota si ferma: ${d.stop}`);
       if (d.stop === "morto") return showDeath();
+      if (d.riepilogo && d.riepilogo.giorni !== undefined) addCard(V.summary(d.riepilogo, d.stop));
+      else if (d.stop) addLog(`⏸ Il pilota si ferma: ${d.stop}`);
       await refresh();
     } else if (d.giorno % 3 === 0) {
       refresh();
@@ -428,6 +442,17 @@ document.addEventListener("click", async (ev) => {
     const r = await api("/api/nuovo_mondo", {}); addLog(r.log); $("#log").innerHTML = ""; addLog(r.log); return refresh();
   }
   if (ev.target.id === "cr-all") { allLives = !allLives; return loadTab("storia"); }
+  const bk = ev.target.closest("[data-book]");
+  if (bk && BOOK) { bookCat = bk.dataset.book; $("#tabbody").innerHTML = V.book(BOOK, bookCat); return; }
+  const gn = ev.target.closest("[data-node]");
+  if (gn && GRAPH) { const box = $("#gnode-info"); if (box) box.innerHTML = V.nodeInfo(GRAPH, gn.dataset.node); return; }
+  const lf = ev.target.closest("[data-logf]");
+  if (lf) {
+    logFilter = lf.dataset.logf;
+    document.querySelectorAll("[data-logf]").forEach((b) => b.classList.toggle("on", b === lf));
+    document.querySelectorAll("#log .ln").forEach((l) => { l.hidden = logFilter !== "tutto" && !l.classList.contains("cat-" + logFilter); });
+    return;
+  }
   const t = ev.target.closest("[data-cmd]");
   if (t) { ev.preventDefault(); run(t.dataset.cmd); return; }
   const tb = ev.target.closest("[data-tab]");

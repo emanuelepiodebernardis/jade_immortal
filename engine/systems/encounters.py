@@ -344,6 +344,18 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
         lines.append(f"Su {npc.name} ora pende una taglia di {reward} pietre.")
     if npc and eff.get("npc_leaves"):
         conn.execute("UPDATE npcs SET location_id=NULL WHERE id=?;", (npc.id,))
+    # uccidere o risparmiare dentro una scena: le stesse conseguenze del combattimento
+    if npc and eff.get("npc_dies"):
+        from engine.systems import feuds, dao_superiori
+        lines += feuds.on_kill(conn, t, rng, player, npc)
+        conn.execute("UPDATE npcs SET status='dead' WHERE id=?;", (npc.id,))
+        dao_superiori.on_kill(conn, "human")
+    if npc and eff.get("spared"):
+        from engine.systems import feuds
+        lines += feuds.on_spare(conn, t, rng, player, npc, chosen=True)
+    if eff.get("prize"):                          # premi generati (torneo, eredità, gratitudine…)
+        from engine.systems import rewards
+        lines += rewards.grant(conn, rng, player, **eff["prize"])
 
     if any(k in eff for k in ("face_duel", "face_humiliate", "feud_end", "feud_win")):
         from engine.systems import face
@@ -488,7 +500,15 @@ def choose(conn: sqlite3.Connection, player: entities.Player, n: int) -> tuple[s
     lines += apply_effects(conn, t, rng, player, branch, ctx)
     _log(conn, t, player, sc, ch)
     if branch.get("then"):
-        nxt = format_scene(dict(branch["then"]), ctx)
+        raw = dict(branch["then"])
+        spec = raw.pop("spawn", None)
+        if spec and (raw.pop("respawn", False) or not ctx.get("npc_id")):
+            ctx.pop("npc_id", None)               # un nuovo personaggio entra in scena: prima nasce, poi si racconta
+            from engine.systems import npc_factory
+            ctx["npc_name"] = npc_factory.unique_name(rng, conn=conn)
+            _spawn_ctx_npc(conn, rng, player, ctx, spec, t)
+        nxt = format_scene(raw, ctx)
+        nxt.pop("spawn", None)
         txt = start_scene(conn, player, nxt, force=True)
         if txt:
             lines.append("")

@@ -1,0 +1,11 @@
+Le tue immagini per il Libro.
+
+Metti qui un'immagine (png, jpg, webp o gif) con lo stesso nome di ciò che vuoi illustrare:
+una bestia, un tesoro, un sangue, un nemico, un maestro. Il Libro la userà al posto
+dell'emblema generato dal gioco.
+
+Il nome del file si confronta senza maiuscole, accenti, spazi e simboli: per
+"Sangue di Fenice" vanno bene "sangue di fenice.png", "Sangue_di_Fenice.jpg" o
+"sanguedifenice.webp".
+
+Usa solo immagini che puoi usare: tue, disegnate da te, o con una licenza libera.

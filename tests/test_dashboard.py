@@ -192,3 +192,31 @@ def test_restart_command_sets_flag(world):
     game.turn("ricomincia conferma")
     with tx() as c:
         assert state.get(c, rebirth.RESTART_KEY) == "1"
+
+
+def test_charts_graph_book_and_autopilot_summary(world):
+    import random as _r
+    _p, tx = world
+    game.create("mortale", "", "Lin Feng", "normale")
+    game.turn("train")
+    game.turn("sleep")
+    ch = game.charts_data()
+    assert ch["storia"] and set(ch["radar"]) >= {"Attacco", "Difesa", "Dao"}
+    from engine.systems import feuds, npc_factory, rewards
+    from engine.core import entities as ents
+    with tx() as conn:
+        p = ents.get_player(conn)
+        nid = npc_factory.spawn(conn, _r.Random(1), archetype="anziano", location_id=p.location_id, tier=2)
+        for s in range(8):
+            if feuds.on_kill(conn, 0, _r.Random(s), p, ents.get_npc(conn, nid)):
+                break
+        rewards.grant(conn, _r.Random(2), p, rank=1)
+    g = game.graph_data()
+    groups = {n["group"] for n in g["nodi"]}
+    assert "io" in groups and ("faida" in groups or "famiglia" in groups)
+    b = game.book_data()
+    assert any(pg["cat"] == "tesori" for pg in b["pagine"])
+    a = game.summary_snapshot()
+    game.turn("sleep")
+    d = game.summary_diff(a, game.summary_snapshot())
+    assert d["giorni"] >= 1 and "regno_a" in d

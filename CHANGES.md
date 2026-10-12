@@ -1357,3 +1357,68 @@ Suite totale: **548 passati**.
 - I cacciatori della vita precedente non inseguono più chi è appena rinato.
 
 Nuovi test: `test_worlds.py` (3), `test_feuds.py` (4). Suite totale: **556 passati**.
+
+---
+
+## Aggiornamento 30 — Eventi più ricchi, grafici, la rete, il Libro e il pilota che sbriga le faccende
+
+**Eventi più lunghi e ricchi**
+- **Saghe a più atti** (`encounter_sagas.py`): sei storie in 2-3 scene, ognuna con le sue scelte.
+  - *La sposa rapita*: la segui fino all'accampamento dei rapitori, poi la liberi, tratti o duelli.
+  - *La Fossa delle Mille Ossa*: un torneo clandestino, con il campione da battere o da
+    risparmiare.
+  - *La tomba del Patriarca Senza Nome*: rune, un guardiano di giada, e tre eredità tra cui
+    scegliere.
+  - *Il Giovane Signore*: un affronto in locanda, e poi l'anziano del suo clan che viene a
+    decidere se odiarti o rispettarti.
+  - *Il villaggio che non si sveglia*: un coltivatore demoniaco che beve la vita dei dormienti.
+  - *La carovana delle erbe*: una scorta e un'imboscata.
+- Nelle scene uccidere o risparmiare ha le stesse conseguenze dei combattimenti: vendicatori
+  oppure debiti di vita.
+- **Premi generati** (`rewards.py`): pillole, essenze del Dao, manuali, nuclei e tesori antichi
+  con nomi propri. Scalano col piazzamento, con il tuo regno e con l'importanza dell'evento.
+- **Torneo mensile della setta**: un'apertura raccontata, poi pietre, merito e premi dal tesoro
+  della setta per i primi tre. La prima vittoria dà il titolo *Campione di …*.
+- **Grande Assemblea**: ogni incontro presenta l'avversario (regno e forza a confronto) e la folla,
+  e a ogni turno vinto ricevi un premio. Il campione riceve il Sigillo dell'Alleanza: un tesoro e
+  un manuale.
+
+**Grafica e simboli** (`viz.js`) — tutto in SVG, senza immagini da internet
+- **Legenda** dei simboli e dei colori di rarità (scheda *Partita*). Ogni simbolo ha sempre lo
+  stesso significato: ⚔ combattimento, ☯ coltivazione, ☸ Dao, ♥ legami, 🩸 faide, 🤝 debiti di
+  vita, ⛩ setta, 👑 regni, ✦ storia, ⚠ pericolo, ✧ guadagni, 💰 pietre.
+- **Registro filtrabile**: Tutto, Combattimento, Coltivazione, Legami, Setta, Mondo.
+- **Grafici** (scheda *Personaggio*):
+  - la coltivazione nel tempo, con gli sfondamenti segnati;
+  - la potenza di combattimento, in scala logaritmica;
+  - la comprensione dei Dao;
+  - il radar del tuo profilo (attacco, difesa, vitalità, spirito, Qi, Dao).
+  Ogni alba si registra un'istantanea (`history.py`).
+- **La rete delle relazioni** (scheda *Alleati e nemici*): famiglia, legami, debiti di vita,
+  nemici e faide intorno a te. I caduti da cui nasce ogni faida sono collegati al loro
+  vendicatore con un tratteggio di sangue. Il cerchio pieno vuol dire qui, quello tenue lontano;
+  la grandezza dice la forza. Cliccando un nome compaiono Vai, Parla o Duello.
+  Vendicatori e debitori compaiono anche tra le schede di alleati e nemici.
+- **Il Libro** (nuova scheda): una pagina per ogni tesoro ottenuto, bestia (la tua, quelle rare,
+  quelle affrontate), sangue, reliquia (gli elementi celesti), nemico principale e maestro, con
+  tutti i dati. Ogni pagina ha un **sigillo generato** dal nome (forma, carattere cinese e
+  colore della rarità).
+  - Cartella **`immagini/`**: un'immagine con lo stesso nome sostituisce il sigillo.
+    Istruzioni in `immagini/LEGGIMI.txt`.
+
+**Il pilota automatico**
+- Al termine compare una **scheda di riepilogo**: coltivazione prima e dopo, potenza (×), Dao,
+  pietre, fama, karma, vite tolte, nuove faide e debiti, oggetti, titoli.
+- **Faccende** (attive di default): ritira lo stipendio, consegna le missioni di setta,
+  raccoglie la produzione della dimora.
+- Si possono attivare anche:
+  - **Potenzia la dimora** al massimo quando è a casa;
+  - **Setta**: si iscrive e accetta l'ascesa più alta.
+  Sono tre caselle in *Impostazioni*, oppure `auto imposta routine|potenzia|setta si/no`.
+
+**Ritocchi**
+- Le faide aperte sono al massimo 8 insieme.
+- I vendicatori hanno sempre un nome unico.
+- Il rancore ha una barra rossa.
+
+Nuovi test: `test_sagas.py` (2), nuove verifiche in `test_dashboard.py`. Suite totale: **559 passati**.

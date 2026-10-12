@@ -417,14 +417,15 @@ def grudges(conn, player) -> dict:
                  + (f" · {cmp_}" if cmp_ else "")
                  + (f" · arriverà tra circa {max(0, f['ready_day'] - day)} giorni" if f["status"] == "giurata" else "")]
         cost = F._cost(conn, f)
+        lei = f["relation"] in F.FEMALE
         acts = [act(f"Duello con {f['name']}", f"duello {first}" if here else f"faide duello {f['id']}", ok=here or f["knows"],
                     why="non sa ancora chi sei"),
                 act(f"Risarcisci la famiglia ({cost} pietre)", f"faide risarcisci {f['id']}",
                     ok=_stones(conn, player.id) >= cost and f["knows"], why=f"servono {cost} pietre"),
-                act("Raccontagli la verità", f"faide verita {f['id']}", ok=bool(f["knows"]), why="non sa chi sei")]
+                act("Racconta la verità", f"faide verita {f['id']}", ok=bool(f["knows"]), why="non sa chi sei")]
         if not here and f["location_id"]:
-            acts.append(act("Vai da lui", f"vai #{f['location_id']}"))
-        secs.append(section(f"🩸 {f['name']}", lines, acts, [bar("Rancore", f["intensity"])]))
+            acts.append(act("Vai da lei" if lei else "Vai da lui", f"vai #{f['location_id']}"))
+        secs.append(section(f"🩸 {f['name']}", lines, acts, [bar("Rancore", f["intensity"], tone="bad")]))
     ds = F.debts(conn)
     d_lines = [f"🤝 {d['name']} — risparmiato a {d['place']}: {_ST.get(d['status'], d['status'])}" for d in ds]
     secs.append(section("Debiti di vita", d_lines or ["Nessuno ti deve la vita. Risparmiare chi hai battuto crea alleati."],

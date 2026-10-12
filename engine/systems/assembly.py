@@ -114,10 +114,10 @@ def describe(conn, player) -> str:
         last = state.get_int(conn, "assembly_day", 10)
         nxt = max(1, INTERVAL_DAYS - (tick_mod.get_tick(conn) // 120 - last))
         champ = state.get(conn, "assembly_champion")
-        return (f"Nessuna Grande Assemblea in corso: la prossima tra circa {nxt} giorni."
+        return (f"Nessuna Grande Assemblea in corso: la prossima tra circa {nxt} giorn{'o' if nxt == 1 else 'i'}."
                 + (f" Ultimo Capo dell'Alleanza: {champ}." if champ else ""))
     left = max(0, a["end_day"] - tick_mod.get_tick(conn) // 120)
-    lines = [f"⚔ GRANDE ASSEMBLEA DELL'ALLEANZA MARZIALE — a {a['city']} (chiude tra {left} giorni)"]
+    lines = [f"⚔ GRANDE ASSEMBLEA DELL'ALLEANZA MARZIALE — a {a['city']} (chiude tra {left} giorn{'o' if left == 1 else 'i'})"]
     if not a["joined"]:
         lines.append("Non sei iscritto: vai in città e 'assemblea iscriviti'.")
         return "\n".join(lines)
@@ -149,7 +149,11 @@ def fight(conn, player, style: int) -> str:
     t = tick_mod.get_tick(conn)
     rng = random.Random(t * 13 + a["round"] * 101 + player.id)
     ratio = perception.strength_ratio(conn, player.id, opp)
-    lines = [f"⚔ {ROUNDS[a['round']]} contro {name}."]
+    from engine.simulation import cultivation as _cult
+    _crowd = ["Diecimila spettatori trattengono il fiato.", "Sugli spalti le sette scommettono a voce alta.",
+              "I tamburi di guerra battono il tempo dello scontro.", "Il vento solleva i vessilli di cento sette."]
+    lines = [f"⚔ {ROUNDS[a['round']]} contro {name} — {_cult.realm_label(conn, 'npc', opp)} "
+             f"({perception.relative_strength(conn, player.id, opp)}).", rng.choice(_crowd)]
     if style == 1:
         score = ratio * rng.uniform(0.75, 1.25) * (1.08 if ratio >= 1 else 0.95)
         lines.append("Ti lanci all'attacco senza risparmiarti.")
@@ -172,7 +176,13 @@ def fight(conn, player, style: int) -> str:
     reward = (100 + 100 * a["round"]) * max(1, _ptier(conn, player.id))
     sects.grant_resource(conn, "pietre_spirituali", reward, player.id)
     reputation.adjust(conn, player.id, fame=4 + 4 * a["round"])
+    lines.append(rng.choice([f"Il tuo ultimo colpo fa arretrare {name} fuori dall'arena.",
+                             f"{name} alza la mano: si arrende, con un inchino che vale più di una vittoria.",
+                             f"Un fendente di luce: l'arma di {name} vola via e si pianta tra la folla."]))
     lines.append(f"Vinci! {name} cede il campo. (+{reward} pietre)")
+    from engine.systems import rewards
+    pr = rewards.grant(conn, rng, player, rank=3 - min(2, a["round"]), scale=1.0 + 0.5 * a["round"], stones=False)
+    lines.append("I giudici ti consegnano: " + ", ".join(pr) + ".")
     if ratio < 0.87:
         lines += seclusion.on_upset_win(conn, t, rng, player, name, ratio)
     a["round"] += 1
@@ -184,6 +194,8 @@ def fight(conn, player, style: int) -> str:
         state.set(conn, "assembly_wins", str(wins))
         reputation.adjust(conn, player.id, fame=30)
         lines.append("✦ Diecimila voci gridano il tuo nome: sei il CAPO DELL'ALLEANZA MARZIALE! ✦")
+        lines.append("Il Sigillo dell'Alleanza ti viene posto tra le mani: " + ", ".join(
+            rewards.grant(conn, rng, player, rank=1, scale=2.0, kinds=["tesoro", "manuale"])) + ".")
         for tt in ("Capo dell'Alleanza Marziale",) + (("Sovrano delle Assemblee",) if wins >= 3 else ()):
             if state.grant_title(conn, tt):
                 lines.append(f"✧ Nuovo titolo: «{tt}» ✧")
