@@ -88,6 +88,12 @@ def _preview(conn, idx: list[int]) -> tuple[str, float, str]:
     return res["species"], res["conc"], f"{B.grade_name(res['conc'])}, {B.RANK_NAME[rank]}"
 
 
+def _els_main_first(ln: dict) -> list[str]:
+    from engine.systems import bloodlines as B
+    pref = [B.FAMILY_ELEMENT[f] for f in ln.get("families", []) if f in B.FAMILY_ELEMENT]
+    return list(dict.fromkeys([e for e in pref if e in ln["elements"]] + ln["elements"]))
+
+
 def noblest(conn) -> int | None:
     """Il numero (#) del lignaggio più nobile: rarità più alta, poi concentrazione."""
     from engine.systems import bloodlines as B
@@ -233,7 +239,7 @@ def menu_build(conn, player) -> dict:
         wait = state.get_int(conn, "blood_transform_ready", -1) - day
         ready_now = bool(state.get(conn, "blood_transform"))
         why = "pronto: si scatenerà nel prossimo scontro" if ready_now else f"il sangue riposa ancora {wait} giorni"
-        tacts = [act(f"Diventa {'-'.join(B._fam(f)[0] for f in ln['families'] if f in B.FAMILIES) or ln['species']}",
+        tacts = [act(f"Diventa {B.form_name(ln)}",
                      f"trasformati {i}", ok=not ready_now and wait <= 0, why=why) for i, ln in sacred[:6]]
         secs.append(section("Trasformazione (grado Sacro)", [
             "Nel prossimo scontro assumi la forma della bestia sacra: attacco moltiplicato, stati più frequenti, pelle "
@@ -256,10 +262,11 @@ def menu_build(conn, player) -> dict:
         nxt = B.next_threshold(ln["conc"])
         pct = 100 * (ln["conc"] - prev) / max(1.0, nxt - prev)
         mf = B.manifestations(ln)
-        gifts = [B._fam(f)[2] for f in ln.get("families", []) if B._fam(f)[2]]
+        gifts = list(dict.fromkeys(B._fam(f)[2] for f in ln.get("families", []) if B._fam(f)[2]))
         rk = _race_of(ln)
         lines = [(f"Purezza {int(100 * ln['purity'])}% · " if ln.get("purity") else "")
-                 + f"Elementi: {', '.join(B.EL_ADJ.get(e, e) for e in ln['elements'])}"
+                 + f"Elementi: {', '.join(B.EL_ADJ.get(e, e) for e in _els_main_first(ln)[:4])}"
+                 + (f" +{len(ln['elements']) - 4}" if len(ln['elements']) > 4 else "")
                  + (f" · dono: {', '.join(gifts)}" if gifts and g >= B.PURE else "")
                  + (" · lignaggio fuso" if ln.get("fused_from") else ""),
                  ("Manifestazioni: " + ", ".join(n for _k, n in mf)) if mf else "Nessuna manifestazione ancora.",

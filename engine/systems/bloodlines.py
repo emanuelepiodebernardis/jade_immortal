@@ -194,6 +194,44 @@ def line_rank(ln: dict) -> int:
     return top
 
 
+# l'elemento con cui ogni famiglia dà il nome a un sangue fuso
+FAMILY_ELEMENT = {"drago": "fulmine", "fenice": "fuoco", "qilin": "luce", "demone": "oscurita", "silvano": "legno",
+                  "gigante": "terra", "leviatano": "acqua", "drago azzurro": "legno", "tigre bianca": "metallo",
+                  "uccello vermiglio": "fuoco", "tartaruga nera": "acqua", "taotie": "oscurita", "qiongqi": "vento",
+                  "taowu": "terra", "kunpeng": "vento", "drago della torcia": "fuoco", "xiangliu": "acqua",
+                  "hundun": "caos", "bai ze": "luce", "nove code": "illusione", "kun": "acqua", "tigre": "metallo",
+                  "tartaruga": "acqua", "serpente": "terra", "peng": "vento", "pixiu": "terra", "suanni": "fuoco",
+                  "volpe": "illusione", "gru": "vento", "lupo": "vento", "orso": "corpo", "aquila": "fulmine",
+                  "cinghiale": "corpo"}
+
+
+def form_name(ln: dict) -> str:
+    """La forma in cui ti trasformi: il nome breve del lignaggio («Drago-Fenice», «Tigre Bianca»)."""
+    return ln.get("species", "Bestia").split(" di ")[0]
+
+
+def _split_families(fams: list[str]) -> tuple[list[str], list[str]]:
+    """(forma principale = le famiglie del rango più alto, tratti minori = tutte le altre)."""
+    fams = list(dict.fromkeys(fams))
+    top = max((FAMILY_RANK.get(f, 0) for f in fams), default=0)
+    main = [f for f in fams if FAMILY_RANK.get(f, 0) == top and f in FAMILIES]
+    return main, [f for f in fams if f not in main]
+
+
+def fused_species(main: list[str], els: list[str]) -> str:
+    """Nome breve: al massimo due famiglie («Drago-Fenice», «Drago-Demone dai 5 Sangui») e due elementi,
+    scelti tra quelli della forma principale."""
+    if not main:
+        noun = "Chimera"
+    elif len(main) <= 2:
+        noun = "-".join(_fam(f)[0] for f in main)
+    else:
+        noun = f"{_fam(main[0])[0]}-{_fam(main[1])[0]} dai {len(main)} Sangui"
+    pref = [FAMILY_ELEMENT[f] for f in main if f in FAMILY_ELEMENT]
+    name_els = list(dict.fromkeys([e for e in pref if e in els] + els + pref))[:2]
+    return f"{noun} di " + " e ".join(EL_ADJ.get(e, e.title()) for e in name_els)
+
+
 def fusion_result(picks: list[dict]) -> dict:
     """Il lignaggio che nasce fondendo `picks`: le famiglie più rare diventano la forma principale
     (al massimo due nel nome), le altre restano tratti minori; nel nome al massimo due elementi."""
@@ -203,22 +241,13 @@ def fusion_result(picks: list[dict]) -> dict:
         for f in (ln.get("families") or []) + (ln.get("minor") or []):
             if f not in fams:
                 fams.append(f)
-    top = max((FAMILY_RANK.get(f, 0) for f in fams), default=0)
-    main = [f for f in fams if FAMILY_RANK.get(f, 0) == top and f in FAMILIES]
-    minor = [f for f in fams if f not in main]
+    main, minor = _split_families(fams)
     els: list[str] = []
     for ln in srt:
         for e in ln["elements"]:
             if e not in els:
                 els.append(e)
-    if not main:
-        noun = "Chimera"
-    elif len(main) <= 2:
-        noun = "-".join(_fam(f)[0] for f in main)
-    else:
-        noun = f"{_fam(main[0])[0]}-{_fam(main[1])[0]} dai {len(main)} Sangui"
-    species = f"{noun} di " + " e ".join(EL_ADJ.get(e, e.title()) for e in els[:2])
-    return {"species": species, "families": main, "minor": minor, "elements": els,
+    return {"species": fused_species(main, els), "families": main, "minor": minor, "elements": els,
             "conc": 0.9 * sum(ln["conc"] for ln in picks)}
 
 
@@ -280,6 +309,12 @@ def all_lines(conn) -> dict:
             fams = families_of(ln.get("species", ""))
             if fams:
                 ln["families"] = fams
+        else:                                  # i fusi (anche quelli vecchi) seguono la regola: domina il più nobile
+            main, minor = _split_families((ln.get("families") or []) + (ln.get("minor") or []))
+            if main and (main != ln.get("families") or minor != ln.get("minor", [])):
+                ln["families"], ln["minor"] = main, minor
+                ln["species"] = fused_species(main, ln.get("elements", []))
+                ln["name"] = f"Sangue di {ln['species']}"
     return d
 
 
@@ -607,7 +642,7 @@ def transform(conn, player, arg: str) -> str:
     if not spmod.spend(conn, 20, player.id):
         return "Ti manca lo spirito per sostenere la trasformazione (servono 20)."
     state.set(conn, "blood_transform", pick[0])
-    noun = "-".join(_fam(f)[0] for f in pick[1]["families"] if f in FAMILIES) or pick[1]["species"]
+    noun = form_name(pick[1])
     return (f"Il {pick[1]['name']} ruggisce nelle tue vene: sei pronto a diventare {noun}. "
             "La forma si scatenerà nel prossimo scontro.")
 
@@ -664,7 +699,7 @@ def combat(conn, player_id: int, fx) -> list[str]:
         fx.p.atk_mult *= 1.5 + 0.1 * s
         pr["taken"] = pr.get("taken", 0.0) + 0.2
         pr["chance_mult"] = pr.get("chance_mult", 1.0) * 1.3
-        noun = "-".join(_fam(f)[0] for f in ln["families"] if f in FAMILIES) or ln["species"]
+        noun = form_name(ln)
         intro.append(f"✦ TRASFORMAZIONE: il tuo corpo esplode di luce e sangue — diventi {noun} "
                      f"({', '.join(EL_ADJ.get(e, e) for e in ln['elements'])})! ✦")
         n = state.get_int(conn, "transforms", 0) + 1

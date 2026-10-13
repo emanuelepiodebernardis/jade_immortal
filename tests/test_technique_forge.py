@@ -191,3 +191,15 @@ def test_auto_loot_and_absorb_after_a_kill(conn):
     items.grant(conn, "player", 1, iid)
     assert auto_collect.daily(conn, 120, random.Random(1), p) == []
     assert "Assorbi" in loop.dispatch(conn, "raccogli", allow_nl=False)
+
+
+def test_old_fused_lines_get_short_names(conn):
+    from engine.systems import bloodlines as B
+    d = {"vecchio": {"name": "Sangue di Cinghiale-Drago-Demone-Lupo di Carne Ferrea e Tuono e Tenebra e Vento",
+                     "species": "Cinghiale-Drago-Demone-Lupo di Carne Ferrea e Tuono e Tenebra e Vento",
+                     "elements": ["corpo", "fulmine", "oscurita", "vento"],
+                     "families": ["cinghiale", "drago", "demone", "lupo"], "conc": 900, "fused_from": ["a", "b"]}}
+    B._save(conn, d)
+    ln = B.all_lines(conn)["vecchio"]
+    assert ln["species"] == "Drago-Demone di Tuono e Tenebra" and set(ln["minor"]) == {"cinghiale", "lupo"}
+    assert B.form_name(ln) == "Drago-Demone"

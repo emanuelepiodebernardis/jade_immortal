@@ -1774,3 +1774,16 @@ Le bestie più alte hanno regno più alto, sono più difficili da domare, hanno 
 - `up` non attraversa più una porta verso un mondo che non regge la tua coltivazione.
 
 Nuovi test. Suite totale: **586 passati**.
+
+---
+
+## Aggiornamento 41 — Nomi brevi anche per i sangui fusi già esistenti
+
+Ora anche i lignaggi fusi **prima** della regola «domina il più nobile» si sistemano da soli all'apertura:
+- **forma principale**: solo le famiglie del rango più alto; tutte le altre diventano tratti minori;
+- **nome**: al massimo due famiglie e due elementi. Per esempio «Cinghiale-Serpente-Tartaruga-Tigre-Aquila-Lupo-Orso-Drago-Demone-Leviatano-Spirito Silvano-Gigante di Carne Ferrea e Terra e …» diventa **«Drago-Demone dai 5 Sangui di Tuono e Tenebra»**;
+- gli elementi del nome sono quelli della forma principale: il Drago dà il Tuono, il Demone la Tenebra, la Fenice il Fuoco… Se il lignaggio ne ha altri suoi, valgono quelli: un drago di fuoco con una fenice di ghiaccio diventa «di Fuoco e Ghiaccio»;
+- **trasformazione**: il pulsante dice «Diventa Drago-Demone dai 5 Sangui», non più l'elenco di tutte le famiglie;
+- **menu**: i doni sono senza doppioni e solo quelli della forma principale. Gli elementi mostrano prima quelli principali (al massimo 4, poi «+N»), e i tratti minori hanno una riga a parte.
+
+Concentrazione, rango e potenza del lignaggio non cambiano: cambia solo il nome. Nuovo test. Suite totale: **587 passati**.
