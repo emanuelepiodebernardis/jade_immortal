@@ -1787,3 +1787,15 @@ Ora anche i lignaggi fusi **prima** della regola «domina il più nobile» si si
 - **menu**: i doni sono senza doppioni e solo quelli della forma principale. Gli elementi mostrano prima quelli principali (al massimo 4, poi «+N»), e i tratti minori hanno una riga a parte.
 
 Concentrazione, rango e potenza del lignaggio non cambiano: cambia solo il nome. Nuovo test. Suite totale: **587 passati**.
+
+---
+
+## Aggiornamento 42 — La dashboard si riavvia da sola quando il gioco viene aggiornato
+
+**Il problema.** Una dashboard già aperta continuava a usare il codice vecchio finché non veniva chiusa e riaperta. Per questo, dopo un aggiornamento, si vedevano i pulsanti nuovi ma i menu dicevano «menu sconosciuto», oppure il sangue mostrava ancora i nomi lunghi.
+
+**La soluzione.** Ogni 2 secondi la dashboard controlla se i file del gioco sono cambiati. Se sì, si riavvia da sola con il codice nuovo nella stessa finestra e sulla stessa porta, senza aprire un'altra scheda del browser. La partita è salvata, non si perde nulla. Basta ricaricare la pagina (F5) per vedere anche le novità grafiche.
+
+`python dashboard.py --no-reload` disattiva il riavvio automatico.
+
+**Nota:** serve chiudere e riaprire la dashboard **un'ultima volta** a mano, perché quella aperta ora non contiene ancora questa funzione.
