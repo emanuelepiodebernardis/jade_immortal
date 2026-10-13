@@ -81,7 +81,31 @@ function systemToasts(text) {
     }
   }
 }
+// ---------------- suoni discreti (sintetizzati, nessun file) ----------------
+let SOUND = true;
+try { SOUND = localStorage.getItem("ji_sound") !== "0"; } catch (e) { /* niente */ }
+let AC = null;
+function sfx(kind) {
+  if (!SOUND) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = { good: [523, 659, 784], rare: [659, 784, 988, 1319], bad: [220, 185], warn: [440, 392], info: [587, 740],
+      hit: [196], crit: [147, 294], coin: [988, 1319] }[kind] || [440];
+    const t0 = AC.currentTime;
+    notes.forEach((f, i) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = kind === "hit" || kind === "crit" ? "triangle" : "sine";
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + i * 0.09);
+      g.gain.exponentialRampToValueAtTime(kind === "crit" ? 0.12 : 0.06, t0 + i * 0.09 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.09 + (kind === "hit" ? 0.18 : 0.45));
+      o.connect(g).connect(AC.destination);
+      o.start(t0 + i * 0.09); o.stop(t0 + i * 0.09 + 0.5);
+    });
+  } catch (e) { /* audio non disponibile */ }
+}
 function toast(head, body, tone) {
+  sfx(tone || "info");
   const box = $("#toasts");
   if (!box) return;
   const d = document.createElement("div");
@@ -213,7 +237,7 @@ function renderPlace(s) {
     const list = many ? s.presenti.slice(0, 6) : s.presenti;
     h += `<div class="npcs">` + list.map((n) => {
       const first = n.name.split(" ")[0];
-      return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
+      return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${face(n.name, 22, n.rel === "nemico" ? "--bad" : "--accent")}${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
         <button data-cmd="osserva ${esc(first)}" title="la sua finestra di stato">osserva</button><button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button></span>`;
     }).join("") + (many ? `<button id="more-npc">+ altri ${s.presenti.length - 6}</button>` : "") + `</div>`;
   }
@@ -223,6 +247,7 @@ function renderPlace(s) {
       : `<button class="tile" disabled title="${esc(t.why)}"><span class="ti">${esc(t.icon)}</span><span class="tl">${esc(t.label)}</span><span class="th">${esc(t.why)}</span></button>`).join("") + `</div>`;
   }
   $("#place").innerHTML = h;
+  $("#place").style.backgroundImage = V.landscape(L.type, L.name);
   const m = $("#more-npc"); if (m) m.onclick = () => { showAllNpcs = true; renderPlace(S); };
 }
 
@@ -232,13 +257,13 @@ function arenaHtml(a, s) {
   const L = a.ultimo || {};
   const pop = (v, cls) => v ? `<span class="pop ${cls}">−${Number(v).toLocaleString("it-IT")}</span>` : "";
   const txt = s.scena.text.split("\n").filter((l) => l.trim() && !l.includes("█") && !l.includes("·····") && !/^Turno \d/.test(l) && !/^Qi \d/.test(l));
-  const me = `<div class="fighter me">${V.emblem(a.tu.nome, "maestri", "leggendario", 64)}
+  const me = `<div class="fighter me">${face(a.tu.nome, 72, "--accent", "io")}
       <div class="fi"><b>${esc(a.tu.nome)}</b><div class="muted small">${esc(a.tu.regno)}</div>
       <div class="hpbar"><i style="width:${pct(a.tu.hp, a.tu.max)}%"></i><span>${a.tu.hp.toLocaleString("it-IT")} / ${a.tu.max.toLocaleString("it-IT")}</span></div>
       <div class="mini"><div class="bar qi"><i style="width:${pct(a.tu.qi[0], a.tu.qi[1])}%"></i></div><small>Qi ${a.tu.qi[0]}</small>
         <div class="bar sp"><i style="width:${pct(a.tu.spirito[0], a.tu.spirito[1])}%"></i></div><small>Spirito ${a.tu.spirito[0]}</small></div>
       ${a.concentrato ? `<span class="tag rare">☯ concentrato</span>` : ""}</div>${pop(L.subito, "bad" + (L.critico_lui ? " crit" : ""))}</div>`;
-  const foe = `<div class="fighter foe">${V.emblem(a.nome, "nemici", "raro", 64)}
+  const foe = `<div class="fighter foe">${face(a.nome, 72, "--bad")}
       <div class="fi"><b>${esc(a.nome)}</b><div class="muted small">${esc(a.lui.regno)} · ${esc(a.lui.forza)}</div>
       <div class="hpbar foe"><i style="width:${pct(a.lui.hp, a.lui.max)}%"></i><span>${a.lui.hp.toLocaleString("it-IT")} / ${a.lui.max.toLocaleString("it-IT")}</span></div>
       <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>
@@ -254,12 +279,22 @@ function arenaHtml(a, s) {
     ${a.finito ? "" : `<div class="hand">${cards}</div>`}</div>`;
 }
 
+// i tuoi disegni nella cartella «immagini» (stesso nome del personaggio) sostituiscono i ritratti generati
+let IMAGES = [];
+api("/api/libro").then((b) => { IMAGES = b.immagini || []; }).catch(() => {});
+function face(name, size, aura, kind = "") {
+  const sl = V.slug(name), f = IMAGES.find((x) => V.slug(x.replace(/\.[^.]+$/, "")) === sl);
+  return f ? `<img class="portrait" src="/immagini/${encodeURIComponent(f)}" width="${size}" height="${size}" alt="">`
+           : V.portrait(name, kind, size, aura);
+}
+let lastArenaTurn = null;
 function renderScene(s) {
   const box = $("#scene");
   if (!s.scena) { box.hidden = true; box.innerHTML = ""; box.classList.remove("in-duel"); return; }
   box.hidden = false;
   const ar = s.duello && s.duello.arena;
   box.classList.toggle("in-duel", !!ar);
+  if (ar && ar.ultimo && ar.turno !== lastArenaTurn) { lastArenaTurn = ar.turno; if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); }
   if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); return; }
   if (ar && ar.finito) {
     box.innerHTML = arenaHtml(ar, s) + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
@@ -411,7 +446,7 @@ function personCard(c, me, enemy) {
     if (!enemy && c.favore) btn += `<button data-cmd="favori">Favore</button>`;
   }
   const hearts = !enemy && c.intimita ? " · " + "♥".repeat(Math.min(5, c.intimita)) : "";
-  return `<div class="person card ${enemy ? "enemy" : ""}">
+  return `<div class="person card ${enemy ? "enemy" : ""}">${face(c.nome, 52, enemy ? "--bad" : "--good")}
     <div class="top"><b>${esc(c.nome)}</b> <span class="muted">${esc(c.ruolo)}${hearts}</span></div>
     <div class="w">${esc(c.regno)} · ${c.vivo ? (c.qui ? "QUI" : esc(c.dove)) : "✝ caduto"}${c.perche ? " · " + esc(c.perche) : ""}</div>
     ${c.vivo ? `<div class="pw"><span>Potenza ${c.potenza}</span><div class="bar"><i style="width:${pct}%"></i></div><span class="${cls}">${esc(c.confronto)}</span></div>` : ""}
@@ -736,6 +771,10 @@ document.addEventListener("click", async (ev) => {
   }
   if (ev.target.id === "dao-all") { daoAll = !daoAll; return loadTab("personaggio"); }
   if (ev.target.closest("#widen")) { setWide(!document.body.classList.contains("wide")); return; }
+  if (ev.target.closest("#sound")) {
+    SOUND = !SOUND; try { localStorage.setItem("ji_sound", SOUND ? "1" : "0"); } catch (e) { /* niente */ }
+    $("#sound").textContent = SOUND ? "🔊" : "🔈"; if (SOUND) sfx("info"); return;
+  }
   if (ev.target.closest("#theme")) {
     const order = ["", "light", "dark"], cur = document.documentElement.dataset.theme || "";
     const nx = order[(order.indexOf(cur) + 1) % order.length];
@@ -795,6 +834,7 @@ function setWide(on) {
 }
 try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
 $("#auto-go").onclick = autoStart;
+$("#sound").textContent = SOUND ? "🔊" : "🔈";
 $("#auto-stop").onclick = autoStop;
 
 (async () => {

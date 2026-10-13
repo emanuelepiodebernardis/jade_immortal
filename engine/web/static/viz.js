@@ -62,6 +62,64 @@ const V = (() => {
     return f ? `<img class="emblem" src="/immagini/${encodeURIComponent(f)}" width="${size}" height="${size}" alt="">` : emblem(name, cat, rarity, size);
   }
 
+  // ---------------- ritratti generati (busto in stile xianxia, dal nome) ----------------
+  const ROBE = ["#2f6f5a", "#7a2e2e", "#2c4f7c", "#5b3f7a", "#8a6a2a", "#3b3b44", "#a14f2c", "#2a6b75", "#6e2f55"];
+  const HAIR = ["#1d1a19", "#2b2220", "#3a2a22", "#e8e4dc", "#5b4636", "#14161c"];
+  const SKIN = ["#f0d6bd", "#e8c5a5", "#dcb593", "#c99a78", "#f5e1cf"];
+  function portrait(name, kind, size = 64, aura = "") {
+    const h = hash(String(name) + (kind || ""));
+    const pick = (arr, sh) => arr[(h >>> sh) % arr.length];
+    const robe = pick(ROBE, 1), hair = pick(HAIR, 5), skin = pick(SKIN, 9);
+    const style = (h >>> 13) % 4, female = (h >>> 17) % 2 === 0, beard = !female && (h >>> 19) % 3 === 0;
+    const auraCol = aura ? css(aura) : css("--accent");
+    const id = "p" + (h % 100000);
+    let hairBack = "", hairFront = "";
+    if (style === 0) { hairBack = `<path d="M30 44 Q50 10 70 44 L72 70 L28 70 Z" fill="${hair}"/>`; hairFront = `<path d="M33 38 Q50 22 67 38 Q60 30 50 31 Q40 30 33 38Z" fill="${hair}"/><circle cx="50" cy="21" r="7" fill="${hair}"/>`; }
+    else if (style === 1) { hairBack = `<path d="M29 42 Q50 12 71 42 L76 92 L24 92 Z" fill="${hair}"/>`; hairFront = `<path d="M33 40 Q50 20 67 40 Q55 33 50 36 Q45 33 33 40Z" fill="${hair}"/>`; }
+    else if (style === 2) { hairFront = `<path d="M32 40 Q50 18 68 40 Q62 28 50 28 Q38 28 32 40Z" fill="${hair}"/><rect x="40" y="16" width="20" height="7" rx="2" fill="${css("--gold") || "#b58a2a"}"/>`; }
+    else { hairBack = `<path d="M31 44 Q50 14 69 44 L70 60 L30 60 Z" fill="${hair}"/>`; hairFront = `<path d="M33 39 Q42 26 50 30 Q58 26 67 39 Q58 33 50 35 Q42 33 33 39Z" fill="${hair}"/>`; }
+    const eyes = `<ellipse cx="44" cy="45" rx="2.2" ry="${female ? 1.6 : 1.2}" fill="#1b1b1f"/><ellipse cx="56" cy="45" rx="2.2" ry="${female ? 1.6 : 1.2}" fill="#1b1b1f"/>
+      <path d="M40.5 41 L47 41.5 M53 41.5 L59.5 41" stroke="${hair}" stroke-width="1.4" stroke-linecap="round"/>`;
+    const mouth = `<path d="M46.5 53 Q50 ${female ? 55 : 54} 53.5 53" stroke="#8a4a3a" stroke-width="1.2" fill="none" stroke-linecap="round"/>`;
+    const bd = beard ? `<path d="M43 54 Q50 66 57 54 Q50 58 43 54Z" fill="${hair}" opacity=".9"/>` : "";
+    return `<svg class="portrait" width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><radialGradient id="${id}"><stop offset="0" stop-color="${auraCol}" stop-opacity=".55"/><stop offset="1" stop-color="${auraCol}" stop-opacity="0"/></radialGradient>
+        <clipPath id="${id}c"><circle cx="50" cy="50" r="48"/></clipPath></defs>
+      <circle cx="50" cy="50" r="48" fill="${css("--panel2")}" stroke="${auraCol}" stroke-width="2"/>
+      <g clip-path="url(#${id}c)"><circle cx="50" cy="50" r="46" fill="url(#${id})"/>${hairBack}
+        <path d="M18 100 Q22 72 50 70 Q78 72 82 100Z" fill="${robe}"/>
+        <path d="M42 70 L50 84 L58 70" fill="none" stroke="${css("--gold") || "#b58a2a"}" stroke-width="2"/>
+        <rect x="45" y="58" width="10" height="13" fill="${skin}"/>
+        <ellipse cx="50" cy="46" rx="15" ry="${female ? 17 : 18}" fill="${skin}"/>${eyes}${mouth}${bd}${hairFront}</g></svg>`;
+  }
+
+  // ---------------- sfondi dei luoghi (paesaggi a inchiostro, per tipo) ----------------
+  function landscape(type, seed) {
+    const h = hash(String(seed || type));
+    const ink = css("--ink"), acc = css("--accent");
+    const W = 600, H = 120;
+    const ridge = (amp, base, op, n) => {
+      let d = `M0 ${H}`;
+      for (let i = 0; i <= n; i++) { const x = (W / n) * i, y = base - amp * Math.abs(Math.sin((i + (h % 7)) * 1.7 + (h >>> (i % 8)) % 3)); d += ` L${x.toFixed(0)} ${y.toFixed(0)}`; }
+      return `<path d="${d} L${W} ${H} Z" fill="${ink}" opacity="${op}"/>`;
+    };
+    let art = "";
+    if (type === "mountain") art = ridge(60, 110, .06, 9) + ridge(40, 118, .09, 13) + `<circle cx="${480 + h % 60}" cy="30" r="14" fill="${acc}" opacity=".12"/>`;
+    else if (type === "city") {
+      art = ridge(18, 116, .05, 8);
+      for (let i = 0; i < 7; i++) { const x = 40 + i * 80 + (h >>> i) % 20, w = 46, y = 70 + ((h >>> (i + 3)) % 25);
+        art += `<rect x="${x}" y="${y}" width="${w}" height="${H - y}" fill="${ink}" opacity=".07"/><path d="M${x - 10} ${y} Q${x + w / 2} ${y - 22} ${x + w + 10} ${y} Z" fill="${ink}" opacity=".09"/>`; }
+    } else if (type === "ruin") {
+      art = ridge(14, 118, .05, 7);
+      for (let i = 0; i < 6; i++) { const x = 60 + i * 90 + (h >>> i) % 25, ht = 30 + (h >>> (i + 2)) % 50;
+        art += `<rect x="${x}" y="${H - ht}" width="12" height="${ht}" fill="${ink}" opacity=".08"/><rect x="${x - 4}" y="${H - ht}" width="20" height="4" fill="${ink}" opacity=".08"/>`; }
+    } else if (type === "forbidden_zone") {
+      art = ridge(30, 116, .08, 11) + `<rect width="${W}" height="${H}" fill="${css("--bad")}" opacity=".04"/>`;
+      for (let i = 0; i < 5; i++) art += `<ellipse cx="${(h >>> i) % W}" cy="${60 + (h >>> (i + 4)) % 40}" rx="90" ry="10" fill="${ink}" opacity=".04"/>`;
+    } else art = ridge(25, 116, .06, 10);
+    return `url("data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${W} ${H}' preserveAspectRatio='xMidYMax slice'>${art.replace(/"/g, "'")}</svg>`)}")`;
+  }
+
   // ---------------- grafici ----------------
   function lineChart(points, opts) {
     const W = 340, H = 130, P = { l: 38, r: 8, t: 14, b: 22 };
@@ -331,6 +389,6 @@ const V = (() => {
       <div class="small" style="margin-top:6px">${q.fatta ? "✔ COMPLETATA — ricompensa ricevuta." : "Ricompensa: +1 punto attributo e pietre · ogni 7 giorni di fila +2 punti e un titolo · <span class=\"warn\">saltarla costa</span>"}</div></div>`;
   }
 
-  return { dailyQuest, emblem, picture, charts, graph, nodeInfo, book, legend, summary, category, esc,
+  return { slug, dailyQuest, emblem, picture, portrait, landscape, charts, graph, nodeInfo, book, legend, summary, category, esc,
     statusWindow, deepTriad, spiritCards, daoChart, talentRadar, rootsChart, bodyCard, bloodChart };
 })();

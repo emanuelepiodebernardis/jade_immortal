@@ -137,7 +137,7 @@ body.wide #layout { grid-template-columns: 200px minmax(0, 1fr) minmax(520px, 56
 #side { display: flex; flex-direction: column; min-height: 0; }
 #tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 #tabs button { font-size: 12.5px; padding: 4px 7px; }
-#tabs #theme { margin-left: auto; }
+#tabs #sound { margin-left: auto; }
 body.wide #tabs #widen { background: var(--chip); }
 .subtabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; position: sticky; top: 0; background: var(--bg); padding: 2px 0 6px; z-index: 1; }
 #tabs button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
@@ -562,3 +562,12 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .card-act kbd { float: right; font: 10px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
 .card-act b { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .pop { top: -18px; text-shadow: 0 1px 0 var(--panel), 0 0 6px var(--panel); }
+
+/* ritratti e paesaggi */
+.portrait { flex: none; border-radius: 50%; }
+#place .npc .portrait { margin-right: 4px; vertical-align: middle; }
+.person.card { display: grid; grid-template-columns: 52px 1fr; column-gap: 10px; }
+.person.card > *:not(.portrait) { grid-column: 2; }
+.person.card > .portrait { grid-row: 1 / span 5; }
+#place { background-repeat: no-repeat; background-position: bottom center; background-size: 100% auto; }
+img.portrait { object-fit: cover; }

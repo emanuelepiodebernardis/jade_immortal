@@ -1999,3 +1999,16 @@ Il duello a turni nella dashboard ora è un'**arena**:
 Quando l'avversario crolla, l'arena resta visibile con le tre scelte: finirlo, risparmiarlo o marchiarne l'anima.
 
 Il registro principale non ripete più le scelte numerate delle scene, che hanno già i loro pulsanti.
+
+---
+
+## Aggiornamento 50 — Ritratti, paesaggi, suoni
+
+- **Ritratti generati.** Ogni personaggio ha un volto disegnato dal suo nome, sempre lo stesso: capelli, acconciatura (crocchia, chiome lunghe, corona di giada), barba, veste, carnagione e aura. Compaiono nell'arena del duello, nelle schede di Alleati e nemici e accanto ai presenti nel luogo. Se metti un disegno tuo nella cartella `immagini/` con il nome del personaggio, prende il posto del ritratto generato.
+- **Paesaggi a inchiostro.** Il riquadro del luogo ha uno sfondo discreto che cambia col tipo di luogo: profili di monti, tetti della città, colonne delle rovine, nebbie rosse delle zone proibite. È diverso per ogni luogo e funziona nel tema chiaro e in quello scuro.
+- **Suoni discreti**, sintetizzati, senza file:
+  - un accordo per i titoli e i risvegli;
+  - una nota grave per i pericoli;
+  - il colpo e il critico nei duelli.
+  
+  Il pulsante 🔊 in alto a destra li spegne e la scelta viene ricordata.
