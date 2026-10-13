@@ -571,3 +571,9 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .person.card > .portrait { grid-row: 1 / span 5; }
 #place { background-repeat: no-repeat; background-position: bottom center; background-size: 100% auto; }
 img.portrait { object-fit: cover; }
+
+/* immagini della cartella «immagini» */
+#place.has-img { background-size: cover; background-position: center right; }
+.arena[style] { background-size: cover; background-position: center; }
+#map.has-img svg { background: linear-gradient(color-mix(in srgb, var(--panel) 72%, transparent), color-mix(in srgb, var(--panel) 72%, transparent)), var(--mapbg) center / cover; }
+img.portrait { object-fit: cover; object-position: top; background: var(--panel2); border: 2px solid var(--line); }

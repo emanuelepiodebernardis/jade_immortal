@@ -1,11 +1,23 @@
-Le tue immagini per il Libro.
+LE IMMAGINI DEL GIOCO
 
-Metti qui un'immagine (png, jpg, webp o gif) con lo stesso nome di ciò che vuoi illustrare:
-una bestia, un tesoro, un sangue, un nemico, un maestro. Il Libro la userà al posto
-dell'emblema generato dal gioco.
+Qui mettono le loro immagini il Libro, i ritratti, i luoghi, la mappa e l'arena. Formati: png, jpg, webp, gif.
+Il nome del file si confronta senza maiuscole, accenti, spazi e simboli ("Sangue di Fenice" = sanguedifenice.png).
 
-Il nome del file si confronta senza maiuscole, accenti, spazi e simboli: per
-"Sangue di Fenice" vanno bene "sangue di fenice.png", "Sangue_di_Fenice.jpg" o
-"sanguedifenice.webp".
+PER RIEMPIRLE IN UN COLPO (dal tuo PC, serve internet):
+    python strumenti/scarica_immagini.py
+scarica dipinti cinesi classici da Wikimedia Commons (paesaggi Song, immortali, draghi, fenici, dame di corte)
+e annota autori e licenze in CREDITI.txt. Non ti piace un'immagine? Cancellala o sostituiscila con una tua
+con lo stesso nome.
 
-Usa solo immagini che puoi usare: tue, disegnate da te, o con una licenza libera.
+LE CARTELLE
+  (qui, senza cartella)  il nome di qualcosa o qualcuno: una bestia, un tesoro, un sangue, un nemico, un maestro
+  ritratti/              <nome del personaggio>   oppure per tipo: patriarca, anziano, eremita, discepolo, guardia,
+                         mercante, vagabondo, cacciatore, f (donne), f_anziana, eroe (tu)
+  luoghi/                city, mountain, ruin, forbidden_zone   (sfondo del luogo e dell'arena)
+  mondi/                 0, 1, 2, 3…   (sfondo della mappa di ogni mondo: 0 = Mondo Mortale)
+  bestie/                drago, fenice, tigre, tartaruga, qilin, gru, volpe, serpente, kun   (per nome della bestia)
+  creature/              beast, demon, spirit   (le creature senza un'immagine propria)
+  momenti/               tribolazione, duello
+
+Chi conta di più vince: un ritratto col nome del personaggio batte quello del suo tipo, che batte il ritratto
+disegnato dal gioco.

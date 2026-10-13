@@ -52,6 +52,10 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
 - la creazione del personaggio e la rinascita in finestre guidate, con la scelta facoltativa
   di nascere con un **corpo leggendario** a caso.
 
+**Immagini:** `python strumenti/scarica_immagini.py` (dal tuo PC) riempie la cartella `immagini/` di dipinti
+cinesi classici presi da Wikimedia Commons (luoghi, mondi, ritratti, bestie). Ogni immagine si può sostituire con
+una tua dello stesso nome; vedi `immagini/LEGGIMI.txt`.
+
 Non serve installare nulla (solo libreria standard) e ascolta solo sul tuo PC
 (`python dashboard.py --rete` per usarla anche dal telefono, sulla Wi-Fi di casa). La riga di
 comando resta sempre disponibile in basso. Non usare terminale e dashboard nello stesso

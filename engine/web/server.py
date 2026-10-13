@@ -81,6 +81,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.charts_data())
             if path == "/api/rete":
                 return self._json(game.graph_data())
+            if path == "/api/immagini":
+                return self._json(game.images_index())
             if path == "/api/libro":
                 return self._json(game.book_data())
             if path.startswith("/immagini/"):

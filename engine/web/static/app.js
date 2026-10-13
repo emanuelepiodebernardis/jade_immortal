@@ -237,7 +237,7 @@ function renderPlace(s) {
     const list = many ? s.presenti.slice(0, 6) : s.presenti;
     h += `<div class="npcs">` + list.map((n) => {
       const first = n.name.split(" ")[0];
-      return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${face(n.name, 22, n.rel === "nemico" ? "--bad" : "--accent")}${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
+      return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${face(n.name, 22, n.rel === "nemico" ? "--bad" : "--accent", "", { arch: n.arch, kind: n.kind, f: n.f })}${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
         <button data-cmd="osserva ${esc(first)}" title="la sua finestra di stato">osserva</button><button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button></span>`;
     }).join("") + (many ? `<button id="more-npc">+ altri ${s.presenti.length - 6}</button>` : "") + `</div>`;
   }
@@ -247,7 +247,10 @@ function renderPlace(s) {
       : `<button class="tile" disabled title="${esc(t.why)}"><span class="ti">${esc(t.icon)}</span><span class="tl">${esc(t.label)}</span><span class="th">${esc(t.why)}</span></button>`).join("") + `</div>`;
   }
   $("#place").innerHTML = h;
-  $("#place").style.backgroundImage = V.landscape(L.type, L.name);
+  const lu = slotImg("luoghi", L.type);
+  $("#place").classList.toggle("has-img", !!lu);
+  $("#place").style.backgroundImage = lu ? `linear-gradient(90deg, var(--panel) 38%, color-mix(in srgb, var(--panel) 55%, transparent)), url("${lu}")`
+                                         : V.landscape(L.type, L.name);
   const m = $("#more-npc"); if (m) m.onclick = () => { showAllNpcs = true; renderPlace(S); };
 }
 
@@ -263,7 +266,7 @@ function arenaHtml(a, s) {
       <div class="mini"><div class="bar qi"><i style="width:${pct(a.tu.qi[0], a.tu.qi[1])}%"></i></div><small>Qi ${a.tu.qi[0]}</small>
         <div class="bar sp"><i style="width:${pct(a.tu.spirito[0], a.tu.spirito[1])}%"></i></div><small>Spirito ${a.tu.spirito[0]}</small></div>
       ${a.concentrato ? `<span class="tag rare">☯ concentrato</span>` : ""}</div>${pop(L.subito, "bad" + (L.critico_lui ? " crit" : ""))}</div>`;
-  const foe = `<div class="fighter foe">${face(a.nome, 72, "--bad")}
+  const foe = `<div class="fighter foe">${face(a.nome, 72, "--bad", "", { arch: a.lui.arch, kind: a.lui.kind, f: a.lui.f })}
       <div class="fi"><b>${esc(a.nome)}</b><div class="muted small">${esc(a.lui.regno)} · ${esc(a.lui.forza)}</div>
       <div class="hpbar foe"><i style="width:${pct(a.lui.hp, a.lui.max)}%"></i><span>${a.lui.hp.toLocaleString("it-IT")} / ${a.lui.max.toLocaleString("it-IT")}</span></div>
       <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>
@@ -273,19 +276,44 @@ function arenaHtml(a, s) {
   const cards = a.carte.map((c, i) => `<button class="card-act k-${esc(c.kind)} ${c.hot ? "hot" : ""}" ${c.ok ? `data-cmd="${esc(c.cmd)}"` : "disabled"} title="${esc(c.desc)}${c.why ? " — " + esc(c.why) : ""}">
       <span class="ci">${esc(c.icon)}${i < 9 ? `<kbd>${i + 1}</kbd>` : ""}</span><b>${esc(c.name)}</b><small>${esc(c.desc)}</small>
       <em>${c.ok ? esc(c.cost) : esc(c.why)}</em></button>`).join("");
-  return `<div class="arena"><div class="arena-head">⚔ Duello — turno ${a.turno}</div>
+  const ab = S && slotImg("luoghi", S.luogo.type);
+  return `<div class="arena"${ab ? ` style="background-image:linear-gradient(color-mix(in srgb, var(--panel) 80%, transparent), var(--panel) 70%), url('${ab}')"` : ""}><div class="arena-head">⚔ Duello — turno ${a.turno}</div>
     <div class="ring-fight">${me}<div class="vs">VS</div>${foe}</div>${allies}
     <div class="arena-log">${txt.slice(-6).map((l) => `<div class="${lineClass(l)}">${actionize(esc(l))}</div>`).join("")}</div>
     ${a.finito ? "" : `<div class="hand">${cards}</div>`}</div>`;
 }
 
-// i tuoi disegni nella cartella «immagini» (stesso nome del personaggio) sostituiscono i ritratti generati
-let IMAGES = [];
-api("/api/libro").then((b) => { IMAGES = b.immagini || []; }).catch(() => {});
-function face(name, size, aura, kind = "") {
-  const sl = V.slug(name), f = IMAGES.find((x) => V.slug(x.replace(/\.[^.]+$/, "")) === sl);
-  return f ? `<img class="portrait" src="/immagini/${encodeURIComponent(f)}" width="${size}" height="${size}" alt="">`
-           : V.portrait(name, kind, size, aura);
+// IMMAGINI: la cartella «immagini» (anche le sottocartelle luoghi/, ritratti/, bestie/, creature/, mondi/)
+// prende il posto dei disegni generati. strumenti/scarica_immagini.py la riempie di dipinti classici.
+let IMAGES = [], IMGMAP = {};
+function loadImages() {
+  return api("/api/immagini").then((list) => {
+    IMAGES = list || []; IMGMAP = {};
+    for (const f of IMAGES) {
+      const i = f.lastIndexOf("/"), dir = i >= 0 ? f.slice(0, i) : "", base = f.slice(i + 1).replace(/\.[^.]+$/, "");
+      IMGMAP[(dir ? dir + "/" : "") + V.slug(base)] = f;
+    }
+    if (S) { renderPlace(S); renderScene(S); }
+  }).catch(() => {});
+}
+loadImages();
+const imgUrl = (f) => "/immagini/" + f.split("/").map(encodeURIComponent).join("/");
+function slotImg(dir, key) { const f = IMGMAP[(dir ? dir + "/" : "") + V.slug(key)]; return f ? imgUrl(f) : null; }
+const BEAST_WORDS = ["drago", "fenice", "tigre", "tartaruga", "qilin", "gru", "volpe", "serpente", "kun"];
+function faceSrc(name, o = {}) {
+  let u = slotImg("", name) || slotImg("ritratti", name);
+  if (u) return u;
+  if (o.io) return slotImg("ritratti", "eroe");
+  if (o.kind && o.kind !== "human") {
+    const low = String(name).toLowerCase(), w = BEAST_WORDS.find((x) => low.includes(x));
+    return (w && slotImg("bestie", w)) || slotImg("creature", o.kind);
+  }
+  if (o.f) return slotImg("ritratti", o.arch === "anziano" || o.arch === "patriarca" ? "f_anziana" : "f") || slotImg("ritratti", o.arch);
+  return o.arch ? slotImg("ritratti", o.arch) : null;
+}
+function face(name, size, aura, kind = "", o = {}) {
+  const u = faceSrc(name, Object.assign({ io: kind === "io" }, o));
+  return u ? `<img class="portrait" src="${u}" width="${size}" height="${size}" alt="" loading="lazy">` : V.portrait(name, kind, size, aura);
 }
 let lastArenaTurn = null;
 function renderScene(s) {
@@ -446,7 +474,7 @@ function personCard(c, me, enemy) {
     if (!enemy && c.favore) btn += `<button data-cmd="favori">Favore</button>`;
   }
   const hearts = !enemy && c.intimita ? " · " + "♥".repeat(Math.min(5, c.intimita)) : "";
-  return `<div class="person card ${enemy ? "enemy" : ""}">${face(c.nome, 52, enemy ? "--bad" : "--good")}
+  return `<div class="person card ${enemy ? "enemy" : ""}">${face(c.nome, 52, enemy ? "--bad" : "--good", "", { arch: c.arch, kind: c.kind, f: c.donna })}
     <div class="top"><b>${esc(c.nome)}</b> <span class="muted">${esc(c.ruolo)}${hearts}</span></div>
     <div class="w">${esc(c.regno)} · ${c.vivo ? (c.qui ? "QUI" : esc(c.dove)) : "✝ caduto"}${c.perche ? " · " + esc(c.perche) : ""}</div>
     ${c.vivo ? `<div class="pw"><span>Potenza ${c.potenza}</span><div class="bar"><i style="width:${pct}%"></i></div><span class="${cls}">${esc(c.confronto)}</span></div>` : ""}
@@ -598,7 +626,8 @@ function drawMap() {
   const frh = fr.totale ? `<div class="frontier"><span><b>🗺 ${esc(fr.mondo)}</b> · frontiera ${fr.anelli}/${fr.totale}</span>
       <div class="bar"><i style="width:${Math.round(100 * fr.anelli / fr.totale)}%"></i></div>
       <span class="muted">${fr.prossimo ? `prossimo anello al regno ${fr.prossimo.regno}, strato ${fr.prossimo.strato}` : "mappa completa"}</span></div>` : "";
-  $("#tabbody").innerHTML = `<div id="map">${frh}
+  const mb = slotImg("mondi", String(fr.strato ?? 0));
+  $("#tabbody").innerHTML = `<div id="map"${mb ? ` class="has-img" style="--mapbg:url('${mb}')"` : ""}>${frh}
     <div class="maptools"><button data-maptool="in">＋</button><button data-maptool="out">－</button><button data-maptool="me">◉ Tu</button><button data-maptool="all">⤢ Tutto</button>
       ${tog("minacce", "⚔ Minacce")}${tog("sette", "⛩ Sette")}${tog("presenze", "👥 Presenze")}</div>
     ${svg}

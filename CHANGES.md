@@ -2012,3 +2012,37 @@ Il registro principale non ripete più le scelte numerate delle scene, che hanno
   - il colpo e il critico nei duelli.
   
   Il pulsante 🔊 in alto a destra li spegne e la scelta viene ricordata.
+
+---
+
+## Aggiornamento 51 — Le immagini vere: dipinti classici al posto dei disegni generati
+
+La cartella `immagini/` ora ha delle **sottocartelle per ogni parte del gioco**, e la dashboard le usa ovunque:
+
+| Cartella | Dove compare |
+|---|---|
+| `luoghi/` (`city`, `mountain`, `ruin`, `forbidden_zone`) | sfondo del riquadro del luogo e dell'arena del duello |
+| `mondi/` (`0`, `1`, `2`, `3`…) | sfondo della mappa di ogni mondo |
+| `ritratti/` (nome del personaggio, oppure il tipo: `patriarca`, `anziano`, `eremita`, `discepolo`, `guardia`, `mercante`, `vagabondo`, `cacciatore`, `f`, `f_anziana`, `eroe`) | ritratti nell'arena, nelle schede di Alleati e nemici e accanto ai presenti |
+| `bestie/` (`drago`, `fenice`, `tigre`, `tartaruga`, `qilin`, `gru`, `volpe`, `serpente`, `kun`) e `creature/` (`beast`, `demon`, `spirit`) | ritratti delle creature |
+| `momenti/` (`tribolazione`, `duello`) | riservata ai momenti speciali |
+
+L'ordine di precedenza è: prima un'immagine col nome esatto, poi quella del tipo, infine il disegno generato.
+
+**Per riempirle in un colpo**, dal tuo PC (serve internet):
+
+    python strumenti/scarica_immagini.py
+
+Lo script cerca su **Wikimedia Commons** i grandi dipinti cinesi classici, uno per ogni posto:
+- i paesaggi Song di Fan Kuan, Guo Xi e Li Cheng;
+- il «Lungo il fiume durante la festa di Qingming»;
+- «Mille li di fiumi e montagne» di Wang Ximeng;
+- l'immortale a inchiostro spruzzato di Liang Kai;
+- i Nove Draghi di Chen Rong;
+- le gru di Huizong;
+- la Ninfa del fiume Luo;
+- Zhong Kui…
+
+Le salva a 1024 pixel e annota titolo, autore e licenza in `immagini/CREDITI.txt`. `--elenco` mostra cosa cercherebbe senza scaricare; `--tutto` riscarica tutto. Le ricerche sono in cima allo script e si possono cambiare, e qualsiasi immagine si può sostituire con una tua dello stesso nome.
+
+Nuovi test. Suite totale: **607 passati**.

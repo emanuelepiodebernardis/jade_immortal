@@ -215,6 +215,9 @@ def arena(conn, player) -> dict | None:
                "spirito": [spmod.get_spirit(conn, player.id), spmod.max_spirit(conn, player.id)],
                "regno": cultivation.realm_label(conn, "player", player.id), "nome": player.name},
         "lui": {"hp": max(0, round(d["hp_e"])), "max": round(d["emax"]),
+                **{k: v for k, v in zip(("arch", "kind", "f"), (lambda r: (r["archetype"] or "", r["kind"] or "human",
+                                                                       (r["gender"] or "") == "f") if r else ("", "human", False))(
+                    conn.execute("SELECT archetype, kind, gender FROM npcs WHERE id=?;", (d["npc"],)).fetchone()))},
                 "regno": cultivation.realm_label(conn, "npc", d["npc"]),
                 "forza": perception.relative_strength(conn, player.id, d["npc"])},
         "stile": st[0], "stile_desc": st[1], "vantaggio": d.get("adv", 1.0), "carica": d["charge_e"], "concentrato": d["focus"],

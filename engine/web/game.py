@@ -12,6 +12,7 @@ il server può essere multi-thread, il gioco no.
 
 from __future__ import annotations
 
+import os
 import random
 import re
 import threading
@@ -263,7 +264,9 @@ def state_snapshot() -> dict:
                    2 if "RICERCATO" in tag else 3 if (n.archetype or "") in ("patriarca", "anziano") else
                    5 if (conn.execute("SELECT kind FROM npcs WHERE id=?;", (n.id,)).fetchone()["kind"]
                          or "human") != "human" else 4)
-            npcs.append({"name": n.name, "tag": tag, "pri": pri,
+            _row = conn.execute("SELECT kind, archetype, gender FROM npcs WHERE id=?;", (n.id,)).fetchone()
+            npcs.append({"name": n.name, "tag": tag, "pri": pri, "kind": _row["kind"] or "human",
+                         "arch": _row["archetype"] or "", "f": (_row["gender"] or "") == "f",
                          "rel": "nemico" if kinds & {"nemesis", "rival"} else ("legame" if kinds else "")})
         npcs.sort(key=lambda x: x["pri"])
         dests = []
@@ -466,7 +469,7 @@ def map_data(radius: int = 5) -> dict:
                     edges.append([lid, nxt])
         R = frontier.ring_count(layer)
         nxt = frontier.next_ring_at(layer, w["rings"] + 1) if w["rings"] < R else None
-        info = {"mondo": ascension.layer_name(layer), "anelli": w["rings"], "totale": R,
+        info = {"mondo": ascension.layer_name(layer), "strato": layer, "anelli": w["rings"], "totale": R,
                 "prossimo": {"regno": nxt[0], "strato": nxt[1]} if nxt else None}
     return {"nodes": nodes, "edges": edges, "frontiera": info}
 
@@ -721,7 +724,7 @@ def people_data() -> dict:
         p = entities.get_player(conn)
 
         def card(nid: int, role: str, extra: dict | None = None) -> dict | None:
-            r = conn.execute("SELECT name, status, location_id FROM npcs WHERE id=?;", (nid,)).fetchone()
+            r = conn.execute("SELECT name, status, location_id, archetype, kind FROM npcs WHERE id=?;", (nid,)).fetchone()
             if not r:
                 return None
             alive = r["status"] == "alive"
@@ -731,7 +734,7 @@ def people_data() -> dict:
                  "potenza": power.combat_rating(conn, "npc", nid) if alive else 0,
                  "confronto": perception.relative_strength(conn, p.id, nid) if alive else "caduto",
                  "rapporto": relations.get_disposition(conn, nid, p.id).score,
-                 "donna": npc_factory.is_female(conn, nid)}
+                 "donna": npc_factory.is_female(conn, nid), "arch": r["archetype"] or "", "kind": r["kind"] or "human"}
             c.update(extra or {})
             return c
 
@@ -933,9 +936,22 @@ def book_data() -> dict:
                 "Ha giurato vendetta.", [f"Rancore: {f['intensity']}/100", f"Generazione: {f['gen']}"])
         for k in secret_masters.learned(conn):
             add("maestri", str(k), "maestro segreto", "prezioso")
-        imgs = []
-        folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "immagini")
-        if os.path.isdir(folder):
-            imgs = sorted(f for f in os.listdir(folder) if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".gif")))
+        imgs = images_index()
         conn.rollback()
     return {"pagine": pages, "immagini": imgs}
+
+
+IMG_EXT = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+
+
+def images_index(root: str | None = None) -> list[str]:
+    """Tutte le immagini della cartella «immagini», anche nelle sottocartelle (luoghi/, ritratti/, bestie/…),
+    come percorsi relativi con la barra normale."""
+    root = root or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "immagini")
+    out = []
+    if os.path.isdir(root):
+        for dirpath, _dirs, files in os.walk(root):
+            for f in files:
+                if f.lower().endswith(IMG_EXT):
+                    out.append(os.path.relpath(os.path.join(dirpath, f), root).replace(os.sep, "/"))
+    return sorted(out)
