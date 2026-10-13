@@ -24,26 +24,11 @@ def tiles(conn, player) -> list[dict]:
     if loc is None:
         return []
     out: list[dict] = []
-    # urgenze
-    rec = cultivation.get_record(conn, "player", player.id)
-    if rec and (rec["stage"] or 1) >= 10 and (rec["progress"] or 0) >= 1.0:
-        out.append(_t("⇑", "Sfondamento", "breakthrough", "sei al colmo del regno", tone="rare"))
-    if dao_powers.tribulation_due(conn, player.id) > 0:
-        out.append(_t("⚡", "Tribolazione", "tribulation", "il Cielo ti aspetta", tone="bad"))
+    # (allenarsi, tempra, sonno, sfondamento: stanno solo in alto a sinistra — vedi quick_flags)
     for d in travel.destinations(conn, player):
         if d["loc"] == player.location_id and d.get("join"):
             out.append(_t("✦", d["title"], d["join"], "qui, ora", tone="rare"))
-    # crescita
-    out.append(_t("☯", "Allenati", "train", "Qi, Dao e arte insieme"))
-    sp_ok = spirit.get_spirit(conn, player.id) > 0
-    out.append(_t("🌀", "Tempra lo spirito", "tempra", "la terza via", sp_ok, "spirito esaurito"))
-    from engine.systems import dao_spirits
-    if dao_spirits.spirits(conn, player.id):
-        out.append(_t("✺", "Allenati con gli spiriti", "spiriti allena", "i loro Dao crescono"))
     q = system_daily.data(conn, player.id)
-    if not q["fatta"]:
-        done = sum(1 for g in q["obiettivi"] if g["ok"])
-        out.append(_t("📋", "Missione quotidiana", "quotidiana", f"{done}/3 obiettivi", tone="info"))
     # luogo
     if market.is_market_here(conn, player.location_id):
         out.append(_t("🏪", "Mercato", "mercato", "compra con un tocco"))
@@ -78,7 +63,19 @@ def tiles(conn, player) -> list[dict]:
             out.append(_t("🎯", f"Taglia: {b['name']}", f"duello {b['name'].split()[0]}", f"{b['reward']} pietre", tone="warn"))
     if q and loc.location_type == "city":
         out.append(_t("🤝", "Chi ha bisogno di te", "bacheca", "incarichi, taglie, missioni"))
-    # riposo
-    qi_low = qi.get_qi(conn, player.id) < qi.max_qi(conn, player.id) * 0.5
-    out.append(_t("☾", "Dormi fino all'alba", "sleep", "recuperi Qi e spirito" + (" (ti serve)" if qi_low else "")))
     return out
+
+
+def quick_flags(conn, player) -> dict:
+    """Lo stato dei pulsanti fissi in alto a sinistra (allenati, tempra, sfonda, raccogli…)."""
+    from engine.simulation import cultivation
+    from engine.systems import dao_powers, loot, spirit, qi, dao_spirits
+    rec = cultivation.get_record(conn, "player", player.id)
+    return {
+        "breakthrough": bool(rec and (rec["stage"] or 1) >= 10 and (rec["progress"] or 0) >= 1.0),
+        "tribulation": dao_powers.tribulation_due(conn, player.id) > 0,
+        "raccogli": len(loot.drops_in_location(conn, player.location_id)),
+        "tempra": spirit.get_spirit(conn, player.id) > 0,
+        "spiriti": bool(dao_spirits.spirits(conn, player.id)),
+        "sonno": qi.get_qi(conn, player.id) < qi.max_qi(conn, player.id) * 0.5,
+    }

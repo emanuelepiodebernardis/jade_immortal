@@ -492,3 +492,12 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .tile.warn { border-color: color-mix(in srgb, var(--warn) 60%, var(--line)); }
 .tile.info { border-color: var(--info); }
 #place { max-height: 46vh; overflow-y: auto; }
+
+.dup { display: none !important; }
+.badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 4px; border-radius: 99px;
+  background: var(--sys); color: var(--sys-ink); border: 1px solid var(--sys-line); font-size: 11px; font-family: var(--mono); }
+.chip.pts { cursor: default; }
+.tile.good { border-color: var(--good); }
+#actions .quick button.ready { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--panel)); font-weight: 600; }
+#q-sfonda.ready { border-color: var(--rare); background: color-mix(in srgb, var(--rare) 14%, var(--panel)); animation: glow 1.6s ease-in-out infinite alternate; }
+#q-trib { border-color: var(--bad); color: var(--bad); font-weight: 600; }

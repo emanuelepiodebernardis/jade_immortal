@@ -22,24 +22,26 @@
     <span class="chip" id="t-cuore" title="Cuore del Dao">—</span>
     <span class="chip" id="t-ferite" title="Ferite">—</span>
     <span class="chip" id="t-pietre" title="Pietre spirituali e fama">—</span>
-    <span class="chip pts" id="t-punti" title="Punti attributo da distribuire" hidden data-menu="attributi">—</span>
+    <span class="chip pts" id="t-punti" title="Punti attributo da distribuire (menu Attributi)" hidden>—</span>
   </div>
   <div class="chip muted when" id="t-tempo">—</div>
 </header>
 
 <main id="layout">
   <nav id="actions" aria-label="Azioni e menu">
-    <div class="quick">
+    <div class="quick" id="quick">
       <button data-cmd="train" title="Qi, Dao e arte insieme (t)">☯ Allenati</button>
-      <button data-cmd="sleep" title="Dormi fino all'alba">☾ Dormi</button>
-      <button data-cmd="look" title="Guardati intorno">◎ Guarda</button>
-      <button data-cmd="raccogli" title="Raccogli il bottino e assorbi essenze, nuclei, manuali e incensi">✋ Raccogli</button>
-      <button data-cmd="breakthrough" title="Tenta lo sfondamento">⇑ Sfonda</button>
+      <button data-cmd="tempra" id="q-tempra" title="Tempra lo spirito: la terza via">🌀 Tempra</button>
+      <button data-cmd="spiriti allena" id="q-spiriti" title="Allenati con gli Spiriti del Dao" hidden>✺ Spiriti</button>
+      <button data-cmd="sleep" id="q-sonno" title="Dormi fino all'alba: recuperi Qi e spirito">☾ Dormi</button>
+      <button data-cmd="breakthrough" id="q-sfonda" title="Tenta lo sfondamento">⇑ Sfonda</button>
+      <button data-cmd="tribulation" id="q-trib" title="Una tribolazione divina ti aspetta" hidden>⚡ Tribolazione</button>
+      <button data-cmd="raccogli" id="q-raccogli" title="Raccogli il bottino e assorbi essenze, nuclei, manuali e incensi">✋ Raccogli</button>
       <button data-cmd="tesori cura" title="Cura di tutti i tesori">✧ Cura tesori</button>
     </div>
     <details class="grp" open><summary>☯ La Via</summary>
       <button data-menu="coltivazione">☯ Coltivazione</button>
-      <button data-menu="attributi">🪟 Attributi</button>
+      <button data-menu="attributi">🪟 Attributi <span class="badge" id="nav-punti" hidden></span></button>
       <button data-menu="tecniche">⚒ Tecniche</button>
       <button data-menu="profondi">🌌 Dao profondi</button>
       <button data-menu="spiriti">✺ Spiriti del Dao</button>

@@ -304,8 +304,9 @@ def state_snapshot() -> dict:
         from engine.systems import place_actions
         try:
             snap["azioni_luogo"] = place_actions.tiles(conn, p)
+            snap["rapidi"] = place_actions.quick_flags(conn, p)
         except Exception:                      # la dashboard non deve mai cadere per una tessera
-            snap["azioni_luogo"] = []
+            snap["azioni_luogo"], snap["rapidi"] = [], {}
         snap["punti"] = attributes.free(conn, p.id)
     return snap
 

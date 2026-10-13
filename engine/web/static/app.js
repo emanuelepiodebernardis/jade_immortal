@@ -126,6 +126,37 @@ async function run(cmd) {
   }
 }
 
+// ---------------- niente doppioni: ogni azione compare una volta sola a schermo ----------------
+// Ordine di precedenza: i pulsanti fissi e i menu a sinistra, poi le tessere del luogo, poi la scena, il pannello di destra,
+// infine le azioni suggerite. Il registro (testo narrativo) non viene toccato.
+const KEY_ALIAS = { t: "train", allenati: "train", dormi: "sleep", market: "mercato", shop: "mercato", aste: "asta",
+  auction: "asta", recipes: "ricette", missioni: "bacheca", inviti: "bacheca", invitations: "bacheca", save: "salva" };
+function actKey(el) {
+  let k = (el.dataset.menu || el.dataset.cmd || "").trim().toLowerCase();
+  return KEY_ALIAS[k] || k;
+}
+let dedupeQueued = false;
+function dedupe() {
+  if (dedupeQueued) return;
+  dedupeQueued = true;
+  requestAnimationFrame(() => {
+    dedupeQueued = false;
+    const seen = new Set();
+    const regions = ["#actions", "#place", "#scene", "#tabbody", "#sugg"];
+    for (const r of regions) {
+      const root = $(r); if (!root) continue;
+      root.querySelectorAll("button[data-cmd], button[data-menu]").forEach((el) => {
+        if (el.closest(".attr") || el.closest(".choices")) return;          // +1 attributi e scelte delle scene: sempre
+        const k = actKey(el);
+        el.classList.remove("dup");
+        if (!k || /^\d+$/.test(k)) return;
+        if (seen.has(k)) el.classList.add("dup"); else seen.add(k);
+      });
+    }
+  });
+}
+new MutationObserver(() => dedupe()).observe(document.body, { childList: true, subtree: true });
+
 // ---------------- stato ----------------
 async function refresh() {
   const s = await api("/api/stato");
@@ -145,6 +176,14 @@ function renderTop(s) {
   $("#t-lv").textContent = "Lv " + (s.livello ?? "—");
   const pts = $("#t-punti");
   pts.hidden = !s.punti; pts.textContent = `✦ ${s.punti} punti`;
+  const q = s.rapidi || {};
+  $("#q-spiriti").hidden = !q.spiriti; $("#q-trib").hidden = !q.tribulation;
+  $("#q-sfonda").classList.toggle("ready", !!q.breakthrough);
+  $("#q-sonno").classList.toggle("ready", !!q.sonno);
+  $("#q-tempra").disabled = q.tempra === false;
+  $("#q-raccogli").textContent = q.raccogli ? `✋ Raccogli (${q.raccogli})` : "✋ Raccogli";
+  $("#q-raccogli").classList.toggle("ready", !!q.raccogli);
+  const nb = $("#nav-punti"); nb.hidden = !s.punti; nb.textContent = s.punti || "";
   setBar("#b-esp", s.esperienza); $("#v-esp").textContent = s.esperienza + "%";
   setBar("#b-qi", s.qi.pct); $("#v-qi").textContent = `${s.qi.cur}/${s.qi.max}`;
   setBar("#b-sp", s.spirito.pct); $("#v-sp").textContent = `${s.spirito.cur}/${s.spirito.max}`;
@@ -201,8 +240,13 @@ function renderScene(s) {
 }
 
 function renderSugg(s) {
+  // niente doppioni: via le azioni che hanno già un pulsante fisso a sinistra o una tessera del luogo
+  const fixed = new Set([...document.querySelectorAll("#actions [data-cmd], #actions [data-menu], #place [data-cmd]")]
+    .filter((b) => !b.hidden).map(actKey));
+  const norm = (c) => { const k = c.trim().toLowerCase(); return KEY_ALIAS[k] || k; };
+  s.suggVisibili = s.suggerimenti.filter((x) => !fixed.has(norm(x.cmd)));
   $("#sugg").innerHTML = s.scena ? "" :
-    s.suggerimenti.map((x, i) => `<button data-cmd="${esc(x.cmd)}" title="${esc(x.label)} — ${esc(x.cmd)}"><span class="n">${i + 1}</span>${esc(x.label)}</button>`).join("");
+    s.suggVisibili.map((x, i) => `<button data-cmd="${esc(x.cmd)}" title="${esc(x.label)} — ${esc(x.cmd)}"><span class="n">${i + 1}</span>${esc(x.label)}</button>`).join("");
 }
 
 async function renderMete(s) {
@@ -212,7 +256,7 @@ async function renderMete(s) {
     const where = d.dist === 0 ? "QUI" : d.dist == null ? "in un altro mondo" : `${d.dist} tappe`;
     return `<div class="dest card"><div class="t">${esc(d.title)}</div>
       <div class="w">${esc(d.where)} · ${where}</div>
-      <div class="b">${d.dist ? `<button data-cmd="vai ${d.n}">Vai</button>` : ""}${d.join ? `<button class="primary" data-cmd="iscriviti ${d.n}">Partecipa</button>` : ""}</div></div>`;
+      <div class="b">${d.dist ? `<button data-cmd="vai ${d.n}">Vai</button>` : ""}${d.join && d.dist ? `<button class="primary" data-cmd="iscriviti ${d.n}">Partecipa</button>` : d.join ? `<span class="muted small">↖ tessera qui</span>` : ""}</div></div>`;
   }).join("");
   b.innerHTML = head + list + `<div id="objs"><div class="empty">Carico gli obiettivi…</div></div>`;
   try { const o = await objectivesHtml(); if (tab === "mete" && $("#objs")) $("#objs").innerHTML = o; } catch (e) { /* niente */ }
@@ -674,7 +718,7 @@ document.addEventListener("keydown", (ev) => {
   if (/^[1-9]$/.test(ev.key) && S) {
     const n = parseInt(ev.key, 10);
     if (S.scena) { if (n <= S.scena.choices.length) { ev.preventDefault(); run(String(n)); } }
-    else if (n <= S.suggerimenti.length) { ev.preventDefault(); run(S.suggerimenti[n - 1].cmd); }
+    else if (n <= (S.suggVisibili || S.suggerimenti).length) { ev.preventDefault(); run((S.suggVisibili || S.suggerimenti)[n - 1].cmd); }
   }
 });
 function setWide(on) {

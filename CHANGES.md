@@ -1911,3 +1911,18 @@ Scrivere `market`, `asta`, `recipes`, `missioni`, `inviti` nella dashboard apre 
 Corretto: comprare un oggetto visto solo nel menu del mercato a volte diceva «quel numero non è in vendita».
 
 Nuovi test. Suite totale: **600 passati**.
+
+---
+
+## Aggiornamento 46 — Ogni pulsante una volta sola; allenamento e simili solo in alto a sinistra
+
+- **Niente doppioni a schermo.** Se la stessa azione compare in più punti (menu a sinistra, tessere del luogo, pannello di destra, azioni suggerite), resta visibile solo la prima. La precedenza va ai pulsanti fissi in alto a sinistra, poi ai menu, poi alle tessere del luogo, poi al pannello e infine alle azioni suggerite. Le azioni suggerite si rinumerano, e i tasti 1-8 seguono i numeri visibili. Il testo del registro non viene toccato.
+- **Allenati, Tempra, Spiriti, Dormi, Sfonda, Tribolazione, Raccogli e Cura tesori stanno solo in alto a sinistra:**
+  - **Sfonda** si illumina quando sei al colmo del regno;
+  - **Tribolazione** compare solo quando ti aspetta;
+  - **Spiriti** compare solo se hai degli Spiriti del Dao;
+  - **Raccogli** mostra quanti oggetti ci sono a terra;
+  - **Dormi** si evidenzia quando ti manca il Qi.
+- Le **tessere del luogo** mostrano solo ciò che è proprio di quel posto: eventi, mercato, asta, setta, dimora, materiali, caccia, chi ti insegue, ricercati, chi ha bisogno di te.
+- I **punti attributo** compaiono come numero accanto al menu Attributi, non più come secondo pulsante.
+- Gli eventi «qui, ora» nel pannello Mete non ripetono il pulsante della tessera.

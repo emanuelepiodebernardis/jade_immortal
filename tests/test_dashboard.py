@@ -248,6 +248,7 @@ def test_click_menus_market_auction_recipes_board(world):
 def test_place_tiles_are_actions(world):
     game.create("mortale", "", "Han", "normale")
     s = game.state_snapshot()
-    labels = {t["cmd"] for t in s["azioni_luogo"]}
-    assert "train" in labels and "sleep" in labels
+    cmds = {t["cmd"] for t in s["azioni_luogo"]}
+    assert not cmds & {"train", "sleep", "tempra", "breakthrough"}      # quelli stanno solo in alto a sinistra
     assert all(t["ok"] or t["why"] for t in s["azioni_luogo"])
+    assert {"breakthrough", "raccogli", "tempra"} <= set(s["rapidi"])
