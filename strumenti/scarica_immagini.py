@@ -111,13 +111,11 @@ def main(argv: list[str]) -> int:
         pass
     all_ = "--tutto" in argv
     dry = "--elenco" in argv
-    ROOT.mkdir(exist_ok=True)
     credits = []
     ok = skip = fail = 0
     for slot, query in SLOTS.items():
         folder, name = slot.rsplit("/", 1)
-        (ROOT / folder).mkdir(parents=True, exist_ok=True)
-        existing = [p for p in (ROOT / folder).glob(name + ".*")]
+        existing = [p for p in (ROOT / folder).glob(name + ".*")] if (ROOT / folder).is_dir() else []
         if existing and not all_:
             skip += 1
             continue
@@ -136,6 +134,7 @@ def main(argv: list[str]) -> int:
                 data = r.read()
             for old in existing:
                 old.unlink()
+            (ROOT / folder).mkdir(parents=True, exist_ok=True)
             (ROOT / folder / (name + ext)).write_bytes(data)
             credits.append(f"{slot}{ext}\n  {hit['title']}\n  {_strip(hit['author'])} — {hit['license']}\n  {hit['page']}\n")
             print(f"✓ {slot}{ext}  ←  {hit['title']}")
@@ -145,6 +144,7 @@ def main(argv: list[str]) -> int:
             print(f"✗ {slot}: {e}")
             fail += 1
     if credits:
+        ROOT.mkdir(exist_ok=True)
         with open(ROOT / "CREDITI.txt", "a", encoding="utf-8") as f:
             f.write("\n".join(credits) + "\n")
     if not dry:
