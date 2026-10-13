@@ -310,8 +310,10 @@ def gather(conn, t: int, rng: random.Random, player) -> str:
         return "Qui non c'è nulla da raccogliere: cerca montagne, rovine o zone proibite."
     got = []
     bonus = (loc.danger_level or 1) // 3
+    from engine.systems import frontier
+    fm = frontier.gather_mult(conn, player.location_id)          # le terre di frontiera sono più ricche
     for k, (lo, hi) in table.items():
-        n = rng.randint(lo, hi) + (bonus if rng.random() < 0.5 else 0)
+        n = int(round((rng.randint(lo, hi) + (bonus if rng.random() < 0.5 else 0)) * fm))
         if n > 0:
             give(conn, player.id, k, n)
             state.set(conn, "sys_gathered", str(state.get_int(conn, "sys_gathered", 0) + n))

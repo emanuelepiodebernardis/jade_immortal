@@ -443,6 +443,12 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("attributi", "punti", "stats"):
         from engine.systems import attributes
         return attributes.command(conn, player, arg)
+    if cmd in ("frontiera", "frontier", "anelli"):
+        from engine.systems import frontier
+        return frontier.describe(conn, player)
+    if cmd in ("mistero", "misteri"):
+        from engine.systems import frontier
+        return frontier.resolve(conn, player, arg) if arg.strip() else frontier.describe(conn, player)
     if cmd in ("bacheca", "board") and not arg.strip():
         from engine.systems import menus
         return menus.show(conn, player, "bacheca")
@@ -585,9 +591,10 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     out = []
     if player.status != "alive":
         return ""
-    from engine.systems import dao_superiori, system_daily
+    from engine.systems import dao_superiori, system_daily, frontier
     out += dao_superiori.check_awakenings(conn, player.id)
     out += system_daily.check(conn, player)
+    out += frontier.expand(conn, player)
     ch = story_tick(conn, player)
     if ch:
         out.append(ch)

@@ -83,9 +83,10 @@ def on_player_kill(conn: sqlite3.Connection, tick: int, rng: random.Random,
     loc = row["location_id"]
     name = row["name"]
     tier = _tier(conn, "npc", npc.id)
-    from engine.systems import deep_dao
+    from engine.systems import deep_dao, frontier
     if deep_dao.take_blessing(conn):                  # Benedizione del Fato: il bottino sale
         tier += 2
+    tier += frontier.loot_bonus(conn, loc)            # le terre lontane custodiscono tesori più rari
 
     drops: list[tuple[str, str, str, str, dict]] = []  # (name, type, rarity, desc, effects)
 

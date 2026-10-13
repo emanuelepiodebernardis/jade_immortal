@@ -495,12 +495,13 @@ function drawMap() {
   }
   for (const n of m.nodes) {
     const x = px(n), y = py(n);
-    const cls = ["node", n.visited ? "visited" : "unseen", n.here ? "here" : "", n.marks.length ? "mark" : "", n.threats.length && mapLayers.minacce ? "threat" : ""].join(" ");
+    const cls = ["node", "r" + Math.min(9, n.ring || 0), n.visited ? "visited" : "unseen", n.here ? "here" : "", n.marks.length ? "mark" : "", n.threats.length && mapLayers.minacce ? "threat" : ""].join(" ");
     const short = n.name.length > 14 ? n.name.slice(0, 13) + "…" : n.name;
     const ic = n.home ? "⌂" : (ICON[n.type] || "·");
     const tip = [`${n.name} — pericolo ${n.danger}`, n.sect ? `⛩ sede: ${n.sect}` : "", n.people ? `👥 ${n.people} persone` : "",
       n.beasts ? `🐾 ${n.beasts} creature` : "", n.threats.length ? `⚔ ti cercano: ${n.threats.join(", ")}` : "",
-      n.marks.length ? `★ ${n.marks.join(", ")}` : ""].filter(Boolean).join("\n");
+      n.marks.length ? `★ ${n.marks.join(", ")}` : "", n.mystery ? `❖ ${n.mystery}` : "",
+      n.ring ? `frontiera, anello ${n.ring}` : ""].filter(Boolean).join("\n");
     svg += `<g class="${cls}" data-cmd="vai ${esc(n.name)}"><title>${esc(tip)}</title>`;
     if (n.here) svg += `<circle class="pulse" cx="${x + NW / 2}" cy="${y + NH / 2}" r="46" fill="url(#glow)"/>`;
     svg += `<rect x="${x}" y="${y}" width="${NW}" height="${NH}" rx="8"/>
@@ -509,6 +510,7 @@ function drawMap() {
       <text class="nm" x="${x + 6}" y="${y + 34}">${esc(short)}</text>`;
     let bx = x + NW - 4;
     const badge = (t, c) => { svg += `<text class="bd ${c}" x="${bx}" y="${y + 15}" text-anchor="end">${t}</text>`; bx -= 16; };
+    if (n.mystery) badge("❖", "rare");
     if (n.threats.length && mapLayers.minacce) badge("⚔", "bad");
     if (n.marks.length) badge("★", "warn");
     if (n.sect && mapLayers.sette) badge("⛩", "info");
@@ -517,11 +519,15 @@ function drawMap() {
   }
   svg += `</svg>`;
   const tog = (k, l) => `<button class="chip ${mapLayers[k] ? "on" : ""}" data-maptool="layer:${k}">${l}</button>`;
-  $("#tabbody").innerHTML = `<div id="map">
+  const fr = m.frontiera || {};
+  const frh = fr.totale ? `<div class="frontier"><span><b>🗺 ${esc(fr.mondo)}</b> · frontiera ${fr.anelli}/${fr.totale}</span>
+      <div class="bar"><i style="width:${Math.round(100 * fr.anelli / fr.totale)}%"></i></div>
+      <span class="muted">${fr.prossimo ? `prossimo anello al regno ${fr.prossimo.regno}, strato ${fr.prossimo.strato}` : "mappa completa"}</span></div>` : "";
+  $("#tabbody").innerHTML = `<div id="map">${frh}
     <div class="maptools"><button data-maptool="in">＋</button><button data-maptool="out">－</button><button data-maptool="me">◉ Tu</button><button data-maptool="all">⤢ Tutto</button>
       ${tog("minacce", "⚔ Minacce")}${tog("sette", "⛩ Sette")}${tog("presenze", "👥 Presenze")}</div>
     ${svg}
-    <div class="legend">◉ tu · ⌂ dimora · ▣ città · ▲ montagna · ▒ rovine · ☠ zona proibita · ★ meta in corso · ⚔ chi ti dà la caccia · ⛩ sede di setta · numero = persone.
+    <div class="legend">❖ incontro misterioso · i luoghi più scuri sono gli anelli più lontani (nemici più forti, bottini più rari, più risorse) · ◉ tu · ⌂ dimora · ▣ città · ▲ montagna · ▒ rovine · ☠ zona proibita · ★ meta in corso · ⚔ chi ti dà la caccia · ⛩ sede di setta · numero = persone.
       La striscia sotto ogni luogo è il pericolo (verde → rosso). Rotella per lo zoom, trascina per muoverti, clic per andarci. ⤢ in alto allarga il pannello e la mappa.</div></div>`;
   bindMapDrag();
 }

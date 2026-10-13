@@ -9,9 +9,9 @@ Svolte nuove introdotte qui:
   VOLO (2° regno)              `vola <luogo>`: raggiungi un luogo già visitato senza camminare
                                (il tempo dipende dalla distanza; costa Qi)
   PASSO NEL VUOTO (6° regno)   `vola` diventa istantaneo
-  INCARNAZIONE DEL DAO         un Dao oltre la Legge (2000, 4000, 8000… senza fine) si
-                               incarna: all'inizio di ogni scontro il suo stato colpisce
-                               subito il nemico, più forte a ogni incarnazione
+  PRIMO COLPO DELLO SPIRITO    un Dao oltre la Legge (2000, 4000, 8000… senza fine): il suo
+                               Spirito del Dao (vedi dao_spirits) colpisce all'inizio di ogni
+                               scontro con lo stato del Dao, più forte a ogni raddoppio
   IL TUO DAO (3 Dao alla Legge) `crea_dao <nome>`: fondi tre Dao in un Dao TUO, che
                                nessuno ha mai percorso. Ogni altri tre Dao alla Legge,
                                un nuovo Dao tuo
@@ -64,7 +64,9 @@ def combat(conn, fx) -> list[str]:
         from engine.systems.combat_states import STATES
         target = fx.p if STATES.get(st, ("", "nemico"))[1] == "sé" else fx.e
         fx._apply(target, st, 1.0 + 0.25 * n)
-        out.append(f"✺ Il {name} è incarnato in te ({_roman(n)}): {st} prima ancora del primo colpo.")
+        from engine.systems import dao_spirits
+        form = dao_spirits._form(key, name)[0]
+        out.append(f"✺ {form} colpisce per primo ({_roman(n)}): {st} prima ancora del tuo primo colpo.")
     return out
 
 
@@ -267,9 +269,9 @@ def milestones(conn, player) -> list[tuple[str, str, bool, str]]:
     out.append(("legge", "Legge del Dao", bool(laws), f"un Dao a {LAW}"))
     incs = incarnations(conn, pid)
     best = max((n for _k, _nm, n in incs), default=0)
-    out.append((f"incarnazione_{best}" if best else "incarnazione", "Incarnazione del Dao" +
+    out.append((f"incarnazione_{best}" if best else "incarnazione", "Primo Colpo dello Spirito del Dao" +
                 (f" {_roman(best)}" if best else ""), bool(incs),
-                f"un Dao a {2 * LAW}, poi a ogni raddoppio una nuova incarnazione"))
+                f"un Dao a {2 * LAW}: il suo Spirito colpisce prima di te (più forte a ogni raddoppio)"))
     owns = own_daos(conn, pid)
     out.append((f"dao_proprio_{len(owns)}" if owns else "dao_proprio", "Il tuo Dao" +
                 (f" ({len(owns)})" if len(owns) > 1 else ""), bool(owns),

@@ -129,6 +129,8 @@ def check(conn, player) -> list[str]:
     d["bonus_points"] = d.get("bonus_points", 0) + pts
     state.set_json(conn, KEY, d)
     out.append(msg)
+    from engine.systems import system_quest                 # il Trasmigratore: anche i punti del Sistema
+    out += system_quest.on_daily_done(conn, player, d["streak"])
     return out
 
 

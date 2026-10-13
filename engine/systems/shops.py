@@ -131,13 +131,6 @@ def board_menu(conn, player) -> dict:
         secs.append(section("Bacheca delle missioni", ["Cambia ogni giorno."], [
             act(f"{x['text']} — {x['merit']} merito, {x['stones']} pietre (Anziano {x['elder_name']})",
                 f"missioni accetta {i}", not cur, "hai già una missione") for i, x in enumerate(b, 1)], icon="✎"))
-        merit = guild.get_merit(conn, player.id)
-        techs = guild.sect_techniques(conn, m["faction_id"])
-        secs.append(section(f"Tecniche segrete — merito {merit}", actions=[
-            act(f"{t['name']} — +{int(t['magnitude'] * 100)}% potenza — {t['cost']} merito", f"learn {t['rank']}",
-                not guild.is_learned(conn, t["key"], player.id) and merit >= t["cost"],
-                "già appresa" if guild.is_learned(conn, t["key"], player.id) else f"servono {t['cost']} merito")
-            for t in techs], icon="📜"))
     else:
         secs.append(section("Nessuna setta", ["Le missioni e le tecniche segrete sono per i membri di una setta."],
                             [act("Cerca una setta", "sects", main=True)], icon="⛩"))

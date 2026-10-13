@@ -99,11 +99,6 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
     osct = own_sect.get(conn)
     if osct and osct.get("threat") and osct["loc"] == loc:
         _add(out, "Difendi la tua setta dall'assalto", "setta difendi")
-    if system_quest.active(conn):
-        d = system_quest.today(conn, player.id)
-        if any(not q["done"] and system_quest._progress(conn, player.id, q) >= q["need"]
-               for q in d["quests"]):
-            _add(out, "[Ding!] Riscuoti le missioni del Sistema", "sistema riscuoti")
     ab = cave_abode.get(conn, player.id)
     if ab and ab["loc"] == loc and any(v > 0 for v in (ab.get("stock") or {}).values()):
         _add(out, "Raccogli la produzione della tua dimora", "dimora raccogli")

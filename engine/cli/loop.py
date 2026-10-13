@@ -301,6 +301,10 @@ def _after_arrival(conn: sqlite3.Connection, player: entities.Player) -> str:
               or sect_politics.on_arrival_scene(conn, player))
         if sw:
             return out + "\n\n" + sw
+        from engine.systems import frontier
+        _fm = frontier.on_arrival(conn, player)        # un incontro misterioso delle terre di frontiera
+        if _fm:
+            return out + "\n\n" + _fm
         sc = encounters.maybe_trigger(conn, player)
         if sc:
             out += "\n\n" + sc

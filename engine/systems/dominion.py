@@ -1006,6 +1006,16 @@ def menu_build(conn, player) -> dict:
             "forte del suo, puoi marchiarne l'anima con 'sigilla <nome>'.",
             "Marchia un PATRIARCA e la sua setta diventa tua vassalla.",
             "L'Arte del Ritorno della Salma (rara) ti permette di rianimare i caduti."], icon="📜"))
+    # tutto ciò che combatte per te, in un posto solo (Aggiornamento 47)
+    from engine.systems import puppets, soul_war, dao_spirits, beasts as _bst
+    fl = soul_war.flag(conn)
+    sp = dao_spirits.spirits(conn, player.id)
+    army = [f"⛓ Servi sigillati: {sum(1 for s in sv if s['kind'] != 'salma')} · 💀 salme: {sum(1 for s in sv if s['kind'] == 'salma')}",
+            f"🤖 Marionette: {len(puppets.puppets(conn))}/{puppets.max_puppets(conn, player.id)}",
+            f"✺ Spiriti del Dao: {len(sp)} (in battaglia fino a {dao_spirits.slots(conn, player.id)})",
+            ("🏴 Bandiera delle anime: " + str(fl.get("souls", 0)) + " anime") if fl else "🏴 Bandiera delle anime: non la possiedi"]
+    secs.append(section("Il tuo esercito", army, [act("Marionette", "marionette"), act("Spiriti del Dao", "spiriti"),
+                                                   act("Bandiera delle anime", "bandiera", bool(fl), "non la possiedi")], icon="⚔"))
     return menu("dominio", "⛓ IL TUO DOMINIO",
                 [f"Servi: {len(sv)} · sette vassalle: {len(v)}"], secs)
 

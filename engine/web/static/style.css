@@ -501,3 +501,15 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 #actions .quick button.ready { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--panel)); font-weight: 600; }
 #q-sfonda.ready { border-color: var(--rare); background: color-mix(in srgb, var(--rare) 14%, var(--panel)); animation: glow 1.6s ease-in-out infinite alternate; }
 #q-trib { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+
+/* frontiera: gli anelli lontani si scuriscono */
+#map .frontier { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font-size: 13px; margin-bottom: 6px; }
+#map .frontier .bar { width: 100%; }
+#map .frontier .bar i { background: linear-gradient(90deg, var(--accent), var(--rare)); }
+#map .node.r1 rect:first-of-type { fill: color-mix(in srgb, var(--chip) 85%, var(--rare)); }
+#map .node.r2 rect:first-of-type, #map .node.r3 rect:first-of-type { fill: color-mix(in srgb, var(--chip) 72%, var(--rare)); }
+#map .node.r4 rect:first-of-type, #map .node.r5 rect:first-of-type { fill: color-mix(in srgb, var(--chip) 60%, var(--rare)); }
+#map .node.r6 rect:first-of-type, #map .node.r7 rect:first-of-type { fill: color-mix(in srgb, var(--chip) 62%, var(--bad)); }
+#map .node.r8 rect:first-of-type, #map .node.r9 rect:first-of-type { fill: color-mix(in srgb, var(--chip) 48%, var(--bad)); }
+#map .node[class*=" r"]:not(.r0) .nm { font-weight: 600; }
+#map .node .bd.rare { fill: var(--rare); }

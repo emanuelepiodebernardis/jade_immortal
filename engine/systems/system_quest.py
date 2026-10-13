@@ -117,14 +117,10 @@ def _progress(conn, pid, q) -> int:
 def describe(conn, player) -> str:
     if not active(conn):
         return "Nessuna voce ti risponde. (Il Sistema accompagna solo i Trasmigratori.)"
-    d = today(conn, player.id)
+    from engine.systems import system_daily
     lines = ["[Ding!] ═══ PANNELLO DEL SISTEMA ═══", f"Punti Sistema: {points(conn)}",
-             "Missioni di oggi:"]
-    for i, q in enumerate(d["quests"], 1):
-        pr = min(q["need"], _progress(conn, player.id, q))
-        mark = "✔ riscossa" if q["done"] else ("✔ completa! ('sistema riscuoti')" if pr >= q["need"] else f"{pr}/{q['need']}")
-        lines.append(f"  {i}. {QUESTS[q['key']][0].format(n=q['need'])} — {mark} (+{q['reward']} punti)")
-    lines.append("'sistema negozio' per spendere i punti.")
+             system_daily.describe(conn, player),
+             "Ogni Missione Quotidiana completata vale anche punti Sistema. 'sistema negozio' per spenderli."]
     return "\n".join(lines)
 
 
@@ -199,7 +195,7 @@ def command(conn, player, arg: str) -> str:
     if not active(conn):
         return describe(conn, player)
     if sub in ("riscuoti", "claim", "incassa"):
-        return claim(conn, player)
+        return "[Ding!] Le ricompense ora arrivano da sole quando completi la Missione Quotidiana.\n" + describe(conn, player)
     if sub in ("negozio", "shop"):
         return shop(conn)
     if sub in ("compra", "buy") and len(parts) > 1 and parts[1].isdigit():
@@ -208,8 +204,22 @@ def command(conn, player, arg: str) -> str:
 
 
 def daily(conn, t: int, rng, player) -> list[str]:
+    """Le missioni del giorno ora sono una sola, per tutti: la MISSIONE QUOTIDIANA (system_daily).
+    Per il Trasmigratore, completarla dà anche i punti del Sistema (vedi on_daily_done)."""
+    return []
+
+
+def on_daily_done(conn, player, streak: int) -> list[str]:
+    """Il Trasmigratore riceve i punti del Sistema quando completa la Missione Quotidiana."""
     if not active(conn):
         return []
-    d = today(conn, player.id)
-    return ["[Ding!] Nuove missioni del Sistema: " +
-            "; ".join(QUESTS[q["key"]][0].format(n=q["need"]) for q in d["quests"]) + " ('sistema')"]
+    tier = _tier(conn, player.id)
+    got = 20 + 10 * tier
+    state.set(conn, "sys_points", str(points(conn) + got))
+    out = [f"[Ding!] Il Sistema approva: +{got} punti Sistema (totale {points(conn)}). 'sistema negozio' per spenderli."]
+    n = state.get_int(conn, "sys_full_days", 0) + 1
+    state.set(conn, "sys_full_days", str(n))
+    if n in (7, 30, 100) and state.grant_title(conn, {7: "Ospite del Sistema", 30: "Prediletto del Sistema",
+                                                       100: "Padrone del Sistema"}[n]):
+        out.append("✧ Nuovo titolo del Sistema!")
+    return out

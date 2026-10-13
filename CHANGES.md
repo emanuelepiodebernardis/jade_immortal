@@ -1926,3 +1926,37 @@ Nuovi test. Suite totale: **600 passati**.
 - Le **tessere del luogo** mostrano solo ciò che è proprio di quel posto: eventi, mercato, asta, setta, dimora, materiali, caccia, chi ti insegue, ricercati, chi ha bisogno di te.
 - I **punti attributo** compaiono come numero accanto al menu Attributi, non più come secondo pulsante.
 - Gli eventi «qui, ora» nel pannello Mete non ripetono il pulsante della tessera.
+
+---
+
+## Aggiornamento 47 — La frontiera: la mappa di ogni mondo si allarga col livello; sistemi doppi accorpati
+
+**La mappa cresce con te.** Ogni mondo comincia dal suo cuore abitato. A ogni soglia di coltivazione si apre un nuovo **anello di terre** attorno a quelle che già conosci:
+- **nemici più forti**: bestie, demoni, spiriti e coltivatori del regno di quell'anello;
+- **bottini più rari**: chi cade negli anelli lontani lascia oggetti di qualità più alta (+1 classe ogni due anelli);
+- **più risorse**: raccogliere rende il 35% in più per ogni anello;
+- **incontri misteriosi** (❖): tombe antiche, sorgenti spirituali, eremiti, rovine di sette perdute, alberi dai frutti spirituali, frammenti di reami, antichi campi di battaglia.
+  - Ognuno si apre una volta sola.
+  - **Esplorarli fino in fondo** rende di più ma può svegliare un guardiano. **Con prudenza** prendi solo ciò che è sicuro.
+  - I premi vanno da esperienza di coltivazione, anni di vita, comprensione dei Dao e pietre fino ai punti attributo e ai Dao profondi.
+
+Gli anelli di un mondo sono almeno 6. Nel Mondo Mortale sono 9, uno per regno; nei mondi superiori, che hanno 3 regni, uno ogni mezzo regno. Al tetto del mondo la mappa è **completa**.
+
+**Ogni mondo ha la sua mappa.** La mappa mostra solo il mondo in cui sei. Quando ascendi, il mondo di prima scompare e ne comincia uno nuovo, piccolo, che si allarga con le stesse regole, senza fine.
+
+**Mappa:**
+- coordinate fisse, senza più luoghi sovrapposti;
+- crescita ad anelli concentrici;
+- gli anelli lontani sono più scuri;
+- ❖ segna i misteri;
+- in alto la barra della frontiera, con il regno e lo strato a cui si apre l'anello successivo.
+
+Comandi: `frontiera`, `mistero esplora|prudente`. I luoghi nuovi hanno nomi composti senza ripetizioni (Monte Sacro del Drago, Necropoli delle Perle, Torre Proibita dell'Aurora…). I salvataggi esistenti ricevono subito gli anelli che spettano al loro livello.
+
+**Sistemi doppi accorpati:**
+- **Una sola missione del giorno.** Per il Trasmigratore, completare la Missione Quotidiana dà anche i punti del Sistema e i suoi titoli. Il negozio del Sistema resta.
+- Le vecchie «Incarnazioni del Dao» (un Dao oltre 2000) diventano il **Primo Colpo dello Spirito del Dao**: è il tuo Spirito a colpire per primo.
+- Il menu **Dominio** ha una sezione **Il tuo esercito** con tutto ciò che combatte per te: servi, salme, marionette, Spiriti del Dao e bandiera delle anime.
+- Le **tecniche segrete di setta** stanno solo nel menu Tecniche, accanto alla fucina.
+
+Nuovi test. Suite totale: **602 passati**.

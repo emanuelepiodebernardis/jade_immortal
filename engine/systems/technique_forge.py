@@ -520,6 +520,17 @@ def menu_build(conn, player) -> dict:
             summary(mv) if mv else ""],
             [act("Allenala", f"tecniche allena {i}", main=True), act("Dimenticala", f"tecniche dimentica {i}")],
             [bar(f"Livello {x['lv']}", 100 * x["xp"] / _need(x["lv"]), tone="rare")]))
+    from engine.systems import guild, sects
+    m = sects.get_membership(conn, player.id)
+    if m:                                      # le tecniche segrete della setta: un solo posto dove vederle
+        techs = guild.sect_techniques(conn, m["faction_id"])
+        merit = guild.get_merit(conn, player.id)
+        secs.append(section(f"Tecniche segrete di {m['sect_name']} — merito {merit}", [
+            "Potenziano sempre (passive) e si sommano alle tue tecniche di combattimento."], [
+            act(f"{t['name']} — +{int(t['magnitude'] * 100)}% potenza — {t['cost']} merito", f"learn {t['rank']}",
+                not guild.is_learned(conn, t["key"], player.id) and merit >= t["cost"],
+                "già appresa" if guild.is_learned(conn, t["key"], player.id) else f"servono {t['cost']} merito")
+            for t in techs], icon="📜"))
     return menu("tecniche", "⚒ LE TUE TECNICHE E LA FUCINA",
                 ["Fondi due o più tecniche in una nuova: la fucina propone le combinazioni migliori."], secs)
 

@@ -145,8 +145,9 @@ def _after(conn, player) -> list[str]:
     from engine.systems import menus
     menus.consume_open(conn)                  # nella dashboard i menu hanno i loro pulsanti
     out = list(dao_superiori.check_awakenings(conn, player.id))
-    from engine.systems import system_daily
+    from engine.systems import system_daily, frontier
     out += system_daily.check(conn, player)
+    out += frontier.expand(conn, player)
     ch = story_cmds.story_tick(conn, player)
     if ch:
         out.append(ch)
@@ -425,46 +426,48 @@ def hero_data() -> dict:
 
 
 def map_data(radius: int = 5) -> dict:
-    from engine.systems import state, travel, cave_abode
+    """La mappa del MONDO in cui sei (gli altri mondi non compaiono): coordinate fisse, anelli della
+    frontiera, misteri, minacce, sette, presenze. `radius` resta per compatibilità (non limita più)."""
+    from engine.systems import state, travel, cave_abode, ascension, frontier, pursuers
     with LOCK, transaction() as conn:
         p = entities.get_player(conn)
         start = p.location_id
-        pos = {start: (0, 0)}
-        q = deque([start])
-        while q:
-            cur = q.popleft()
-            x, y = pos[cur]
-            for d, nxt in entities.get_exits(conn, cur).items():
-                if d not in _D or nxt in pos:
-                    continue
-                nx, ny = x + _D[d][0], y + _D[d][1]
-                if abs(nx) > radius or abs(ny) > radius or (nx, ny) in pos.values():
-                    continue
-                pos[nxt] = (nx, ny)
-                q.append(nxt)
+        layer = ascension.player_layer(conn, p.id)
+        frontier.expand(conn, p, layer)                     # salvataggi vecchi: gli anelli dovuti
+        pos = frontier.ensure_coords(conn, layer)
         visited = set(state.get_json(conn, "world_codex_luoghi", []) or [])
         marks: dict[int, list[str]] = {}
         for d in travel.destinations(conn, p):
             marks.setdefault(d["loc"], []).append(d["title"])
         home = (cave_abode.get(conn, p.id) or {}).get("loc")
-        nodes, edges = [], []
-        from engine.systems import pursuers
+        w = frontier.world(conn, layer)
         chase = dict(pursuers.tracked(conn))
         sect_home = {r["home_location_id"]: r["name"] for r in conn.execute(
-            "SELECT name, home_location_id FROM factions WHERE home_location_id IS NOT NULL;")}
+            "SELECT name, home_location_id FROM factions WHERE home_location_id IS NOT NULL AND status='active';")}
+        nodes, edges = [], []
         for lid, (x, y) in pos.items():
             r = conn.execute("SELECT name, location_type, danger_level FROM locations WHERE id=?;", (lid,)).fetchone()
-            people = conn.execute("SELECT id, name, kind FROM npcs WHERE location_id=? AND status='alive';", (lid,)).fetchall()
-            threats = [n["name"] for n in people if n["id"] in chase]
+            if not r:
+                continue
+            people = conn.execute("SELECT id, kind FROM npcs WHERE location_id=? AND status='alive';", (lid,)).fetchall()
+            threats = [conn.execute("SELECT name FROM npcs WHERE id=?;", (n["id"],)).fetchone()["name"]
+                       for n in people if n["id"] in chase]
             beasts = sum(1 for n in people if (n["kind"] or "human") != "human")
+            mys = w["mysteries"].get(str(lid))
             nodes.append({"id": lid, "x": x, "y": y, "name": r["name"], "type": r["location_type"],
                           "danger": r["danger_level"], "here": lid == start, "visited": r["name"] in visited,
                           "marks": marks.get(lid, []), "home": lid == home, "people": len(people) - beasts,
-                          "beasts": beasts, "threats": threats, "sect": sect_home.get(lid)})
+                          "beasts": beasts, "threats": threats, "sect": sect_home.get(lid),
+                          "ring": int(w["loc_ring"].get(str(lid), 0)),
+                          "mystery": frontier.MYSTERIES[mys["kind"]][0] if mys and not mys["done"] else None})
             for d, nxt in entities.get_exits(conn, lid).items():
                 if nxt in pos and d in ("east", "south"):
                     edges.append([lid, nxt])
-    return {"nodes": nodes, "edges": edges}
+        R = frontier.ring_count(layer)
+        nxt = frontier.next_ring_at(layer, w["rings"] + 1) if w["rings"] < R else None
+        info = {"mondo": ascension.layer_name(layer), "anelli": w["rings"], "totale": R,
+                "prossimo": {"regno": nxt[0], "strato": nxt[1]} if nxt else None}
+    return {"nodes": nodes, "edges": edges, "frontiera": info}
 
 
 # ============================================================
@@ -700,7 +703,7 @@ def objectives_data() -> dict:
                                      f"{m['stones']} pietre)", "cmd": "missioni"})
             except Exception:
                 pass
-        if system_quest.active(conn):
+        if False:                                   # le missioni del Sistema sono la Missione Quotidiana (pannello Mete)
             d = system_quest.today(conn, p.id)
             for q in d["quests"]:
                 pr = min(q["need"], system_quest._progress(conn, p.id, q))
