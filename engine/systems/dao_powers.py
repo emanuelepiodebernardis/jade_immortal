@@ -53,6 +53,10 @@ def space_combat(conn: sqlite3.Connection, player_id: int = 1) -> dict:
         extra = 2
     elif i >= 4:
         extra = 1
+    from engine.systems import deep_dao           # risonanze (Spazio-Tempo, Causalità)
+    rb = deep_dao.space_bonus(conn, player_id)
+    extra += rb["extra"]
+    crit = min(0.7, crit + rb["crit"])
     labels = ["", "Distorsione", "Taglio Spaziale", "Frattura dello Spazio",
               "Moltiplicazione Spaziale", "Dominio Spaziale", "Annientamento Spaziale",
               "Spazio Reciso"]
@@ -69,7 +73,8 @@ def time_cultivation_mult(conn: sqlite3.Connection, player_id: int = 1) -> float
     c = comp(conn, "tempo", player_id)
     if c <= 0:
         return 1.0
-    return 1.0 + _idx(c) * 0.18             # idx 1..7 → +18%..+126%
+    from engine.systems import deep_dao           # oltre l'ultima soglia continua a crescere
+    return 1.0 + deep_dao.mastery(conn, "tempo", player_id) * 0.18
 
 
 def time_evasion(conn: sqlite3.Connection, player_id: int = 1) -> float:
@@ -77,7 +82,8 @@ def time_evasion(conn: sqlite3.Connection, player_id: int = 1) -> float:
     c = comp(conn, "tempo", player_id)
     if c <= 0:
         return 0.0
-    return min(0.6, _idx(c) * 0.08)
+    from engine.systems import deep_dao
+    return min(0.7, _idx(c) * 0.08 + deep_dao.time_evasion_bonus(conn, player_id))
 
 
 def time_label(conn, player_id=1) -> str | None:
@@ -102,7 +108,8 @@ def fate_breakthrough(conn: sqlite3.Connection, player_id: int = 1) -> tuple[flo
     i = fate_idx(conn, player_id)
     if i <= 0:
         return (0.0, 1.0)
-    return (min(0.30, i * 0.04), max(0.25, 1.0 - i * 0.11))
+    from engine.systems import deep_dao
+    return (min(0.36, i * 0.04 + deep_dao.fate_bt_bonus(conn, player_id)), max(0.25, 1.0 - i * 0.11))
 
 
 def fate_loot_bonus(conn: sqlite3.Connection, player_id: int = 1) -> float:

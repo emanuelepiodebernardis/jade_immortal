@@ -428,6 +428,30 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("setta", "mysect", "lamiasetta"):
         from engine.systems import sect_menu
         return sect_menu.command(conn, player, arg)
+    if cmd in ("profondi", "dao_profondi", "sfida_cielo", "guerra_cielo"):
+        from engine.systems import deep_dao
+        return deep_dao.command(conn, player, arg)
+    if cmd in ("arcano", "arcani", "arcane"):
+        from engine.systems import deep_dao
+        return deep_dao.use_arcane(conn, player, arg)
+    if cmd in ("cielo", "giudizio") and (arg.strip() or cmd == "giudizio"):
+        from engine.systems import deep_dao
+        return deep_dao.heaven_command(conn, player, arg)
+    if cmd in ("spiriti", "spiriti_dao", "personificazioni"):
+        from engine.systems import dao_spirits
+        return dao_spirits.command(conn, player, arg)
+    if cmd in ("attributi", "punti", "stats"):
+        from engine.systems import attributes
+        return attributes.command(conn, player, arg)
+    if cmd in ("quotidiana", "missione_quotidiana", "daily", "missione"):
+        from engine.systems import system_daily
+        return system_daily.describe(conn, player)
+    if cmd in ("finestra", "stato_finestra", "finestra_stato", "status_window"):
+        from engine.systems import attributes
+        return attributes.window_text(conn, player.id)
+    if cmd in ("osserva", "observe", "scruta_stato"):
+        from engine.systems import attributes
+        return attributes.observe(conn, player, arg)
     if cmd in ("costituzione", "corpo_leggendario", "fisico"):
         from engine.systems import constitutions
         return constitutions.describe_full(conn)
@@ -558,8 +582,9 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     out = []
     if player.status != "alive":
         return ""
-    from engine.systems import dao_superiori
+    from engine.systems import dao_superiori, system_daily
     out += dao_superiori.check_awakenings(conn, player.id)
+    out += system_daily.check(conn, player)
     ch = story_tick(conn, player)
     if ch:
         out.append(ch)

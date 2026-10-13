@@ -19,9 +19,16 @@ Scrivi `help` in qualsiasi momento per la lista dei comandi.
 python dashboard.py
 ```
 
-Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del terminale, con
-- una barra di stato sempre visibile (regno ed esperienza, Qi, spirito, cuore del Dao,
-  ferite, pietre, giorno, stagione, meteo, era);
+Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del terminale, con un tema
+«giada e inchiostro» (chiaro, scuro o automatico) che funziona anche sul telefono, e
+- una barra di stato sempre visibile (livello, regno ed esperienza, Qi, spirito, cuore del Dao,
+  ferite, pietre, punti attributo da distribuire, giorno, stagione, meteo, era);
+- **7 schede**: *Mete* (missione quotidiana, mete, obiettivi e missioni), *Eroe* (finestra di
+  stato, grafici di Dao, talento e radici, Dao profondi, corpo, sangue, Spiriti del Dao, crescita),
+  *Mappa* (zoom, trascinamento, pericolo, inseguitori, sette, presenze), *Legami*, *Tesori*,
+  *Storia* e *Partita*; il pulsante ⤢ allarga il pannello;
+- **ogni comando citato nel testo è un pulsante** (▶ join, ▶ mask on…) e le notifiche di sistema
+  (titoli, sfondamenti, pericoli) compaiono in finestrelle;
 - il luogo con le uscite e i presenti cliccabili (vai, parla, attacca);
 - le **scelte degli incontri** e le **azioni suggerite** come pulsanti, oppure i tasti 1-8;
 - i pannelli **Mete** (Vai / Partecipa), **Obiettivi** (primari, secondari, missioni),
@@ -34,8 +41,9 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
   legami, nemici, faide e debiti di vita), il **Libro** illustrato di tesori, bestie, sangue,
   reliquie e nemici (con i tuoi disegni nella cartella `immagini/`), il registro **filtrabile** e
   una **legenda** dei simboli;
-- i **menu** Setta, Arti, Coltivazione, Eventi, Dimora, Regni, Famiglia, Faide, Tecniche (con la
-  fucina per fonderle), Dominio, Razze, Sangue e Rendite nella colonna di sinistra:
+- i **menu** nella colonna di sinistra, raggruppati in *La Via* (Coltivazione, Attributi, Tecniche,
+  Dao profondi, Spiriti del Dao, Sangue), *Potere* (Setta, Dominio, Rendite, Dimora, Arti) e
+  *Mondo* (Eventi, Regni, Razze, Famiglia, Faide):
   ogni azione è un pulsante, e quelle non ancora possibili dicono cosa manca;
 - il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
 - la creazione del personaggio e la rinascita in finestre guidate, con la scelta facoltativa
@@ -158,6 +166,25 @@ Dao affini, breakthrough, vita, spirito, anima, combattimento) e talvolta un pre
 per stadi: *Sigillato → Primo Risveglio → … → Corpo Compiuto*. Alla creazione e a ogni rinascita
 puoi scegliere di nascere con un corpo leggendario a caso.
 
+### Finestra di stato e Sistema 🪟
+Ispirati a *The Gamer* e *Solo Leveling*:
+- **finestra di stato** (`finestra`): livello, PV, ATT, DIF, Qi, spirito e sei attributi
+  (FOR, VIT, AGI, INT, SAG, FRT);
+- punti a ogni strato e a ogni regno (`attributi`), con effetti senza tetto;
+- `osserva <nome>` per leggere gli altri;
+- **missione quotidiana** del Sistema (`quotidiana`): punti attributo e pietre; saltarla costa;
+- **rango del cacciatore** da E a S, poi SS, SSS, Livello Nazionale, Monarca.
+
+### Spiriti del Dao ✺
+Ogni Dao a «maestro» prende forma (Salamandra di Fiamma, Ondina, Silfide, Drago del Tuono,
+Tessitrice del Fato…). Cresce da Scintilla fino a Forma del Dharma, Antenato e oltre. Combatte al
+tuo fianco e allena il suo Dao ogni giorno (`spiriti`, `spiriti allena`).
+
+### Chi ti insegue cresce con te
+Cacciatori, campioni, nemesi, arcinemico e vendicatori restano sempre a una forza vicina alla tua.
+Crescono con te ma non diventano mai un muro. Solo le faide degli anziani (genitori, maestri,
+sette) possono schierare qualcuno molto più forte.
+
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.
 - **Ogni mondo ha il suo tetto**: il Mondo Mortale regge nove regni (Condensazione del Qi,
@@ -184,6 +211,14 @@ puoi scegliere di nascere con un corpo leggendario a caso.
 - **Destino** = Dao della fortuna: breakthrough più probabili e meno letali, bottini migliori.
 - **Sfida al Cielo** (`heaven_defiance`): più padroneggi i Dao profondi, più il Cielo ti vuole
   cancellare → **tribolazioni divine**.
+- **Arcani** (`profondi`, `arcano <nome>`), dodici poteri attivi:
+  - Spazio: Passo nel Vuoto, Taglio del Vuoto, Prigione Spaziale, Piccolo Mondo;
+  - Tempo: Occhio del Domani, Camera del Tempo, Rallentare il Tempo, Riavvolgere;
+  - Destino: Leggere il Fato, Riannodare il Filo, Benedizione del Fato, Recidere il Fato.
+- **Risonanze**: Dominio Spazio-Tempo, Fiume del Destino, Causalità, e la Trinità delle Leggi.
+- **La guerra con il Cielo**, a capitoli: Presagi, Occhio del Cielo, Messaggeri del Cielo che ti
+  danno la caccia, poi il **Giudizio** (`cielo sottometti|sfida|inganna`). Il Giudizio ritorna più
+  alto a ogni raddoppio; abbattere la Volontà del Cielo dà i **Sigilli della Sfida**.
 
 ### Tribolazioni divine ⚡
 - Scattano salendo nella Sfida al Cielo, **al breakthrough** e **divorando troppi cadaveri**.
@@ -260,6 +295,7 @@ puoi scegliere di nascere con un corpo leggendario a caso.
 | Dominio e spirito | `dominio`, `tempra`, `razze` (campioni, reliquie, ascesa), `rendite` (`rendite riscuoti`) |
 | Tecniche | `tecniche` (fucina: fondi, allena, rinomina, dimentica) |
 | Corpo leggendario | `costituzione` (storia, stadio e doni) |
+| Eroe e Sistema | `finestra`, `attributi`, `osserva <nome>`, `quotidiana`, `spiriti`, `profondi`, `arcano <nome>`, `cielo …` |
 | Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
 | Eredità | `tesori` (pannello unico, `tesori cura`), `retaggio`, `anello`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
 | Svolte e ritmo | `svolte`, `vola <luogo>`, `crea_dao <nome>`, `capolavoro <nome>`, `ritmo` |

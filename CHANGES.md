@@ -1822,3 +1822,62 @@ Concentrazione, rango e potenza del lignaggio non cambiano: cambia solo il nome.
 **Comando** `costituzione` (o `corpo_leggendario`, `fisico`): la scheda completa del tuo corpo, con storia, stadio e doni attivi.
 
 Nuovi test. Suite totale: **590 passati**.
+
+---
+
+## Aggiornamento 44 — Inseguitori al tuo passo, Dao profondi e guerra con il Cielo, Spiriti del Dao, finestra di stato, dashboard nuova
+
+**Chi ti insegue cresce con te.** Se la tua potenza è 200, chi ti dà la caccia non può averne 10 000. Ogni inseguitore ha una fascia di forza rispetto alla tua e ci torna alla nascita, ogni giorno e prima di ogni scontro:
+
+| Inseguitore | Fascia (volte la tua forza) |
+|---|---|
+| Cacciatori di taglie | 0,8–1,2 |
+| Campioni delle specie e Messaggeri del Cielo | 0,95–1,35 |
+| Nemesi | 0,9–1,3 |
+| Arcinemico | 0,85–1,25 |
+| Vendicatori «alla pari» (fratelli, sorelle, figli, fratelli giurati, allievi) | 0,75–1,15 |
+
+Se cresci, crescono anche loro. Le faide degli anziani (padre, madre, maestro, la setta) restano un'altra storia: possono essere molto più forti di te e non vengono mai indeboliti. Se però li superi di molto, si allenano per non restare indietro.
+
+**I tre Dao profondi e la Sfida al Cielo** (menu `profondi`):
+- **12 arcani**, cioè poteri che si sbloccano con la comprensione:
+  - Spazio: Passo nel Vuoto, Taglio del Vuoto, Prigione Spaziale, Piccolo Mondo;
+  - Tempo: Occhio del Domani, Camera del Tempo, Rallentare il Tempo, Riavvolgere;
+  - Destino: Leggere il Fato, Riannodare il Filo, Benedizione del Fato, Recidere il Fato.
+- **Risonanze** tra due Dao profondi a «maestro»: Dominio Spazio-Tempo, Fiume del Destino, Causalità. Con tutti e tre a «gran maestro» si attiva la **Trinità delle Leggi**.
+- La **guerra con il Cielo** procede a capitoli: Presagi → Occhio del Cielo → Messaggeri → **Giudizio**. Il Giudizio offre tre risposte: sottometterti, sfidare la Volontà del Cielo o ingannarlo col Destino. Torna più alto a ogni raddoppio della sfida, senza fine.
+- Ogni vittoria sulla Volontà del Cielo dà un **Sigillo della Sfida**, che aumenta la forza e porta titoli.
+- I poteri passivi del Tempo crescono anche oltre l'ultima soglia.
+
+**Spiriti del Dao** (menu `spiriti`). Ogni Dao arrivato a «maestro» prende forma: Salamandra di Fiamma, Ondina, Silfide, Drago del Tuono, Spirito della Spada, Tessitrice del Fato… In tutto sono 31 forme, più una generica per gli altri Dao.
+- Gli stadi sono Scintilla → Spirito → Incarnazione → Forma del Dharma → Signore → Primordiale → Antenato, e poi continuano senza fine.
+- Combattono con te. Quanti ne scendono in battaglia dipende dalla tempra dell'anima.
+- Allenano il loro Dao ogni giorno; con `spiriti allena` vi allenate tutti insieme.
+
+**Finestra di stato** (ispirata a *The Gamer*):
+- livello, PV, ATT, DIF, Qi, spirito e sei attributi: FOR, VIT, AGI, INT, SAG, FRT;
+- punti attributo a ogni strato e a ogni regno, con effetti logaritmici e senza tetto;
+- `osserva <nome>` legge la finestra di stato degli altri.
+
+**Missione quotidiana del Sistema** e **rango del cacciatore** (ispirati a *Solo Leveling*):
+- ogni giorno tre obiettivi: Dao, caccia, tempra;
+- la ricompensa è un punto attributo più le pietre; ogni 7 giorni di fila arrivano 2 punti e un titolo;
+- saltarla azzera la serie;
+- rango da E a S, poi SS, SSS, Livello Nazionale, Monarca.
+
+**Dashboard rifatta:**
+- **7 schede** invece di 10: Mete (con missione quotidiana, obiettivi e missioni), Eroe, Mappa, Legami, Tesori (zaino e Libro), Storia (cronaca, trama, mondo) e Partita. Ognuna ha sottoschede.
+- La scheda **Eroe** contiene:
+  - la finestra di stato in stile «finestra di sistema»;
+  - il grafico di tutti i Dao (scala logaritmica, colori per tipo);
+  - radar e barre del **talento** e delle **radici spirituali**, con le combinazioni attive;
+  - gli anelli dei Dao profondi, il corpo leggendario, la tempra, il cuore del Dao, i lignaggi, gli Spiriti del Dao e i grafici di crescita.
+- **Mappa nuova**: zoom con la rotella, trascinamento, pericolo a colori e chi ti dà la caccia (⚔), sedi delle sette (⛩), persone presenti e mete in corso (★). Ci sono filtri per ogni livello di informazione.
+- Pulsante **⤢** per allargare il pannello di destra (e la mappa), e pulsante **◐** per il tema automatico, chiaro o scuro.
+- **Ogni comando citato nel testo diventa un pulsante.** Vale per il registro, i menu, le scene e le schede, per esempio ▶ join o ▶ mask on. Se il comando ha un segnaposto (`vola <luogo>`) viene scritto nella riga di comando da completare.
+- Ogni obiettivo mostra la sua azione.
+- **Notifiche di sistema**: titoli, sfondamenti, spiriti, Giudizi e pericoli compaiono in finestrelle a comparsa.
+- **Grafica rinnovata**: tema «giada e inchiostro» con titoli in serif, ombre e angoli morbidi, barra in alto fissa e traslucida, schede a pillola, menu raggruppati (La Via, Potere, Mondo) e tema scuro curato. Il focus è visibile da tastiera e le animazioni si spengono se il sistema chiede movimento ridotto.
+- La dashboard ora funziona anche **sul telefono**.
+
+Nuovi comandi: `profondi`, `arcano`, `cielo sottometti|sfida|inganna`, `spiriti`, `attributi`, `finestra`, `osserva`, `quotidiana`. Nuovi test. Suite totale: **598 passati**.

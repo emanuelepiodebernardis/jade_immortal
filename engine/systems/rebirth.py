@@ -290,7 +290,8 @@ def try_phoenix(conn, player) -> str | None:
     if voluntary_pending(conn):
         return None                    # una vita lasciata di propria scelta non va «salvata»
     from engine.systems import clones, gu
-    saved = clones.try_save(conn, player) or gu.try_rewind(conn, player)
+    from engine.systems import deep_dao
+    saved = clones.try_save(conn, player) or gu.try_rewind(conn, player) or deep_dao.try_time_rewind(conn, player)
     if saved:
         return saved
     from engine.systems import destinies

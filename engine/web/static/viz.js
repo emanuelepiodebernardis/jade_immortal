@@ -210,5 +210,127 @@ const V = (() => {
     ["mondo", /voci|arrivano|se ne vanno|passaggio|giorno|asta|invasion|era |calamit|regno di|regni|cielo|vento/i]];
   function category(line) { for (const [k, re] of CATS) if (re.test(line)) return k; return "altro"; }
 
-  return { emblem, picture, charts, graph, nodeInfo, book, legend, summary, category, esc };
+  // ---------------- l'eroe (finestra di stato in stile «The Gamer») ----------------
+  const fmt = (v) => Number(v || 0).toLocaleString("it-IT");
+  function hbar(label, pct, value, tone, title) {
+    return `<div class="hb ${tone || ""}" title="${esc(title || "")}"><span class="l">${label}</span>
+      <div class="bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div><span class="v">${value}</span></div>`;
+  }
+  function statusWindow(h) {
+    const w = h.finestra;
+    const mx = Math.max(1, ...w.attributi.map((a) => a.punti));
+    const attrs = w.attributi.map((a) => `<div class="attr" title="${esc(a.nome)}: ${esc(a.effetto)} ×${a.mult}">
+        <b>${a.k}</b><span class="an">${esc(a.nome)}</span><div class="bar"><i style="width:${Math.round(100 * a.punti / mx)}%"></i></div>
+        <span class="av">${a.punti}</span><span class="am">×${a.mult.toFixed(2)}</span>
+        <button data-cmd="attributi ${a.k} 1" ${w.liberi ? "" : "disabled"} title="+1 ${esc(a.nome)}">+</button></div>`).join("");
+    return `<div class="syswin">
+      <div class="sw-head"><span>STATO</span><span class="muted">${esc(w.regno)}</span></div>
+      <div class="sw-name"><b>${esc(w.nome)}</b> <span class="lvtag">Lv. ${w.livello}</span> <span class="lvtag rank" title="Rango del cacciatore: E, D, C, B, A, S, SS, SSS, Nazionale, Monarca">Rango ${esc(w.rango)}</span></div>
+      <div class="sw-title">Titolo: <b>${esc(w.titolo)}</b> <span class="muted">(${w.titoli})</span></div>
+      <div class="sw-grid">
+        <div><span>PV</span><b>${fmt(w.pv)}</b></div><div><span>ATT</span><b>${fmt(w.attacco)}</b></div><div><span>DIF</span><b>${fmt(w.difesa)}</b></div>
+        <div><span>QI</span><b>${fmt(w.qi[0])}/${fmt(w.qi[1])}</b></div><div><span>SPIRITO</span><b>${fmt(w.spirito[0])}/${fmt(w.spirito[1])}</b></div>
+        <div><span>CUORE</span><b>${h.cuore.val}</b></div>
+        <div><span>CORPO</span><b>${fmt(w.corpo)}</b></div><div><span>ANIMA</span><b>${fmt(w.anima)}</b></div><div><span>KARMA</span><b>${fmt(w.karma)}</b></div>
+        <div><span>PIETRE</span><b>${fmt(w.pietre)}</b></div><div><span>FAMA</span><b>${fmt(w.fama)}</b></div><div><span>TEMPRA</span><b>${esc(h.anima.grado)}</b></div>
+      </div>
+      <div class="sw-sep">ATTRIBUTI</div>${attrs}
+      <div class="sw-foot">Punti liberi: <b class="${w.liberi ? "hot" : ""}">${w.liberi}</b>
+        <button data-cmd="attributi bilancia" ${w.liberi ? "" : "disabled"}>Bilancia</button>
+        <button data-cmd="attributi auto ${w.auto ? "off" : "on"}">Auto: ${w.auto ? "ON" : "OFF"}</button></div>
+      ${h.titoli.length ? `<div class="sw-sep">TITOLI RECENTI</div><div class="titles">${h.titoli.slice().reverse().map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
+    </div>`;
+  }
+  function ring(pct, label, sub, color) {
+    const r = 30, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, pct));
+    return `<div class="ring"><svg viewBox="0 0 80 80" width="78" height="78"><circle cx="40" cy="40" r="${r}" fill="none" stroke="${css("--chip")}" stroke-width="8"/>
+      <circle cx="40" cy="40" r="${r}" fill="none" stroke="${css(color)}" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="${(c * p).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 40 40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="15" fill="${css("--ink")}">${esc(sub)}</text></svg><div>${label}</div></div>`;
+  }
+  const DEEP_COL = ["--info", "--good", "--rare"];
+  const IDX_NAME = ["—", "iniziato", "adepto", "esperto", "maestro", "gran maestro", "dominatore", "legislatore", "sovrano", "origine", "antenato"];
+  function deepTriad(d) {
+    if (!d) return "";
+    const rings = d.dao.map((x, i) => ring(Math.min(1, x.idx / 7), `${x.icona} ${x.k}<br><small class="muted">${IDX_NAME[x.idx] || x.idx}</small>`, fmt(x.comp), DEEP_COL[i])).join("");
+    return `<div class="card"><b>🌌⏳🎲 Dao profondi</b> <button data-menu="profondi">Arcani e Giudizio</button>
+      <div class="rings">${rings}</div>
+      ${hbar("Sfida al Cielo", Math.min(100, 100 * d.sfida / Math.max(600, d.sfida * 1.3)), fmt(d.sfida), "bad", "più sale, più il Cielo ti vuole cancellare")}
+      <div class="muted small">Capitolo: <b>${esc(d.capitolo)}</b> · Sigilli della Sfida: ${d.sigilli}${d.risonanze.length ? " · Risonanze: " + d.risonanze.map(esc).join(", ") : ""}</div></div>`;
+  }
+  function spiritCards(sp, slots) {
+    if (!sp || !sp.length) return `<div class="card"><b>✺ Spiriti del Dao</b><div class="empty">Quando un Dao arriva a «maestro» (100) prende forma e combatte con te.</div></div>`;
+    return `<div class="card"><b>✺ Spiriti del Dao</b> <span class="muted">— in battaglia fino a ${slots}</span> <button data-cmd="spiriti allena">Allenati con loro</button>
+      <div class="spirits">${sp.map((s, i) => `<div class="spirit ${i < slots ? "on" : ""}">${emblem(s.nome, "default", s.liv >= 4 ? "leggendario" : s.liv >= 3 ? "prezioso" : s.liv >= 2 ? "raro" : "non_comune", 44)}
+        <div><b>${esc(s.nome)}</b><div class="muted small">${esc(s.stadio)} · ${esc(s.dao)} · ${fmt(s.comp)}</div></div></div>`).join("")}</div></div>`;
+  }
+  const RAR_COL = { narrative: "--warn", elemental: "--good", systemic: "--info", superior: "--rare", deep: "--bad" };
+  function daoChart(ds, all) {
+    if (!ds.length) return `<div class="card"><b>I tuoi Dao</b><div class="empty">Ancora nessun Dao: allenati («train») o comprendi («comprehend»).</div></div>`;
+    const sorted = ds.slice().sort((a, b) => b.comp - a.comp);
+    const list = all ? sorted : sorted.slice(0, 14);
+    const mx = Math.log10(Math.max(10, sorted[0].comp + 1));
+    const rows = list.map((d) => `<div class="dbar" title="${esc(d.name)} — ${d.comp}; prossima soglia: ${esc(d.next)} a ${d.goal}">
+        <span class="n">${esc(d.short)}</span>
+        <div class="track"><i style="width:${(100 * Math.log10(d.comp + 1) / mx).toFixed(1)}%;background:${css(RAR_COL[d.rarity] || "--accent")}"></i>
+          <em style="width:${d.pct}%"></em></div>
+        <span class="v">${fmt(d.comp)} <small>${esc(d.label)}</small></span></div>`).join("");
+    const kinds = Object.entries({ narrative: "arma", elemental: "elemento", systemic: "sistemico", superior: "superiore", deep: "profondo" })
+      .map(([k, l]) => `<span><i style="background:${css(RAR_COL[k])}"></i>${l}</span>`).join("");
+    return `<div class="card"><b>☸ I tuoi Dao</b> <span class="muted">— ${ds.length} Dao · scala logaritmica; la linea sottile è il cammino verso la prossima soglia</span>
+      <div class="dchart">${rows}</div><div class="glegend">${kinds}</div>
+      ${ds.length > 14 ? `<button id="dao-all">${all ? "Mostra i primi 14" : `Mostra tutti (${ds.length})`}</button>` : ""}</div>`;
+  }
+  function talentRadar(t) {
+    const vals = Object.fromEntries(t.map((x) => [x.k, x.v]));
+    return `<div class="card"><b>🧬 Talento</b> <span class="muted">— le tue affinità innate</span>
+      <div class="radar2">${radarSvg(vals, 100, "--warn")}<div>${t.map((x) => hbar(esc(x.k), x.v, esc(x.q), x.v >= 70 ? "good" : x.v < 40 ? "bad" : "")).join("")}</div></div></div>`;
+  }
+  function radarSvg(values, max, color) {
+    const keys = Object.keys(values), n = keys.length, R = 66, c = 92;
+    const pt = (i, f) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return [c + R * f * Math.cos(a), c + R * f * Math.sin(a)]; };
+    const line = css("--line"), mut = css("--muted"), col = css(color || "--accent");
+    const grid = [0.25, 0.5, 0.75, 1].map((f) => `<polygon points="${keys.map((_, i) => pt(i, f).join(",")).join(" ")}" fill="none" stroke="${line}"/>`).join("");
+    const axes = keys.map((k, i) => { const [x, y] = pt(i, 1.2); return `<line x1="${c}" y1="${c}" x2="${pt(i, 1)[0]}" y2="${pt(i, 1)[1]}" stroke="${line}"/>
+      <text x="${x}" y="${y + 4}" text-anchor="middle" font-size="10" fill="${mut}">${esc(k)}</text>`; }).join("");
+    const shape = keys.map((k, i) => pt(i, Math.max(0.02, Math.min(1, values[k] / max))).join(",")).join(" ");
+    return `<svg viewBox="0 0 184 184" width="200" role="img">${grid}${axes}<polygon points="${shape}" fill="${col}" fill-opacity=".28" stroke="${col}" stroke-width="2"/></svg>`;
+  }
+  const EL_COL = { legno: "#3f9d4f", fuoco: "#d9534f", terra: "#b08440", metallo: "#9aa4ad", acqua: "#3a86c8", fulmine: "#8f6be0", vento: "#4fb5a5", luce: "#e3b341", oscurita: "#5b4a73" };
+  function rootsChart(r, combos, talents) {
+    const mx = Math.max(10, ...r.map((x) => x.score));
+    const vals = Object.fromEntries(r.map((x) => [x.el, Math.sqrt(Math.max(0, x.score))]));
+    const rows = r.slice().sort((a, b) => b.score - a.score).map((x) =>
+      `<div class="hb"><span class="l"><i class="dot" style="background:${EL_COL[x.key]}"></i>${esc(x.el)}</span>
+       <div class="bar"><i style="width:${(100 * x.score / mx).toFixed(1)}%;background:${EL_COL[x.key]}"></i></div><span class="v">${fmt(Math.round(x.score))} <small>${esc(x.grado)}</small></span></div>`).join("");
+    return `<div class="card"><b>🌱 Radici spirituali</b> <span class="muted">— radar in scala radice</span>
+      <div class="radar2">${radarSvg(vals, Math.sqrt(mx), "--good")}<div>${rows}</div></div>
+      ${combos.length ? `<div class="sw-sep">COMBINAZIONI ATTIVE</div><div class="titles">${combos.map((c) => `<span title="${esc(c.tipo)}">${esc(c.nome)}</span>`).join("")}</div>` : ""}
+      ${talents.length ? `<div class="sw-sep">TALENTI DELLE RADICI</div><div class="titles">${talents.map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}</div>`;
+  }
+  function bodyCard(c, anima, cuore) {
+    const soul = `<div class="card"><b>🌀 Anima e cuore</b>${hbar("Tempra", anima.pct, esc(anima.grado), "info")}${hbar("Cuore del Dao", cuore.val, `${cuore.val} · ${esc(cuore.label)}`, cuore.val < 30 ? "bad" : cuore.val < 50 ? "warn" : "good")}
+      <div class="tools"><button data-cmd="tempra">Tempra lo spirito</button></div></div>`;
+    if (!c) return `<div class="card"><b>✦ Corpo leggendario</b><div class="empty">Nessun corpo leggendario. Puoi nascerci affidandoti al Cielo alla prossima vita.</div></div>` + soul;
+    return `<div class="card body"><b>✦ ${esc(c.nome)}</b> <span class="lvtag">${esc(c.stadio)}</span>
+      ${hbar("Risveglio", c.pct, `stadio ${c.n}`, "rare")}
+      <p class="lore">${esc(c.storia)}</p><ul>${c.doni.map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>` + soul;
+  }
+  function bloodChart(lines) {
+    if (!lines.length) return `<div class="card"><b>🩸 Sangue</b><div class="empty">Nessun lignaggio. Le essenze delle bestie risvegliano il sangue.</div></div>`;
+    const mx = Math.max(1, ...lines.map((l) => l.conc));
+    return `<div class="card"><b>🩸 Lignaggi</b> <button data-menu="sangue">Apri il menu del sangue</button>` + lines.map((l) =>
+      hbar(`${esc(l.icona)} ${esc(l.nome)}`, 100 * l.conc / mx, `${fmt(l.conc)} · ${esc(l.rango)}${l.purezza ? ` · ✧${l.purezza}` : ""}`, l.r >= 6 ? "rare" : l.r >= 4 ? "warn" : "", l.grado)).join("") + `</div>`;
+  }
+
+  function dailyQuest(q) {
+    const rows = q.obiettivi.map((g) => `<div class="dq ${g.ok ? "ok" : ""}"><span>${g.ok ? "✔" : "·"} ${g.icon} ${esc(g.label)}</span>
+      <div class="bar"><i style="width:${Math.min(100, Math.round(100 * g.have / Math.max(1, g.need)))}%"></i></div><b>${Math.min(g.have, g.need)}/${g.need}</b>${g.ok ? "<span></span>" : `<button data-cmd="${{ dao: "train", kills: "attack creatures", soul: "tempra" }[g.k]}">▶ ${{ dao: "allenati", kills: "caccia", soul: "tempra" }[g.k]}</button>`}</div>`).join("");
+    return `<div class="syswin quest"><div class="sw-head"><span>MISSIONE QUOTIDIANA</span><span>Rango ${esc(q.rango)}</span></div>
+      <div class="muted small">«Prepararsi a diventare forti.» Giorno ${q.giorno} · serie ${q.serie} ${q.serie >= 1 ? "🔥" : ""}</div>${rows}
+      <div class="small" style="margin-top:6px">${q.fatta ? "✔ COMPLETATA — ricompensa ricevuta." : "Ricompensa: +1 punto attributo e pietre · ogni 7 giorni di fila +2 punti e un titolo · <span class=\"warn\">saltarla costa</span>"}</div></div>`;
+  }
+
+  return { dailyQuest, emblem, picture, charts, graph, nodeInfo, book, legend, summary, category, esc,
+    statusWindow, deepTriad, spiritCards, daoChart, talentRadar, rootsChart, bodyCard, bloodChart };
 })();

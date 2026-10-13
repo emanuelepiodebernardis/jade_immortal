@@ -225,3 +225,14 @@ def test_charts_graph_book_and_autopilot_summary(world):
 def test_creation_with_a_legendary_body(world):
     out = game.create("mortale", "", "Prova", "normale", False, True)
     assert "corpo leggendario" in out
+
+
+def test_hero_data_and_rich_map(world):
+    game.create("mortale", "", "Han", "normale")
+    h = game.hero_data()
+    assert h["finestra"]["livello"] >= 1 and len(h["finestra"]["attributi"]) == 6
+    assert len(h["radici"]) == 9 and len(h["talento"]) == 5 and len(h["profondi"]["dao"]) == 3
+    m = game.map_data(9)
+    assert all({"people", "beasts", "threats", "sect"} <= set(n) for n in m["nodes"])
+    s = game.state_snapshot()
+    assert "livello" in s and "punti" in s

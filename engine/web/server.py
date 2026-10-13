@@ -112,7 +112,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/dao":
                 return self._json(game.dao_data())
             if path == "/api/mappa":
-                return self._json(game.map_data())
+                r = 9 if "largo" in url.query else 5
+                return self._json(game.map_data(r))
+            if path == "/api/eroe":
+                return self._json(game.hero_data())
             if path == "/api/nuovo":
                 return self._json(game.creation_options())
             if path == "/api/morte":

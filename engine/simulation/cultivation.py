@@ -177,6 +177,8 @@ def _bt_success(conn, ctype, cid, rec, tier, consume: bool) -> tuple[float, floa
         extra += constitutions.bt_bonus(conn) + dao_heart.breakthrough_bonus(conn)
         from engine.systems import rebirth
         extra += rebirth.memory_bt_bonus(conn, cid)        # il corpo ricorda i regni già percorsi
+        from engine.systems import attributes
+        extra += attributes.bt_bonus(conn)                 # Fortuna
     p_success = max(0.05, min(0.97,
                               0.55 - 0.08 * math.log2(max(1, tier)) + (rec["progress"] - 1.0) + dao * 0.003
                               + aff_bonus - residue_penalty + fail_bonus + fate_succ + extra))
@@ -236,6 +238,13 @@ def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
 
     if rng.random() < p_success:
         return _breakthrough_success(conn, ctype, cid, tier, tick, name, loc, observer, observations)
+    if ctype == "player":                              # Riannodare il Filo (Dao del Destino)
+        from engine.systems import deep_dao
+        if deep_dao.try_fate_reroll(conn, cid):
+            if observations is not None:
+                observations.append("🎲 Il filo del fato si spezza… e tu lo riannodi. Ritenti.")
+            if rng.random() < p_success:
+                return _breakthrough_success(conn, ctype, cid, tier, tick, name, loc, observer, observations)
 
     # fallimento: contraccolpo o morte (le origini "hard_tribulation" rischiano di più)
     # (i fallimenti accumulati temprano il corpo; karma e Destino spostano il rischio)

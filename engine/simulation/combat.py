@@ -146,6 +146,9 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
         mult["attack"] *= evb.get("attack_mult", 1.0) * bb["attack_mult"]
         mult["defense"] *= evb.get("defense_mult", 1.0) * bb["defense_mult"]
         mult["vitality"] *= evb.get("vitality_mult", 1.0) * bb["vitality_mult"]
+        from engine.systems import attributes      # finestra di stato: FOR, VIT, AGI
+        for _k, _m in attributes.combat_mults(conn).items():
+            mult[_k] *= _m
     from engine.simulation import cultivation as _cv
     amp = dao_amplifier(dao_training.dao_power(conn, ctype, cid) * keep, _cv.realm_tier(conn, ctype, cid) or 1)
     amp_k = {"attack": amp, "defense": amp ** 0.5, "vitality": amp ** 0.5}   # i Dao colpiscono più che proteggere
@@ -156,6 +159,16 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
         result[k] = max(1.0, eff * rf * keep * amp_k[k]) + flat.get(k, 0.0)
     if bb:
         result["attack"] += bb["attack_flat"]
+    from engine.systems import deep_dao
+    if ctype == "npc":                      # chi ti insegue resta al tuo passo (Aggiornamento 44)
+        from engine.systems import pursuers
+        f = pursuers.factor(conn, cid) * deep_dao.npc_mult(conn, cid)   # e gli arcani lo indeboliscono
+        if f != 1.0:
+            result = {k: max(1.0, v * f) for k, v in result.items()}
+    else:
+        sm = deep_dao.seal_mult(conn)       # Sigilli della Sfida
+        if sm != 1.0:
+            result = {k: v * sm for k, v in result.items()}
     return result
 
 

@@ -54,6 +54,10 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = svolte.cultivation_mult(conn)
     if m != 1.0:
         out.append((m, lbl))
+    from engine.systems import deep_dao
+    m = deep_dao.cultivation_mult(conn)
+    if m != 1.0:
+        out.append((m, "Piccolo Mondo"))
     from engine.systems import ascension
     m, lbl = ascension.cultivation_mult(conn, location_id)
     if m != 1.0:
@@ -95,7 +99,9 @@ def dao_mult(conn: sqlite3.Connection, pid: int, dao_key: str) -> float:
 
 def _extra_dao(conn, dao_key: str) -> float:
     from engine.systems import celestial_elements, lost_legacy, master_plot
-    return celestial_elements.dao_mult(conn, dao_key) * lost_legacy.dao_mult(conn) * master_plot.dao_mult(conn)
+    from engine.systems import attributes          # Saggezza
+    return (celestial_elements.dao_mult(conn, dao_key) * lost_legacy.dao_mult(conn) * master_plot.dao_mult(conn)
+            * attributes.dao_mult(conn))
 
 
 def _era(conn):

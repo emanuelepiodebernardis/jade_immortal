@@ -40,7 +40,7 @@ def _threat_tier(conn: sqlite3.Connection, player_id: int = 1) -> int:
 
 def active_hunters(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
-        "SELECT id, name, location_id FROM npcs WHERE hunting=1 AND status='alive';").fetchall()
+        "SELECT id, name, location_id, kind FROM npcs WHERE hunting=1 AND status='alive';").fetchall()
 
 
 def _next_step_toward(conn: sqlite3.Connection, start: int, goal: int) -> int | None:
@@ -116,6 +116,8 @@ def _spawn_hunter(conn: sqlite3.Connection, tick: int, rng: random.Random,
         consequences=[ev.Consequence("player", player.id, "hunted",
                                      "Sei dato per cacciato", visibility="public",
                                      resolve_tick=tick)])
+    from engine.systems import pursuers           # alla tua altezza, non un muro (Agg. 44)
+    pursuers.on_spawn(conn, player.id, nid, "cacciatore")
     role = "Un anziano di setta" if is_elder else "Un cacciatore di taglie"
     return (nid, f"{role}, {name}, si è messo sulle tue tracce (avvistato a {lname}).")
 
@@ -171,6 +173,9 @@ def pursue(conn, tick, rng, player, observations) -> int:
 
 def _confront(conn, tick, rng, player, hunter, observations) -> None:
     from engine.simulation import combat
+    from engine.systems import pursuers               # anche i vecchi cacciatori: mai un muro
+    pursuers.fit(conn, player.id, hunter["id"], pursuers.kind_of(
+        conn, hunter["id"], "cacciatore" if (hunter["kind"] or "human") == "human" else "campione"))
     if observations is not None:
         observations.append(f"{hunter['name']} ti affronta in nome della giustizia!")
     combat.resolve_combat(
@@ -241,6 +246,8 @@ def _spawn_champion(conn, tick, rng, player, kind) -> str:
     nid = creature_gen._spawn_one(conn, rng, kind, loc, tier, tier + 1)
     cname = _CHAMPION_NAME.get(kind, "Campione")
     conn.execute("UPDATE npcs SET hunting=1, name=? WHERE id=?;", (cname, nid))
+    from engine.systems import pursuers
+    pursuers.on_spawn(conn, player.id, nid, "campione")
     return (f"⚠ Hai sterminato troppe creature: il {cname} {_SPECIES_LABEL.get(kind, '')} "
             f"si mette sulle tue tracce! Affrontalo quando ti raggiunge, o rifugiati "
             f"('home') finché non si placa.")

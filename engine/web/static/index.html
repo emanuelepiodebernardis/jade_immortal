@@ -5,71 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jade Immortal</title>
 <link rel="stylesheet" href="/static/style.css">
+<script>try { const t = localStorage.getItem("ji_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
 <header id="topbar">
-  <div class="who"><strong id="t-nome">—</strong> <span id="t-regno" class="muted">—</span></div>
-  <div class="meter" title="Esperienza dello strato"><span>Esp.</span><div class="bar"><i id="b-esp"></i></div></div>
-  <div class="meter" title="Qi"><span>Qi</span><div class="bar qi"><i id="b-qi"></i></div><em id="v-qi"></em></div>
-  <div class="meter" title="Spirito"><span>Spirito</span><div class="bar sp"><i id="b-sp"></i></div><em id="v-sp"></em></div>
-  <div class="chip" id="t-cuore" title="Cuore del Dao">—</div>
-  <div class="chip" id="t-ferite" title="Ferite">—</div>
-  <div class="chip" id="t-pietre" title="Pietre spirituali">—</div>
-  <div class="chip muted" id="t-tempo">—</div>
+  <div class="who">
+    <span class="lv" id="t-lv" title="Livello: (regno − 1) × 10 + strato">Lv —</span>
+    <div><strong id="t-nome">—</strong><div id="t-regno" class="muted">—</div></div>
+  </div>
+  <div class="meters">
+    <div class="meter" title="Esperienza dello strato"><span>ESP</span><div class="bar"><i id="b-esp"></i></div><em id="v-esp"></em></div>
+    <div class="meter" title="Qi"><span>QI</span><div class="bar qi"><i id="b-qi"></i></div><em id="v-qi"></em></div>
+    <div class="meter" title="Spirito"><span>SPI</span><div class="bar sp"><i id="b-sp"></i></div><em id="v-sp"></em></div>
+  </div>
+  <div class="chips-top">
+    <span class="chip" id="t-cuore" title="Cuore del Dao">—</span>
+    <span class="chip" id="t-ferite" title="Ferite">—</span>
+    <span class="chip" id="t-pietre" title="Pietre spirituali e fama">—</span>
+    <span class="chip pts" id="t-punti" title="Punti attributo da distribuire" hidden data-menu="attributi">—</span>
+  </div>
+  <div class="chip muted when" id="t-tempo">—</div>
 </header>
 
 <main id="layout">
-  <nav id="actions" aria-label="Azioni rapide">
-    <button data-cmd="train" title="Qi, Dao e arte insieme (t)">☯ Allenati</button>
-    <button data-cmd="sleep" title="Dormi fino all'alba">☾ Dormi</button>
-    <button data-cmd="look" title="Guardati intorno">◎ Guarda</button>
-    <button data-cmd="raccogli" title="Raccogli il bottino e assorbi essenze, nuclei, manuali e incensi">✋ Raccogli tutto</button>
-    <button data-cmd="gather" title="Raccogli materiali">✿ Materiali</button>
-    <button data-cmd="tesori cura" title="Cura di tutti i tesori">✧ Cura tesori</button>
-    <button data-cmd="breakthrough" title="Tenta lo sfondamento">⇑ Sfonda</button>
-    <hr>
-    <div class="menus">
-      <label>Menu</label>
-      <button data-menu="setta">⛩ Setta</button>
-      <button data-menu="arti">⚒ Arti</button>
-      <button data-menu="coltivazione">☯ Coltivazione</button>
-      <button data-menu="eventi">✦ Eventi</button>
-      <button data-menu="dimora">⌂ Dimora</button>
-      <button data-menu="regni">👑 Regni</button>
-      <button data-menu="famiglia">🏠 Famiglia</button>
-      <button data-menu="faide">🩸 Faide</button>
-      <button data-menu="tecniche">⚒ Tecniche</button>
-      <button data-menu="sangue">🩸 Sangue</button>
-      <button data-menu="rendite">💰 Rendite</button>
-      <button data-menu="dominio">⛓ Dominio</button>
-      <button data-menu="razze">🐉 Razze</button>
+  <nav id="actions" aria-label="Azioni e menu">
+    <div class="quick">
+      <button data-cmd="train" title="Qi, Dao e arte insieme (t)">☯ Allenati</button>
+      <button data-cmd="sleep" title="Dormi fino all'alba">☾ Dormi</button>
+      <button data-cmd="look" title="Guardati intorno">◎ Guarda</button>
+      <button data-cmd="raccogli" title="Raccogli il bottino e assorbi essenze, nuclei, manuali e incensi">✋ Raccogli</button>
+      <button data-cmd="breakthrough" title="Tenta lo sfondamento">⇑ Sfonda</button>
+      <button data-cmd="tesori cura" title="Cura di tutti i tesori">✧ Cura tesori</button>
     </div>
-    <hr>
-    <div class="auto">
-      <label>Pilota automatico</label>
+    <details class="grp" open><summary>☯ La Via</summary>
+      <button data-menu="coltivazione">☯ Coltivazione</button>
+      <button data-menu="attributi">🪟 Attributi</button>
+      <button data-menu="tecniche">⚒ Tecniche</button>
+      <button data-menu="profondi">🌌 Dao profondi</button>
+      <button data-menu="spiriti">✺ Spiriti del Dao</button>
+      <button data-menu="sangue">🩸 Sangue</button>
+    </details>
+    <details class="grp" open><summary>⛩ Potere</summary>
+      <button data-menu="setta">⛩ Setta</button>
+      <button data-menu="dominio">⛓ Dominio</button>
+      <button data-menu="rendite">💰 Rendite</button>
+      <button data-menu="dimora">⌂ Dimora</button>
+      <button data-menu="arti">⚗ Arti</button>
+    </details>
+    <details class="grp"><summary>🌍 Mondo</summary>
+      <button data-menu="eventi">✦ Eventi</button>
+      <button data-menu="regni">👑 Regni</button>
+      <button data-menu="razze">🐉 Razze</button>
+      <button data-menu="famiglia">🏠 Famiglia</button>
+      <button data-menu="faide">⚔ Faide</button>
+    </details>
+    <details class="grp auto"><summary>✧ Pilota automatico</summary>
       <div class="row"><input id="auto-giorni" type="number" min="1" max="60" value="7"><span>giorni</span></div>
       <button id="auto-go" class="primary">▶ Avvia</button>
       <button id="auto-stop" hidden>■ Interrompi</button>
-      <details>
-        <summary>Impostazioni</summary>
-        <label>Bersagli <select data-auto="bersagli">
-          <option>nessuno</option><option>bestie</option><option>ricercati</option><option>deboli</option><option>tutti</option>
-        </select></label>
-        <label>Condotta <select data-auto="condotta">
-          <option>virtuosa</option><option>prudente</option><option>opportunista</option><option>spietata</option>
-        </select></label>
-        <label><input type="checkbox" data-auto="sfonda"> Sfonda da solo</label>
-        <label>Rischio accettato <input type="number" min="0" max="100" data-auto="rischio"> %</label>
-        <label><input type="checkbox" data-auto="assorbi"> Divora i caduti</label>
-        <label><input type="checkbox" data-auto="loot"> Raccogli il bottino</label>
-        <label><input type="checkbox" data-auto="oggetti"> Usa pillole ed essenze</label>
-        <label><input type="checkbox" data-auto="routine"> Faccende (stipendio, missioni, raccolto)</label>
-        <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora da solo</label>
-        <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e accetta l'ascesa</label>
-      </details>
-    </div>
-    <hr>
-    <button data-cmd="salva" title="Salva la partita">💾 Salva</button>
+      <label>Bersagli <select data-auto="bersagli">
+        <option>nessuno</option><option>bestie</option><option>ricercati</option><option>deboli</option><option>tutti</option>
+      </select></label>
+      <label>Condotta <select data-auto="condotta">
+        <option>virtuosa</option><option>prudente</option><option>opportunista</option><option>spietata</option>
+      </select></label>
+      <label><input type="checkbox" data-auto="sfonda"> Sfonda da solo</label>
+      <label>Rischio <input type="number" min="0" max="100" data-auto="rischio"> %</label>
+      <label><input type="checkbox" data-auto="assorbi"> Divora i caduti</label>
+      <label><input type="checkbox" data-auto="loot"> Raccogli il bottino</label>
+      <label><input type="checkbox" data-auto="oggetti"> Usa pillole ed essenze</label>
+      <label><input type="checkbox" data-auto="routine"> Faccende (stipendio, missioni)</label>
+      <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora</label>
+      <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label>
+    </details>
+    <button data-cmd="salva" title="Salva la partita" class="save">💾 Salva</button>
   </nav>
 
   <section id="center">
@@ -81,28 +90,28 @@
     <div id="scene" class="card scene" hidden></div>
     <div id="sugg"></div>
     <form id="cmdform" autocomplete="off">
-      <input id="cmd" placeholder="Scrivi un comando (es. train, mete, vai 1, attack nome)… — 'help' per l'elenco" autofocus>
+      <input id="cmd" placeholder="Scrivi un comando (train, mete, vai 1, attack nome, osserva nome)… — 'help' per l'elenco" autofocus>
       <button class="primary">Invia</button>
     </form>
   </section>
 
   <aside id="side">
     <div id="tabs" role="tablist">
-      <button data-tab="mete" class="on">Mete</button>
-      <button data-tab="obiettivi">Obiettivi</button>
-      <button data-tab="mappa">Mappa</button>
-      <button data-tab="personaggio">Personaggio</button>
-      <button data-tab="persone">Alleati e nemici</button>
-      <button data-tab="tesori">Tesori</button>
-      <button data-tab="storia">Storia</button>
-      <button data-tab="libro">Libro</button>
-      <button data-tab="mondo">Mondo</button>
-      <button data-tab="aiuto">Partita</button>
+      <button data-tab="mete" class="on" title="Mete, obiettivi e missioni">🎯 Mete</button>
+      <button data-tab="personaggio" title="Finestra di stato, Dao, radici, corpo, sangue, crescita">🪟 Eroe</button>
+      <button data-tab="mappa" title="La mappa">🗺 Mappa</button>
+      <button data-tab="persone" title="Alleati, nemici e la rete delle relazioni">♥ Legami</button>
+      <button data-tab="tesori" title="Zaino e Libro">🎒 Tesori</button>
+      <button data-tab="storia" title="Cronaca, trama e mondo">📜 Storia</button>
+      <button data-tab="aiuto" title="Salvataggi, rinascita, legenda">⚙</button>
+      <button id="theme" title="Tema: automatico, chiaro, scuro">◐</button>
+      <button id="widen" title="Allarga o restringi il pannello">⤢</button>
     </div>
     <div id="tabbody"></div>
   </aside>
 </main>
 
+<div id="toasts" aria-live="polite"></div>
 <div id="overlay" hidden><div class="modal" id="modal"></div></div>
 <script src="/static/viz.js"></script>
 <script src="/static/app.js"></script>

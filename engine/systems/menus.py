@@ -18,6 +18,9 @@ avanzamento, e le AZIONI che puoi fare da lì. Le stesse strutture vengono mostr
   rendite         quanto guadagni e da dove (bottega, setta, vassalle, razze, corte): riscuoti tutto
   sangue          i lignaggi: essenze, fusioni, raffinazione, trasformazione
   dominio         servi sigillati, salme rianimate, sette vassalle (tributi, tecniche, guerre)
+  profondi        Spazio, Tempo, Destino: arcani, risonanze, la guerra con il Cielo
+  spiriti         gli Spiriti del Dao che combattono con te e allenano i loro Dao
+  attributi       la finestra di stato: livello e punti attributo (FOR, VIT, AGI, INT, SAG, FRT)
 """
 
 from __future__ import annotations
@@ -53,18 +56,21 @@ def menu(key: str, title: str, sub: list[str] | None = None, sections: list[dict
 
 def _builders() -> dict:
     from engine.systems import sect_menu, world_menus, professions, dominion, race_realms, technique_forge, blood_menu, income
+    from engine.systems import deep_dao, dao_spirits, attributes
     return {"setta": sect_menu.build, "arti": world_menus.arts, "regni": world_menus.realms,
             "eventi": world_menus.events, "menu": world_menus.hub, "coltivazione": world_menus.growth,
             "famiglia": world_menus.family_menu, "dimora": world_menus.abode, "faide": world_menus.grudges,
             "dominio": dominion.menu_build, "razze": race_realms.menu_build,
             "tecniche": technique_forge.menu_build, "sangue": blood_menu.menu_build,
-            "rendite": income.menu_build}
+            "rendite": income.menu_build, "profondi": deep_dao.menu_build, "spiriti": dao_spirits.menu_build,
+            "attributi": attributes.menu_build}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
          "coltivazione": "Coltivazione", "famiglia": "Famiglia", "dimora": "Dimora", "faide": "Faide",
          "dominio": "Dominio", "razze": "Razze",
-         "tecniche": "Tecniche", "sangue": "Sangue", "rendite": "Rendite"}
+         "tecniche": "Tecniche", "sangue": "Sangue", "rendite": "Rendite",
+         "profondi": "Dao profondi", "spiriti": "Spiriti del Dao", "attributi": "Attributi"}
 
 
 def build(conn, player, key: str) -> dict:

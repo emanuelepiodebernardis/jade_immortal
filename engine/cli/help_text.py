@@ -149,6 +149,18 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "tecniche rinomina <n> <nome>  — le dai il tuo nome | tecniche dimentica <n> — la lasci andare",
         "techniques                    — le tecniche segrete della setta, da apprendere col merito",
     ]),
+    ("eroe", "Finestra di stato, Dao profondi, Spiriti del Dao", [
+        "finestra                      — la FINESTRA DI STATO: livello, PV, ATT, DIF, Qi, spirito, attributi",
+        "attributi                     — il menu dei punti attributo (uno a strato, cinque a regno)",
+        "attributi <FOR|VIT|AGI|INT|SAG|FRT> [n] — distribuisci; 'attributi bilancia', 'attributi auto on|off'",
+        "quotidiana                    — la MISSIONE QUOTIDIANA del Sistema (punti attributo; saltarla costa) e il tuo rango E…S…Monarca",
+        "osserva <nome>                — la finestra di stato di chi hai davanti (livello, forza, Dao, se ti caccia)",
+        "profondi                      — i tre DAO PROFONDI: arcani, risonanze, la guerra con il Cielo",
+        "arcano <nome> [bersaglio]     — passo, taglio, prigione, mondo, domani, camera, rallenta, leggi, benedici, recidi",
+        "cielo sottometti|sfida|inganna — la risposta al Giudizio del Cielo",
+        "spiriti                       — gli SPIRITI DEL DAO (ogni Dao a 'maestro' prende forma e combatte con te)",
+        "spiriti allena                — una sessione con tutti gli spiriti: allenano i loro Dao",
+    ]),
     ("dominio", "Spirito e dominio: tempra, sigilli dell'anima, salme, sette vassalle", [
         "tempra                        — TEMPRA DELLO SPIRITO: la terza via accanto a Qi e Dao (anche 'train' la allena)",
         "tempra info                   — grado dell'anima e punteggio di spirito",

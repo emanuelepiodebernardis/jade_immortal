@@ -28,6 +28,20 @@ function lineClass(l) {
   return "";
 }
 let logFilter = "tutto";
+// i comandi suggeriti nel testo ('join', «attributi FOR 3», 'vola <luogo>') diventano azioni cliccabili:
+// senza segnaposto si eseguono, con un <segnaposto> si scrivono nella riga di comando da completare
+const NO_CLICK = /^(ricomincia|reincarnati|quit|esci|carica|nuovo_mondo|cancella)/;
+function actionize(html) {
+  const re = /(^|[\s(:→—,])(['«])([a-z_][a-z0-9_àèéìòù ]{0,38}(?: &lt;[^&]{1,20}&gt;)*(?: \[[^\]]{1,20}\])?)(['»])(?=[\s).,;:!?]|$)/gi;
+  return html.replace(re, (m, pre, a, cmd, b) => {
+    if ((a === "'") !== (b === "'")) return m;
+    const raw = cmd.replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
+    if (raw.split(" ").length > 6 || NO_CLICK.test(raw)) return m;
+    const fill = /[<\[]/.test(raw);
+    const clean = fill ? raw.replace(/\s*[<\[].*$/, " ") : raw;
+    return `${pre}<button class="act" ${fill ? `data-fill="${esc(clean)}"` : `data-cmd="${esc(clean)}"`} title="${fill ? "scrivi e completa" : "esegui"}: ${esc(raw)}">▶ ${cmd}</button>`;
+  });
+}
 function addLog(text, cmd) {
   if (!text && !cmd) return;
   const box = $("#log");
@@ -37,12 +51,44 @@ function addLog(text, cmd) {
   html += (text || "").split("\n").map((l) => {
     const c = lineClass(l), cat = V.category(l);
     const hide = logFilter !== "tutto" && cat !== logFilter ? " hidden" : "";
-    return `<div class="ln cat-${cat}${c ? " " + c : ""}"${hide}>${esc(l) || "&nbsp;"}</div>`;
+    return `<div class="ln cat-${cat}${c ? " " + c : ""}"${hide}>${actionize(esc(l)) || "&nbsp;"}</div>`;
   }).join("");
   div.innerHTML = html;
   box.appendChild(div);
   while (box.children.length > 300) box.removeChild(box.firstChild);
   box.scrollTop = box.scrollHeight;
+  systemToasts(text || "");
+}
+
+// ---------------- notifiche di sistema (stile «The Gamer») ----------------
+const TOAST_RULES = [
+  [/Nuovo titolo|Titolo:/, "Titolo ottenuto", "rare"],
+  [/sfonda|SFONDI|Avanzi (al|allo)|nuovo regno|Grande Perfezione/i, "Livello superiore", "good"],
+  [/✺ .*(nasce|cresce)/, "Spirito del Dao", "rare"],
+  [/\[Sistema\]/, "Sistema", "info"],
+  [/GUERRA CON IL CIELO|Giudizio del Cielo|SIGILLO DELLA SFIDA/, "Il Cielo", "bad"],
+  [/tribolazione/i, "Tribolazione", "warn"],
+  [/si è messo sulle tue tracce|ti dà la caccia|scende dalle nubi/, "Pericolo", "bad"],
+  [/SVOLTA|risveglia|Risveglio/, "Risveglio", "rare"],
+];
+function systemToasts(text) {
+  let n = 0;
+  for (const l of text.split("\n")) {
+    for (const [re, head, tone] of TOAST_RULES) {
+      if (re.test(l) && n < 3) { toast(head, l.replace(/^\s+/, ""), tone); n++; break; }
+    }
+  }
+}
+function toast(head, body, tone) {
+  const box = $("#toasts");
+  if (!box) return;
+  const d = document.createElement("div");
+  d.className = "toast " + (tone || "");
+  d.innerHTML = `<b>[ ${esc(head)} ]</b><div>${esc(body.length > 180 ? body.slice(0, 177) + "…" : body)}</div>`;
+  box.appendChild(d);
+  setTimeout(() => d.classList.add("out"), 5200);
+  setTimeout(() => d.remove(), 5800);
+  while (box.children.length > 4) box.removeChild(box.firstChild);
 }
 
 function addCard(html) {
@@ -55,7 +101,8 @@ function addCard(html) {
 }
 
 // ---------------- comandi ----------------
-const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite", "dominio", "razze", "menu"];
+const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite",
+  "dominio", "razze", "profondi", "spiriti", "attributi", "menu"];
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
@@ -83,7 +130,7 @@ async function refresh() {
   S = s;
   renderTop(s); renderPlace(s); renderScene(s); renderSugg(s); renderAutoCfg(s);
   if (tab === "mete") renderMete(s);
-  else if (tab === "mappa" || tab === "obiettivi" || tab === "persone" || tab.startsWith("m:")) loadTab(tab);
+  else if (tab === "mappa" || tab === "persone" || tab === "personaggio" || tab.startsWith("m:")) loadTab(tab);
 }
 
 function setBar(id, pct) { $(id).style.width = Math.max(0, Math.min(100, pct)) + "%"; }
@@ -91,7 +138,10 @@ function setBar(id, pct) { $(id).style.width = Math.max(0, Math.min(100, pct)) +
 function renderTop(s) {
   $("#t-nome").textContent = s.nome;
   $("#t-regno").textContent = s.regno;
-  setBar("#b-esp", s.esperienza);
+  $("#t-lv").textContent = "Lv " + (s.livello ?? "—");
+  const pts = $("#t-punti");
+  pts.hidden = !s.punti; pts.textContent = `✦ ${s.punti} punti`;
+  setBar("#b-esp", s.esperienza); $("#v-esp").textContent = s.esperienza + "%";
   setBar("#b-qi", s.qi.pct); $("#v-qi").textContent = `${s.qi.cur}/${s.qi.max}`;
   setBar("#b-sp", s.spirito.pct); $("#v-sp").textContent = `${s.spirito.cur}/${s.spirito.max}`;
   if (s.anima) $("#b-sp").closest(".meter").title = `Spirito — ${s.anima}`;
@@ -136,7 +186,7 @@ function renderScene(s) {
     ${s.duello.carica ? `<div class="l-warn">⚠ Sta raccogliendo il qi: difenditi! (attento alle finte dei subdoli)</div>` : ""}</div>` : "";
   // nel duello le barre grafiche sostituiscono quelle di testo del terminale
   const txt = s.duello ? s.scena.text.split("\n").filter((l) => !l.includes("█") && !l.includes("·····") && !l.startsWith("⚠")).join("\n") : s.scena.text;
-  box.innerHTML = `<h3>✦ ${esc(s.scena.title)}</h3>${du}<p>${esc(txt)}</p><div class="choices">` +
+  box.innerHTML = `<h3>✦ ${esc(s.scena.title)}</h3>${du}<p>${actionize(esc(txt))}</p><div class="choices">` +
     s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}${c.hint ? `<small>[${esc(c.hint)}]</small>` : ""}</button>`).join("") +
     `</div>`;
 }
@@ -146,19 +196,31 @@ function renderSugg(s) {
     s.suggerimenti.map((x, i) => `<button data-cmd="${esc(x.cmd)}" title="${esc(x.label)} — ${esc(x.cmd)}"><span class="n">${i + 1}</span>${esc(x.label)}</button>`).join("");
 }
 
-function renderMete(s) {
+async function renderMete(s) {
   const b = $("#tabbody");
-  if (!s.mete.length) { b.innerHTML = `<div class="empty">Nulla di importante sta accadendo, per ora.</div>`; return; }
-  b.innerHTML = s.mete.map((d) => {
+  const head = (s.quotidiana ? V.dailyQuest(s.quotidiana) : "") + `<h4>Mete</h4>`;
+  const list = !s.mete.length ? `<div class="empty">Nulla di importante sta accadendo, per ora.</div>` : s.mete.map((d) => {
     const where = d.dist === 0 ? "QUI" : d.dist == null ? "in un altro mondo" : `${d.dist} tappe`;
     return `<div class="dest card"><div class="t">${esc(d.title)}</div>
       <div class="w">${esc(d.where)} · ${where}</div>
       <div class="b">${d.dist ? `<button data-cmd="vai ${d.n}">Vai</button>` : ""}${d.join ? `<button class="primary" data-cmd="iscriviti ${d.n}">Partecipa</button>` : ""}</div></div>`;
   }).join("");
+  b.innerHTML = head + list + `<div id="objs"><div class="empty">Carico gli obiettivi…</div></div>`;
+  try { const o = await objectivesHtml(); if (tab === "mete" && $("#objs")) $("#objs").innerHTML = o; } catch (e) { /* niente */ }
 }
 
 // ---------------- pannelli ----------------
 const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
+const SUBTABS = {
+  personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici e talento"], ["corpo", "🩸 Corpo e sangue"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
+  tesori: [["zaino", "🎒 Zaino"], ["libro", "📖 Libro"]],
+  storia: [["cronaca", "📜 Cronaca"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"]],
+};
+const sub = { personaggio: "stato", tesori: "zaino", storia: "cronaca" };
+try { const j = JSON.parse(localStorage.getItem("ji_sub") || "{}"); Object.assign(sub, j); } catch (e) { /* niente */ }
+function subChips(name) {
+  return `<div class="subtabs">` + SUBTABS[name].map(([k, l]) => `<button class="chip ${sub[name] === k ? "on" : ""}" data-sub="${name}:${k}">${l}</button>`).join("") + `</div>`;
+}
 async function loadTab(name) {
   const keep = tab === name;
   tab = name;
@@ -173,20 +235,43 @@ async function loadTab(name) {
   }
   if (name === "mete") { if (S) renderMete(S); return; }
   if (name === "mappa") return loadMap();
-  b.innerHTML = `<div class="empty">Carico…</div>`;
+  const top = keep ? b.scrollTop : 0;
+  if (!keep) b.innerHTML = `<div class="empty">Carico…</div>`;
+  const texts = async (panel, open) => (await api("/api/pannello/" + panel)).map((p) =>
+    `<details class="txt"${open && p.cmd === open ? " open" : ""}><summary>${esc(TITLES[p.cmd] || p.cmd)}</summary><pre>${actionize(esc(p.text))}</pre></details>`).join("");
   try {
-    if (name === "obiettivi") { b.innerHTML = await objectivesHtml(); return; }
-    if (name === "persone") { GRAPH = await api("/api/rete"); b.innerHTML = V.graph(GRAPH) + await peopleHtml(); return; }
-    if (name === "libro") { BOOK = await api("/api/libro"); b.innerHTML = V.book(BOOK, bookCat); return; }
-    let head = "";
-    if (name === "personaggio") head = V.charts(await api("/api/grafici")) + await daoBars();
-    if (name === "tesori") head = `<div class="tools"><button class="primary" data-cmd="tesori cura">✧ Cura tutti i tesori</button></div>` + await bagHtml();
-    if (name === "aiuto") head = await gameHtml() + V.legend();
-    if (name === "storia") head = await chronicleHtml();
-    if (name === "mondo") head = await worldHtml();
-    const parts = PANEL_TEXT[name] ? await api("/api/pannello/" + name) : [];
-    b.innerHTML = head + parts.map((p) => `<details class="txt"${name === "personaggio" && p.cmd === "status" ? " open" : ""}><summary>${esc(TITLES[p.cmd] || p.cmd)}</summary><pre>${esc(p.text)}</pre></details>`).join("");
+    let h = "";
+    if (name === "persone") { GRAPH = await api("/api/rete"); h = V.graph(GRAPH) + await peopleHtml(); }
+    else if (name === "personaggio") {
+      const sb = sub.personaggio;
+      h = subChips("personaggio");
+      if (sb === "dettagli") h += await texts("personaggio", "status");
+      else if (sb === "crescita") h += V.charts(await api("/api/grafici"));
+      else { HERO = await api("/api/eroe"); h += heroHtml(HERO, sb, sb === "dao" ? await api("/api/dao") : null); }
+    } else if (name === "tesori") {
+      h = subChips("tesori");
+      if (sub.tesori === "libro") { BOOK = await api("/api/libro"); h += V.book(BOOK, bookCat); }
+      else h += `<div class="tools"><button class="primary" data-cmd="tesori cura">✧ Cura tutti i tesori</button></div>` + await bagHtml() + await texts("tesori");
+    } else if (name === "storia") {
+      h = subChips("storia");
+      if (sub.storia === "mondo") h += await worldHtml() + await texts("mondo");
+      else if (sub.storia === "trama") h += await texts("storia", "trama");
+      else h += await chronicleHtml();
+    } else if (name === "aiuto") h = await gameHtml() + V.legend() + await texts("aiuto");
+    b.innerHTML = h;
+    if (keep) b.scrollTop = top;
   } catch (e) { b.innerHTML = `<div class="empty">Errore: ${esc(e.message)}</div>`; }
+}
+
+// ---------------- l'eroe: finestra di stato e grafici ----------------
+let HERO = null, daoAll = false;
+function heroHtml(h, sb, daos) {
+  if (!h || !h.finestra) return `<div class="empty">Nessun personaggio.</div>`;
+  if (sb === "stato") return V.statusWindow(h) + V.deepTriad(h.profondi) + V.spiritCards(h.spiriti, h.spiriti_slot);
+  if (sb === "dao") return V.daoChart(daos || [], daoAll) + V.deepTriad(h.profondi);
+  if (sb === "radici") return V.talentRadar(h.talento) + V.rootsChart(h.radici, h.combinazioni, h.talenti);
+  if (sb === "corpo") return V.bodyCard(h.corpo, h.anima, h.cuore) + V.bloodChart(h.sangue);
+  return "";
 }
 // menu a sezioni: setta, arti, coltivazione, eventi, regni, famiglia
 function menuHtml(m) {
@@ -195,7 +280,7 @@ function menuHtml(m) {
   for (const s of m.sections) {
     h += `<div class="card sec msec"><b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
     for (const b of s.bars) h += `<div class="mbar ${b.tone || ""}"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
-    for (const l of s.lines) h += `<div class="mline">${esc(l)}</div>`;
+    for (const l of s.lines) h += `<div class="mline">${actionize(esc(l))}</div>`;
     if (s.actions.length) h += `<div class="mact">` + s.actions.map((a) => a.ok
       ? `<button class="${a.main ? "primary" : ""}" data-cmd="${esc(a.cmd)}" title="${esc(a.cmd)}">${esc(a.label)}</button>`
       : `<button disabled title="${esc(a.why)}">${esc(a.label)}<small>${esc(a.why)}</small></button>`).join("") + `</div>`;
@@ -212,8 +297,8 @@ const TITLES = { status: "Stato", rating: "Potenza e classe", dao: "Dao (dettagl
 
 function itemList(title, items, empty) {
   return `<div class="card sec"><b>${title}</b>` + (items.length ? items.map((x) =>
-    `<button class="obj" data-cmd="${esc(x.cmd)}" title="${esc(x.cmd)}">${esc(x.t)}</button>`).join("")
-    : `<div class="empty">${empty}</div>`) + `</div>`;
+    `<button class="obj" data-cmd="${esc(x.cmd)}" title="${esc(x.cmd)}"><span>${esc(x.t)}</span><span class="go">▶ ${esc(x.cmd)}</span></button>`).join("")
+    : `<div class="empty">${actionize(empty)}</div>`) + `</div>`;
 }
 async function objectivesHtml() {
   const o = await api("/api/obiettivi");
@@ -318,31 +403,106 @@ async function daoBars() {
       <span class="v">${d.comp} · ${esc(d.label)}</span></div>`).join("") + `</div>`;
 }
 
-const ICON = { city: "▣", mountain: "▲", ruin: "▒", forbidden_zone: "☠" };
+// ---------------- mappa: zoom, trascinamento, minacce, sette, presenze ----------------
+const ICON = { city: "▣", mountain: "▲", ruin: "▒", forbidden_zone: "☠", forest: "♣", village: "⌂", sect: "⛩", wilderness: "∴", cave: "◓", lake: "≈" };
+let MAP = null, MAPFULL = null, mapView = null, mapLayers = { minacce: true, presenze: true, sette: true };
 async function loadMap() {
-  const m = await api("/api/mappa");
+  const wide = document.body.classList.contains("wide");
+  MAP = await api("/api/mappa" + (wide ? "?largo" : ""));
+  mapView = null;
+  drawMap();
+}
+function dangerColor(d) {
+  const t = Math.max(0, Math.min(1, (d || 0) / 10));
+  const hue = 140 - 140 * t;               // verde → rosso
+  return `hsl(${hue} 55% 50%)`;
+}
+function drawMap() {
+  const m = MAP; if (!m) return;
+  const W = 92, H = 64, NW = 80, NH = 48;
   const xs = m.nodes.map((n) => n.x), ys = m.nodes.map((n) => n.y);
-  const minx = Math.min(...xs), miny = Math.min(...ys), W = 64, H = 46;
+  const minx = Math.min(...xs), miny = Math.min(...ys);
   const cols = Math.max(...xs) - minx + 1, rows = Math.max(...ys) - miny + 1;
-  const px = (n) => (n.x - minx) * W + 8, py = (n) => (n.y - miny) * H + 8;
+  const px = (n) => (n.x - minx) * W + 10, py = (n) => (n.y - miny) * H + 10;
+  const full = [0, 0, cols * W + 10, rows * H + 10];
+  MAPFULL = full;
+  if (!mapView) {
+    const me = m.nodes.find((n) => n.here);
+    const cw = Math.max(300, $("#tabbody").clientWidth - 4), ch = Math.min(window.innerHeight * 0.7, 620);
+    let vw = Math.min(Math.max(full[2], 3.5 * W), 7 * W), vh = vw * ch / cw;
+    if (vh < Math.min(full[3], 5 * H)) { vh = Math.min(full[3], 5 * H) + 20; vw = vh * cw / ch; }
+    mapView = me ? [px(me) + NW / 2 - vw / 2, py(me) + NH / 2 - vh / 2, vw, vh] : full.slice();
+  }
   const byId = Object.fromEntries(m.nodes.map((n) => [n.id, n]));
-  let svg = `<svg viewBox="0 0 ${cols * W + 8} ${rows * H + 8}" xmlns="http://www.w3.org/2000/svg">`;
+  let svg = `<svg id="mapsvg" viewBox="${mapView.join(" ")}" xmlns="http://www.w3.org/2000/svg">
+    <defs><radialGradient id="glow"><stop offset="0" stop-color="var(--accent)" stop-opacity=".55"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient></defs>`;
   for (const [a, b] of m.edges) {
     const A = byId[a], B = byId[b];
-    svg += `<line x1="${px(A) + 27}" y1="${py(A) + 16}" x2="${px(B) + 27}" y2="${py(B) + 16}"/>`;
+    svg += `<line x1="${px(A) + NW / 2}" y1="${py(A) + NH / 2}" x2="${px(B) + NW / 2}" y2="${py(B) + NH / 2}"/>`;
   }
   for (const n of m.nodes) {
-    const cls = ["node", n.visited ? "visited" : "", n.here ? "here" : "", n.marks.length ? "mark" : ""].join(" ");
-    const short = n.name.length > 11 ? n.name.slice(0, 10) + "…" : n.name;
-    const ic = n.here ? "@" : n.home ? "⌂" : (ICON[n.type] || "·");
-    const tip = `${n.name} (pericolo ${n.danger})${n.marks.length ? " — " + n.marks.join(", ") : ""}`;
-    svg += `<g class="${cls}" data-cmd="vai ${esc(n.name)}"><title>${esc(tip)}</title>
-      <rect x="${px(n)}" y="${py(n)}" width="54" height="32" rx="5"/>
-      <text class="ic" x="${px(n) + 4}" y="${py(n) + 14}">${ic}</text>
-      <text x="${px(n) + 4}" y="${py(n) + 27}">${esc(short)}</text></g>`;
+    const x = px(n), y = py(n);
+    const cls = ["node", n.visited ? "visited" : "unseen", n.here ? "here" : "", n.marks.length ? "mark" : "", n.threats.length && mapLayers.minacce ? "threat" : ""].join(" ");
+    const short = n.name.length > 14 ? n.name.slice(0, 13) + "…" : n.name;
+    const ic = n.home ? "⌂" : (ICON[n.type] || "·");
+    const tip = [`${n.name} — pericolo ${n.danger}`, n.sect ? `⛩ sede: ${n.sect}` : "", n.people ? `👥 ${n.people} persone` : "",
+      n.beasts ? `🐾 ${n.beasts} creature` : "", n.threats.length ? `⚔ ti cercano: ${n.threats.join(", ")}` : "",
+      n.marks.length ? `★ ${n.marks.join(", ")}` : ""].filter(Boolean).join("\n");
+    svg += `<g class="${cls}" data-cmd="vai ${esc(n.name)}"><title>${esc(tip)}</title>`;
+    if (n.here) svg += `<circle class="pulse" cx="${x + NW / 2}" cy="${y + NH / 2}" r="46" fill="url(#glow)"/>`;
+    svg += `<rect x="${x}" y="${y}" width="${NW}" height="${NH}" rx="8"/>
+      <rect class="dz" x="${x + 3}" y="${y + NH - 6}" width="${NW - 6}" height="4" rx="2" style="fill:${dangerColor(n.danger)}"/>
+      <text class="ic" x="${x + 6}" y="${y + 17}">${n.here ? "◉" : ic}</text>
+      <text class="nm" x="${x + 6}" y="${y + 34}">${esc(short)}</text>`;
+    let bx = x + NW - 4;
+    const badge = (t, c) => { svg += `<text class="bd ${c}" x="${bx}" y="${y + 15}" text-anchor="end">${t}</text>`; bx -= 16; };
+    if (n.threats.length && mapLayers.minacce) badge("⚔", "bad");
+    if (n.marks.length) badge("★", "warn");
+    if (n.sect && mapLayers.sette) badge("⛩", "info");
+    if (n.people && mapLayers.presenze) badge(String(Math.min(9, n.people)), "muted");
+    svg += `</g>`;
   }
   svg += `</svg>`;
-  $("#tabbody").innerHTML = `<div id="map">${svg}<div class="legend">@ tu · ⌂ dimora · ▣ città · ▲ montagna · ▒ rovine · ☠ zona proibita · bordo giallo = meta in corso. Clic su un luogo per andarci.</div></div>`;
+  const tog = (k, l) => `<button class="chip ${mapLayers[k] ? "on" : ""}" data-maptool="layer:${k}">${l}</button>`;
+  $("#tabbody").innerHTML = `<div id="map">
+    <div class="maptools"><button data-maptool="in">＋</button><button data-maptool="out">－</button><button data-maptool="me">◉ Tu</button><button data-maptool="all">⤢ Tutto</button>
+      ${tog("minacce", "⚔ Minacce")}${tog("sette", "⛩ Sette")}${tog("presenze", "👥 Presenze")}</div>
+    ${svg}
+    <div class="legend">◉ tu · ⌂ dimora · ▣ città · ▲ montagna · ▒ rovine · ☠ zona proibita · ★ meta in corso · ⚔ chi ti dà la caccia · ⛩ sede di setta · numero = persone.
+      La striscia sotto ogni luogo è il pericolo (verde → rosso). Rotella per lo zoom, trascina per muoverti, clic per andarci. ⤢ in alto allarga il pannello e la mappa.</div></div>`;
+  bindMapDrag();
+}
+function mapTool(t) {
+  if (!MAP || !mapView) return;
+  if (t.startsWith("layer:")) { const k = t.slice(6); mapLayers[k] = !mapLayers[k]; return drawMap(); }
+  const [x, y, w, h] = mapView, cx = x + w / 2, cy = y + h / 2;
+  if (t === "in" || t === "out") { const f = t === "in" ? 0.75 : 1.33; mapView = [cx - (w * f) / 2, cy - (h * f) / 2, w * f, h * f]; }
+  if (t === "me") mapView = null;
+  if (t === "all") mapView = MAPFULL.slice();
+  drawMap();
+}
+function bindMapDrag() {
+  const s = $("#mapsvg"); if (!s) return;
+  let drag = null, moved = false;
+  s.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    const f = ev.deltaY < 0 ? 0.85 : 1.18, r = s.getBoundingClientRect();
+    const [x, y, w, h] = mapView, mx = x + ((ev.clientX - r.left) / r.width) * w, my = y + ((ev.clientY - r.top) / r.height) * h;
+    mapView = [mx - (mx - x) * f, my - (my - y) * f, w * f, h * f];
+    s.setAttribute("viewBox", mapView.join(" "));
+  }, { passive: false });
+  s.addEventListener("pointerdown", (ev) => { drag = [ev.clientX, ev.clientY, mapView[0], mapView[1]]; moved = false; });
+  s.addEventListener("pointermove", (ev) => {
+    if (!drag) return;
+    const r = s.getBoundingClientRect(), k = mapView[2] / r.width;
+    const dx = (ev.clientX - drag[0]) * k, dy = (ev.clientY - drag[1]) * k;
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    mapView[0] = drag[2] - dx; mapView[1] = drag[3] - dy;
+    s.setAttribute("viewBox", mapView.join(" "));
+  });
+  const end = () => { drag = null; };
+  s.addEventListener("pointerup", end); s.addEventListener("pointerleave", end);
+  s.addEventListener("click", (ev) => { if (moved) { ev.stopPropagation(); ev.preventDefault(); moved = false; } }, true);
 }
 
 // ---------------- pilota automatico ----------------
@@ -448,6 +608,26 @@ document.addEventListener("click", async (ev) => {
     const r = await api("/api/nuovo_mondo", {}); addLog(r.log); $("#log").innerHTML = ""; addLog(r.log); return refresh();
   }
   if (ev.target.id === "cr-all") { allLives = !allLives; return loadTab("storia"); }
+  const fl = ev.target.closest("[data-fill]");
+  if (fl) { const c = $("#cmd"); c.value = fl.dataset.fill; c.focus(); return; }
+  const sbt = ev.target.closest("[data-sub]");
+  if (sbt) {
+    const [t, k] = sbt.dataset.sub.split(":"); sub[t] = k;
+    try { localStorage.setItem("ji_sub", JSON.stringify(sub)); } catch (e) { /* niente */ }
+    return loadTab(t);
+  }
+  if (ev.target.id === "dao-all") { daoAll = !daoAll; return loadTab("personaggio"); }
+  if (ev.target.closest("#widen")) { setWide(!document.body.classList.contains("wide")); return; }
+  if (ev.target.closest("#theme")) {
+    const order = ["", "light", "dark"], cur = document.documentElement.dataset.theme || "";
+    const nx = order[(order.indexOf(cur) + 1) % order.length];
+    if (nx) document.documentElement.dataset.theme = nx; else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem("ji_theme", nx); } catch (e) { /* niente */ }
+    toast("Tema", nx === "dark" ? "scuro" : nx === "light" ? "chiaro" : "automatico (come il sistema)", "info");
+    return loadTab(tab);
+  }
+  const mt = ev.target.closest("[data-maptool]");
+  if (mt) { mapTool(mt.dataset.maptool); return; }
   const bk = ev.target.closest("[data-book]");
   if (bk && BOOK) { bookCat = bk.dataset.book; $("#tabbody").innerHTML = V.book(BOOK, bookCat); return; }
   const gn = ev.target.closest("[data-node]");
@@ -488,6 +668,12 @@ document.addEventListener("keydown", (ev) => {
     else if (n <= S.suggerimenti.length) { ev.preventDefault(); run(S.suggerimenti[n - 1].cmd); }
   }
 });
+function setWide(on) {
+  document.body.classList.toggle("wide", on);
+  try { localStorage.setItem("ji_wide", on ? "1" : "0"); } catch (e) { /* niente */ }
+  if (tab === "mappa") loadMap();
+}
+try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
 $("#auto-go").onclick = autoStart;
 $("#auto-stop").onclick = autoStop;
 

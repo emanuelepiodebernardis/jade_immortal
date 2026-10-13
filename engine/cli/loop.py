@@ -864,6 +864,9 @@ def _attack_auto(conn, player, npc, forced) -> str:
     from engine.systems import dao_powers
     _space = dao_powers.space_combat(conn, player.id)   # perfora difesa, echi, critici
     _t_evasion = dao_powers.time_evasion(conn, player.id)  # schivi: il mondo ti pare lento
+    from engine.systems import deep_dao as _dd             # arcani preparati (Taglio del Vuoto, Rallentare)
+    _space, _t_evasion, _ddl = _dd.fight_buffs(conn, _space, _t_evasion)
+    lines += _ddl
     if _space["label"]:
         lines.append(f"Lo Spazio si piega attorno a te ({_space['label']}): "
                      f"le difese di {npc.name} contano sempre meno.")
@@ -1887,6 +1890,12 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in sect_menu.daily(conn, t, random.Random(t * 79 + day), player)]
     from engine.systems import feuds
     lines += ["  " + ln for ln in feuds.daily(conn, t, random.Random(t * 83 + day), player)]
+    from engine.systems import pursuers, deep_dao
+    lines += ["  " + ln for ln in pursuers.daily(conn, t, None, player)]
+    lines += ["  " + ln for ln in deep_dao.daily(conn, t, random.Random(t * 97 + day), player)]
+    from engine.systems import dao_spirits, attributes
+    lines += ["  " + ln for ln in dao_spirits.daily(conn, t, None, player)]
+    lines += ["  " + ln for ln in attributes.auto_spend(conn, player.id)]
     from engine.systems import dominion
     lines += ["  " + ln for ln in dominion.daily(conn, t, random.Random(t * 89 + day), player)]
     from engine.systems import history

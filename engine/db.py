@@ -74,6 +74,8 @@ def _migrate(conn) -> None:
     if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='daos';").fetchone():
         from engine.generators import dao_gen
         dao_gen.seed_daos(conn)          # nuovi Dao (es. superiori) anche nei vecchi mondi
+    from engine.systems import pursuers
+    pursuers.ensure_table(conn)
     ncols = {r["name"] for r in conn.execute("PRAGMA table_info(npcs);")}
     if ncols and "gender" not in ncols:          # 'm' | 'f' (NULL nei vecchi mondi: vedi npc_factory.gender_of)
         conn.execute("ALTER TABLE npcs ADD COLUMN gender TEXT;")

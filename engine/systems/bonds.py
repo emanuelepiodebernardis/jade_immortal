@@ -702,6 +702,8 @@ def extra_fighters(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     from engine.systems import oaths, dominion
     out += oaths.combat_allies(conn, player_id, npc_id)
     out += dominion.combat_allies(conn, player_id, npc_id, fx)
+    from engine.systems import dao_spirits
+    out += dao_spirits.combat_allies(conn, player_id)          # Spiriti del Dao
     from engine.systems import dialogues, perception
     try:
         ratio = perception.strength_ratio(conn, player_id, npc_id)

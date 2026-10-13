@@ -47,6 +47,8 @@ def create(conn, rng: random.Random, player, heir_of: dict | None = None, female
     gen = (heir_of["gen"] + 1) if heir_of else 1
     # il rivale è alla TUA altezza (l'erede un po' sopra): una sfida vera, non un sacco da pugni
     _match(conn, player.id, nid, rng.uniform(0.85, 1.05) if not heir_of else rng.uniform(0.7, 0.9))
+    from engine.systems import pursuers                # mai un muro: se nasce troppo forte, si ridimensiona
+    pursuers.fit(conn, player.id, nid, "arcinemico")
     d = {"npc": nid, "gen": gen, "epithet": rng.choice(_EPITHETS), "wins": 0, "losses": 0, "scars": [],
          "memory": list(heir_of.get("memory", []))[-3:] if heir_of else [], "next_day": tick_mod.get_tick(conn) // 120 + 12,
          "level": heir_of["level"] if heir_of else 1}

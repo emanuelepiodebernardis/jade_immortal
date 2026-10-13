@@ -20,7 +20,8 @@ def max_qi(conn: sqlite3.Connection, player_id: int = 1) -> int:
     tier = cultivation.realm_tier(conn, "player", player_id) or 1
     rec = cultivation.get_record(conn, "player", player_id)
     stage = (rec["stage"] if rec and rec["stage"] else 1)
-    return tier * 60 + stage * 5
+    from engine.systems import attributes          # Intelletto
+    return int((tier * 60 + stage * 5) * attributes.qi_mult(conn))
 
 
 def _set(conn: sqlite3.Connection, player_id: int, value: int) -> None:

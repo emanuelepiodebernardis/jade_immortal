@@ -202,6 +202,9 @@ def on_kill(conn, t: int, rng: random.Random, player, npc, cause: str = "kill") 
         if rng.random() > chance:
             continue
         aid = _spawn_avenger(conn, rng, npc, rel)
+        from engine.systems import pursuers           # i pari crescono con te; gli anziani restano quel che sono
+        if rel in pursuers.PEER_RELATIONS:
+            pursuers.on_spawn(conn, player.id, aid, "vendicatore")
         lo, hi = REL[rel][2]
         inten = int(min(100, REL[rel][1] * mult + 10 * (gen - 1)))
         ready = _day(conn) + rng.randint(lo, hi) * (2 if not knows else 1)

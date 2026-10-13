@@ -145,6 +145,8 @@ def _after(conn, player) -> list[str]:
     from engine.systems import menus
     menus.consume_open(conn)                  # nella dashboard i menu hanno i loro pulsanti
     out = list(dao_superiori.check_awakenings(conn, player.id))
+    from engine.systems import system_daily
+    out += system_daily.check(conn, player)
     ch = story_cmds.story_tick(conn, player)
     if ch:
         out.append(ch)
@@ -295,6 +297,11 @@ def state_snapshot() -> dict:
             "duello": _duel(conn),
             "auto": autopilot.config(conn),
         }
+        from engine.systems import attributes
+        snap["livello"] = attributes.level(conn, p.id)
+        from engine.systems import system_daily
+        snap["quotidiana"] = system_daily.data(conn, p.id)
+        snap["punti"] = attributes.free(conn, p.id)
     return snap
 
 
@@ -352,6 +359,65 @@ def panel(name: str) -> list[dict]:
 _D = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}
 
 
+_AFF_LABEL = {"cultivation": "Coltivazione", "qi": "Qi", "body": "Corpo", "soul": "Anima", "combat": "Combattimento"}
+
+
+def _qual(v: float) -> str:
+    return ("scarsa" if v < 30 else "modesta" if v < 45 else "comune" if v < 56 else "buona" if v < 70
+            else "eccellente" if v < 85 else "prodigiosa")
+
+
+def hero_data() -> dict:
+    """Tutto il protagonista in un colpo: finestra di stato, talento, radici, corpo, sangue, anima,
+    Dao profondi e Spiriti del Dao (per la scheda Personaggio)."""
+    from engine.systems import (attributes, character, spirit_roots as sr, constitutions as cons, bloodlines as bl,
+                                soul_temper, dao_spirits, deep_dao, dao_powers, state, dao_heart)
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        if p is None:
+            return {}
+        w = attributes.window(conn, p.id)
+        prof = character.get_profile(conn, "player", p.id)
+        talent = []
+        for k, lbl in _AFF_LABEL.items():
+            v = (prof[f"aff_{k}"] if prof is not None and f"aff_{k}" in prof.keys() else 50) or 50
+            talent.append({"k": lbl, "v": v, "q": _qual(v)})
+        roots = sr.get(conn, "player", p.id)
+        rlist = [{"el": sr.LABEL[e], "key": e, "score": round(roots.get(e, 0.0), 1),
+                  "grado": sr.grade_name(roots.get(e, 0.0)) if roots.get(e, 0.0) > 0 else "—"}
+                 for e in sr.ELEMENTS]
+        combos = [{"nome": c["name"], "tipo": c["kind"]} for c in sr.combinations_of(roots)][:8]
+        c = cons.get(conn)
+        corpo = None
+        if c:
+            nm = cons.BODIES[c["key"]][0]
+            st = int(c.get("stage", 0))
+            lore = cons.LORE.get(c["key"], ("", []))
+            corpo = {"nome": nm, "stadio": cons.stage_name(st), "n": st, "storia": lore[0], "doni": lore[1],
+                     "pct": min(100, round(100 * st / max(1, len(cons.STAGE_NAMES) - 1)))}
+        lines = []
+        for _k, ln in bl.ordered(conn)[:6]:
+            r = bl.line_rank(ln)
+            lines.append({"nome": ln["name"], "rango": bl.RANK_NAME[r], "icona": bl.RANK_ICON[r], "r": r,
+                          "conc": round(ln["conc"], 1), "grado": bl.grade_name(ln["conc"]),
+                          "purezza": round(ln.get("purity", 0.0), 2)})
+        g, xp, lo, hi = soul_temper.progress(conn)
+        anima = {"grado": soul_temper.grade_name(g), "g": g, "pct": round(100 * (xp - lo) / max(1, hi - lo))}
+        spirits = [{"nome": s["name"], "stadio": s["stage"], "dao": s["dao_name"], "liv": s["level"], "comp": s["comp"]}
+                   for s in dao_spirits.spirits(conn, p.id)]
+        d = deep_dao.get(conn)
+        dfy = dao_powers.heaven_defiance(conn, p.id)
+        deep = {"dao": [{"k": deep_dao.DEEP_NAME[k], "icona": deep_dao.ICON[k], "comp": deep_dao.comp(conn, k, p.id),
+                         "idx": deep_dao.idx(conn, k, p.id)} for k in deep_dao.DEEP],
+                "sfida": dfy, "capitolo": deep_dao.CHAPTERS[deep_dao.chapter_of(dfy)][1], "sigilli": d["seals"],
+                "risonanze": [n for n, _e, _f in deep_dao.resonances(conn, p.id)]}
+        heart = dao_heart.heart(conn)
+        return {"finestra": w, "talento": talent, "radici": rlist, "combinazioni": combos,
+                "talenti": sr.talents_of(roots), "corpo": corpo, "sangue": lines, "anima": anima,
+                "spiriti": spirits, "spiriti_slot": dao_spirits.slots(conn, p.id), "profondi": deep,
+                "titoli": state.titles(conn)[-12:], "cuore": {"val": heart, "label": dao_heart.heart_label(heart)}}
+
+
 def map_data(radius: int = 5) -> dict:
     from engine.systems import state, travel, cave_abode
     with LOCK, transaction() as conn:
@@ -376,11 +442,19 @@ def map_data(radius: int = 5) -> dict:
             marks.setdefault(d["loc"], []).append(d["title"])
         home = (cave_abode.get(conn, p.id) or {}).get("loc")
         nodes, edges = [], []
+        from engine.systems import pursuers
+        chase = dict(pursuers.tracked(conn))
+        sect_home = {r["home_location_id"]: r["name"] for r in conn.execute(
+            "SELECT name, home_location_id FROM factions WHERE home_location_id IS NOT NULL;")}
         for lid, (x, y) in pos.items():
             r = conn.execute("SELECT name, location_type, danger_level FROM locations WHERE id=?;", (lid,)).fetchone()
+            people = conn.execute("SELECT id, name, kind FROM npcs WHERE location_id=? AND status='alive';", (lid,)).fetchall()
+            threats = [n["name"] for n in people if n["id"] in chase]
+            beasts = sum(1 for n in people if (n["kind"] or "human") != "human")
             nodes.append({"id": lid, "x": x, "y": y, "name": r["name"], "type": r["location_type"],
                           "danger": r["danger_level"], "here": lid == start, "visited": r["name"] in visited,
-                          "marks": marks.get(lid, []), "home": lid == home})
+                          "marks": marks.get(lid, []), "home": lid == home, "people": len(people) - beasts,
+                          "beasts": beasts, "threats": threats, "sect": sect_home.get(lid)})
             for d, nxt in entities.get_exits(conn, lid).items():
                 if nxt in pos and d in ("east", "south"):
                     edges.append([lid, nxt])
