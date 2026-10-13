@@ -513,3 +513,6 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 #map .node.r8 rect:first-of-type, #map .node.r9 rect:first-of-type { fill: color-mix(in srgb, var(--chip) 48%, var(--bad)); }
 #map .node[class*=" r"]:not(.r0) .nm { font-weight: 600; }
 #map .node .bd.rare { fill: var(--rare); }
+#map line.route { stroke: var(--accent); stroke-width: 4; stroke-dasharray: 6 4; animation: march 1s linear infinite; }
+#map .node.onroute rect:first-of-type { stroke: var(--accent); stroke-width: 2; }
+@keyframes march { to { stroke-dashoffset: -20; } }

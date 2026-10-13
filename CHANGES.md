@@ -1960,3 +1960,22 @@ Comandi: `frontiera`, `mistero esplora|prudente`. I luoghi nuovi hanno nomi comp
 - Le **tecniche segrete di setta** stanno solo nel menu Tecniche, accanto alla fucina.
 
 Nuovi test. Suite totale: **602 passati**.
+
+---
+
+## Aggiornamento 48 — Viaggio a tappe
+
+Toccare un luogo lontano sulla mappa non ti teletrasporta più: **viaggi tappa per tappa** lungo la strada più breve, e il tempo passa.
+
+**Lungo la via:**
+- ✿ **raccogli** erbe e minerali (di più negli anelli lontani);
+- ✦ incontri **viandanti** che ti lasciano qualche pietra;
+- ❖ se passi accanto a un **incontro misterioso**, ti fermi lì;
+- ⚠ può tenderti un **agguato** una creatura del luogo. Il viaggio si ferma e scegli se combattere, combattere a turni o aggirarla e ripartire (quel giorno la stessa tappa non ti riprende).
+
+Gli imprevisti capitano più spesso nei luoghi pericolosi e negli anelli lontani. **In volo** capitano la metà delle volte, e col **passo nel vuoto** (dal 6° regno) non capita nulla: arrivi e basta.
+
+**Sulla mappa:**
+- passando sopra un luogo si illumina la strada che percorreresti;
+- il clic avvia il viaggio;
+- la vista non si sposta più a ogni azione, solo quando ti muovi.

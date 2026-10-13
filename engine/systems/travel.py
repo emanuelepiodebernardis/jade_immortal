@@ -132,21 +132,119 @@ def go(conn, player, arg: str) -> str:
         return f"{name} è in un altro mondo: serve ben altro che un viaggio ('mondi')."
     tier = cultivation.realm_tier(conn, "player", player.id) or 1
     if tier >= svolte.VOID_TIER:
-        ticks, how = 1, "Un passo nel vuoto"
+        ticks, how, mode = 1, "Un passo nel vuoto", "vuoto"
     elif tier >= svolte.FLY_TIER and qimod.can_afford(conn, 3 * dist, player.id):
         qimod.spend(conn, 3 * dist, player.id)
-        ticks, how = max(1, dist // 2), "Voli sulla tua spada"
+        ticks, how, mode = max(1, dist // 2), "Voli sulla tua spada", "volo"
     else:
-        ticks, how = dist * tick_mod.cost_of("move"), "Cammini"
-    entities.move_player(conn, player.id, loc)
+        ticks, how, mode = dist * tick_mod.cost_of("move"), "Cammini", "piedi"
+    # IL VIAGGIO A TAPPE: lungo la strada si raccoglie, si incontra, si cade in agguato
+    path = route(conn, player.location_id, loc)
+    stop, notes, scene = journey(conn, player, path, mode, loc)
+    dest_id = stop if stop else loc
+    done = path.index(dest_id) if dest_id in path else dist
+    ticks = max(1, round(ticks * done / max(1, dist)))
+    entities.move_player(conn, player.id, dest_id)
     obs = world_tick.advance(conn, ticks)
     from engine.systems import qol
-    qol.note(conn, "luoghi", name)
+    stop_name = _loc_name(conn, dest_id)
+    qol.note(conn, "luoghi", stop_name)
     moved = entities.get_player(conn, player.id)
-    out = f"{how} per {dist} tappe ({ticks} tick) e arrivi a {name}.\n" + loop.render_location(conn, moved)
+    if scene:                                              # l'agguato si apre dove ti ha colto
+        from engine.systems import encounters as _enc
+        sc_txt = _enc.start_scene(conn, moved, scene)
+        if sc_txt:
+            notes.append(sc_txt)
+    head = (f"{how} per {done} tappe ({ticks} tick)" + (f" e arrivi a {name}." if not stop else
+            f": il viaggio verso {name} si ferma a {stop_name}."))
+    out = head + ("\n" + "\n".join(notes) if notes else "") + "\n" + loop.render_location(conn, moved)
     if obs:
         out += "\nNel frattempo:\n" + loop._format_observations(obs)
     return out + loop._after_arrival(conn, moved)
+
+
+def route(conn, a: int, b: int) -> list[int]:
+    """Il percorso più breve da a a b (inclusi), tappa per tappa."""
+    from collections import deque
+    prev = {a: None}
+    q = deque([a])
+    while q:
+        cur = q.popleft()
+        if cur == b:
+            break
+        for r in conn.execute("SELECT to_location_id, direction FROM location_connections WHERE from_location_id=?;",
+                              (cur,)):
+            n = r["to_location_id"]
+            if n not in prev and r["direction"] not in ("up", "down"):
+                prev[n] = cur
+                q.append(n)
+    if b not in prev:
+        return [a, b]
+    out = [b]
+    while out[-1] != a:
+        out.append(prev[out[-1]])
+    return list(reversed(out))
+
+
+_PASS_KEY = "travel_safe_pass"
+
+
+def journey(conn, player, path: list[int], mode: str, dest: int) -> tuple[int | None, list[str], dict | None]:
+    """Attraversa le tappe intermedie. Ritorna (tappa dove ci si ferma o None, note del viaggio).
+    A piedi capita di più; in volo la metà; col passo nel vuoto non capita nulla."""
+    import random as _r
+    from engine.core import tick as tm
+    from engine.systems import frontier, professions, sects, state as st
+    if mode == "vuoto" or len(path) <= 2:
+        return None, [], None
+    t = tm.get_tick(conn)
+    rng = _r.Random(t * 7 + path[-1] * 13 + len(path))
+    safe = st.get_json(conn, _PASS_KEY, None) or {}
+    notes = []
+    for stage in path[1:-1]:
+        row = conn.execute("SELECT name, danger_level FROM locations WHERE id=?;", (stage,)).fetchone()
+        sname, danger = row["name"], row["danger_level"] or 1
+        ring = frontier.ring_of(conn, stage)
+        # un mistero lungo la via: ti fermi lì
+        w = frontier.world(conn, __import__("engine.systems.ascension", fromlist=["x"]).layer_of_location(conn, stage))
+        m = w["mysteries"].get(str(stage))
+        if m and not m["done"]:
+            notes.append(f"❖ A {sname} senti qualcosa che ti chiama: ti fermi.")
+            return stage, notes, None
+        chance = (0.10 + 0.025 * danger + 0.03 * ring) * (0.5 if mode == "volo" else 1.0)
+        if rng.random() >= chance:
+            continue
+        roll = rng.random()
+        beasts = conn.execute("SELECT id, name FROM npcs WHERE location_id=? AND status='alive' AND kind<>'human';",
+                              (stage,)).fetchall()
+        if beasts and roll < 0.45 and safe.get(str(stage)) != t // 120:
+            b = rng.choice(beasts)
+            safe[str(stage)] = t // 120               # se lo aggiri, oggi non ti riprende
+            st.set_json(conn, _PASS_KEY, safe)
+            notes.append(f"⚠ Mentre attraversi {sname}, {b['name']} ti sbarra la strada!")
+            return stage, notes, _ambush_scene(conn, player, b, sname, dest)
+        if roll < 0.75:
+            n = max(1, int(rng.randint(1, 3) * frontier.gather_mult(conn, stage)))
+            key = rng.choice(["erbe", "erbe", "minerali"])
+            professions.give(conn, player.id, key, n)
+            notes.append(f"✿ Lungo la strada, a {sname}: raccogli {n} {professions.MATERIALS[key]}.")
+        else:
+            got = rng.randint(5, 20) * (1 + ring) * (1 + danger // 3)
+            sects.grant_resource(conn, "pietre_spirituali", got, player.id)
+            notes.append(f"✦ A {sname} un viandante ti vende una voce e ti lascia {got} pietre per il disturbo.")
+    return None, notes, None
+
+
+def _ambush_scene(conn, player, beast, sname: str, dest: int) -> dict:
+    nm = beast["name"]
+    first = nm.split()[0]
+    sc = {"key": "agguato_strada", "title": f"Agguato a {sname}", "event_type": "combat", "ctx": {"npc_id": beast["id"],
+          "npc_name": nm}, "sticky": True,
+          "text": f"{nm} esce dal folto e ti sbarra la strada, gli occhi fissi su di te.",
+          "choices": [{"label": "Combatti", "effects": {}, "command": f"attack {first}"},
+                      {"label": "Combatti a turni (ogni mossa la scegli tu)", "effects": {}, "command": f"duello {first}"},
+                      {"label": "Lo aggiri e riprendi il viaggio", "effects": {}, "command": f"vai #{dest}"}]}
+    return sc
 
 
 def join(conn, player, arg: str) -> str | None:

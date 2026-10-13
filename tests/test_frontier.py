@@ -63,3 +63,17 @@ def test_mysteries_once_and_richer_far_away(conn):
     assert "❖" in frontier.resolve(conn, p, "prudente")
     assert frontier.mystery_here(conn, p) is None
     assert frontier.gather_mult(conn, lid) > 1.0
+
+
+def test_journey_in_stages(conn):
+    from engine.systems import travel
+    p = entities.get_player(conn)
+    _realm(conn, 1, 5)
+    locs = ascension.plane_locations(conn, 0)
+    far = max(locs, key=lambda l: len(travel.route(conn, p.location_id, l)))
+    path = travel.route(conn, p.location_id, far)
+    assert path[0] == p.location_id and path[-1] == far and len(path) >= 3
+    out = travel.go(conn, p, f"#{far}")
+    assert "tappe" in out
+    p = entities.get_player(conn)
+    assert p.location_id in path[1:]                       # arrivato, o fermato lungo la strada

@@ -458,11 +458,14 @@ async function daoBars() {
 
 // ---------------- mappa: zoom, trascinamento, minacce, sette, presenze ----------------
 const ICON = { city: "▣", mountain: "▲", ruin: "▒", forbidden_zone: "☠", forest: "♣", village: "⌂", sect: "⛩", wilderness: "∴", cave: "◓", lake: "≈" };
-let MAP = null, MAPFULL = null, mapView = null, mapLayers = { minacce: true, presenze: true, sette: true };
+let MAP = null, MAPFULL = null, mapView = null, mapWide = null, mapLayers = { minacce: true, presenze: true, sette: true };
 async function loadMap() {
   const wide = document.body.classList.contains("wide");
+  const prevHere = MAP ? (MAP.nodes.find((n) => n.here) || {}).id : null;
   MAP = await api("/api/mappa" + (wide ? "?largo" : ""));
-  mapView = null;
+  const here = (MAP.nodes.find((n) => n.here) || {}).id;
+  if (here !== prevHere || mapWide !== wide) mapView = null;     // la vista resta dov'era finché non ti sposti
+  mapWide = wide;
   drawMap();
 }
 function dangerColor(d) {
@@ -491,7 +494,7 @@ function drawMap() {
     <defs><radialGradient id="glow"><stop offset="0" stop-color="var(--accent)" stop-opacity=".55"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient></defs>`;
   for (const [a, b] of m.edges) {
     const A = byId[a], B = byId[b];
-    svg += `<line x1="${px(A) + NW / 2}" y1="${py(A) + NH / 2}" x2="${px(B) + NW / 2}" y2="${py(B) + NH / 2}"/>`;
+    svg += `<line data-e="${Math.min(a, b)}-${Math.max(a, b)}" x1="${px(A) + NW / 2}" y1="${py(A) + NH / 2}" x2="${px(B) + NW / 2}" y2="${py(B) + NH / 2}"/>`;
   }
   for (const n of m.nodes) {
     const x = px(n), y = py(n);
@@ -502,7 +505,7 @@ function drawMap() {
       n.beasts ? `🐾 ${n.beasts} creature` : "", n.threats.length ? `⚔ ti cercano: ${n.threats.join(", ")}` : "",
       n.marks.length ? `★ ${n.marks.join(", ")}` : "", n.mystery ? `❖ ${n.mystery}` : "",
       n.ring ? `frontiera, anello ${n.ring}` : ""].filter(Boolean).join("\n");
-    svg += `<g class="${cls}" data-cmd="vai ${esc(n.name)}"><title>${esc(tip)}</title>`;
+    svg += `<g class="${cls}" data-cmd="vai #${n.id}" data-node-id="${n.id}"><title>${esc(tip)}</title>`;
     if (n.here) svg += `<circle class="pulse" cx="${x + NW / 2}" cy="${y + NH / 2}" r="46" fill="url(#glow)"/>`;
     svg += `<rect x="${x}" y="${y}" width="${NW}" height="${NH}" rx="8"/>
       <rect class="dz" x="${x + 3}" y="${y + NH - 6}" width="${NW - 6}" height="4" rx="2" style="fill:${dangerColor(n.danger)}"/>
@@ -528,8 +531,25 @@ function drawMap() {
       ${tog("minacce", "⚔ Minacce")}${tog("sette", "⛩ Sette")}${tog("presenze", "👥 Presenze")}</div>
     ${svg}
     <div class="legend">❖ incontro misterioso · i luoghi più scuri sono gli anelli più lontani (nemici più forti, bottini più rari, più risorse) · ◉ tu · ⌂ dimora · ▣ città · ▲ montagna · ▒ rovine · ☠ zona proibita · ★ meta in corso · ⚔ chi ti dà la caccia · ⛩ sede di setta · numero = persone.
-      La striscia sotto ogni luogo è il pericolo (verde → rosso). Rotella per lo zoom, trascina per muoverti, clic per andarci. ⤢ in alto allarga il pannello e la mappa.</div></div>`;
+      La striscia sotto ogni luogo è il pericolo (verde → rosso). Rotella per lo zoom, trascina per muoverti. Passa sopra un luogo per vedere la strada; clic per viaggiare a tappe (lungo la via si raccoglie, si incontra, si cade in agguato). ⤢ in alto allarga il pannello e la mappa.</div></div>`;
   bindMapDrag();
+}
+// passando sopra un luogo, la strada a tappe che percorreresti
+function mapRoute(target) {
+  document.querySelectorAll("#mapsvg line.route").forEach((l) => l.classList.remove("route"));
+  document.querySelectorAll("#mapsvg .node.onroute").forEach((g) => g.classList.remove("onroute"));
+  if (!MAP || target == null) return;
+  const me = MAP.nodes.find((n) => n.here); if (!me) return;
+  const adj = {};
+  for (const [a, b] of MAP.edges) { (adj[a] = adj[a] || []).push(b); (adj[b] = adj[b] || []).push(a); }
+  const prev = { [me.id]: null }, q = [me.id];
+  while (q.length) { const c = q.shift(); if (c === target) break; for (const n of adj[c] || []) if (!(n in prev)) { prev[n] = c; q.push(n); } }
+  if (!(target in prev)) return;
+  for (let c = target; prev[c] != null; c = prev[c]) {
+    const p = prev[c], l = document.querySelector(`#mapsvg line[data-e="${Math.min(c, p)}-${Math.max(c, p)}"]`);
+    if (l) l.classList.add("route");
+    const g = document.querySelector(`#mapsvg [data-node-id="${c}"]`); if (g) g.classList.add("onroute");
+  }
 }
 function mapTool(t) {
   if (!MAP || !mapView) return;
@@ -551,6 +571,8 @@ function bindMapDrag() {
     s.setAttribute("viewBox", mapView.join(" "));
   }, { passive: false });
   s.addEventListener("pointerdown", (ev) => { drag = [ev.clientX, ev.clientY, mapView[0], mapView[1]]; moved = false; });
+  s.addEventListener("mouseover", (ev) => { const g = ev.target.closest("[data-node-id]"); if (g) mapRoute(Number(g.dataset.nodeId)); });
+  s.addEventListener("mouseleave", () => mapRoute(null));
   s.addEventListener("pointermove", (ev) => {
     if (!drag) return;
     const r = s.getBoundingClientRect(), k = mapView[2] / r.width;
