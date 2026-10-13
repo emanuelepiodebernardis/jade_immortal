@@ -37,7 +37,9 @@ def test_spawned_dao_enemy_is_classified_dao(conn):
     assert power.class_of(conn, "npc", nid) == "dao"
 
 
-def test_corpo_enemy_is_tankier(conn):
+def test_corpo_enemy_is_tankier(conn, monkeypatch):
+    from engine.systems import body_absorb
+    monkeypatch.setattr(body_absorb, "npc_mult", lambda c, i: 1.0)   # i corpi leggendari degli NPC sono casuali
     loc = _player_loc(conn)
     corpo = zones._spawn_classed_npc(conn, random.Random(3), loc, "corpo", 600, 1)
     qi = zones._spawn_classed_npc(conn, random.Random(4), loc, "qi", 600, 1)

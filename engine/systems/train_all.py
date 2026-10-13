@@ -82,7 +82,8 @@ def train(conn, player) -> str:
     if daos:
         progression.record_dao_training(conn, player.id)
         if grown:
-            out.append("Dao: " + ", ".join(grown) + ".")
+            out.append("Dao: " + ", ".join(grown[:4])
+                       + (f" e altri {len(grown) - 4}" if len(grown) > 4 else "") + ".")
         else:
             out.append(f"Dao: mediti su {len(daos)} Dao; la comprensione matura in silenzio (crescerà nelle prossime sessioni).")
     else:

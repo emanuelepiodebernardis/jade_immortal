@@ -153,6 +153,10 @@ def technique_combat_factor(conn: sqlite3.Connection, ctype: str, cid: int) -> f
     """Moltiplicatore di potenza dalle tecniche apprese (solo player)."""
     if ctype != "player":
         return 1.0
+    # Agg. 52: le COPIE della stessa tecnica non si sommano più in fila (41 copie dell'Arte del Patriarca
+    # valevano ×9): conta la copia migliore, e le altre aggiungono poco (logaritmo del numero di copie)
+    import math
     rows = conn.execute(
-        "SELECT magnitude FROM learned_techniques WHERE player_id=?;", (cid,)).fetchall()
-    return 1.0 + sum((r["magnitude"] or 0) for r in rows)
+        "SELECT name, MAX(magnitude) m, COUNT(*) n FROM learned_techniques WHERE player_id=? GROUP BY name;",
+        (cid,)).fetchall()
+    return 1.0 + sum((r["m"] or 0) * (1 + 0.5 * math.log2(r["n"] or 1)) for r in rows)

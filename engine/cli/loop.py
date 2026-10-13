@@ -510,6 +510,8 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     from engine.systems import npc_quests, soul_war, lost_legacy, kingdoms
     lines += npc_quests.check(conn, player)
     lines += kingdoms.on_kill(conn, player, npc.id)
+    from engine.systems import body_absorb
+    lines += body_absorb.on_kill(conn, t, rng, player, npc.id)
     lines += soul_war.on_kill(conn, t, player, _vk["kind"] if _vk else None)
     _fl = soul_war.maybe_find_flag(conn, rng, player)
     if _fl:

@@ -162,7 +162,9 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     from engine.systems import deep_dao
     if ctype == "npc":                      # chi ti insegue resta al tuo passo (Aggiornamento 44)
         from engine.systems import pursuers
-        f = pursuers.factor(conn, cid) * deep_dao.npc_mult(conn, cid)   # e gli arcani lo indeboliscono
+        from engine.systems import body_absorb
+        f = (pursuers.factor(conn, cid) * deep_dao.npc_mult(conn, cid)  # e gli arcani lo indeboliscono
+             * body_absorb.npc_mult(conn, cid))                         # e chi ha un corpo leggendario è più forte
         if f != 1.0:
             result = {k: max(1.0, v * f) for k, v in result.items()}
     else:

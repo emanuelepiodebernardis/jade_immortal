@@ -372,13 +372,17 @@ const V = (() => {
     if (!c) return `<div class="card"><b>✦ Corpo leggendario</b><div class="empty">Nessun corpo leggendario. Puoi nascerci affidandoti al Cielo alla prossima vita.</div></div>` + soul;
     return `<div class="card body"><b>✦ ${esc(c.nome)}</b> <span class="lvtag">${esc(c.stadio)}</span>
       ${hbar("Risveglio", c.pct, `stadio ${c.n}`, "rare")}
-      <p class="lore">${esc(c.storia)}</p><ul>${c.doni.map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>` + soul;
+      <p class="lore">${esc(c.storia)}</p><ul>${c.doni.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
+      ${c.poteri && c.poteri.poteri.length ? `<div class="small"><b>Poteri:</b> ${c.poteri.poteri.map((p) => `<span title="${esc(p.testo)}">${esc(p.nome)}</span>`).join(" · ")}</div>` : ""}
+      ${c.poteri && c.poteri.prossimo ? `<div class="small muted">Prossimo allo stadio ${c.poteri.prossimo.stadio}: «${esc(c.poteri.prossimo.nome)}»</div>` : ""}
+      ${c.supremo && c.supremo.nome ? `<div class="small rare">✦ <b>${esc(c.supremo.nome)}</b> · livello ${c.supremo.livello}</div>` : c.supremo && c.supremo.pronto ? `<div class="tools"><button class="primary" data-cmd="corpo supremo">✦ Fondi corpo e sangue: Corpo Supremo</button></div>` : ""}
+      ${c.risonanza ? `<div class="small">🫀 Sangue affine: ${esc(c.risonanza.affini.join(", "))}${c.risonanza.lignaggio ? ` · <b>risuona</b> col ${esc(c.risonanza.lignaggio)}` : ""}</div>` : ""}</div>` + soul;
   }
   function bloodChart(lines) {
     if (!lines.length) return `<div class="card"><b>🩸 Sangue</b><div class="empty">Nessun lignaggio. Le essenze delle bestie risvegliano il sangue.</div></div>`;
     const mx = Math.max(1, ...lines.map((l) => l.conc));
     return `<div class="card"><b>🩸 Lignaggi</b> <button data-menu="sangue">Apri il menu del sangue</button>` + lines.map((l) =>
-      hbar(`${esc(l.icona)} ${esc(l.nome)}`, 100 * l.conc / mx, `${fmt(l.conc)} · ${esc(l.rango)}${l.purezza ? ` · ✧${l.purezza}` : ""}`, l.r >= 6 ? "rare" : l.r >= 4 ? "warn" : "", l.grado)).join("") + `</div>`;
+      hbar(`${esc(l.icona)} ${esc(l.nome)}`, 100 * l.conc / mx, `${fmt(l.conc)} · ${esc(l.rango)}${l.evo ? ` · 🧬${l.evo}` : ""}${l.purezza ? ` · ✧${l.purezza}` : ""}`, l.r >= 6 ? "rare" : l.r >= 4 ? "warn" : "", l.grado)).join("") + `</div>`;
   }
 
   function dailyQuest(q) {

@@ -383,6 +383,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("prodigi", "rivali", "generazione", "prodigies"):
         from engine.systems import prodigies
         return prodigies.describe(conn, player)
+    if cmd in ("corpo", "costituzione", "body") and arg.strip().lower().startswith(("supremo", "fondi", "fusione")):
+        from engine.systems import supreme_body
+        return supreme_body.unite(conn, player)
     if cmd in ("corpo", "costituzione", "cuore", "tossine", "body"):
         from engine.systems import dao_heart
         return dao_heart.describe(conn, player)
@@ -395,6 +398,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("sangue", "lignaggi", "bloodline", "bloodlines", "lignaggio"):
         from engine.systems import blood_menu
         return blood_menu.command(conn, player, arg)
+    if cmd in ("evolvi", "evolvi_sangue", "evoluzione"):
+        from engine.systems import blood_evolution
+        return blood_evolution.evolve(conn, player, arg)
     if cmd in ("fondi_sangue", "fondisangue", "fusione_sangue"):
         from engine.systems import bloodlines
         return bloodlines.fuse(conn, player, arg)
@@ -595,6 +601,8 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     out += dao_superiori.check_awakenings(conn, player.id)
     out += system_daily.check(conn, player)
     out += frontier.expand(conn, player)
+    from engine.systems import supreme_body
+    out += supreme_body.after_command(conn, player)
     ch = story_tick(conn, player)
     if ch:
         out.append(ch)

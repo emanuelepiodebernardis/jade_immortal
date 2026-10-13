@@ -504,6 +504,12 @@ CREATE INDEX IF NOT EXISTS idx_conn_from       ON location_connections(from_loca
 CREATE INDEX IF NOT EXISTS idx_injuries_char    ON injuries(character_type, character_id, healed);
 CREATE INDEX IF NOT EXISTS idx_ep_participant   ON event_participants(participant_type, participant_id);
 CREATE INDEX IF NOT EXISTS idx_character_daos    ON character_daos(character_type, character_id);
+-- (Agg. 53) le query più frequenti dopo mesi di gioco
+CREATE INDEX IF NOT EXISTS idx_cult_records      ON cultivation_records(character_type, character_id);
+CREATE INDEX IF NOT EXISTS idx_conseq_due        ON consequences(consequence_type, resolved, resolve_tick);
+CREATE INDEX IF NOT EXISTS idx_conseq_event      ON consequences(event_id);
+CREATE INDEX IF NOT EXISTS idx_npcs_status_loc   ON npcs(status, location_id);
+CREATE INDEX IF NOT EXISTS idx_char_profiles     ON character_profiles(character_type, character_id);
 
 -- ============================================================
 -- SETTE, RISORSE, ATTIVITÀ GIORNALIERA (strato "agenzia del giocatore")

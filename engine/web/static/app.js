@@ -427,18 +427,29 @@ function heroHtml(h, sb, daos) {
   return "";
 }
 // menu a sezioni: setta, arti, coltivazione, eventi, regni, famiglia
+// IL TESTO ESSENZIALE: a schermo solo le voci più alte; il resto è a un clic (▸ altri…)
+const MENU_FULL = 6, LINES_FULL = 3;
+function msecHtml(s, full) {
+  let h = `<div class="card sec msec${full ? "" : " mini"}"><b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
+  for (const b of s.bars) h += `<div class="mbar ${b.tone || ""}"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
+  const lines = full ? s.lines : s.lines.slice(0, 1);
+  lines.slice(0, LINES_FULL).forEach((l) => { h += `<div class="mline">${actionize(esc(l))}</div>`; });
+  if (lines.length > LINES_FULL) h += `<details class="more"><summary>altri ${lines.length - LINES_FULL} dettagli</summary>` +
+    lines.slice(LINES_FULL).map((l) => `<div class="mline">${actionize(esc(l))}</div>`).join("") + `</details>`;
+  const ok = s.actions.filter((a) => a.ok), no = s.actions.filter((a) => !a.ok);
+  const acts = full ? ok.concat(no) : ok.slice(0, 2);
+  const many = s.actions.length > 2;
+  if (acts.length) h += `<div class="mact">` + acts.map((a) => a.ok
+    ? `<button class="${a.main ? "primary" : ""}" data-cmd="${esc(a.cmd)}" title="${esc(a.cmd)}">${esc(a.label)}</button>`
+    : `<button disabled class="${many ? "chip" : ""}" title="${esc(a.why)}">${esc(a.label)}${many ? "" : `<small>${esc(a.why)}</small>`}</button>`).join("") + `</div>`;
+  return h + `</div>`;
+}
 function menuHtml(m) {
   if (m.errore) return `<div class="empty">${esc(m.errore)}</div>`;
   let h = `<div class="card menuhead"><h3>${esc(m.title)}</h3>${m.sub.map((s) => `<div class="muted">${esc(s)}</div>`).join("")}</div>`;
-  for (const s of m.sections) {
-    h += `<div class="card sec msec"><b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
-    for (const b of s.bars) h += `<div class="mbar ${b.tone || ""}"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
-    for (const l of s.lines) h += `<div class="mline">${actionize(esc(l))}</div>`;
-    if (s.actions.length) h += `<div class="mact">` + s.actions.map((a) => a.ok
-      ? `<button class="${a.main ? "primary" : ""}" data-cmd="${esc(a.cmd)}" title="${esc(a.cmd)}">${esc(a.label)}</button>`
-      : `<button disabled title="${esc(a.why)}">${esc(a.label)}<small>${esc(a.why)}</small></button>`).join("") + `</div>`;
-    h += `</div>`;
-  }
+  m.sections.slice(0, MENU_FULL).forEach((s) => { h += msecHtml(s, true); });
+  const rest = m.sections.slice(MENU_FULL);
+  if (rest.length) h += `<details class="card more mrest"><summary>Altre ${rest.length} voci</summary>` + rest.map((s) => msecHtml(s, false)).join("") + `</details>`;
   return h + (m.foot ? `<div class="muted">${esc(m.foot)}</div>` : "");
 }
 

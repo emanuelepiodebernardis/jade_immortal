@@ -13,6 +13,7 @@ IL MENU DEL SANGUE — gestire i lignaggi in un posto solo ('sangue', pulsante �
   sangue raffina <n> in <m>       versi il lignaggio n nel lignaggio m
   fondi_sangue <n> <m> [...]      fusione (anche dai pulsanti)
   trasformati [n]                 la trasformazione (anche dai pulsanti)
+  sangue evolvi <n> [forma]       l'EVOLUZIONE del lignaggio (vedi blood_evolution)
 """
 
 from __future__ import annotations
@@ -203,7 +204,7 @@ def refine(conn, player, arg: str) -> str:
 
 def menu_build(conn, player) -> dict:
     from engine.systems.menus import act, bar, menu, section
-    from engine.systems import bloodlines as B, race_realms
+    from engine.systems import bloodlines as B, race_realms, blood_evolution, body_blood
     o = B.ordered(conn)
     secs = []
     ess, rel = _essences(conn, player.id), _relics(conn, player.id)
@@ -264,7 +265,7 @@ def menu_build(conn, player) -> dict:
         mf = B.manifestations(ln)
         gifts = list(dict.fromkeys(B._fam(f)[2] for f in ln.get("families", []) if B._fam(f)[2]))
         rk = _race_of(ln)
-        lines = [(f"Purezza {int(100 * ln['purity'])}% · " if ln.get("purity") else "")
+        lines = [(f"Purezza ×{1 + 0.1 * ln['purity']:.2f} · " if ln.get("purity") else "")
                  + f"Elementi: {', '.join(B.EL_ADJ.get(e, e) for e in _els_main_first(ln)[:4])}"
                  + (f" +{len(ln['elements']) - 4}" if len(ln['elements']) > 4 else "")
                  + (f" · dono: {', '.join(gifts)}" if gifts and g >= B.PURE else "")
@@ -286,9 +287,15 @@ def menu_build(conn, player) -> dict:
                             f"sangue raffina {i} in {top}"))
         if rk:
             acts.append(act(f"Razza affine: {race_realms._name(rk)}", "razze"))
+        ev_lines, ev_acts = blood_evolution.menu_lines(conn, player, i, ln)
+        res = body_blood.label(conn, ln)
+        if res:
+            ev_lines.insert(0, res)
+        lines[1:1] = ev_lines                     # l'evoluzione e la risonanza subito sotto il nome
+        acts = ev_acts + acts
         rk_ = B.line_rank(ln)
         if ln.get("minor"):
-            lines.insert(1, "Tratti minori assorbiti: " + ", ".join(B._fam(f)[0] for f in ln["minor"] if f in B.FAMILIES))
+            lines.append("Tratti minori assorbiti: " + ", ".join(B._fam(f)[0] for f in ln["minor"] if f in B.FAMILIES))
         secs.append(section(f"#{i} {B.RANK_ICON[rk_]} {ln['name']} — {B.grade_name(ln['conc'])} · {B.RANK_NAME[rk_]}",
                             lines, acts,
                             [bar(f"verso {B.grade_name(nxt)}", pct, f"{ln['conc']:.0f}/{nxt:.0f}", tone="bad")]))
@@ -311,6 +318,9 @@ def command(conn, player, arg: str) -> str:
         return (f"Purificazione automatica {'ACCESA' if val else 'SPENTA'}: "
                 + ("il sangue meno nobile che assorbirai andrà subito ai tuoi lignaggi più nobili, in parti uguali."
                    if val else "ogni sangue che assorbi resta un lignaggio a sé."))
+    if a.startswith(("evolvi", "evolvere", "evoluzione", "evolve")):
+        from engine.systems import blood_evolution
+        return blood_evolution.evolve(conn, player, a.split(maxsplit=1)[1] if " " in a else "")
     if a.startswith(("raffina", "versa", "sacrifica", "offri")):
         return refine(conn, player, a.split(maxsplit=1)[1] if " " in a else "")
     return menus.show(conn, player, "sangue")

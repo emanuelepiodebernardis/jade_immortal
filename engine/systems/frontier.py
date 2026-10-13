@@ -297,6 +297,11 @@ def expand(conn, player, layer: int | None = None) -> list[str]:
                    + (" e qualcosa di misterioso." if any(str(n) in w["mysteries"] for n in created) else "."))
     state.set_json(conn, COORDS, {str(k): list(v) for k, v in allc.items()})
     _put_world(conn, layer, w)
+    if len(out) > 1:                                  # più anelli in un colpo: una riga sola
+        rings = [int(x.split("anello ")[1].split("/")[0]) for x in out]
+        n = sum(int(x.split("): ")[1].split(" ")[0]) for x in out)
+        out = [f"🗺 La frontiera si allarga di {len(out)} anelli (fino al {max(rings)}/{ring_count(layer)}): {n} nuove "
+               f"terre: più ci si allontana, più i nemici sono forti e i bottini rari; alcuni luoghi nascondono misteri."]
     if w["rings"] >= ring_count(layer):
         out.append(f"🗺 Hai la mappa completa del {asc.layer_name(layer)}. Oltre, c'è solo il cielo.")
     return out

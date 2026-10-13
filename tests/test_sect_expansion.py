@@ -128,7 +128,7 @@ def test_raid_sacks_rival_sect(conn):
     conn.execute("UPDATE players SET location_id=? WHERE id=1;", (rhome,))
     # garantisci un paio di membri DEBOLI presenti alla sede
     r1 = conn.execute("SELECT id FROM cultivation_realms WHERE tier=1;").fetchone()["id"]
-    weak = conn.execute("SELECT id FROM npcs WHERE kind='human' AND status='alive' LIMIT 2;").fetchall()
+    weak = conn.execute("SELECT id FROM npcs WHERE kind='human' AND status='alive' ORDER BY id LIMIT 2;").fetchall()
     for w in weak:
         conn.execute("UPDATE npcs SET faction_id=?, location_id=?, realm_id=? WHERE id=?;",
                      (rival["id"], rhome, r1, w["id"]))

@@ -149,6 +149,8 @@ def _after(conn, player) -> list[str]:
     from engine.systems import system_daily, frontier
     out += system_daily.check(conn, player)
     out += frontier.expand(conn, player)
+    from engine.systems import supreme_body
+    out += supreme_body.after_command(conn, player)
     ch = story_cmds.story_tick(conn, player)
     if ch:
         out.append(ch)
@@ -187,7 +189,8 @@ def turn(raw: str) -> dict:
                 parts.append("Le tue ferite hanno avuto la meglio.")
                 return {"log": _clean("\n".join(parts)), "morto": True}
             parts += _after(conn, p)
-    return {"log": _clean("\n".join(x for x in parts if x))}
+    from engine.systems import compact
+    return {"log": compact.compact(_clean("\n".join(x for x in parts if x)))}
 
 
 # ============================================================
@@ -265,6 +268,11 @@ def state_snapshot() -> dict:
                    5 if (conn.execute("SELECT kind FROM npcs WHERE id=?;", (n.id,)).fetchone()["kind"]
                          or "human") != "human" else 4)
             _row = conn.execute("SELECT kind, archetype, gender FROM npcs WHERE id=?;", (n.id,)).fetchone()
+            from engine.systems import body_absorb, constitutions as _cons
+            _bk = body_absorb.npc_body(conn, n.id)
+            if _bk:
+                tag = (tag + " · " if tag else "") + "✦ " + _cons.BODIES[_bk][0]
+                pri = min(pri, 3)
             npcs.append({"name": n.name, "tag": tag, "pri": pri, "kind": _row["kind"] or "human",
                          "arch": _row["archetype"] or "", "f": (_row["gender"] or "") == "f",
                          "rel": "nemico" if kinds & {"nemesis", "rival"} else ("legame" if kinds else "")})
@@ -401,15 +409,19 @@ def hero_data() -> dict:
         c = cons.get(conn)
         corpo = None
         if c:
-            nm = cons.BODIES[c["key"]][0]
+            nm = cons.display_name(c)
             st = int(c.get("stage", 0))
             lore = cons.LORE.get(c["key"], ("", []))
+            from engine.systems import body_blood, body_powers, supreme_body
             corpo = {"nome": nm, "stadio": cons.stage_name(st), "n": st, "storia": lore[0], "doni": lore[1],
+                     "risonanza": body_blood.summary(conn),
+                     "poteri": body_powers.summary(conn), "supremo": supreme_body.summary(conn),
                      "pct": min(100, round(100 * st / max(1, len(cons.STAGE_NAMES) - 1)))}
         lines = []
         for _k, ln in bl.ordered(conn)[:6]:
             r = bl.line_rank(ln)
             lines.append({"nome": ln["name"], "rango": bl.RANK_NAME[r], "icona": bl.RANK_ICON[r], "r": r,
+                          "evo": int(ln.get("evo", 0) or 0),
                           "conc": round(ln["conc"], 1), "grado": bl.grade_name(ln["conc"]),
                           "purezza": round(ln.get("purity", 0.0), 2)})
         g, xp, lo, hi = soul_temper.progress(conn)
@@ -502,7 +514,8 @@ def auto_day() -> dict:
                 _after(conn, p)
     m = re.search(r"si ferma: (.+)", rep)
     stop = "morto" if dead else (m.group(1).strip() if m else None)
-    return {"log": rep, "stop": stop}
+    from engine.systems import compact
+    return {"log": compact.compact(rep), "stop": stop}
 
 
 def summary_snapshot() -> dict:

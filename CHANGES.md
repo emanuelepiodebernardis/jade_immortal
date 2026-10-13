@@ -2046,3 +2046,101 @@ Lo script cerca su **Wikimedia Commons** i grandi dipinti cinesi classici, uno p
 Le salva a 1024 pixel e annota titolo, autore e licenza in `immagini/CREDITI.txt`. `--elenco` mostra cosa cercherebbe senza scaricare; `--tutto` riscarica tutto. Le ricerche sono in cima allo script e si possono cambiare, e qualsiasi immagine si può sostituire con una tua dello stesso nome.
 
 Nuovi test. Suite totale: **607 passati**.
+
+## Aggiornamento 52 — Ribilanciamento (simulazioni da 400 giorni)
+
+Quattro partite automatiche da 400 giorni, una per origine, prima e dopo le modifiche: le morti
+scendono da 8–9 a circa 6 per partita.
+
+- **Inseguitori** più bassi rispetto alla tua forza (cacciatori 0,7–1,05×, campioni 0,8–1,1×,
+  nemesi e arcinemici 0,85–1,2×). I padri, i patriarchi e gli anziani delle faide restano come
+  sono.
+- **Campioni delle specie** ogni 10 bestie uccise della stessa specie, non più ogni 6.
+- **Faide dopo la rinascita**: chi ti dava la caccia perde le tue tracce e torna a cercarti dopo
+  90 giorni.
+- **Copie della stessa tecnica**: non si sommano più una per una. Conta la copia più forte, più
+  un piccolo bonus che cresce col logaritmo del numero di copie. Nel salvataggio di prova il
+  fattore tecniche passa da 43,7 a 12.
+
+## Aggiornamento 53 — Evoluzione del sangue, risonanza col corpo, testo essenziale
+
+- **Evoluzione del sangue** (`engine/systems/blood_evolution.py`): ogni famiglia ha una o più
+  evoluzioni verso un rango più alto, alcune con un ramo per elemento.
+  - Le catene: serpente ▸ Jiao ▸ Drago ▸ Drago Azzurro ▸ Drago della Torcia ▸ Hundun; Kun ▸
+    Kunpeng; gru ▸ Fenice ▸ Uccello Vermiglio; lupo ▸ Tiangou ▸ Taotie.
+  - Tre famiglie nuove si ottengono solo evolvendo: **Jiao**, **Tiangou** e **Drago Giallo**.
+  - Servono un grado del lignaggio e un regno, entrambi crescenti col rango d'arrivo. Poi si
+    passano tre giorni nel bozzolo con una probabilità di riuscita. La probabilità sale col
+    grado in più, con la purezza, con un'essenza della bestia d'arrivo (che fa da guida), con
+    il Domatore e col corpo affine.
+  - Se l'evoluzione fallisce, il sangue perde il 20%, ti ferisce e si può ritentare dopo 7
+    giorni.
+  - La forma di prima resta come tratto minore, e ogni evoluzione dà +8% di forza al lignaggio.
+  - In cima c'è l'Hundun; poi il sangue **ascende oltre il Caos** senza fine.
+  - Nei lignaggi fusi si propongono solo le evoluzioni che alzano davvero il rango.
+  - Le evoluzioni passano alla vita successiva insieme al sangue ereditato.
+  - Si usano dal menu `sangue` o con `sangue evolvi <n> [forma]`; quando un lignaggio diventa
+    pronto, lo annuncia.
+- **Risonanza corpo-sangue** (`engine/systems/body_blood.py`): ogni corpo leggendario ha
+  famiglie ed elementi affini.
+  - Con un lignaggio affine il sangue si concentra fino a +50%, combatte fino a +20%, il dono
+    del corpo scatta più spesso e le evoluzioni riescono il 15% in più.
+  - La risonanza cresce con gli stadi di risveglio del corpo.
+  - Quando il sangue evolve nella bestia del tuo corpo, il corpo si risveglia di uno stadio.
+  - La risonanza compare nel menu del sangue, nel pannello del corpo e nella scheda Eroe.
+- **Poteri dei corpi leggendari** (`engine/systems/body_powers.py`): ogni corpo ha una sua via di
+  sei poteri.
+  - Stadio 1: la tecnica del corpo.
+  - Stadi 2 e 3: due doni passivi.
+  - Stadio 4: il potere maggiore e la seconda tecnica.
+  - Stadio 5 (Corpo Compiuto): il potere supremo.
+  - Oltre: ogni 3 stadi la tecnica sale di grado, senza fine.
+  - Alcuni esempi: il Corpo Santo apre il Mare dell'Amaro e la Ruota della Vita; l'Osso Supremo
+    ha le Arti Preziose del Suanni e del Kunpeng; l'Asura ottiene Tre Teste e Sei Braccia; il
+    Nirvana della Fenice rinasce dal fuoco.
+  - I poteri passivi entrano in ogni scontro, le tecniche si sommano alle altre. Nei salvataggi
+    vecchi i poteri già raggiunti si sbloccano al primo comando.
+- **Corpo Supremo** (`engine/systems/supreme_body.py`, `corpo supremo`): sta sopra i corpi
+  leggendari e i lignaggi.
+  - Si sblocca con il corpo al Corpo Compiuto e un lignaggio di rango Ancestrale o più alto al
+    grado Primordiale.
+  - La fusione dura 7 giorni. Il corpo che nasce dipende da corpo e sangue: Primo Dio, Sovrano
+    dei Draghi Ancestrali, Fenice dell'Eterno Nirvana, Mille Mondi, Re dei Demoni Celesti,
+    Montagna Primordiale, Abisso del Nord, Spada che Precede il Cielo, oppure il Corpo Supremo
+    del Cielo e della Terra.
+  - Doni: coltivazione +40%, attacco +20%, danni subiti −12%, un colpo e una resurrezione in più,
+    sangue e doni del corpo +30%, la tecnica suprema.
+  - Cresce di livello senza fine con i risvegli del corpo e i gradi del sangue: +10% di tutto a
+    livello e una nuova tecnica suprema ogni 5 livelli.
+- **Corpi dei nemici** (`engine/systems/body_absorb.py`):
+  - Alcuni coltivatori forti, dal 3° regno in su, portano un corpo leggendario. Sono più
+    probabili tra patriarchi, anziani e geni, combattono il 20% più forte e il nome del corpo
+    compare tra i presenti.
+  - Sconfitti, lasciano un'Essenza del Corpo. Se non hai un corpo, la sua essenza te lo dà.
+    Se è lo stesso corpo che hai, si risveglia di uno stadio.
+  - Se è un corpo diverso, si tenta la fusione: la riuscita va dal 60% al 95% secondo i tuoi
+    stadi. Riuscita, aggiunge i doni dell'altro corpo a metà forza (senza maledizione), la sua
+    tecnica e le sue affinità di sangue. Il nome diventa «Corpo A ⟡ Corpo B» e non c'è limite
+    ai corpi fusi.
+  - Anche i corpi fusi contano per il Corpo Supremo.
+- **Testo essenziale**:
+  - Il diario della dashboard passa da un filtro (`engine/systems/compact.py`) che non riscrive
+    nulla e sceglie soltanto cosa mostrare:
+    - le righe ripetute compaiono una volta sola;
+    - gli elenchi lunghi mostrano i primi 5 elementi più «e altri N»;
+    - cinque o più righe dello stesso tipo si riducono alle prime tre più «e altre N simili»;
+    - spariscono i suggerimenti da terminale.
+  - La frontiera che si allarga di più anelli insieme dà una riga sola, non nove.
+  - L'allenamento mostra al massimo 4 Dao.
+  - Nei menu restano aperte le prime 6 voci e le altre si raccolgono sotto «Altre N voci».
+    Ogni voce mostra al massimo 3 righe, con il resto in «altri dettagli». I pulsanti non
+    disponibili diventano piccoli, con il motivo nel tooltip.
+- **Velocità a partita avanzata**: sette indici nuovi (cultivation_records, consequences, npcs per
+  stato/luogo, evento e caccia, character_profiles). Sul salvataggio reale tre notti di sonno
+  passano da 1,45 s a 0,61 s; le query più lente (fino a 270 ms) ora restano sotto i 10 ms.
+- **Correzioni**:
+  - Le ricompense «un Dao a caso» creavano un finto Dao chiamato «random». Ora scelgono uno dei
+    tuoi Dao, e il finto Dao dei vecchi salvataggi confluisce in quello più praticato.
+  - Il guadagno di spirito si mostra senza decimali.
+  - Un test dipendeva dall'ordine delle righe nel database.
+

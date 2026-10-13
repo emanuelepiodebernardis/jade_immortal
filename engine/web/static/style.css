@@ -577,3 +577,12 @@ img.portrait { object-fit: cover; }
 .arena[style] { background-size: cover; background-position: center; }
 #map.has-img svg { background: linear-gradient(color-mix(in srgb, var(--panel) 72%, transparent), color-mix(in srgb, var(--panel) 72%, transparent)), var(--mapbg) center / cover; }
 img.portrait { object-fit: cover; object-position: top; background: var(--panel2); border: 2px solid var(--line); }
+
+/* Agg. 53 — testo essenziale */
+details.more > summary { cursor: pointer; color: var(--muted); font-size: 12px; margin: 4px 0; list-style: none; }
+details.more > summary::before { content: "▸ "; }
+details.more[open] > summary::before { content: "▾ "; }
+details.mrest > summary { font-size: 13px; font-weight: 600; color: var(--ink, inherit); }
+.msec.mini { padding: 6px 10px; margin: 6px 0; }
+.msec.mini .mline { color: var(--muted); }
+.mact button.chip { font-size: 11px; padding: 3px 8px; }

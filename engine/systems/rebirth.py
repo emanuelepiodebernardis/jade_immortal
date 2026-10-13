@@ -519,6 +519,11 @@ def _purge_player(conn, pid: int) -> None:
     # non sono più le tue
     conn.execute("UPDATE npcs SET hunting=0 WHERE hunting=1;")
     conn.execute("UPDATE sect_wars SET status='lost' WHERE status='active';")
+    try:                                             # chi giurava vendetta alla vita passata non ti riconosce
+        conn.execute("UPDATE feuds SET status='ignoto', knows=0, ready_day=ready_day+90 "
+                     "WHERE kind='faida' AND status IN ('giurata','in caccia');")
+    except Exception:
+        pass
     try:                                             # i servi della vita passata tornano liberi
         conn.execute("UPDATE servants SET status='libero' WHERE status='attivo';")
     except Exception:

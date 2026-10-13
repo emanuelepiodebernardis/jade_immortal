@@ -38,6 +38,8 @@ SANGUE IN RIVOLTA
   li tiene a bada.
 
   sangue            i tuoi lignaggi, i gradi, le manifestazioni
+  sangue evolvi <n> l'EVOLUZIONE: il lignaggio sale di rarità nella bestia di cui è erede
+                    (serpente ▸ Jiao ▸ Drago ▸ Drago Azzurro ▸ Drago della Torcia ▸ Hundun ▸ oltre il Caos)
 """
 
 from __future__ import annotations
@@ -133,6 +135,13 @@ FAMILIES = {
                            "accecamento", True),
     "xiangliu": ("Xiangliu", ["Diciotto Occhi", "Nove Fauci Velenose", "Squame Paludose", "Nove Colli",
                               "Coda del Diluvio"], "veleno", True),
+    # --- le forme che si raggiungono EVOLVENDO (vedi blood_evolution) ---
+    "jiao": ("Jiao", ["Occhi del Jiao", "Artigli del Jiao", "Squame del Jiao", "Nuoto del Diluvio",
+                      "Corna Nascenti"], "gelo", True),
+    "tiangou": ("Tiangou", ["Occhi del Cane Celeste", "Fauci che Divorano il Sole", "Manto d'Eclissi",
+                            "Corsa tra le Stelle", "Ululato alla Luna"], "accecamento", True),
+    "drago giallo": ("Drago Giallo", ["Occhi del Centro", "Artigli d'Ocra", "Squame Dorate",
+                                      "Nubi delle Quattro Direzioni", "Corna dell'Imperatore"], "pressione", True),
     # --- il Caos ---
     "hundun": ("Hundun", ["Occhi Senza Volto", "Fauci del Caos", "Pelle dell'Informe", "Ali del Vuoto",
                           "Sei Zampe del Principio"], "confusione", True),
@@ -155,7 +164,7 @@ FAMILY_RANK.update({"volpe": 2, "gru": 2, "pixiu": 3, "suanni": 3, "peng": 3, "t
                     "drago": 5, "fenice": 5, "demone": 5, "silvano": 5, "gigante": 5, "leviatano": 5,
                     "drago azzurro": 6, "tigre bianca": 6, "uccello vermiglio": 6, "tartaruga nera": 6,
                     "taotie": 7, "qiongqi": 7, "taowu": 7, "kunpeng": 7, "drago della torcia": 7, "xiangliu": 7,
-                    "hundun": 8})
+                    "hundun": 8, "jiao": 4, "tiangou": 4, "drago giallo": 6})
 _RANKS = [("Sangue Selvatico", "·"), ("Sangue Mortale", "★"), ("Sangue Spirituale", "★★"),
           ("Sangue Reale", "★★★"), ("Sangue Imperiale", "★★★★"), ("Sangue Divino", "✦"),
           ("Sangue dei Quattro Simboli", "✦✦"), ("Sangue Ancestrale", "✦✦✦"), ("Sangue del Caos", "✦✦✦✦")]
@@ -188,8 +197,8 @@ def line_rank(ln: dict) -> int:
     ranks = [FAMILY_RANK.get(f, 0) for f in ln.get("families") or []]
     if not ranks:
         return 0
-    top = max(ranks)
-    if top >= 3 and sum(1 for r in ranks if r == top) >= 2:
+    top = max(ranks) + int(ln.get("ascent", 0) or 0)           # le ascese oltre il Caos (evoluzione)
+    if max(ranks) >= 3 and sum(1 for r in ranks if r == max(ranks)) >= 2:
         return top + 1
     return top
 
@@ -202,7 +211,7 @@ FAMILY_ELEMENT = {"drago": "fulmine", "fenice": "fuoco", "qilin": "luce", "demon
                   "hundun": "caos", "bai ze": "luce", "nove code": "illusione", "kun": "acqua", "tigre": "metallo",
                   "tartaruga": "acqua", "serpente": "terra", "peng": "vento", "pixiu": "terra", "suanni": "fuoco",
                   "volpe": "illusione", "gru": "vento", "lupo": "vento", "orso": "corpo", "aquila": "fulmine",
-                  "cinghiale": "corpo"}
+                  "cinghiale": "corpo", "jiao": "acqua", "tiangou": "oscurita", "drago giallo": "terra"}
 
 
 def form_name(ln: dict) -> str:
@@ -305,7 +314,7 @@ def _fam(key: str):
 def all_lines(conn) -> dict:
     d = state.get_json(conn, KEY, {}) or {}
     for ln in d.values():                      # i lignaggi non fusi riconoscono la loro famiglia più specifica
-        if not ln.get("fused_from"):
+        if not ln.get("fused_from") and not ln.get("lineage"):     # gli evoluti tengono la forma nuova
             fams = families_of(ln.get("species", ""))
             if fams:
                 ln["families"] = fams
@@ -398,6 +407,8 @@ def gain(conn, t: int, rng: random.Random, player, species: str, elements: list[
     if new:
         d[key] = _new_line(species, elements)
     ln = d[key]
+    from engine.systems import body_blood
+    amount *= body_blood.gain_mult(conn, ln)                    # il corpo leggendario affine lo concentra
     before = grade_index(ln["conc"])
     ln["conc"] = round(ln["conc"] + amount, 2)
     after = grade_index(ln["conc"])
@@ -426,6 +437,8 @@ def _on_grade_up(conn, ln: dict, before: int, after: int) -> list[str]:
         yrs = 15 * (after - before)
         lifespan.add_bonus_years(conn, yrs)
         out.append(f"  Il sangue longevo ti allunga la vita di {yrs} anni.")
+    from engine.systems import blood_evolution
+    out += blood_evolution.notes_on_grade_up(conn, ln)
     return out
 
 
@@ -555,7 +568,8 @@ def legacy(conn) -> dict | None:
         return None
     k, ln = o[0]
     return {"species": ln["species"], "elements": ln["elements"], "families": ln["families"],
-            "fused_from": ln.get("fused_from", []), "name": ln["name"], "conc": ln["conc"] * 0.25}
+            "fused_from": ln.get("fused_from", []), "name": ln["name"], "conc": ln["conc"] * 0.25,
+            "minor": ln.get("minor", []), "lineage": ln.get("lineage", []), "evo": ln.get("evo", 0)}
 
 
 def inherit(conn, leg: dict | None) -> list[str]:
@@ -565,6 +579,9 @@ def inherit(conn, leg: dict | None) -> list[str]:
     key = leg["species"].lower()
     ln = _new_line(leg["species"], leg["elements"], leg["families"], leg["fused_from"])
     ln["name"] = leg["name"]
+    for f in ("minor", "lineage", "evo"):                       # le evoluzioni non si dimenticano
+        if leg.get(f):
+            ln[f] = leg[f]
     ln["conc"] = max(d.get(key, {}).get("conc", 0), round(leg["conc"], 1))
     d[key] = ln
     _save(conn, d)
@@ -652,7 +669,7 @@ def transform(conn, player, arg: str) -> str:
 # ============================================================
 
 def combat(conn, player_id: int, fx) -> list[str]:
-    from engine.systems import combat_states
+    from engine.systems import combat_states, body_blood, supreme_body
     d = all_lines(conn)
     if not d:
         return []
@@ -660,7 +677,10 @@ def combat(conn, player_id: int, fx) -> list[str]:
     pr = fx.p.prof
     for k, ln in d.items():
         s = (_strength(ln["conc"]) * RANK_MULT.get(line_rank(ln), 1.0)    # il sangue più raro pesa di più
-             * (1 + 0.1 * ln.get("purity", 0.0)))                      # e il sangue purificato ancora di più
+             * (1 + 0.1 * ln.get("purity", 0.0))                       # e il sangue purificato ancora di più
+             * (1 + 0.08 * int(ln.get("evo", 0) or 0))                 # e ogni evoluzione superata
+             * body_blood.combat_mult(conn, ln)                        # e la risonanza col corpo
+             * supreme_body.blood_mult(conn))                          # e il Corpo Supremo
         g = grade_index(ln["conc"])
         kinds = {kd for kd, _n in manifestations(ln)}
         if "occhi" in kinds:
@@ -744,6 +764,8 @@ def describe(conn, player) -> str:
             extra.append("TRASFORMAZIONE ('trasformati')")
         if ln.get("fused_from"):
             extra.append("lignaggio fuso")
+        if ln.get("evo"):
+            extra.append(f"evoluto {ln['evo']} volt{'a' if ln['evo'] == 1 else 'e'}")
         if extra:
             lines.append("     " + " · ".join(extra))
     c = _conflicts(all_lines(conn))

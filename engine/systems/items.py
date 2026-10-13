@@ -147,6 +147,10 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
     # affinamento di un Dao (essenze, intuizioni)
     dao_key = effects.get("dao_key")
     dao_gain = int(effects.get("dao_gain", 0) or 0)
+    if dao_key == "random" and dao_gain:          # «un Dao a caso»: uno di quelli che pratichi davvero
+        r = conn.execute("SELECT dao_key FROM character_daos WHERE character_type='player' AND character_id=? "
+                         "AND dao_key!='random' ORDER BY RANDOM() LIMIT 1;", (player_id,)).fetchone()
+        dao_key = r["dao_key"] if r else None
     if dao_key and dao_gain:
         from engine.systems import absorption
         absorption._raise_comprehension(conn, dao_key, dao_gain, player_id)
@@ -155,7 +159,9 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
             label = dao_training.comprehension_label(_dao_comp(conn, player_id, dao_key))
         except Exception:
             label = "più profonda"
-        lines.append(f"Una folgorazione: la tua comprensione del Dao «{dao_key}» è ora {label}.")
+        r = conn.execute("SELECT name FROM daos WHERE dao_key=?;", (dao_key,)).fetchone()
+        dname = r["name"] if r else f"Dao «{dao_key}»"
+        lines.append(f"Una folgorazione: la tua comprensione del {dname} è ora {label}.")
 
     # radici spirituali (affinità di coltivazione)
     aff = int(effects.get("aff_cultivation", 0) or 0)
@@ -188,6 +194,9 @@ def apply_effects(conn: sqlite3.Connection, tick: int, rng: random.Random,
     if effects.get("purify"):
         from engine.systems import dao_heart
         lines.append(dao_heart.purify(conn, float(effects["purify"])))
+    if effects.get("body_essence"):
+        from engine.systems import body_absorb
+        lines += body_absorb.absorb(conn, tick, rng, player_id, effects["body_essence"])
     if effects.get("bloodline"):
         from engine.systems import bloodlines
         lines.append("Raffini l'essenza e la lasci scorrere nelle vene…")

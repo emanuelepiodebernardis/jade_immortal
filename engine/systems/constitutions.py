@@ -230,6 +230,11 @@ def awaken(conn, reason: str) -> list[str]:
         out.append("  I meridiani spezzati si saldano in vie larghe come fiumi: chi rideva di te smetterà.")
     if c["stage"] in (1, 5, 10):
         state.grant_title(conn, {1: "Corpo Risvegliato", 5: "Corpo Divino", 10: "Corpo del Cielo e della Terra"}[c["stage"]])
+    from engine.systems import body_powers, supreme_body
+    out += body_powers.sync(conn)                     # i poteri delle soglie superate
+    note = supreme_body.ready_note(conn)
+    if note:
+        out.append("  ✦ " + note)
     return out
 
 
@@ -254,8 +259,46 @@ def on_illumination(conn, rng: random.Random) -> list[str]:
 # ---------- effetti ----------
 
 def _gifts(conn) -> dict:
+    """I doni del tuo corpo, più quelli dei corpi assorbiti (a metà forza, senza maledizioni)."""
     c = get(conn)
-    return BODIES[c["key"]][1] if c else {}
+    if not c:
+        return {}
+    g = dict(BODIES[c["key"]][1])
+    if g.get("state"):
+        g["states"] = [g["state"]]
+    for k in c.get("absorbed") or []:
+        if k not in BODIES:
+            continue
+        for name, v in BODIES[k][1].items():
+            if name == "state":
+                g.setdefault("states", []).append((v[0], v[1] * 0.5, v[2]))
+            elif name == "dao":
+                d = dict(g.get("dao", {}))
+                for dk, dv in v.items():
+                    if dv > 1.0:
+                        d[dk] = d.get(dk, 1.0) * (1.0 + 0.5 * (dv - 1.0))
+                g["dao"] = d
+            elif name in ("dao_all", "soul") and v > 1.0:
+                g[name] = g.get(name, 1.0) * (1.0 + 0.5 * (v - 1.0))
+            elif name == "toxin_immune" and v:
+                g[name] = True
+            elif name == "saves":
+                g["saves"] = g.get("saves", 0) + v
+            elif (isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+                  and name not in ("life", "dao_other_weapon", "heart")):
+                g[name] = g.get(name, 0) + v * 0.5
+    return g
+
+
+def display_name(c: dict | None) -> str:
+    """Il nome del corpo, anche fuso («Corpo del Drago Vero ⟡ Ossa di Spada Innate»)."""
+    if not c:
+        return ""
+    nm = BODIES[c["key"]][0]
+    ab = [BODIES[k][0] for k in (c.get("absorbed") or []) if k in BODIES]
+    if not ab:
+        return nm
+    return nm + " ⟡ " + " ⟡ ".join(ab[:2]) + (f" (+{len(ab) - 2})" if len(ab) > 2 else "")
 
 
 def cultivation_mult(conn) -> tuple[float, str]:
@@ -268,11 +311,13 @@ def cultivation_mult(conn) -> tuple[float, str]:
         return (0.5, "meridiani spezzati") if st == 0 else (1.0 + 1.0 * (1 + 0.25 * (st - 1)), "meridiani rinati")
     if c["key"] == "santo_antico" and st == 0:
         return 0.8, "Corpo Santo maledetto dal Cielo"
+    from engine.systems import body_powers, supreme_body
     cult = g.get("cult", 0.0)
+    extra = (1.0 + body_powers.cult_bonus(conn)) * supreme_body.cultivation_mult(conn)
     if not cult:
-        return 1.0, ""
+        return (extra, BODIES[c["key"]][0]) if extra > 1.0 else (1.0, "")
     m = 1.0 + cult * (0.3 if st == 0 else 1.0) * _mult(conn)
-    return m, BODIES[c["key"]][0]
+    return m * extra, BODIES[c["key"]][0]
 
 
 def dao_mult(conn, dao_key: str) -> float:
@@ -316,11 +361,15 @@ def combat(conn, fx) -> list[str]:
     if not c:
         return []
     g = _gifts(conn)
-    eff = (0.3 if int(c.get("stage", 0)) == 0 else 1.0) * _mult(conn)
+    from engine.systems import body_powers, supreme_body
+    eff = (0.3 if int(c.get("stage", 0)) == 0 else 1.0) * _mult(conn) * supreme_body.blood_mult(conn)
     pr = fx.p.prof
-    if g.get("state"):
-        st, ch, pw = g["state"]
-        fx.add_proc("p", st, min(0.5, ch * eff), pw * (0.8 + 0.2 * eff), f"corpo:{c['key']}")
+    body_powers.combat(conn, fx)
+    sup = supreme_body.combat(conn, fx)
+    from engine.systems import body_blood
+    for i, (st, ch, pw) in enumerate(g.get("states") or []):
+        fx.add_proc("p", st, min(0.5, ch * eff * body_blood.body_proc_mult(conn)), pw * (0.8 + 0.2 * eff),
+                    f"corpo:{c['key']}:{i}")
     if g.get("chance_all"):
         pr["chance_mult"] = pr.get("chance_mult", 1.0) * (1.0 + g["chance_all"] * eff)
     for k in ("pierce", "crit", "evade"):
@@ -336,6 +385,8 @@ def combat(conn, fx) -> list[str]:
         pr["taken"] = pr.get("taken", 0.0) - 0.06          # il corpo è un giunco
     if g.get("saves") and int(c.get("stage", 0)) >= 1:
         fx.p.lethal_saves += int(g["saves"])
+    if sup:
+        return sup
     return [f"Il tuo {BODIES[c['key']][0]} si desta."] if int(c.get("stage", 0)) > 0 else []
 
 
@@ -397,6 +448,7 @@ def describe_full(conn) -> str:
                 "Divino» lo garantisce), oppure scegliendo, alla nascita o alla rinascita, di affidarti al Cielo.")
     nm, _g, curse, _w = BODIES[c["key"]]
     st = int(c.get("stage", 0))
+    nm = display_name(c)
     lines = [f"✦ {nm} — {stage_name(st)}" + (f" (stadio {st}, doni ×{_mult(conn):.2f})" if st else
                                              " (un'eco dei suoi poteri: si risveglia a stadi)")]
     if c["key"] in LORE:
@@ -406,6 +458,15 @@ def describe_full(conn) -> str:
         lines.append(f"  Maledizione: {curse}")
     elif c.get("cured"):
         lines.append("  La maledizione è spezzata.")
+    from engine.systems import body_blood
+    bb = body_blood.summary(conn)
+    if bb:
+        lines.append("  Sangue affine: " + ", ".join(bb["affini"]) + ". "
+                     + (f"Risuona con: {bb['lignaggio']} (forza {bb['forza']:.2f})." if bb["lignaggio"]
+                        else "Nessun tuo lignaggio risuona ancora."))
+    from engine.systems import body_powers, supreme_body
+    lines += ["  " + x for x in body_powers.describe(conn)]
+    lines.append("  " + supreme_body.describe(conn))
     lines.append("  Risvegli: a ogni nuovo regno (45%), vincendo sull'orlo della morte (25%), nelle illuminazioni (15%). "
                  "Ogni stadio rafforza i doni del 25%, senza fine.")
     return "\n".join(lines)
@@ -417,6 +478,7 @@ def describe_line(conn) -> str | None:
         return None
     nm, _g, curse, _w = BODIES[c["key"]]
     st = int(c.get("stage", 0))
+    nm = display_name(c)
     s = f"Corpo leggendario: {nm} — " + ("sigillato (un'eco dei suoi poteri)" if st == 0 else f"{stage_name(st)}, stadio {st}")
     if curse and not c.get("cured"):
         s += f". Maledizione: {curse}"

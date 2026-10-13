@@ -49,7 +49,8 @@ def test_absorb_all_consumes_every_corpse(conn):
     ids = [r["id"] for r in conn.execute("SELECT id FROM npcs WHERE kind='human' AND status='alive' LIMIT 3;")]
     for i in ids:
         conn.execute("UPDATE npcs SET status='dead', death_tick=5, location_id=? WHERE id=?;", (loc, i))
-    conn.execute("UPDATE npcs SET location_id=location_id+10000 WHERE location_id=? AND status='alive' AND id NOT IN (SELECT id FROM players);", (loc,))
+    other = conn.execute("SELECT id FROM locations WHERE id<>? ORDER BY id LIMIT 1;", (loc,)).fetchone()["id"]
+    conn.execute("UPDATE npcs SET location_id=? WHERE location_id=? AND status='alive';", (other, loc))
     conn.commit()
     out = loop.cmd_absorb(conn, entities.get_player(conn), "all")
     assert "Resti assorbiti" in out

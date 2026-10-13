@@ -203,7 +203,7 @@ def on_hunter_defeated(conn, npc_id, player) -> str | None:
 # si mette sulle tue tracce. Abbatterlo dà gloria; oppure rientra in zona sicura.
 # ============================================================
 
-SPECIES_KILL_THRESHOLD = 6
+SPECIES_KILL_THRESHOLD = 10                  # (Agg. 52: era 6 — i campioni arrivavano troppo spesso)
 _CHAMPION_NAME = {"beast": "Re Bestiale", "demon": "Signore Demoniaco", "spirit": "Antico Spirito"}
 _SPECIES_LABEL = {"beast": "delle Bestie", "demon": "dei Demoni", "spirit": "degli Spiriti"}
 

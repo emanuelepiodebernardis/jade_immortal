@@ -128,7 +128,7 @@ def session(conn, player, share: float = 1.0, advance: bool = True) -> str:
             from engine.systems import spirit
             spirit.restore_fraction(conn, 0.3, player.id)
     else:
-        lines = [f"Spirito: +{gain:g} ({grade_name(g)}, {pct}%)."]
+        lines = [f"Spirito: +{gain:.0f} ({grade_name(g)}, {pct}%)."]
     return "\n".join(lines + ups)
 
 

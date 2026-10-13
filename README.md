@@ -151,6 +151,24 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
   Flagelli… Il sangue più raro **domina le fusioni**, i nomi restano brevi (al massimo due
   famiglie e due elementi) e il sangue meno nobile si **sacrifica** per purificare le linee più
   alte, diviso in parti uguali.
+- **Evoluzione del sangue** (menu `sangue`, `sangue evolvi <n>`): ogni lignaggio può diventare la
+  bestia di cui è erede, salendo di rango. Il serpente diventa Jiao e poi Drago, il Kun diventa
+  Kunpeng, la gru diventa Fenice e la volpe Volpe a Nove Code; alcune strade cambiano con
+  l'elemento. Servono un grado e un regno; poi si passano tre giorni nel bozzolo, con una
+  probabilità di riuscita (un'essenza della bestia d'arrivo fa da guida). La forma di prima resta
+  come tratto minore. In cima c'è l'Hundun, e oltre il Caos il sangue ascende senza fine.
+- **Risonanza corpo-sangue**: ogni corpo leggendario ha bestie ed elementi affini. Il Drago Vero
+  risuona coi draghi, il Nirvana della Fenice con la Fenice, l'Osso Supremo col Kunpeng. Un
+  lignaggio affine si concentra prima e combatte più forte, il dono del corpo scatta più spesso e
+  le evoluzioni riescono meglio. Quando il sangue diventa la bestia del tuo corpo, il corpo si
+  risveglia.
+- **Poteri dei corpi**: a ogni stadio di risveglio il corpo leggendario sblocca un potere o una
+  tecnica (sei per corpo, poi le tecniche salgono di grado senza fine).
+- **Corpi dei nemici**: alcuni coltivatori forti hanno un corpo leggendario. Sconfitti, lasciano
+  la sua essenza, che puoi **fondere** col tuo corpo.
+- **Corpo Supremo** (`corpo supremo`): quando il corpo è compiuto e il sangue è ancestrale e
+  primordiale, i due si fondono in un corpo superiore a entrambi. Ne esistono otto forme, e cresce
+  senza fine.
 - **Fucina delle tecniche** (menu `tecniche`): fondi due o tre tecniche in una nuova, allenala,
   rinominala. Si carica solo la tecnica più forte per categoria, le vecchie restano in archivio.
 

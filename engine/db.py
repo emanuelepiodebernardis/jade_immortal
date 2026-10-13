@@ -52,6 +52,16 @@ def _migrate(conn) -> None:
                 conn.execute("UPDATE cultivation_realms SET name=? WHERE id=?;", (nm, r[0]))
     except Exception:
         pass
+    # (Agg. 53) il finto Dao «random» nato da un bug: la sua comprensione va al Dao più praticato
+    try:
+        for r in conn.execute("SELECT character_type, character_id, comprehension FROM character_daos "
+                              "WHERE dao_key='random';").fetchall():
+            conn.execute("UPDATE character_daos SET comprehension=comprehension+? WHERE rowid=(SELECT rowid FROM "
+                         "character_daos WHERE character_type=? AND character_id=? AND dao_key!='random' "
+                         "ORDER BY comprehension DESC LIMIT 1);", (r[2] or 0, r[0], r[1]))
+        conn.execute("DELETE FROM character_daos WHERE dao_key='random';")
+    except Exception:
+        pass
     # nuove tabelle (per salvataggi creati prima della loro introduzione)
     conn.execute("CREATE TABLE IF NOT EXISTS pending_reports ("
                  "id INTEGER PRIMARY KEY, player_id INTEGER NOT NULL, tick INTEGER NOT NULL, "
@@ -123,6 +133,9 @@ def _migrate(conn) -> None:
         conn.execute("ALTER TABLE npcs ADD COLUMN event_id INTEGER;")
     if ncols and "hunting" not in ncols:
         conn.execute("ALTER TABLE npcs ADD COLUMN hunting INTEGER DEFAULT 0;")
+    if ncols:                                 # (Agg. 53) indici sulle colonne aggiunte dopo
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_npcs_event ON npcs(event_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_npcs_hunting ON npcs(hunting, status);")
     if ncols and "war_id" not in ncols:
         conn.execute("ALTER TABLE npcs ADD COLUMN war_id INTEGER;")
     # livello/elemento delle sette (sette a livelli + rappresentanti)
