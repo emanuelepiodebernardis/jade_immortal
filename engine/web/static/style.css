@@ -516,3 +516,49 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 #map line.route { stroke: var(--accent); stroke-width: 4; stroke-dasharray: 6 4; animation: march 1s linear infinite; }
 #map .node.onroute rect:first-of-type { stroke: var(--accent); stroke-width: 2; }
 @keyframes march { to { stroke-dashoffset: -20; } }
+
+/* ---------- arena del duello ---------- */
+#scene.in-duel { padding: 0; overflow: hidden; border-color: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 18%, transparent), var(--shadow); }
+.arena { background: radial-gradient(600px 220px at 50% 0%, color-mix(in srgb, var(--bad) 10%, transparent), transparent 70%), var(--panel); }
+.arena-head { font-family: var(--serif); font-size: 15px; padding: 8px 14px; border-bottom: 1px solid var(--line); }
+.ring-fight { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; padding: 12px 14px 6px; }
+.fighter { position: relative; display: flex; gap: 10px; align-items: flex-start; }
+.fighter.foe { flex-direction: row-reverse; text-align: right; }
+.fighter .fi { flex: 1; min-width: 0; }
+.fighter .fi b { font-family: var(--serif); font-size: 15px; }
+.vs { font-family: var(--serif); font-size: 22px; color: var(--muted); font-weight: 700; }
+.hpbar { position: relative; height: 18px; border-radius: 9px; background: var(--chip); overflow: hidden; margin: 6px 0 4px; }
+.hpbar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--good), color-mix(in srgb, var(--good) 60%, #fff)); transition: width .45s ease; }
+.hpbar.foe i { background: linear-gradient(90deg, var(--bad), color-mix(in srgb, var(--bad) 60%, #fff)); }
+.fighter.foe .hpbar i { left: auto; right: 0; }
+.hpbar span { position: relative; font-size: 11.5px; font-family: var(--mono); padding: 0 8px; line-height: 18px; }
+.mini { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; }
+.mini .bar { width: 100%; height: 6px; } .mini small { font-size: 11px; color: var(--muted); }
+.tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 99px; background: var(--chip); margin: 2px 2px 0 0; }
+.tag.bad { color: var(--bad); } .tag.good { color: var(--good); } .tag.rare { color: var(--rare); }
+.tag.blink { animation: glow 0.9s ease-in-out infinite alternate; border: 1px solid var(--bad); }
+.pop { position: absolute; top: -4px; font: 700 20px var(--serif); animation: popup 1.6s ease-out forwards; pointer-events: none; }
+.fighter.me .pop { left: 40px; } .fighter.foe .pop { right: 40px; }
+.pop.good { color: var(--warn); } .pop.bad { color: var(--bad); } .pop.crit { font-size: 28px; }
+@keyframes popup { 0% { opacity: 0; transform: translateY(10px) scale(.8); } 15% { opacity: 1; transform: translateY(0) scale(1.15); }
+  100% { opacity: 0; transform: translateY(-26px) scale(1); } }
+.allies { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 14px 6px; }
+.allies span { font-size: 11.5px; background: color-mix(in srgb, var(--rare) 10%, var(--chip)); border-radius: 99px; padding: 1px 9px; }
+.arena-log { font-size: 13px; padding: 6px 14px; border-top: 1px dashed var(--line); max-height: 120px; overflow-y: auto; }
+.arena-log .l-bad { color: var(--bad); } .arena-log .l-warn { color: var(--warn); } .arena-log .l-good { color: var(--good); }
+.hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; padding: 10px 14px 14px; border-top: 1px solid var(--line); }
+.card-act { display: grid; grid-template-rows: auto auto 1fr auto; gap: 2px; min-height: 104px; padding: 8px; border-radius: 10px;
+  background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); text-align: left; box-shadow: var(--shadow); }
+.card-act .ci { font-size: 20px; } .card-act b { font-size: 13px; line-height: 1.2; }
+.card-act small { font-size: 11px; color: var(--muted); line-height: 1.25; }
+.card-act em { font-style: normal; font-size: 11px; color: var(--info); font-family: var(--mono); }
+.card-act:not(.k-base) { border-color: color-mix(in srgb, var(--rare) 55%, var(--line)); }
+.card-act:not(.k-base) .ci { color: var(--rare); }
+.card-act.hot { border-color: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 35%, transparent); }
+.card-act:hover:not(:disabled) { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.card-act:disabled em { color: var(--muted); }
+#scene.in-duel .choices { padding: 0 14px 14px; }
+@media (max-width: 700px) { .ring-fight { grid-template-columns: 1fr; } .vs { text-align: center; } .fighter.foe { flex-direction: row; text-align: left; } }
+.card-act kbd { float: right; font: 10px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.card-act b { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pop { top: -18px; text-shadow: 0 1px 0 var(--panel), 0 0 6px var(--panel); }

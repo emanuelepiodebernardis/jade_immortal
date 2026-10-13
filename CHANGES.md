@@ -1979,3 +1979,23 @@ Gli imprevisti capitano più spesso nei luoghi pericolosi e negli anelli lontani
 - passando sopra un luogo si illumina la strada che percorreresti;
 - il clic avvia il viaggio;
 - la vista non si sposta più a ogni azione, solo quando ti muovi.
+
+---
+
+## Aggiornamento 49 — Il combattimento visivo: l'arena del duello
+
+Il duello a turni nella dashboard ora è un'**arena**:
+- **ritratti e barre**: tu e l'avversario, con la vita in grande, Qi e spirito, il regno, quanto è forte rispetto a te e il suo stile (impetuoso, prudente, subdolo, equilibrato);
+- **avvisi chiari**: se ha l'elemento a favore o a sfavore, se è **concentrato**, e ⚠ quando sta **caricando un colpo pesante** (lampeggia);
+- **carte delle azioni**: Colpisci, **tutte le tue tecniche** (fino a 8, non più solo 3), Difendi, Concentrati, Pillola, Fuggi.
+  - Ogni tecnica mostra il costo in Qi o spirito e gli effetti (×danno, colpi in più, perforazione, danno subito ridotto).
+  - Quelle non usabili dicono perché («si ricarica tra 2 turni», «serve 54 spirito»).
+  - Difendi si illumina quando arriva il colpo pesante.
+  - I tasti 1-9 giocano le carte;
+- **numeri di danno** che saltano fuori dai ritratti (più grandi sui critici);
+- **gli alleati scendono in campo**: Spiriti del Dao, bestia, spirito dell'arma, servi, cloni e marionette ora combattono anche nei duelli e colpiscono a ogni turno;
+- **registro dello scambio**: le ultime righe del turno.
+
+Quando l'avversario crolla, l'arena resta visibile con le tre scelte: finirlo, risparmiarlo o marchiarne l'anima.
+
+Il registro principale non ripete più le scelte numerate delle scene, che hanno già i loro pulsanti.

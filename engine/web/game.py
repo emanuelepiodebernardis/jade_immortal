@@ -221,11 +221,12 @@ def _duel(conn) -> dict | None:
     d = duel.get(conn)
     if not d:
         return None
+    p = entities.get_player(conn)
     return {"nome": d["name"], "turno": d["round"], "tu": _bar(max(0, d["hp_p"]), d["pmax"]),
             "lui": _bar(max(0, d["hp_e"]), d["emax"]), "carica": d.get("charge_e", False),
             "concentrato": d.get("focus", False),
             "stile": duel.STYLES.get(d.get("style", "equilibrato"), duel.STYLES["equilibrato"])[0],
-            "vantaggio": d.get("adv", 1.0)}
+            "vantaggio": d.get("adv", 1.0), "arena": duel.arena(conn, p)}
 
 
 def _bar(cur: float, mx: float) -> dict:

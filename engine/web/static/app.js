@@ -48,7 +48,9 @@ function addLog(text, cmd) {
   const div = document.createElement("div");
   div.className = "entry";
   let html = cmd ? `<div class="you">› ${esc(cmd)}</div>` : "";
-  html += (text || "").split("\n").map((l) => {
+  // le scelte delle scene hanno i loro pulsanti: nel registro non si ripetono
+  const lines = (text || "").split("\n").filter((l) => !/^\s*\[\d+\] /.test(l) && !/scrivi il numero della tua scelta/.test(l));
+  html += lines.map((l) => {
     const c = lineClass(l), cat = V.category(l);
     const hide = logFilter !== "tutto" && cat !== logFilter ? " hidden" : "";
     return `<div class="ln cat-${cat}${c ? " " + c : ""}"${hide}>${actionize(esc(l)) || "&nbsp;"}</div>`;
@@ -224,10 +226,45 @@ function renderPlace(s) {
   const m = $("#more-npc"); if (m) m.onclick = () => { showAllNpcs = true; renderPlace(S); };
 }
 
+// ---------------- arena del duello: ritratti, barre, carte delle tecniche, alleati ----------------
+function arenaHtml(a, s) {
+  const pct = (c, m) => Math.max(0, Math.min(100, Math.round(100 * c / Math.max(1, m))));
+  const L = a.ultimo || {};
+  const pop = (v, cls) => v ? `<span class="pop ${cls}">−${Number(v).toLocaleString("it-IT")}</span>` : "";
+  const txt = s.scena.text.split("\n").filter((l) => l.trim() && !l.includes("█") && !l.includes("·····") && !/^Turno \d/.test(l) && !/^Qi \d/.test(l));
+  const me = `<div class="fighter me">${V.emblem(a.tu.nome, "maestri", "leggendario", 64)}
+      <div class="fi"><b>${esc(a.tu.nome)}</b><div class="muted small">${esc(a.tu.regno)}</div>
+      <div class="hpbar"><i style="width:${pct(a.tu.hp, a.tu.max)}%"></i><span>${a.tu.hp.toLocaleString("it-IT")} / ${a.tu.max.toLocaleString("it-IT")}</span></div>
+      <div class="mini"><div class="bar qi"><i style="width:${pct(a.tu.qi[0], a.tu.qi[1])}%"></i></div><small>Qi ${a.tu.qi[0]}</small>
+        <div class="bar sp"><i style="width:${pct(a.tu.spirito[0], a.tu.spirito[1])}%"></i></div><small>Spirito ${a.tu.spirito[0]}</small></div>
+      ${a.concentrato ? `<span class="tag rare">☯ concentrato</span>` : ""}</div>${pop(L.subito, "bad" + (L.critico_lui ? " crit" : ""))}</div>`;
+  const foe = `<div class="fighter foe">${V.emblem(a.nome, "nemici", "raro", 64)}
+      <div class="fi"><b>${esc(a.nome)}</b><div class="muted small">${esc(a.lui.regno)} · ${esc(a.lui.forza)}</div>
+      <div class="hpbar foe"><i style="width:${pct(a.lui.hp, a.lui.max)}%"></i><span>${a.lui.hp.toLocaleString("it-IT")} / ${a.lui.max.toLocaleString("it-IT")}</span></div>
+      <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>
+      ${a.vantaggio > 1 ? `<span class="tag good">☸ elemento a tuo favore</span>` : a.vantaggio < 1 ? `<span class="tag bad">☸ elemento a suo favore</span>` : ""}
+      ${a.carica ? `<span class="tag bad blink">⚠ carica un colpo pesante</span>` : ""}</div>${pop(L.inflitto, "good" + (L.critico ? " crit" : ""))}</div>`;
+  const allies = a.alleati.length ? `<div class="allies">${a.alleati.map((x) => `<span>${esc(x)}</span>`).join("")}</div>` : "";
+  const cards = a.carte.map((c, i) => `<button class="card-act k-${esc(c.kind)} ${c.hot ? "hot" : ""}" ${c.ok ? `data-cmd="${esc(c.cmd)}"` : "disabled"} title="${esc(c.desc)}${c.why ? " — " + esc(c.why) : ""}">
+      <span class="ci">${esc(c.icon)}${i < 9 ? `<kbd>${i + 1}</kbd>` : ""}</span><b>${esc(c.name)}</b><small>${esc(c.desc)}</small>
+      <em>${c.ok ? esc(c.cost) : esc(c.why)}</em></button>`).join("");
+  return `<div class="arena"><div class="arena-head">⚔ Duello — turno ${a.turno}</div>
+    <div class="ring-fight">${me}<div class="vs">VS</div>${foe}</div>${allies}
+    <div class="arena-log">${txt.slice(-6).map((l) => `<div class="${lineClass(l)}">${actionize(esc(l))}</div>`).join("")}</div>
+    ${a.finito ? "" : `<div class="hand">${cards}</div>`}</div>`;
+}
+
 function renderScene(s) {
   const box = $("#scene");
-  if (!s.scena) { box.hidden = true; box.innerHTML = ""; return; }
+  if (!s.scena) { box.hidden = true; box.innerHTML = ""; box.classList.remove("in-duel"); return; }
   box.hidden = false;
+  const ar = s.duello && s.duello.arena;
+  box.classList.toggle("in-duel", !!ar);
+  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); return; }
+  if (ar && ar.finito) {
+    box.innerHTML = arenaHtml(ar, s) + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
+    return;
+  }
   const du = s.duello ? `<div class="duel"><div><span>Tu</span><div class="bar hp"><i style="width:${s.duello.tu.pct}%"></i></div><em>${s.duello.tu.cur}/${s.duello.tu.max}</em></div>
     <div><span>${esc(s.duello.nome)}</span><div class="bar hp foe"><i style="width:${s.duello.lui.pct}%"></i></div><em>${s.duello.lui.cur}/${s.duello.lui.max}</em></div>
     <div class="muted">Stile: ${esc(s.duello.stile)}${s.duello.vantaggio > 1 ? " · ☸ elemento a tuo favore (+25%)" : s.duello.vantaggio < 1 ? " · ☸ elemento a suo favore (−15%)" : ""}</div>
@@ -745,7 +782,9 @@ document.addEventListener("keydown", (ev) => {
   if (document.activeElement && ["INPUT", "SELECT"].includes(document.activeElement.tagName) && document.activeElement !== $("#cmd")) return;
   if (/^[1-9]$/.test(ev.key) && S) {
     const n = parseInt(ev.key, 10);
-    if (S.scena) { if (n <= S.scena.choices.length) { ev.preventDefault(); run(String(n)); } }
+    const cards = S.duello && S.duello.arena && !S.duello.arena.finito ? S.duello.arena.carte : null;
+    if (cards) { const c = cards[n - 1]; if (c && c.ok) { ev.preventDefault(); run(c.cmd); } }
+    else if (S.scena) { if (n <= S.scena.choices.length) { ev.preventDefault(); run(String(n)); } }
     else if (n <= (S.suggVisibili || S.suggerimenti).length) { ev.preventDefault(); run((S.suggVisibili || S.suggerimenti)[n - 1].cmd); }
   }
 });

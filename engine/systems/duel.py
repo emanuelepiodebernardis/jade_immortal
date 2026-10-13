@@ -75,7 +75,8 @@ def start(conn, player, arg: str) -> str:
     d = {"npc": npc.id, "name": npc.name, "hp_p": pa["vitality"] * sc, "pmax": pa["vitality"] * sc,
          "hp_e": pd["vitality"] * sc, "emax": pd["vitality"] * sc, "round": 0, "charge_e": False,
          "focus": False, "cd": {}, "crit": False, "style": style, "adv": adv, "feint": False,
-         "log": [f"⚔ DUELLO: tu contro {npc.name}."]}
+         "log": [f"⚔ DUELLO: tu contro {npc.name}."], "allies": _allies(conn, player, npc, pa, pd, sc),
+         "last": {}}
     _save(conn, d)
     intro = [f"Stile di {npc.name}: {STYLES[style][0]} — {STYLES[style][1]}"]
     if adv_txt:
@@ -124,6 +125,21 @@ def _elements(conn, pid: int, npc_id: int) -> tuple[float, str]:
     return 1.0, ""
 
 
+def _allies(conn, player, npc, pa, pd, sc) -> list[dict]:
+    """Chi scende in campo con te: Spiriti del Dao, bestia, spirito dell'arma, servi, cloni, marionette…"""
+    try:
+        from engine.systems import bonds, combat_states
+        fx = combat_states.FightCtx(conn, player.id, npc.id, "Tu", npc.name, pa["vitality"] * sc, pd["vitality"] * sc,
+                                    pa["attack"], pd["attack"])
+        out = []
+        for a in bonds.extra_fighters(conn, player.id, npc.id, fx)[:6]:
+            intro = a.get("intro", "")
+            out.append({"intro": intro, "line": a.get("line", "Un alleato colpisce."), "attack": float(a.get("attack", 0))})
+        return out
+    except Exception:
+        return []
+
+
 def _pills(conn, pid: int) -> list:
     from engine.systems import items
     return [r for r in items.player_inventory(conn, pid) if r["item_type"] == "pillola"]
@@ -143,7 +159,7 @@ def _length(conn, player, npc) -> float:
     return GRUDGE_HP if big else DUEL_HP
 
 
-def _moves(conn, player) -> list[dict]:
+def _moves(conn, player, limit: int = 3) -> list[dict]:
     from engine.systems import moves as mvmod, qi as qimod, spirit as spmod
     out = []
     for m in mvmod.available_moves(conn, player.id):
@@ -151,7 +167,60 @@ def _moves(conn, player) -> list[dict]:
               else qimod.can_afford(conn, m["qi_cost"], player.id))
         out.append(dict(m, ok=ok))
     out.sort(key=lambda m: -m["mods"].get("attack_mult", 1.0))
-    return out[:3]
+    return out[:limit]
+
+
+def arena(conn, player) -> dict | None:
+    """Il duello come ARENA per la dashboard: ritratti, barre, carte delle tecniche, alleati, ultimo scambio."""
+    from engine.systems import qi as qimod, spirit as spmod, perception
+    from engine.simulation import cultivation
+    d = get(conn)
+    if not d:
+        return None
+    st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
+    cards = [{"key": "colpisci", "name": "Colpisci", "icon": "⚔", "desc": "un colpo normale", "cost": "",
+              "ok": True, "why": "", "cmd": "duello_azione colpisci", "kind": "base"}]
+    for m in _moves(conn, player, 8):
+        cd = d["cd"].get(m["key"], 0) - d["round"]
+        cost = f"{m['spirit_cost']} spirito" if m.get("fuel") == "spirit" else f"{m['qi_cost']} Qi"
+        mods = m.get("mods", {})
+        bits = []
+        if mods.get("attack_mult", 1) != 1:
+            bits.append(f"×{mods['attack_mult']:.1f} danno")
+        if mods.get("extra_strikes"):
+            bits.append(f"+{int(mods['extra_strikes'])} colpi")
+        if mods.get("pierce"):
+            bits.append(f"perfora {int(mods['pierce'] * 100)}%")
+        if mods.get("taken_mult", 1) < 1:
+            bits.append(f"subisci −{int((1 - mods['taken_mult']) * 100)}%")
+        why = f"si ricarica tra {cd} turni" if cd > 0 else ("" if m["ok"] else f"serve {cost}")
+        cards.append({"key": m["key"], "name": m["name"], "icon": "✦", "desc": ", ".join(bits) or m.get("desc", ""),
+                      "cost": cost, "ok": cd <= 0 and m["ok"], "why": why, "cmd": f"duello_azione tecnica {m['key']}",
+                      "kind": m.get("source", "tecnica")})
+    cards.append({"key": "difendi", "name": "Difendi", "icon": "🛡", "cost": "",
+                  "desc": "para quasi tutto il colpo pesante" if d["charge_e"] else "subisci meno, recuperi Qi",
+                  "ok": True, "why": "", "cmd": "duello_azione difendi", "kind": "base", "hot": d["charge_e"]})
+    cards.append({"key": "concentrati", "name": "Concentrati", "icon": "☯", "cost": "", "desc": "colpo devastante al prossimo turno",
+                  "ok": not d["focus"], "why": "sei già concentrato", "cmd": "duello_azione concentrati", "kind": "base"})
+    pills = _pills(conn, player.id)
+    cards.append({"key": "pillola", "name": "Pillola", "icon": "💊", "cost": "il turno",
+                  "desc": f"{len(pills)} pillole: recuperi vita" if pills else "nessuna pillola",
+                  "ok": bool(pills), "why": "nessuna pillola", "cmd": "duello_azione pillola", "kind": "base"})
+    cards.append({"key": "fuggi", "name": "Fuggi", "icon": "↩", "cost": "", "desc": "più facile se sei più forte",
+                  "ok": True, "why": "", "cmd": "duello_azione fuggi", "kind": "base"})
+    finished = d["hp_e"] <= 0
+    return {
+        "nome": d["name"], "turno": d["round"], "finito": finished,
+        "tu": {"hp": max(0, round(d["hp_p"])), "max": round(d["pmax"]), "qi": [qimod.get_qi(conn, player.id), qimod.max_qi(conn, player.id)],
+               "spirito": [spmod.get_spirit(conn, player.id), spmod.max_spirit(conn, player.id)],
+               "regno": cultivation.realm_label(conn, "player", player.id), "nome": player.name},
+        "lui": {"hp": max(0, round(d["hp_e"])), "max": round(d["emax"]),
+                "regno": cultivation.realm_label(conn, "npc", d["npc"]),
+                "forza": perception.relative_strength(conn, player.id, d["npc"])},
+        "stile": st[0], "stile_desc": st[1], "vantaggio": d.get("adv", 1.0), "carica": d["charge_e"], "concentrato": d["focus"],
+        "alleati": [a["intro"] for a in d.get("allies", [])], "ultimo": d.get("last", {}),
+        "carte": [] if finished else cards,
+    }
 
 
 def _scene_text(conn, player) -> str:
@@ -164,6 +233,7 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
     from engine.systems import encounters, qi as qimod, spirit as spmod
     d = get(conn)
     d["round"] += 1
+    d["_hp_e_turn"] = d["hp_e"]
     rng = random.Random(tick_mod.get_tick(conn) * 31 + d["round"] + d["npc"])
     # il nemico decide: a volte raccoglie il qi per un colpo pesante (e si vede)
     st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
@@ -287,6 +357,19 @@ def act(conn, player, arg: str) -> str:
         d["crit"] = crit_any
         lines.append("  " + loop._hit_desc(dealt, d["emax"], d["name"], crit_any, rng))
 
+    # gli alleati colpiscono a ogni turno (Spiriti del Dao, bestia, servi…)
+    ally_dmg = 0.0
+    for a in d.get("allies", []):
+        if a["attack"] <= 0 or d["hp_e"] <= 0:
+            continue
+        dmg, _c = combat._strike(a["attack"] * 0.6, pd["defense"], rng)
+        d["hp_e"] -= dmg
+        ally_dmg += dmg
+    if ally_dmg:
+        lines.append(f"  I tuoi alleati infieriscono: −{round(ally_dmg)} a {d['name']}.")
+    hp_e_before = d.get("_hp_e_turn", d["emax"])
+    d["last"] = {"inflitto": round(max(0, hp_e_before - d["hp_e"])), "alleati": round(ally_dmg), "subito": 0,
+                 "critico": bool(d.get("crit")), "mossa": what}
     if d["hp_e"] <= 0:
         _save(conn, d)
         return _won(conn, player, lines)
@@ -301,6 +384,8 @@ def act(conn, player, arg: str) -> str:
     edmg, ecrit = combat._strike(pd["attack"] * emult, pa["defense"], rng)
     edmg *= taken
     d["hp_p"] -= edmg
+    d["last"]["subito"] = round(edmg)
+    d["last"]["critico_lui"] = bool(ecrit)
     lines.append("  " + loop._enemy_line(d["name"], edmg, d["pmax"], ecrit, rng))
     if d["hp_p"] <= 0:
         state.delete(conn, KEY)

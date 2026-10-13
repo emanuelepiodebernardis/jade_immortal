@@ -124,3 +124,23 @@ def test_daily_quest_pays_once(world):
         x = system_daily.data(c)
         assert x["fatta"] and attributes.free(c) == f0 + 1
         assert not system_daily.check(c, entities.get_player(c))      # una volta sola
+
+
+def test_duel_arena_cards_and_allies(world):
+    tx = world
+    from engine.systems import duel, npc_factory
+    from engine.core import entities
+    import random as _r
+    with tx() as c:
+        _set_dao(c, "fuoco", 300)                       # uno Spirito del Dao scende in campo
+        p = entities.get_player(c)
+        nid = npc_factory.spawn(c, _r.Random(4), archetype="discepolo", location_id=p.location_id, tier=1, stage=3)
+        name = c.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
+    game.turn(f"duello {name.split()[0]}")
+    s = game.state_snapshot()
+    a = s["duello"]["arena"]
+    assert a and a["carte"][0]["cmd"] == "duello_azione colpisci"
+    assert any("Salamandra" in x for x in a["alleati"])
+    game.turn("duello_azione colpisci")
+    a2 = game.state_snapshot()["duello"]
+    assert a2 is None or a2["arena"]["ultimo"].get("inflitto", 0) > 0
