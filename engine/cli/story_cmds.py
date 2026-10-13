@@ -443,6 +443,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("attributi", "punti", "stats"):
         from engine.systems import attributes
         return attributes.command(conn, player, arg)
+    if cmd in ("bacheca", "board") and not arg.strip():
+        from engine.systems import menus
+        return menus.show(conn, player, "bacheca")
     if cmd in ("quotidiana", "missione_quotidiana", "daily", "missione"):
         from engine.systems import system_daily
         return system_daily.describe(conn, player)

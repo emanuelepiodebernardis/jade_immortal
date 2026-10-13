@@ -1881,3 +1881,33 @@ Se cresci, crescono anche loro. Le faide degli anziani (padre, madre, maestro, l
 - La dashboard ora funziona anche **sul telefono**.
 
 Nuovi comandi: `profondi`, `arcano`, `cielo sottometti|sfida|inganna`, `spiriti`, `attributi`, `finestra`, `osserva`, `quotidiana`. Nuovi test. Suite totale: **598 passati**.
+
+---
+
+## Aggiornamento 45 — Tutto a un tocco: il luogo mostra cosa puoi fare, mercato, asta, ricette e bacheca cliccabili
+
+La dashboard ora sfrutta la libertà che il terminale non dava: non devi ricordare i comandi, scegli a schermo.
+
+**Cosa puoi fare qui.** Sotto il nome del luogo compaiono le tessere delle azioni possibili, solo quelle che hanno senso lì:
+- sfondamento e tribolazione quando ti aspettano;
+- gli eventi in corso proprio qui;
+- allenamento, tempra, allenamento con gli Spiriti del Dao e la missione quotidiana;
+- il mercato, la casa d'aste, la sede di una setta (con il test d'ingresso), la tua dimora (con il ritiro) e i materiali da raccogliere;
+- la caccia alle creature presenti;
+- chi ti dà la caccia e i ricercati presenti, da affrontare in duello;
+- chi ha bisogno di te, e il sonno.
+
+**Menu nuovi con i pulsanti:**
+
+| Menu | Cosa ci trovi |
+|---|---|
+| 🏪 **Mercato** | Gli oggetti in vendita divisi per tipo: li tocchi e li compri (i grigi dicono quante pietre mancano). Se non c'è un mercato, c'è il pulsante per andare alla città più vicina. |
+| ⚖ **Casa d'aste** | Ogni lotto con le offerte pronte (rilancio minimo e rilanci più alti). Se l'asta è lontana, il pulsante per andarci. |
+| 📜 **Ricette** | Le ricette di tutte le arti che conosci: crea con un tocco, e ognuna dice se manca il livello o un materiale. C'è anche la barra dell'esperienza dell'arte. |
+| 📋 **Bacheca** | Le missioni della setta (accetta e consegna), le tecniche segrete (impara col merito), gli inviti delle sette superiori, chi ha bisogno di te in questo luogo, gli incarichi in corso e le taglie (con il pulsante per andare dal ricercato). |
+
+Scrivere `market`, `asta`, `recipes`, `missioni`, `inviti` nella dashboard apre direttamente il menu con i pulsanti. Ogni persona presente ha anche il pulsante **osserva**.
+
+Corretto: comprare un oggetto visto solo nel menu del mercato a volte diceva «quel numero non è in vendita».
+
+Nuovi test. Suite totale: **600 passati**.

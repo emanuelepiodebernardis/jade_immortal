@@ -102,11 +102,15 @@ function addCard(html) {
 
 // ---------------- comandi ----------------
 const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite",
-  "dominio", "razze", "profondi", "spiriti", "attributi", "menu"];
+  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu"];
+// i comandi che mostrano una lista da cui scegliere si aprono come menu cliccabili
+const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: "asta", auction: "asta", recipes: "ricette",
+  invitations: "bacheca", inviti: "bacheca", missioni: "bacheca", missions: "bacheca", techniques: "tecniche", skills: "tecniche" };
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
   if (MENUS.includes(cmd.toLowerCase())) return loadTab("m:" + cmd.toLowerCase());   // i menu si aprono nel pannello
+  if (AS_MENU[cmd.toLowerCase()]) return loadTab("m:" + AS_MENU[cmd.toLowerCase()]);
   busy = true;
   document.body.style.cursor = "progress";
   try {
@@ -169,8 +173,13 @@ function renderPlace(s) {
     h += `<div class="npcs">` + list.map((n) => {
       const first = n.name.split(" ")[0];
       return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
-        <button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button></span>`;
+        <button data-cmd="osserva ${esc(first)}" title="la sua finestra di stato">osserva</button><button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button></span>`;
     }).join("") + (many ? `<button id="more-npc">+ altri ${s.presenti.length - 6}</button>` : "") + `</div>`;
+  }
+  if (s.azioni_luogo && s.azioni_luogo.length) {
+    h += `<div class="tiles">` + s.azioni_luogo.map((t) => t.ok
+      ? `<button class="tile ${t.tone || ""}" data-cmd="${esc(t.cmd)}" title="${esc(t.label)} — ${esc(t.hint)} (${esc(t.cmd)})"><span class="ti">${esc(t.icon)}</span><span class="tl">${esc(t.label)}</span><span class="th">${esc(t.hint)}</span></button>`
+      : `<button class="tile" disabled title="${esc(t.why)}"><span class="ti">${esc(t.icon)}</span><span class="tl">${esc(t.label)}</span><span class="th">${esc(t.why)}</span></button>`).join("") + `</div>`;
   }
   $("#place").innerHTML = h;
   const m = $("#more-npc"); if (m) m.onclick = () => { showAllNpcs = true; renderPlace(S); };

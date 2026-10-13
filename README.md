@@ -27,6 +27,9 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
   stato, grafici di Dao, talento e radici, Dao profondi, corpo, sangue, Spiriti del Dao, crescita),
   *Mappa* (zoom, trascinamento, pericolo, inseguitori, sette, presenze), *Legami*, *Tesori*,
   *Storia* e *Partita*; il pulsante ⤢ allarga il pannello;
+- **le tessere del luogo**: sotto il nome del posto, tutto ciò che puoi fare lì (allenarti, il mercato,
+  la setta, la caccia, chi ti insegue, gli eventi…) a un tocco; mercato, asta, ricette e bacheca sono
+  menu in cui tocchi l'oggetto, il lotto, la ricetta o la missione;
 - **ogni comando citato nel testo è un pulsante** (▶ join, ▶ mask on…) e le notifiche di sistema
   (titoli, sfondamenti, pericoli) compaiono in finestrelle;
 - il luogo con le uscite e i presenti cliccabili (vai, parla, attacca);

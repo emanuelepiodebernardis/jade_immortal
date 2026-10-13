@@ -1577,6 +1577,7 @@ def cmd_buy(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str:
         return "Qui non c'è un mercato dove comprare."
     if not arg.strip().isdigit():
         return "Comprare cosa? Usa: buy <numero> (vedi 'market')."
+    market.ensure_stock(conn, player.id, player.location_id)     # anche se l'elenco l'hai visto solo nel menu
     res = market.buy(conn, player.id, player.location_id, int(arg.strip()))
     s = res["status"]
     if s == "no_such":

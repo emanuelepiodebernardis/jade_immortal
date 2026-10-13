@@ -21,6 +21,10 @@ avanzamento, e le AZIONI che puoi fare da lì. Le stesse strutture vengono mostr
   profondi        Spazio, Tempo, Destino: arcani, risonanze, la guerra con il Cielo
   spiriti         gli Spiriti del Dao che combattono con te e allenano i loro Dao
   attributi       la finestra di stato: livello e punti attributo (FOR, VIT, AGI, INT, SAG, FRT)
+  mercato         gli oggetti in vendita qui, da comprare con un tocco
+  asta            i lotti della casa d'aste, con le offerte pronte
+  ricette         le ricette di tutte le arti che conosci
+  bacheca         missioni della setta, inviti delle sette superiori, tecniche segrete
 """
 
 from __future__ import annotations
@@ -56,21 +60,23 @@ def menu(key: str, title: str, sub: list[str] | None = None, sections: list[dict
 
 def _builders() -> dict:
     from engine.systems import sect_menu, world_menus, professions, dominion, race_realms, technique_forge, blood_menu, income
-    from engine.systems import deep_dao, dao_spirits, attributes
+    from engine.systems import deep_dao, dao_spirits, attributes, shops
     return {"setta": sect_menu.build, "arti": world_menus.arts, "regni": world_menus.realms,
             "eventi": world_menus.events, "menu": world_menus.hub, "coltivazione": world_menus.growth,
             "famiglia": world_menus.family_menu, "dimora": world_menus.abode, "faide": world_menus.grudges,
             "dominio": dominion.menu_build, "razze": race_realms.menu_build,
             "tecniche": technique_forge.menu_build, "sangue": blood_menu.menu_build,
             "rendite": income.menu_build, "profondi": deep_dao.menu_build, "spiriti": dao_spirits.menu_build,
-            "attributi": attributes.menu_build}
+            "attributi": attributes.menu_build, "mercato": shops.market_menu, "asta": shops.auction_menu,
+            "ricette": shops.recipes_menu, "bacheca": shops.board_menu}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
          "coltivazione": "Coltivazione", "famiglia": "Famiglia", "dimora": "Dimora", "faide": "Faide",
          "dominio": "Dominio", "razze": "Razze",
          "tecniche": "Tecniche", "sangue": "Sangue", "rendite": "Rendite",
-         "profondi": "Dao profondi", "spiriti": "Spiriti del Dao", "attributi": "Attributi"}
+         "profondi": "Dao profondi", "spiriti": "Spiriti del Dao", "attributi": "Attributi",
+         "mercato": "Mercato", "asta": "Casa d'aste", "ricette": "Ricette", "bacheca": "Bacheca"}
 
 
 def build(conn, player, key: str) -> dict:

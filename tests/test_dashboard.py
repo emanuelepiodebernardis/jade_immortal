@@ -236,3 +236,18 @@ def test_hero_data_and_rich_map(world):
     assert all({"people", "beasts", "threats", "sect"} <= set(n) for n in m["nodes"])
     s = game.state_snapshot()
     assert "livello" in s and "punti" in s
+
+
+def test_click_menus_market_auction_recipes_board(world):
+    game.create("mortale", "", "Han", "normale")
+    for key in ("mercato", "asta", "ricette", "bacheca"):
+        m = game.menu_data(key)
+        assert m["title"] and m["sections"], key
+
+
+def test_place_tiles_are_actions(world):
+    game.create("mortale", "", "Han", "normale")
+    s = game.state_snapshot()
+    labels = {t["cmd"] for t in s["azioni_luogo"]}
+    assert "train" in labels and "sleep" in labels
+    assert all(t["ok"] or t["why"] for t in s["azioni_luogo"])

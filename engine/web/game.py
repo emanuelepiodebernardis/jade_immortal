@@ -301,6 +301,11 @@ def state_snapshot() -> dict:
         snap["livello"] = attributes.level(conn, p.id)
         from engine.systems import system_daily
         snap["quotidiana"] = system_daily.data(conn, p.id)
+        from engine.systems import place_actions
+        try:
+            snap["azioni_luogo"] = place_actions.tiles(conn, p)
+        except Exception:                      # la dashboard non deve mai cadere per una tessera
+            snap["azioni_luogo"] = []
         snap["punti"] = attributes.free(conn, p.id)
     return snap
 
