@@ -202,8 +202,7 @@ def on_retreat_days(conn, days: int) -> list[str]:
 def describe(conn, player) -> str:
     from engine.systems import constitutions
     lines = ["☯ IL TUO CORPO E IL TUO CUORE"]
-    cl = constitutions.describe_line(conn)
-    lines.append("  " + (cl or "Costituzione: comune (nessun corpo divino)."))
+    lines += ["  " + ln for ln in constitutions.describe_full(conn).splitlines()]
     h = heart(conn)
     lines.append(f"  Cuore del Dao: {h}/100 — {heart_label(h)}"
                  + (" (rischio di deviazione del Qi!)" if h < 30 else "")

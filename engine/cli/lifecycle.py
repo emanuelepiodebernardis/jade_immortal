@@ -94,6 +94,7 @@ def create_character() -> None:
     name = _choose_name()
     rivals = _choose_rivals()
     hard = _ask("\nModalità SENZA RITORNO (la morte è definitiva)? [s/N]: ", "n").lower().startswith("s")
+    body = _ask("Affidarti al Cielo e nascere con un CORPO LEGGENDARIO a caso? [s/N]: ", "n").lower().startswith("s")
     with transaction() as conn:
         from engine.systems import destinies
         if hard:
@@ -104,7 +105,7 @@ def create_character() -> None:
         conn.execute("UPDATE players SET name=? WHERE id=1;", (name,))
         print(f"\nSei {name}. Hai scelto: {applied['name']}, destino «{d['name']}».")
         from engine.systems import constitutions
-        for ln in constitutions.roll_at_birth(conn, random.Random(), origin):
+        for ln in constitutions.roll_at_birth(conn, random.Random(), origin, forced=body):
             print(ln)
         print(character.describe_profile(conn))
         print("Ogni origine porta con sé una storia: 'goals' per seguirla. Prima volta? Scrivi 'tutorial'.\n")
@@ -162,9 +163,10 @@ def handle_death() -> bool:
         o = opts[int(raw) - 1]
         if o not in inherit and o["key"] != "none":
             inherit.append(o)
+    body = _ask("Affidarti al Cielo e rinascere con un CORPO LEGGENDARIO a caso? [s/N]: ", "n").lower().startswith("s")
     with transaction() as conn:
         lines = rebirth.reincarnate(conn, random.Random(), origin, name, inherit,
-                                    destiny=destiny)
+                                    destiny=destiny, body=body)
         for ln in lines:
             print(ln)
         print(character.describe_profile(conn))

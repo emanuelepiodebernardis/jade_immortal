@@ -403,9 +403,10 @@ async function showCreation() {
     <fieldset><legend>Rivali</legend>${choiceList("r", o.rivali, "key", (x) => esc(x.label), 1)}</fieldset>
     <p><label>Nome <input id="nm" value="Viandante" maxlength="32"></label></p>
     <p><label><input type="checkbox" id="hc"> Modalità <b>Senza Ritorno</b>: la morte è definitiva, niente reincarnazione</label></p>
+    <p><label><input type="checkbox" id="cb"> ✦ Affidati al Cielo: nasci con un <b>corpo leggendario</b> a caso (Caos Primordiale, Osso Supremo, Doppie Pupille, Vene Yin…)</label></p>
     <button class="primary" id="go-new">Comincia</button>`);
   $("#go-new").onclick = async () => {
-    const r = await api("/api/nuovo", { origine: val("o"), destino: val("d"), rivali: val("r"), nome: $("#nm").value, senza_ritorno: $("#hc").checked });
+    const r = await api("/api/nuovo", { origine: val("o"), destino: val("d"), rivali: val("r"), nome: $("#nm").value, senza_ritorno: $("#hc").checked, corpo: $("#cb").checked });
     closeModal(); addLog(r.log); await refresh();
   };
 }
@@ -427,10 +428,11 @@ async function showDeath() {
     <fieldset><legend>Origine</legend>${choiceList("o", o.origini, "key", (x) => `<b>${esc(x.name)}</b> — ${esc(x.desc)}`)}</fieldset>
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
     <p><label>Nome <input id="nm" value="" placeholder="(lo stesso di prima)" maxlength="32"></label></p>
+    <p><label><input type="checkbox" id="cb"> ✦ Affidati al Cielo: rinasci con un <b>corpo leggendario</b> a caso</label></p>
     <button class="primary" id="go-reb">Rinasci in questo mondo</button>`);
   $("#go-reb").onclick = async () => {
     const picks = [...document.querySelectorAll('input[name="e"]:checked')].map((x) => parseInt(x.value, 10)).slice(0, o.frammenti);
-    const r = await api("/api/rinasci", { origine: val("o"), destino: val("d"), nome: $("#nm").value, eredita: picks.length ? picks : [o.eredita.length - 1] });
+    const r = await api("/api/rinasci", { origine: val("o"), destino: val("d"), nome: $("#nm").value, eredita: picks.length ? picks : [o.eredita.length - 1], corpo: $("#cb").checked });
     closeModal(); addLog(r.log); await refresh();
   };
 }

@@ -428,6 +428,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("setta", "mysect", "lamiasetta"):
         from engine.systems import sect_menu
         return sect_menu.command(conn, player, arg)
+    if cmd in ("costituzione", "corpo_leggendario", "fisico"):
+        from engine.systems import constitutions
+        return constitutions.describe_full(conn)
     if cmd in ("raccogli", "prendi", "raccogli_tutto", "prenditutto"):
         from engine.systems import auto_collect
         return auto_collect.collect_everything(conn, player)

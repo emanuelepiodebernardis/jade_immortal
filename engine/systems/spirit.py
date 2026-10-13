@@ -25,7 +25,9 @@ def max_spirit(conn: sqlite3.Connection, player_id: int = 1) -> int:
     anima = (row["comprehension"] if row and row["comprehension"] else 0)
     tier = cultivation.realm_tier(conn, "player", player_id) or 1
     from engine.systems import soul_temper
-    return 30 + int(anima) + tier * 20 + soul_temper.spirit_pool_bonus(conn, player_id)
+    from engine.systems import constitutions
+    return (30 + int(anima) + tier * 20 + soul_temper.spirit_pool_bonus(conn, player_id)
+            + constitutions.spirit_pool(conn))
 
 
 def _set(conn: sqlite3.Connection, player_id: int, value: int) -> None:

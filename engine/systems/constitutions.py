@@ -21,6 +21,11 @@ Ogni corpo ha DONI e spesso una MALEDIZIONE:
   Corpo dei Cento Veleni       immune alle tossine delle pillole, avvelena chi colpisce · la gente ti teme
   Meridiani Spezzati           lo «spazzatura» delle storie: coltivi a metà… finché non si
                                risvegliano: allora raddoppi, e ogni stadio vale di più
+  …e i corpi dei grandi racconti: Corpo Santo dell'Era Desolata, Osso Supremo, Doppie Pupille,
+  Embrione del Dao Innato, Corpo dei Nove Yang, Corpi Santi della Luna e del Sole, Corpo di Asura,
+  Corpo Immortale, Nirvana della Fenice, Anima Innata Celeste. Ognuno ha la sua STORIA e i suoi DONI
+  (vedi LORE). Alla nascita e alla rinascita puoi chiedere al Cielo un corpo leggendario a caso.
+  Stadi: Sigillato · Primo e Secondo Risveglio · Piccola e Grande Perfezione · Corpo Compiuto · oltre.
 
   corpo        la tua costituzione, il tuo cuore del Dao e le tossine (tutto in un pannello)
 """
@@ -55,7 +60,103 @@ BODIES = {
     "veleno": ("Corpo dei Cento Veleni", {"state": ("veleno", 0.16, 1.4), "toxin_immune": True},
                "La gente ti teme: è più difficile farsi amici.", 4),
     "spezzati": ("Meridiani Spezzati", {"cult": -0.5}, "Coltivi a metà della velocità… per ora.", 5),
+    # --- i corpi leggendari dei grandi racconti ---
+    "santo_antico": ("Corpo Santo dell'Era Desolata", {"atk": 0.12, "taken": 0.12, "state": ("stordimento", 0.12, 1.5),
+                                                       "bt": -0.05, "life": 80},
+                     "Il Cielo lo teme e lo ha maledetto: finché è sigillato coltivi più piano, e ogni sfondamento è "
+                     "una guerra.", 2),
+    "osso_supremo": ("Osso Supremo", {"chance_all": 0.08, "crit": 0.06, "cult": 0.15},
+                     "Chi scopre l'Osso Supremo vorrà strappartelo dal petto.", 3),
+    "doppie_pupille": ("Doppie Pupille", {"crit": 0.10, "evade": 0.06, "spirit_pool": 40, "dao": {"illusione": 1.3}},
+                       None, 3),
+    "dao_innato": ("Embrione del Dao Innato", {"dao_all": 1.35, "cult": 0.15, "bt": -0.04},
+                   "Il Dao ti ama e il Cielo è geloso: le tribolazioni ti colpiscono più forte.", 2),
+    "nove_yang": ("Corpo dei Nove Yang", {"cult": 0.25, "state": ("ustione", 0.16, 1.5), "life": 60,
+                                          "dao": {"fuoco": 1.3}, "heart": -10},
+                  "Il fuoco interiore brucia la calma: il cuore del Dao vacilla più facilmente.", 4),
+    "luna": ("Corpo Santo della Luna Grande", {"state": ("gelo", 0.15, 1.4), "spirit_pool": 60,
+                                               "dao": {"acqua": 1.25, "oscurita": 1.2}}, None, 3),
+    "sole": ("Corpo Santo del Sole Grande", {"state": ("ustione", 0.15, 1.4), "atk": 0.08,
+                                             "dao": {"fuoco": 1.25, "luce": 1.2}}, None, 3),
+    "asura": ("Corpo di Asura", {"atk": 0.14, "state": ("emorragia", 0.16, 1.5), "dao": {"massacro": 1.4}},
+              "Il sangue chiama sangue: la quiete ti è nemica, il cuore del Dao si incrina nella pace.", 4),
+    "immortale": ("Corpo Immortale", {"state": ("rigenerazione", 0.20, 1.5), "saves": 1, "life": 200},
+                  "Non muori facilmente, ma senti tutto: il dolore non ti risparmia nulla.", 2),
+    "fenice_nirvana": ("Corpo del Nirvana della Fenice", {"cult": 0.15, "saves": 1, "state": ("ustione", 0.12, 1.3),
+                                                          "life": 100, "blood": "fenice"}, None, 2),
+    "anima_celeste": ("Anima Innata Celeste", {"spirit_pool": 80, "soul": 1.4, "dao": {"anima": 1.3}},
+                      "Il corpo è debole: l'anima è tutto.", 4),
 }
+
+# STORIA e VANTAGGI di ogni corpo (come nei grandi racconti di coltivazione: il Corpo Santo dell'Era
+# Desolata, l'Osso Supremo, le Doppie Pupille, l'Embrione del Dao, le Vene Yin, i corpi del Sole e della Luna…)
+LORE = {
+    "caos": ("Prima del Cielo e della Terra c'era il Caos. Chi nasce con questo corpo porta in sé un frammento di quel "
+             "tempo: ogni Qi gli è affine, ogni legge gli scivola dentro. Il Cielo, che è ordine, lo guarda con sospetto.",
+             ["coltivazione +30% (risvegliato)", "ogni stato in battaglia più probabile", "nessun Dao gli è estraneo"]),
+    "vene_yin": ("Le Nove Vene Yin Assolute: un gelo che nasce dal midollo. Chi le ha coltiva come un vento di "
+                 "tempesta, ma il freddo sale al cuore anno dopo anno. Nelle storie solo un Fuoco Yang le scioglie.",
+                 ["coltivazione +50%", "colpi di gelo", "guarite, diventano una forza per sempre"]),
+    "ossa_spada": ("Nasci con lo scheletro di una spada: le ossa vibrano quando una lama si sguaina vicino a te. "
+                   "Il Dao della Spada ti riconosce come un figlio.", ["Dao della Spada ×1,5", "colpi perforanti"]),
+    "tuono": ("Una notte di tempesta un fulmine ha cercato la tua culla, e non ti ha ucciso: ti ha scelto. "
+              "Il tuono ti scorre nelle vene.", ["stordimento", "pelle temprata dal fulmine", "Dao del Fulmine ×1,3"]),
+    "ombra": ("Nato nell'ora senza luna. Le ombre ti obbediscono come cani fedeli, e il tuo colpo beve la vita.",
+              ["schivata", "drenaggio", "Dao dell'Oscurità ×1,3"]),
+    "giada": ("Un corpo puro come la giada di montagna: nessuna impurità vi attecchisce, e il cuore resta limpido "
+              "anche davanti ai demoni interiori.", ["rigenerazione", "cuore del Dao +10", "resiste ai demoni del cuore"]),
+    "vuoto": ("Il tuo cuore è vuoto come il cielo d'inverno: ogni Dao vi entra senza attrito. Ma il corpo, "
+              "trascurato dal destino, è fragile.", ["ogni Dao ×1,25"]),
+    "drago": ("Il sangue di un Drago Vero, diluito in mille generazioni, si è risvegliato in te. Le tue ossa sono "
+              "ferro, le tue vene un fiume.", ["corpo possente", "attacco +6%", "il sangue di drago si concentra"]),
+    "occhi": ("Occhi che vedono il filo dei colpi prima che partano, e la forza vera di chi ti sta davanti.",
+              ["critici +8%", "leggi la forza degli altri"]),
+    "veleno": ("Sopravvissuto da bambino a cento veleni: ora il veleno ti scorre dentro, docile, e colpisce chi ti tocca.",
+               ["immune alle tossine delle pillole", "veleno nei colpi"]),
+    "spezzati": ("«Spazzatura», dicevano. Meridiani spezzati, Qi che si disperde. Ma le storie amano proprio questi: "
+                 "quando si saldano, diventano fiumi.", ["al risveglio: coltivazione raddoppiata", "ogni stadio vale di più"]),
+    "santo_antico": ("Il Corpo Santo dell'Era Desolata: il corpo che nelle ere antiche sfidò il Cielo. Il Cielo lo "
+                     "maledisse e da allora chi lo porta coltiva a fatica — ma ogni regno conquistato vale dieci regni "
+                     "degli altri, e a mani nude spacca le montagne.",
+                     ["attacco +12%, danni subiti −12%", "colpi che stordiscono", "vita +80 anni",
+                      "sigillato coltivi più piano: risvegliato, il freno sparisce"]),
+    "osso_supremo": ("Un osso che brilla di rune nel petto, dono dell'Antenato: tutto ciò che fai ti riesce un poco "
+                     "meglio. È anche il tesoro che i potenti sognano di strappare.",
+                     ["ogni stato più probabile", "critici +6%", "coltivazione +15%"]),
+    "doppie_pupille": ("Due pupille in ogni occhio: vedi attraverso le illusioni, leggi i movimenti prima che "
+                       "nascano. Nelle leggende chi le ha non perde mai di vista il proprio nemico.",
+                       ["critici +10%", "schivata +6%", "riserva di spirito +40", "Dao dell'Illusione ×1,3"]),
+    "dao_innato": ("Un embrione del Dao concepito con te: comprendi le leggi come gli altri respirano. Il Cielo, "
+                   "geloso, raddoppia la severità delle tue tribolazioni.",
+                   ["ogni Dao ×1,35", "coltivazione +15%"]),
+    "nove_yang": ("Il sole ti è nato dentro: nove fiamme Yang ardono nei tuoi meridiani. Vivi più a lungo, coltivi "
+                  "più in fretta, bruci chi ti tocca — ma la calma ti sfugge.",
+                  ["coltivazione +25%", "ustioni", "vita +60 anni", "Dao del Fuoco ×1,3"]),
+    "luna": ("Il Corpo Santo della Luna Grande (Taiyin): freddo, silenzioso, profondo. Lo spirito vi si raccoglie "
+             "come la marea sotto la luna.", ["gelo", "riserva di spirito +60", "Acqua ×1,25, Oscurità ×1,2"]),
+    "sole": ("Il Corpo Santo del Sole Grande (Taiyang): il fratello di fuoco della Luna. Ogni colpo è un'alba che "
+             "brucia.", ["ustioni", "attacco +8%", "Fuoco ×1,25, Luce ×1,2"]),
+    "asura": ("Nato su un campo di battaglia, tra i morti. Il corpo di Asura si nutre di lotta: più combatti, più "
+              "diventi forte; nella pace, invece, ti consumi.", ["attacco +14%", "emorragie", "Dao del Massacro ×1,4"]),
+    "immortale": ("Un corpo che si rifiuta di morire: le ferite si chiudono, le ossa si saldano, e una volta — una "
+                  "sola, per ogni risveglio — torni in piedi dalla morte.",
+                  ["rigenerazione", "si rialza una volta dalla morte (risvegliato)", "vita +200 anni"]),
+    "fenice_nirvana": ("Il Nirvana della Fenice: muori nel fuoco e rinasci più forte. Il sangue della fenice ti "
+                       "chiama dalle ceneri.", ["si rialza una volta dalla morte (risvegliato)", "coltivazione +15%",
+                                                 "ustioni", "vita +100 anni", "sangue di fenice"]),
+    "anima_celeste": ("Un'anima discesa dal cielo in un corpo mortale: lo spirito è vasto come un mare, il corpo "
+                      "esile come un giunco.", ["riserva di spirito +80", "tempra dello spirito ×1,4",
+                                               "Dao dell'Anima ×1,3"]),
+}
+
+STAGE_NAMES = ["Sigillato", "Primo Risveglio", "Secondo Risveglio", "Piccola Perfezione", "Grande Perfezione",
+               "Corpo Compiuto"]
+
+
+def stage_name(st: int) -> str:
+    if st < len(STAGE_NAMES):
+        return STAGE_NAMES[st]
+    return f"Oltre il Compimento ({st - len(STAGE_NAMES) + 1}°)"
 
 
 def get(conn) -> dict | None:
@@ -73,11 +174,25 @@ def _mult(conn) -> float:
 
 def grant(conn, key: str) -> str:
     state.set_json(conn, KEY, {"key": key, "stage": 0, "cured": False})
-    nm = BODIES[key][0]
-    curse = BODIES[key][2]
-    msg = f"✦ Nasci con una costituzione rara: {nm} (sigillata)."
+    nm, g, curse, _w = BODIES[key]
+    msg = f"✦ Nasci con un corpo leggendario: {nm} (sigillato)."
+    if key in LORE:
+        msg += "\n  " + LORE[key][0]
+        msg += "\n  Doni: " + "; ".join(LORE[key][1]) + "."
     if curse:
-        msg += f" {curse}"
+        msg += f"\n  Maledizione: {curse}"
+    msg += "\n  Si risveglia a stadi: a ogni nuovo regno, vincendo sull'orlo della morte, nelle illuminazioni. ('corpo')"
+    if g.get("life"):
+        from engine.systems import lifespan
+        lifespan.add_bonus_years(conn, int(g["life"]))
+    if g.get("blood"):
+        try:
+            from engine.systems import bloodlines
+            sp = {"drago": ("Drago delle Nubi", ["fulmine", "acqua"]), "fenice": ("Fenice", ["fuoco"])}.get(g["blood"])
+            if sp:
+                bloodlines.grant_heritage(conn, sp[0], sp[1], 12)
+        except Exception:
+            pass
     return msg
 
 
@@ -104,8 +219,13 @@ def awaken(conn, reason: str) -> list[str]:
         return []
     c["stage"] = int(c.get("stage", 0)) + 1
     state.set_json(conn, KEY, c)
-    nm = BODIES[c["key"]][0]
-    out = [f"✦ RISVEGLIO ({reason}): il tuo {nm} si apre ancora — stadio {c['stage']}. ✦"]
+    nm, g, _cu, _w = BODIES[c["key"]]
+    out = [f"✦ RISVEGLIO ({reason}): il tuo {nm} si apre ancora — {stage_name(c['stage'])} (stadio {c['stage']}). ✦"]
+    if g.get("life"):
+        from engine.systems import lifespan
+        lifespan.add_bonus_years(conn, int(g["life"]) // 4)
+    if g.get("saves") and c["stage"] == 1:
+        out.append("  Ora il tuo corpo può tornare dalla morte una volta per ogni scontro mortale.")
     if c["key"] == "spezzati" and c["stage"] == 1:
         out.append("  I meridiani spezzati si saldano in vie larghe come fiumi: chi rideva di te smetterà.")
     if c["stage"] in (1, 5, 10):
@@ -146,6 +266,8 @@ def cultivation_mult(conn) -> tuple[float, str]:
     st = int(c.get("stage", 0))
     if c["key"] == "spezzati":
         return (0.5, "meridiani spezzati") if st == 0 else (1.0 + 1.0 * (1 + 0.25 * (st - 1)), "meridiani rinati")
+    if c["key"] == "santo_antico" and st == 0:
+        return 0.8, "Corpo Santo maledetto dal Cielo"
     cult = g.get("cult", 0.0)
     if not cult:
         return 1.0, ""
@@ -210,6 +332,10 @@ def combat(conn, fx) -> list[str]:
         fx.p.atk_mult *= 1.0 + g["atk"] * eff
     if c["key"] == "vuoto":
         pr["taken"] = pr.get("taken", 0.0) - 0.08          # fragile
+    if c["key"] == "anima_celeste":
+        pr["taken"] = pr.get("taken", 0.0) - 0.06          # il corpo è un giunco
+    if g.get("saves") and int(c.get("stage", 0)) >= 1:
+        fx.p.lethal_saves += int(g["saves"])
     return [f"Il tuo {BODIES[c['key']][0]} si desta."] if int(c.get("stage", 0)) > 0 else []
 
 
@@ -253,13 +379,45 @@ def _has_yang(conn, pid: int) -> bool:
     return bonds.dao_partner(conn, pid) is not None
 
 
+def spirit_pool(conn) -> int:
+    c = get(conn)
+    if not c:
+        return 0
+    return int(_gifts(conn).get("spirit_pool", 0) * (0.3 if int(c.get("stage", 0)) == 0 else _mult(conn)))
+
+
+def soul_mult(conn) -> float:
+    return float(_gifts(conn).get("soul", 1.0)) if get(conn) else 1.0
+
+
+def describe_full(conn) -> str:
+    c = get(conn)
+    if not c:
+        return ("Non porti un corpo leggendario. Si nasce con uno raramente (i geni più spesso, il destino «Corpo "
+                "Divino» lo garantisce), oppure scegliendo, alla nascita o alla rinascita, di affidarti al Cielo.")
+    nm, _g, curse, _w = BODIES[c["key"]]
+    st = int(c.get("stage", 0))
+    lines = [f"✦ {nm} — {stage_name(st)}" + (f" (stadio {st}, doni ×{_mult(conn):.2f})" if st else
+                                             " (un'eco dei suoi poteri: si risveglia a stadi)")]
+    if c["key"] in LORE:
+        lines.append("  " + LORE[c["key"]][0])
+        lines.append("  Doni: " + "; ".join(LORE[c["key"]][1]) + ".")
+    if curse and not c.get("cured"):
+        lines.append(f"  Maledizione: {curse}")
+    elif c.get("cured"):
+        lines.append("  La maledizione è spezzata.")
+    lines.append("  Risvegli: a ogni nuovo regno (45%), vincendo sull'orlo della morte (25%), nelle illuminazioni (15%). "
+                 "Ogni stadio rafforza i doni del 25%, senza fine.")
+    return "\n".join(lines)
+
+
 def describe_line(conn) -> str | None:
     c = get(conn)
     if not c:
         return None
     nm, _g, curse, _w = BODIES[c["key"]]
     st = int(c.get("stage", 0))
-    s = f"Costituzione: {nm} — " + ("sigillata (un'eco dei suoi poteri)" if st == 0 else f"risvegliata, stadio {st}")
+    s = f"Corpo leggendario: {nm} — " + ("sigillato (un'eco dei suoi poteri)" if st == 0 else f"{stage_name(st)}, stadio {st}")
     if curse and not c.get("cured"):
         s += f". Maledizione: {curse}"
     elif c.get("cured"):

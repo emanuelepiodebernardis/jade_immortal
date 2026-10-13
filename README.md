@@ -34,15 +34,18 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
   legami, nemici, faide e debiti di vita), il **Libro** illustrato di tesori, bestie, sangue,
   reliquie e nemici (con i tuoi disegni nella cartella `immagini/`), il registro **filtrabile** e
   una **legenda** dei simboli;
-- i **menu** Setta, Arti, Coltivazione, Eventi, Dimora, Regni, Famiglia, Faide, Tecniche (con la fucina per fonderle), Dominio e Razze nella colonna di sinistra:
+- i **menu** Setta, Arti, Coltivazione, Eventi, Dimora, Regni, Famiglia, Faide, Tecniche (con la
+  fucina per fonderle), Dominio, Razze, Sangue e Rendite nella colonna di sinistra:
   ogni azione è un pulsante, e quelle non ancora possibili dicono cosa manca;
 - il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
-- la creazione del personaggio e la rinascita in finestre guidate.
+- la creazione del personaggio e la rinascita in finestre guidate, con la scelta facoltativa
+  di nascere con un **corpo leggendario** a caso.
 
 Non serve installare nulla (solo libreria standard) e ascolta solo sul tuo PC
 (`python dashboard.py --rete` per usarla anche dal telefono, sulla Wi-Fi di casa). La riga di
 comando resta sempre disponibile in basso. Non usare terminale e dashboard nello stesso
-momento.
+momento. Quando i file del gioco cambiano (un aggiornamento), la dashboard **si riavvia da sola**
+con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
 
 > Richiede solo **Python 3.11+** (usa `sqlite3` della standard library). La narrazione
 > avanzata è opzionale (LLM locale via Ollama); senza, c'è un fallback testuale completo.
@@ -101,7 +104,9 @@ momento.
 - **Lignaggi di sangue** delle bestie leggendarie: manifestazioni ibride, trasformazione
   completa, fusione in sangui ibridi (Drago-Fenice di Fuoco e Ghiaccio…).
 - **Armi vive** che si temprano con il tempo e l'uso, si risvegliano e crescono senza tetto.
-- **Costituzioni speciali**, **cuore del Dao** (deviazione del Qi), **tossine delle pillole**,
+- **Corpi leggendari** (`costituzione`): 22 corpi con la loro storia, i doni e gli stadi di
+  risveglio fino al *Corpo Compiuto* (vedi sotto).
+- **Cuore del Dao** (deviazione del Qi), **tossine delle pillole**,
   **tribolazioni del fulmine** a ogni regno da assorbire e controllare.
 - **Prodigi** che crescono senza di te, **uova e allevamento** di bestie ibride, **incarichi a catena**.
 - **Poteri dei protagonisti**: retaggio spezzato da ricomporre, maestro nell'anello, spazio
@@ -110,6 +115,48 @@ momento.
 - Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.
+
+### Spirito, dominio e servi 👁️
+- **Tempra dello Spirito**: lo spirito si allena come il Qi e i Dao, con gradi infiniti che
+  allargano la riserva e rafforzano l'anima.
+- **Sigillo dell'anima**: chi sconfiggi può diventare tuo **servo** se il tuo spirito è più forte
+  del suo; i suoi beni passano a te. Vale anche per bestie e spiriti speciali.
+- **Sette vassalle**: sigilla un patriarca e la sua setta passa sotto di te. Ti paga un tributo,
+  ti apre il tesoro e le tecniche e combatte nelle tue guerre.
+- **Arte della salma**: con la tecnica giusta riporti in vita i caduti, e i cadaveri, sotto il
+  tuo controllo.
+
+### Razze, sangue e tecniche 🐉
+- **Regni delle razze** (menu `razze`): draghi, demoni, spiriti e bestie antiche hanno terre e
+  **campioni**. Uccidendoli ottieni sangue di alto livello o una sua traccia. Trovi **reliquie**
+  e, col sangue giusto, sali la scala da *discepolo* fino a **Sovrano** o **Eletto**. Ogni mondo
+  ha le sue razze e la sua scala, che ricomincia quando ascendi.
+- **Nove ranghi di sangue** (menu `sangue`), da Comune fino al Caos e oltre, con decine di
+  famiglie: Qilin, Pixiu, Bai Ze, Volpe a Nove Code, Kunpeng, i Quattro Simboli, i Quattro
+  Flagelli… Il sangue più raro **domina le fusioni**, i nomi restano brevi (al massimo due
+  famiglie e due elementi) e il sangue meno nobile si **sacrifica** per purificare le linee più
+  alte, diviso in parti uguali.
+- **Fucina delle tecniche** (menu `tecniche`): fondi due o tre tecniche in una nuova, allenala,
+  rinominala. Si carica solo la tecnica più forte per categoria, le vecchie restano in archivio.
+
+### Mondi, rendite e raccolta 💰
+- **Ogni mondo è un piano a sé**, con sette, abitanti, classifiche e guerre proprie. Salendo si
+  lascia la setta del mondo inferiore e gli abitanti del nuovo piano sono al tuo livello. Non si
+  ascende mai verso un mondo più debole.
+- **Rendite** (menu `rendite`): la tua bottega da maestro d'arte, la quota del tesoro di setta
+  ai ranghi alti, i tributi di vassalle e razze, lo stipendio di corte. Le paghe crescono col regno.
+- **Raccolta automatica**: alla morte del nemico il bottino si raccoglie e le essenze si
+  assorbono da sole. Si può disattivare.
+
+### Corpi leggendari 🌟
+Ventidue corpi presi dalle grandi storie del genere: il **Corpo del Caos Primordiale**, il
+**Corpo Santo dell'Era Desolata** (lento finché è sigillato, poi senza pari), l'**Osso Supremo**,
+le **Doppie Pupille**, l'**Embrione del Dao Innato**, i **Nove Yang**, i corpi santi della **Luna**
+e del **Sole**, l'**Asura**, il **Corpo Immortale** e la **Fenice del Nirvana** (che sopravvivono a
+un colpo mortale), l'**Anima Innata Celeste**… Ognuno ha una leggenda, i suoi doni (coltivazione,
+Dao affini, breakthrough, vita, spirito, anima, combattimento) e talvolta un prezzo. Si risvegliano
+per stadi: *Sigillato → Primo Risveglio → … → Corpo Compiuto*. Alla creazione e a ogni rinascita
+puoi scegliere di nascere con un corpo leggendario a caso.
 
 ### Coltivazione **infinita**
 - Regni di coltivazione con **10 strati** ciascuno e breakthrough come evento di regno.
@@ -209,7 +256,10 @@ momento.
 | Dimora e setta | `dimora`, `ritiro <giorni>`, `accogli`, `insegna`, `discepoli`, `fonda`, `setta`, `anziani`, `missioni` |
 | Talento | `radici`, `gongfa`, `giura`, `proponi`, `chiama` |
 | Arma | `weapon <arma>`, `arma`, `arma nome <nome>` |
-| Sangue | `sangue`, `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
+| Sangue | `sangue` (menu: fondi, sacrifica, purifica), `use essenza`, `fondi_sangue <n> <m>`, `trasformati` |
+| Dominio e spirito | `dominio`, `tempra`, `razze` (campioni, reliquie, ascesa), `rendite` (`rendite riscuoti`) |
+| Tecniche | `tecniche` (fucina: fondi, allena, rinomina, dimentica) |
+| Corpo leggendario | `costituzione` (storia, stadio e doni) |
 | Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
 | Eredità | `tesori` (pannello unico, `tesori cura`), `retaggio`, `anello`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
 | Svolte e ritmo | `svolte`, `vola <luogo>`, `crea_dao <nome>`, `capolavoro <nome>`, `ritmo` |
@@ -241,7 +291,7 @@ jade_immortal/
 │   │                       #   suggestions, encounters, bonds, storyline, rebirth…
 │   ├── cli/                # loop.py (dispatch), story_cmds.py, lifecycle.py, hud.py, help_text.py
 │   └── web/                # dashboard: game.py (ponte col motore), server.py, static/ (HTML/CSS/JS)
-└── tests/                  # ~430 test (pytest)
+└── tests/                  # ~590 test (pytest)
 ```
 
 I dati di gioco vivono in un singolo file **SQLite**. Le migrazioni sono idempotenti: i

@@ -100,7 +100,8 @@ def _gain(conn, pid: int, y: float) -> float:
     from engine.systems import perception
     tier = cultivation.realm_tier(conn, "player", pid) or 1
     anima = perception._anima(conn, "player", pid)
-    return 12.0 * y * (1 + anima / 100) * (1 + 0.2 * (tier - 1))
+    from engine.systems import constitutions
+    return 12.0 * y * (1 + anima / 100) * (1 + 0.2 * (tier - 1)) * constitutions.soul_mult(conn)
 
 
 def session(conn, player, share: float = 1.0, advance: bool = True) -> str:

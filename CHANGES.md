@@ -1799,3 +1799,26 @@ Concentrazione, rango e potenza del lignaggio non cambiano: cambia solo il nome.
 `python dashboard.py --no-reload` disattiva il riavvio automatico.
 
 **Nota:** serve chiudere e riaprire la dashboard **un'ultima volta** a mano, perché quella aperta ora non contiene ancora questa funzione.
+
+---
+
+## Aggiornamento 43 — Corpi leggendari: storie, doni, stadi; nascere con un corpo leggendario a caso
+
+**Ventidue corpi, ognuno con la sua storia.** Agli undici di prima si aggiungono undici corpi presi dalle grandi storie del genere: **Corpo Santo dell'Era Desolata**, **Osso Supremo**, **Doppie Pupille**, **Embrione del Dao Innato**, **Corpo dei Nove Yang**, **Corpo Santo della Luna Grande** e **del Sole Grande**, **Corpo di Asura**, **Corpo Immortale**, **Corpo del Nirvana della Fenice** e **Anima Innata Celeste**. Ogni corpo, nuovo o vecchio, ha:
+- una **leggenda** (da dove viene, chi lo ha portato prima di te, perché il Cielo lo teme);
+- l'elenco chiaro dei suoi **doni**: coltivazione, Dao affini, breakthrough, cuore del Dao, durata della vita, riserva di spirito, tempra dell'anima, colpi in combattimento;
+- il **prezzo** quando c'è. Il Corpo Santo dell'Era Desolata coltiva più lentamente finché è sigillato. L'Anima Innata Celeste ha un corpo fragile.
+
+**Stadi con un nome.** Il risveglio passa per *Sigillato → Primo Risveglio → Secondo Risveglio → Piccola Perfezione → Grande Perfezione → Corpo Compiuto*. A ogni stadio i doni crescono e si guadagnano anni di vita.
+
+**Doni nuovi:**
+- **anni di vita** in più;
+- **riserva di spirito** più ampia;
+- **tempra dell'anima** più rapida;
+- **salvataggi dalla morte**: il Corpo Immortale e la Fenice del Nirvana sopravvivono a un colpo mortale.
+
+**Nascere con un corpo leggendario.** Quando crei il personaggio o rinasci (dalla dashboard o dal terminale) puoi «affidarti al Cielo»: nasci con un corpo leggendario estratto a caso. È facoltativo, e senza la spunta tutto resta come prima.
+
+**Comando** `costituzione` (o `corpo_leggendario`, `fisico`): la scheda completa del tuo corpo, con storia, stadio e doni attivi.
+
+Nuovi test. Suite totale: **590 passati**.

@@ -538,7 +538,7 @@ def _rebirth_location(conn, rng, avoid: int | None) -> int:
 
 def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
                 name: str | None, inherit: dict | None, player_id: int = 1,
-                destiny: str | None = None) -> list[str]:
+                destiny: str | None = None, body: bool = False) -> list[str]:
     """Fa rinascere il giocatore nello stesso mondo. Ritorna le righe da mostrare."""
     from engine.generators import cultivation_gen
     from engine.simulation import cultivation
@@ -568,7 +568,7 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
         d = destinies.apply(conn, destiny, player_id)
         lines.append(f"Il tuo destino: {d['name']}.")
     from engine.systems import constitutions
-    lines += constitutions.roll_at_birth(conn, rng, origin_key)
+    lines += constitutions.roll_at_birth(conn, rng, origin_key, forced=body)
     # fino a DUE frammenti dalla vita passata ('Nulla' resta una scelta a sé, col suo karma)
     picks = inherit if isinstance(inherit, list) else [inherit or {"key": "none"}]
     picks = [x for x in picks if x][:(len(picks) if vol else MAX_FRAGMENTS)] or [{"key": "none"}]

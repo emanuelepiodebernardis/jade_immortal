@@ -220,3 +220,8 @@ def test_charts_graph_book_and_autopilot_summary(world):
     game.turn("sleep")
     d = game.summary_diff(a, game.summary_snapshot())
     assert d["giorni"] >= 1 and "regno_a" in d
+
+
+def test_creation_with_a_legendary_body(world):
+    out = game.create("mortale", "", "Prova", "normale", False, True)
+    assert "corpo leggendario" in out

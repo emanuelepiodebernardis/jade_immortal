@@ -52,7 +52,7 @@ def creation_options(life_no: int = 1) -> dict:
             "rivali": [{"key": k, "label": f"{k.capitalize()} — {v[1]}"} for k, v in destinies.RIVAL_LEVELS.items()]}
 
 
-def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = False) -> str:
+def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = False, body: bool = False) -> str:
     from engine.systems import character, destinies, constitutions, rebirth
     name = " ".join((name or "Viandante").split())[:32] or "Viandante"
     with LOCK, transaction() as conn:
@@ -66,7 +66,7 @@ def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = F
         if hardcore:
             rebirth.set_hardcore(conn, True)
         lines = [f"Sei {name}. Hai scelto: {applied['name']}" + (f", destino «{d['name']}»." if d else ".")]
-        lines += constitutions.roll_at_birth(conn, random.Random(), origin)
+        lines += constitutions.roll_at_birth(conn, random.Random(), origin, forced=body)
         lines.append(character.describe_profile(conn))
     return _clean("\n".join(lines)) + "\n\n" + intro()
 
@@ -107,14 +107,15 @@ def new_world() -> str:
     return f"Il vecchio mondo è conservato in database/saves/{name}. Un nuovo mondo ti attende."
 
 
-def reincarnate(origin: str, destiny: str, name: str, inherit_idx) -> str:
+def reincarnate(origin: str, destiny: str, name: str, inherit_idx, body: bool = False) -> str:
     from engine.systems import rebirth, character, state
     with LOCK, transaction() as conn:
         row = conn.execute("SELECT * FROM past_lives WHERE life_no=?;", (rebirth.life_no(conn),)).fetchone()
         opts = rebirth.inheritance_options(row) if row else [{"key": "none"}]
         idxs = inherit_idx if isinstance(inherit_idx, list) else [inherit_idx]
         inherit = [opts[max(0, min(len(opts) - 1, int(i)))] for i in idxs][:rebirth.fragments_allowed(conn, len(opts) - 1)]
-        lines = rebirth.reincarnate(conn, random.Random(), origin, name or None, inherit, destiny=destiny or None)
+        lines = rebirth.reincarnate(conn, random.Random(), origin, name or None, inherit, destiny=destiny or None,
+                                    body=body)
         state.delete(conn, "web_death_row")
         lines.append(character.describe_profile(conn))
     return _clean("\n".join(lines)) + "\n\n" + intro()
