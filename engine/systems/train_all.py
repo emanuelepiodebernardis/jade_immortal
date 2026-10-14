@@ -81,6 +81,8 @@ def train(conn, player) -> str:
                 notes += weapon_spirit.on_weapon_dao(conn, player)
     if daos:
         progression.record_dao_training(conn, player.id)
+        from engine.systems import tenacity
+        tenacity.mark(conn, tick_mod.get_tick(conn), player.id)
         if grown:
             out.append("Dao: " + ", ".join(grown[:4])
                        + (f" e altri {len(grown) - 4}" if len(grown) > 4 else "") + ".")

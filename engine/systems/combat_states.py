@@ -100,8 +100,11 @@ class FightCtx:
         self.p.domains = [STATE_OF_DAO[k] for k in self.p.prof["domains"] if k in STATE_OF_DAO]
         self.e.procs = _procs(conn, "npc", npc_id)
         self.e.prof = {"state_chance": {}, "state_power": {}, "chance_mult": 1.0, "special": set()}
+        from engine.systems import power_budget
+        trk = power_budget.Tracker(self)                 # (Agg. 58) quanto pesa ogni fonte, e i tetti
         mp, me, phrase = elements.matchup(conn, player_id, npc_id)
         self.p.atk_mult *= mp * (1.0 + max(-0.3, self.p.prof["attack"]))
+        trk.mark("elementi")
         self.e.atk_mult *= me
         if phrase:
             self.lines_intro.append(phrase)
@@ -140,23 +143,30 @@ class FightCtx:
         rp = spirit_roots.combat_profile(conn, "player", player_id)
         self.p.procs += rp["procs"]
         self.p.atk_mult *= 1.0 + rp["attack"] + rp["strike"] * 0.5
+        trk.mark("radici")
         if rp["taken"]:
             pr["taken"] = pr.get("taken", 0.0) + rp["taken"]
         # CLASSE (arte + elementi): formazioni mobili/piazzate, aure elementali
         from engine.systems import classes
         self.lines_intro += classes.combat(conn, player_id, npc_id, self)
+        trk.mark("classe")
         # LIGNAGGI DI SANGUE: manifestazioni, tecnica innata, doni, trasformazione
         from engine.systems import bloodlines
         self.lines_intro += bloodlines.combat(conn, player_id, self)
+        trk.mark("sangue")
         from engine.systems import prodigies, heaven_trib
         self.lines_intro += prodigies.enemy_bonus(conn, npc_id, self)
+        trk.mark("prodigi")
         self.lines_intro += heaven_trib.combat(conn, self)
+        trk.mark("tribolazione_celeste")
         from engine.systems import mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte
         for _m in (mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte):
             self.lines_intro += _m.combat(conn, self)
+        trk.mark("anello e altri")
         # COSTITUZIONE SPECIALE
         from engine.systems import constitutions
         self.lines_intro += constitutions.combat(conn, self)
+        trk.mark("corpo")
         _c = constitutions.get(conn)
         if _c and _c["key"] == "ombra" and conn.execute(
                 "SELECT 1 FROM character_daos WHERE character_type='npc' AND character_id=? AND dao_key='luce' "
@@ -165,6 +175,7 @@ class FightCtx:
         # extra (spirito dell'arma, bestia): aggiunti dal chiamante via add_proc
         if "nullify" in pr["special"]:
             self.e.procs = [x for x in self.e.procs if STATES.get(x[0], ("", "nemico"))[1] != "sé"]
+        trk.finish(conn)
 
     # ---------- utilità ----------
     def add_proc(self, side: str, state: str, chance: float, power: float, source: str) -> None:

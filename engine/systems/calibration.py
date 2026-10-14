@@ -43,6 +43,15 @@ AMBUSH_DEATH_MULT = 0.25          # chi ti tende un agguato e vince, di rado ti 
 FRONTIER_RESPAWN_DAYS = 5         # dopo quanti giorni una terra ripulita torna a popolarsi
 FAUNA_BAND = (0.45, 1.0)          # le creature delle terre del tuo livello: tra il 45% e il 100% della tua forza
 
+# --- il bilancio della potenza (power_budget.py) ------------------------------------------------
+DAO_AMP_MAX = 2.5                 # i Dao moltiplicano l'attacco al massimo ×2,5 (prima senza tetto: ×6,7 in un salvataggio)
+GIFTS_ATK_CAP = 3.0               # tutti i doni in combattimento insieme: al massimo ×3
+MAX_EXTRA_STRIKES = 3             # colpi in più per turno
+MAX_LETHAL_SAVES = 3              # resurrezioni per scontro
+MAX_DAMAGE_REDUCTION = 0.6        # danni subiti: al massimo −60%
+MAX_EVADE = 0.4                   # schivata
+MAX_CRIT = 0.6                    # critici in più
+
 # --- trame -----------------------------------------------------------------------------------
 PLOT_MAX_ACTIVE = 2
 PLOT_FIRST_DAY = 4                # le prime giornate sono tue: niente trame subito

@@ -179,6 +179,8 @@ def _bt_success(conn, ctype, cid, rec, tier, consume: bool) -> tuple[float, floa
         extra += rebirth.memory_bt_bonus(conn, cid)        # il corpo ricorda i regni già percorsi
         from engine.systems import attributes
         extra += attributes.bt_bonus(conn)                 # Fortuna
+        from engine.systems import tenacity
+        extra += tenacity.bt_bonus(conn, cid)              # la testardaggine del mortale
     p_success = max(0.05, min(0.97,
                               0.55 - 0.08 * math.log2(max(1, tier)) + (rec["progress"] - 1.0) + dao * 0.003
                               + aff_bonus - residue_penalty + fail_bonus + fate_succ + extra))

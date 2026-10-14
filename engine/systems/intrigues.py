@@ -235,6 +235,8 @@ def candidates(conn, player, rng: random.Random) -> list[tuple[float, str, dict]
                 continue
             if tpl.get("req_flag") and tpl["req_flag"] not in d.get("flags", []):
                 continue                                   # nasce solo da una scelta passata
+            if tpl.get("req_flag") and day - d.get("flag_days", {}).get(tpl["req_flag"], -999) < tpl.get("delay", 0):
+                continue                                   # e solo quando è passato il tempo giusto («tra tre anni»)
             if day - last_done.get(k, -999) < REPEAT_GAP:
                 continue
             s = 1.0 + 0.4 * tpl.get("weight", 3)
@@ -342,6 +344,14 @@ def _auto_act(conn, player, it: dict, tpl: dict, act: dict) -> str:
     if act.get("endings"):
         end = next((e for e in act["endings"] if _match(it, e)), act["endings"][-1])
         lines += _apply(conn, player, it, end.get("effects", {}), f)
+        if end.get("flag"):                              # anche un finale può accendere una trama futura
+            d0 = get(conn)
+            d0.setdefault("flags", [])
+            if end["flag"] not in d0["flags"]:
+                d0["flags"].append(end["flag"])
+            d0.setdefault("links", {})[end["flag"]] = [n for n in it["cast"].values() if _alive(conn, n)]
+            d0.setdefault("flag_days", {})[end["flag"]] = _day(conn)
+            _save(conn, d0)
         lines.append("✦ " + _finish(conn, it, end.get("outcome", "compiuta"), _fmt(end.get("text", ""), f) or None))
         return "\n".join(x for x in lines if x)
     lines += _apply(conn, player, it, act.get("effects", {}), f)
@@ -681,6 +691,8 @@ def on_effect(conn, t: int, rng, player, data: dict, ctx: dict) -> list[str]:
         d.setdefault("flags", [])
         if data["flag"] not in d["flags"]:
             d["flags"].append(data["flag"])
+        d.setdefault("links", {}).setdefault(data["flag"], [n for n in it["cast"].values() if _alive(conn, n)])
+        d.setdefault("flag_days", {})[data["flag"]] = _day(conn)
     cmd = ctx.get("_command") or ""
     if cmd.startswith("duello"):                        # chi affronti in duello: l'esito conterà
         target = _duel_target(it, cmd, ctx)

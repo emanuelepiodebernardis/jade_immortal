@@ -176,6 +176,13 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
   il finale e le scelte aprono rami. Alcune trame si concludono da sole con premi, come reliquie,
   sangue nobile o corpi leggendari. Nei reami segreti scegli un tesoro solo oppure tutti, e in quel
   caso ti fai nemici quelli che erano entrati con te, e da lì nasce una nuova trama.
+- **Quaranta trame**, molte incatenate: un giuramento diventa un duello «tra tre anni», un'asta di
+  schiavi diventa la storia di un principe perduto, un allievo senza talento torna anni dopo.
+- **⚖ La tua forza** (`forza`): da dove viene la tua potenza, fonte per fonte. Il regno è la scala
+  principale; Dao e doni in combattimento hanno un tetto morbido, così nessun sistema da solo
+  spezza il gioco.
+- **La volontà del mortale**: il Mortale comune cresce coi giorni di fatica (fino a +90%) e
+  raggiunge i geni.
 - **Indagini** (pannello Mete, `trame indaga`): nei misteri gli indizi si svelano uno alla volta,
   con le scelte o indagando (una volta al giorno). Con abbastanza indizi puoi affrontare subito il
   colpevole. Ogni trama tiene il diario di cosa è successo finora.

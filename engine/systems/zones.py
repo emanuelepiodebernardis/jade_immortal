@@ -91,7 +91,7 @@ def _spawn_classed_npc(conn, rng, loc, klass, rating, tick) -> int:
     stage = rng.randint(3, 9)
     body = soul = qi = tier * 6
     if klass == "corpo":
-        body = tier * 14 + stage * 3
+        body = tier * 18 + stage * 4          # (Agg. 58) il Corpo resta il più coriaceo anche col nuovo tetto dei Dao
     elif klass == "anima":
         soul = tier * 14 + stage * 3
     elif klass == "qi":

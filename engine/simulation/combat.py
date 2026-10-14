@@ -76,8 +76,8 @@ def dao_vessel(tier: int) -> float:
 def dao_amplifier(dao_power: float, tier: int) -> float:
     """Moltiplicatore dei Dao: 1 senza Dao; ~1.4 quando riempi il vaso del tuo regno;
     ~2.2 a sette volte il vaso… e continua a salire (piano) all'infinito."""
-    import math
-    return 1.0 + DAO_AMP * math.log2(1.0 + max(0.0, dao_power) / dao_vessel(tier))
+    from engine.systems import power_budget          # (Agg. 58) con un tetto morbido: vedi power_budget.py
+    return power_budget.dao_amp(dao_power, dao_vessel(tier))
 
 
 def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:

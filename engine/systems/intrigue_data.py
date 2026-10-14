@@ -760,7 +760,7 @@ TEMPLATES += [
             {"title": "L'ultimo dono", "auto": True,
              "text": "All'alba l'anima del maestro si dissolve, e lascia dietro di sé ciò che ha deciso di lasciare.",
              "endings": [
-                 {"need_branch": "rispetto", "need_clues": 3, "outcome": "erede",
+                 {"need_branch": "rispetto", "need_clues": 3, "outcome": "erede", "flag": "erede_grotta",
                   "effects": {"prize": _CORPO, "heart": 5},
                   "text": "Ti chiama discepolo prima di svanire: la sua arte e il suo corpo sono tuoi."},
                  {"need_branch": "rispetto", "outcome": "discepolo", "effects": {"prize": _ARGENTO},
@@ -996,3 +996,9 @@ TEMPLATES += [
                      "fuga": "Sei fuggito con i tesori del reame: la caccia continua."},
     },
 ]
+
+
+# altre trame (Aggiornamento 58): intrighi, tornei, corti, misteri, e le loro conseguenze
+from engine.systems.intrigue_data2 import MORE as _MORE   # noqa: E402
+
+TEMPLATES += _MORE

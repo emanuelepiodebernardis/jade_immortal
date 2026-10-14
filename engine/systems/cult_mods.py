@@ -66,6 +66,10 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = sect_menu.chamber_mult(conn, location_id)
     if m != 1.0:
         out.append((m, lbl))
+    from engine.systems import tenacity
+    m, lbl = tenacity.cultivation_mult(conn, pid)
+    if m != 1.0:
+        out.append((m, lbl))
     return out
 
 

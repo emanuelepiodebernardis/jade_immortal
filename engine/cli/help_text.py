@@ -184,6 +184,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "use essenze                   — assorbi tutte le essenze (di sangue e del Dao) in una volta sola",
         "fondi_sangue <n> <m> [...]    — fondi due o più lignaggi Puri in un sangue ibrido",
         "sangue evolvi <n> [forma]     — EVOLUZIONE: il lignaggio diventa la bestia più nobile di cui è erede (serpente ▸ Jiao ▸ Drago…)",
+        "forza                         — DA DOVE VIENE LA TUA FORZA: il peso di ogni fonte, e i doni dell'ultimo scontro",
         "trame                         — le TRAME aperte (intrighi, tornei, eredità, maledizioni): atti, indizi, finali",
         "trame indaga <n>              — mezza giornata di indagini: se va bene, il prossimo indizio (una volta al giorno)",
         "trame accusa <n>              — con abbastanza indizi, affronti subito il colpevole",

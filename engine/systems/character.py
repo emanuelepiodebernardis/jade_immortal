@@ -28,7 +28,8 @@ AFF_LABELS_IT = {
 ORIGINS = {
     "mortale": {
         "name": "Mortale comune",
-        "desc": "Nessun privilegio, nessun fardello. Tutto è da conquistare.",
+        "desc": ("Nessun privilegio, nessun fardello. Tutto è da conquistare — e ogni giorno di fatica conta: "
+                 "la VOLONTÀ del mortale accelera la coltivazione (fino a +90%) e gli sfondamenti."),
         "start_tier": 1, "age": 16,
         "aff": {"cultivation": 45, "body": 50, "qi": 48, "soul": 45, "combat": 50},
         "flags": {},

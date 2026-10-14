@@ -285,3 +285,45 @@ def test_spared_opponent_talks_and_changes_next_act(conn, monkeypatch):
     d = intrigues.get(conn); d["active"][0] = it; intrigues._save(conn, d)
     txt = intrigues.play(conn, p, intrigues.get(conn)["active"][0])
     assert "hai risparmiato" in txt
+
+
+def test_every_plot_can_be_played_to_the_end(conn, monkeypatch):
+    """Smoke su tutte le trame: si gioca sempre la prima scelta disponibile; i duelli finiscono vinti."""
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    p = _p(conn)
+    for tpl in intrigue_data.TEMPLATES:
+        encounters.clear(conn)
+        d = intrigues.get(conn); d["active"] = []; intrigues._save(conn, d)
+        assert intrigues.start(conn, p, tpl["key"], random.Random(1)) is not None or intrigues.get(conn)["done"], tpl["key"]
+        for _step in range(12):
+            d = intrigues.get(conn)
+            if not d["active"]:
+                break
+            it = d["active"][0]
+            if encounters.pending(conn):
+                _res, cmd = encounters.choose(conn, p, 1)
+                if cmd and cmd.startswith("duello"):
+                    intrigues.on_duel(conn, p, intrigues.get(conn)["active"][0].get("duel_npc") or 0, "risparmiato") \
+                        if intrigues.get(conn)["active"] else None
+                continue
+            it["next_day"] = 0
+            it.pop("pending_end", None) if not it.get("duel_npc") else None
+            intrigues._save(conn, d)
+            intrigues.play(conn, p, it)
+        assert not intrigues.get(conn)["active"], f"{tpl['key']} non si chiude"
+
+
+def test_chained_plot_waits_its_delay(conn, monkeypatch):
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    p = _p(conn)
+    conn.execute("UPDATE worlds SET current_tick=current_tick+600;")
+    intrigues.start(conn, p, "fidanzamento_annullato", random.Random(1))
+    _pick(conn, "Strappi tu il contratto")
+    d = intrigues.get(conn)
+    assert "tre_anni" in d["flags"] and d["links"]["tre_anni"]
+    d["last_start"] = -999; intrigues._save(conn, d)
+    keys = [x[2].get("key") for x in intrigues.candidates(conn, p, random.Random(1)) if x[1] == "nuova"]
+    assert "duello_tre_anni" not in keys                      # troppo presto: tre anni (30 giorni) non sono passati
+    conn.execute("UPDATE worlds SET current_tick=current_tick+120*31;")
+    keys = [x[2].get("key") for x in intrigues.candidates(conn, p, random.Random(1)) if x[1] == "nuova"]
+    assert "duello_tre_anni" in keys

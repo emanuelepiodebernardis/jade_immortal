@@ -2315,3 +2315,73 @@ Gli indizi ora hanno un contenuto, e si possono cercare.
 - Corretto: i ricercati già puniti potevano tornare tra i candidati alla taglia (la taglia nuova veniva
   ignorata).
 
+## Aggiornamento 58 — Il bilancio della potenza, la volontà del mortale, quaranta trame
+
+### Il bilancio della potenza (`engine/systems/power_budget.py`)
+
+Prima ogni sistema moltiplicava la forza di tutti gli altri. Nel salvataggio di prova:
+- potenza 63.000 contro 2.500–3.000 degli avversari dello stesso regno;
+- l'amplificatore dei Dao a ×6,7;
+- i doni in combattimento, tutti insieme, a ×25.
+
+Ora:
+- **il regno** resta la scala principale (×1,6 a regno);
+- **la crescita personale** (corpo, tecniche, tribolazioni, attributi) resta compressa in modo
+  logaritmico;
+- **i Dao** amplificano con un tetto morbido, al massimo ×2,5. Crescono sempre, ma sempre più piano,
+  e all'inizio valgono come prima;
+- **i doni in combattimento** (sangue, corpo e poteri, Corpo Supremo, radici, classe, elementi,
+  anello…) si sommano in un solo moltiplicatore con un tetto morbido di ×3. Ognuno conta, ma nessuno
+  da solo spezza il gioco;
+- **tetti anche per**: colpi in più (3), resurrezioni per scontro (3), danni subiti (al massimo −60%),
+  schivata (40%) e critici in più (60%);
+- **le soglie** stanno in `calibration.py`;
+- **«⚖ La tua forza»** (menu nella barra La Via, comando `forza`): una barra per fonte, con quanto
+  pesa sulla tua potenza (il regno, la crescita, i Dao, i sigilli), e una seconda tabella con i doni
+  dell'ultimo scontro, prima e dopo il tetto.
+
+Nel salvataggio di prova la potenza passa da 63.250 a 26.169. Gli inseguitori si riadattano da soli.
+Le classi di nemici restano distinte: il Cultivatore del Corpo resta il più coriaceo.
+
+### La volontà del mortale (`engine/systems/tenacity.py`)
+
+Il Mortale comune non ha talento ma non smette mai. Ogni giorno in cui si allena è un giorno di
+fatica:
+- coltivazione +1,2% per giorno, fino a +90%: dopo 75 giorni è alla pari con un genio;
+- sfondamenti +8%;
+- alla rinascita resta metà della fatica.
+
+Nelle simulazioni da 400 giorni il Mortale arriva al 6° e al 9° regno; prima arrivava al 2°–4°.
+Ora tutte le origini finiscono tra il 6° e il 9° regno, con un'eccezione dovuta a due morti
+ravvicinate. Le morti scendono a circa 0,1 ogni 100 giorni.
+
+### Quaranta trame
+
+Ci sono **24 trame nuove** (`engine/systems/intrigue_data2.py`), molte **incatenate**: una scelta
+accende un segno, e dopo il tempo giusto nasce la trama successiva con gli stessi personaggi.
+
+- *Il fidanzamento annullato* → *Il duello dei tre anni* (dopo 30 giorni, il giuramento si mantiene).
+- *Un nome sulla lista nera* → *Il Padiglione della Notte*.
+- *La principessa in fuga* → *La corte del re*.
+- *L'esame d'ingresso* → *Il ragazzo dell'esame* (l'allievo senza talento ritorna).
+- *L'asta degli schiavi* → *Il sangue reale* (il principe perduto).
+- *La grotta del maestro senza nome* (se diventi erede) → *I nemici del maestro*.
+- *Il figlio del Cielo* → *La seconda prova del Cielo*.
+- Altre trame:
+  - *La pillola contraffatta* (mistero);
+  - *La gara del Gran Maestro Alchimista* (il forno incrinato);
+  - *Il demone nel pozzo sigillato*;
+  - *I discepoli che non tornano* (mistero, nella tua setta);
+  - *Il genio caduto*;
+  - *La stella caduta*;
+  - *La città che appare di notte* (mistero);
+  - *Il banchetto della riconciliazione* (mistero);
+  - *La prigione sotto il lago*;
+  - *L'uovo rubato*;
+  - *La peste delle anime* (mistero).
+- **Supporto nel motore**:
+  - anche un finale automatico può accendere un segno;
+  - una trama incatenata aspetta il suo `delay` in giorni;
+  - un segno ricorda i personaggi coinvolti.
+- **Un test gioca ogni trama** dall'inizio alla fine.
+

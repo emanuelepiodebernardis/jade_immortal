@@ -68,7 +68,8 @@ def _builders() -> dict:
             "tecniche": technique_forge.menu_build, "sangue": blood_menu.menu_build,
             "rendite": income.menu_build, "profondi": deep_dao.menu_build, "spiriti": dao_spirits.menu_build,
             "attributi": attributes.menu_build, "mercato": shops.market_menu, "asta": shops.auction_menu,
-            "ricette": shops.recipes_menu, "bacheca": shops.board_menu}
+            "ricette": shops.recipes_menu, "bacheca": shops.board_menu,
+            "forza": __import__("engine.systems.power_budget", fromlist=["x"]).menu_build}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
@@ -76,7 +77,8 @@ NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi",
          "dominio": "Dominio", "razze": "Razze",
          "tecniche": "Tecniche", "sangue": "Sangue", "rendite": "Rendite",
          "profondi": "Dao profondi", "spiriti": "Spiriti del Dao", "attributi": "Attributi",
-         "mercato": "Mercato", "asta": "Casa d'aste", "ricette": "Ricette", "bacheca": "Bacheca"}
+         "mercato": "Mercato", "asta": "Casa d'aste", "ricette": "Ricette", "bacheca": "Bacheca",
+         "forza": "La tua forza"}
 
 
 def build(conn, player, key: str) -> dict:

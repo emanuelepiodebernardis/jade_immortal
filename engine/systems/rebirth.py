@@ -556,6 +556,7 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
     from engine.systems import bloodlines
     _blood = bloodlines.legacy(conn)
     vol = voluntary_pending(conn)          # letto PRIMA che la vecchia vita venga cancellata
+    _ten = state.get_int(conn, "tenacity_days", 0)
     _purge_player(conn, player_id)
     t = tick_mod.get_tick(conn)
     loc = _rebirth_location(conn, rng, prev["tomb_location_id"] if prev else None)
@@ -565,6 +566,7 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
                  (name or (old.name if old else "Viandante"), loc, r1, t, player_id))
     cultivation_gen._make_record(conn, "player", player_id, r1, 1, 0.0, stage=1)
     origin = character.apply_origin(conn, origin_key, rng, player_id)
+    state.set(conn, "tenacity_days", str(_ten // 2))       # la volontà non muore col corpo
     state.set(conn, "life_no", str(n_next))
     state.set(conn, "life_start_tick", str(t))
     lines = [f"Rinasci come {origin['name']}."]
