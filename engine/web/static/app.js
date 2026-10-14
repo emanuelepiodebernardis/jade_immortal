@@ -128,14 +128,15 @@ function addCard(html) {
 
 // ---------------- comandi ----------------
 const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite",
-  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu"];
+  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu", "cloni"];
 // i comandi che mostrano una lista da cui scegliere si aprono come menu cliccabili
 // LA TUA VIA: le schede della crescita in un pannello solo (l'ultima aperta si ricorda)
 const VIA_TABS = ["coltivazione", "corpo", "sangue", "attributi", "tecniche", "profondi", "spiriti", "anime", "forza"];
 let lastVia = "coltivazione";
 try { lastVia = localStorage.getItem("ji_via") || lastVia; } catch (e) { /* niente */ }
 const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: "asta", auction: "asta", recipes: "ricette",
-  invitations: "bacheca", inviti: "bacheca", missioni: "bacheca", missions: "bacheca", techniques: "tecniche", skills: "tecniche" };
+  invitations: "bacheca", inviti: "bacheca", missioni: "bacheca", missions: "bacheca", techniques: "tecniche", skills: "tecniche",
+  clone: "cloni", clones: "cloni" };
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;

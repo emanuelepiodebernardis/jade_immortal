@@ -2537,3 +2537,36 @@ Si trovano esplorando, al massimo uno al mese, ognuno una volta per vita.
 
 Test: `tests/test_soul_vessels.py` (11, che giocano tutti i 16 capitoli fino in fondo con scelte
 diverse). Suite totale: **661 passati**.
+
+## Aggiornamento 62 — I cloni al lavoro
+
+I cloni c'erano già: dal quarto regno, con un Dao dell'Anima a 40, si creavano con `clone crea`.
+Però mancava un pannello, e i compiti erano tre e mescolati («lavora» faceva un po' di tutto).
+
+### Un pannello: Potere → ☯ Cloni
+
+- **✦ Crea un clone**: un tasto. Se non puoi ancora, il pulsante dice cosa manca (il regno, il Dao
+  dell'Anima, il numero massimo).
+- **Dispiega tutti**: ogni clone va al compito più utile che non ha ancora nessuno, nell'ordine
+  missioni, allenamento, arti, esplorazione, guardia. I cloni di livello più alto prendono i compiti
+  più importanti.
+- **Una scheda per clone**: livello, esperienza, cosa sta facendo, e un pulsante per ogni compito.
+- Un clone nuovo va subito dove manca qualcuno.
+
+### Ogni clone fa una cosa sola
+
+| Compito | Cosa fa ogni giorno, all'alba |
+|---|---|
+| 📋 Missioni | caccia per la Missione Quotidiana del Sistema, tempra lo spirito e, se sei in una setta, svolge una missione della bacheca (merito e pietre) |
+| ☯ Allena | coltivazione e il tuo Dao più debole |
+| ⚗ Arti | esperienza in tutte le arti che pratichi, più erbe e minerali |
+| 🧭 Esplora | pietre e materiali (a volte torna ferito e riposa 3 giorni) |
+| 🛡 Guardia | combatte al tuo fianco in battaglia |
+
+Ogni mattina una riga riassume cosa hanno fatto i cloni. Più un clone lavora, più sale di livello e
+più rende. I vecchi compiti si convertono da soli: «lavora» diventa *arti*, «riposa» diventa
+*guardia*.
+
+Comandi: `cloni`, `clone crea`, `clone dispiega`, `clone <compito> [n]`.
+
+Test: 3 nuovi in `tests/test_protagonist_features.py`. Suite totale: **664 passati**.

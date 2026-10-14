@@ -47,7 +47,9 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
 - i **menu** nella colonna di sinistra: **☯ La tua Via**, un pannello solo a schede per tutta la
   crescita (Coltivazione, Corpo, Sangue, Attributi, Tecniche, Dao profondi, Spiriti, Forza; comando
   `via sangue`…), poi *Potere* (Setta, Dominio, Rendite, Dimora, Arti) e
-  *Mondo* (Eventi, Regni, Razze, Famiglia, Faide):
+  *Mondo* (Eventi, Regni, Razze, Famiglia, Faide). In *Potere* c'è anche **☯ Cloni**: crei i cloni
+  con un tasto e dai a ognuno un compito (missioni del giorno, allenamento, arti, esplorazione,
+  guardia), oppure li dispieghi tutti in un colpo.
   ogni azione è un pulsante, e quelle non ancora possibili dicono cosa manca;
 - il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
 - la creazione del personaggio e la rinascita in finestre guidate, con la scelta facoltativa
@@ -361,7 +363,7 @@ sette) possono schierare qualcuno molto più forte.
 | Corpo leggendario | `costituzione` (storia, stadio e doni) |
 | Eroe e Sistema | `finestra`, `attributi`, `osserva <nome>`, `quotidiana`, `spiriti`, `profondi`, `arcano <nome>`, `cielo …` |
 | Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
-| Eredità | `tesori` (pannello unico, `tesori cura`), `vasi`, `anello [nutri|forza|accogli]`, `pagoda`, `stendardo`, `calderone`, `perla [patto]`, `retaggio`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
+| Eredità | `tesori` (pannello unico, `tesori cura`), `vasi`, `anello [nutri|forza|accogli]`, `pagoda`, `stendardo`, `calderone`, `perla [patto]`, `retaggio`, `spazio`, `cloni` (`clone crea|dispiega|missioni|allena|arti|esplora|guardia [n]`), `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
 | Svolte e ritmo | `svolte`, `vola <luogo>`, `crea_dao <nome>`, `capolavoro <nome>`, `ritmo` |
 | Trama | `trama`, `arcinemico`, `regni`, `corte`, `sostieni`, `tributo`, `guerra_regni`, `trono`, `razze`, `ambasciata`, `era`, `calamita`, `gara`, `evadi` |
 | Interfaccia | `tutorial`, `mappa`, `codex`, `salva`, `carica`, `salvataggi`, `colori` |

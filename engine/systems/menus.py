@@ -25,6 +25,7 @@ avanzamento, e le AZIONI che puoi fare da lì. Le stesse strutture vengono mostr
   asta            i lotti della casa d'aste, con le offerte pronte
   ricette         le ricette di tutte le arti che conosci
   bacheca         missioni della setta, inviti delle sette superiori, tecniche segrete
+  cloni           crea i cloni e dai a ognuno un compito (missioni, allena, arti, esplora, guardia)
   via             LA TUA VIA: coltivazione, corpo, sangue, attributi, tecniche, Dao profondi, spiriti,
                   forza — un pannello a schede ('via sangue'); i menu singoli restano
 """
@@ -71,7 +72,8 @@ def _builders() -> dict:
             "rendite": income.menu_build, "profondi": deep_dao.menu_build, "spiriti": dao_spirits.menu_build,
             "attributi": attributes.menu_build, "mercato": shops.market_menu, "asta": shops.auction_menu,
             "ricette": shops.recipes_menu, "bacheca": shops.board_menu,
-            "forza": __import__("engine.systems.power_budget", fromlist=["x"]).menu_build}
+            "forza": __import__("engine.systems.power_budget", fromlist=["x"]).menu_build,
+            "cloni": __import__("engine.systems.clones", fromlist=["x"]).menu_build}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
@@ -80,7 +82,7 @@ NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi",
          "tecniche": "Tecniche", "sangue": "Sangue", "rendite": "Rendite",
          "profondi": "Dao profondi", "spiriti": "Spiriti del Dao", "attributi": "Attributi",
          "mercato": "Mercato", "asta": "Casa d'aste", "ricette": "Ricette", "bacheca": "Bacheca",
-         "forza": "La tua forza", "via": "La tua Via"}
+         "forza": "La tua forza", "via": "La tua Via", "cloni": "Cloni"}
 
 
 def build(conn, player, key: str) -> dict:

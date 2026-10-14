@@ -82,6 +82,7 @@ def test_clones_share_cultivation_and_save_life(conn):
                  "DO UPDATE SET comprehension=50;")
     assert "CLONE" in clones.create(conn, _p(conn))
     state.set(conn, "profession", "alchimia")
+    clones.assign(conn, "arti")
     x0 = professions.xp(conn, 1)
     clones.daily(conn, 0, random.Random(1), _p(conn))
     assert professions.xp(conn, 1) > x0
@@ -191,3 +192,50 @@ def test_soul_flag_and_possession(conn):
     assert any("Bandiera" in x for x in fx.lines_intro)
     encounters.clear(conn)
     assert soul_war.possession_scene(conn, _p(conn), "un test", 3)
+
+
+def _two_clones(conn):
+    _set_tier(conn, 7)
+    conn.execute("INSERT INTO character_daos (character_type, character_id, dao_key, affinity, comprehension, practiced) "
+                 "VALUES ('player', 1, 'anima', 60, 50, 1) ON CONFLICT(character_type, character_id, dao_key) "
+                 "DO UPDATE SET comprehension=50;")
+    assert "CLONE" in clones.create(conn, _p(conn))
+    assert "CLONE" in clones.create(conn, _p(conn))
+
+
+def test_clones_one_task_each_and_deploy(conn):
+    _two_clones(conn)
+    cs = clones.clones(conn)
+    assert [c["task"] for c in cs] == ["missioni", "allena"]            # il nuovo clone va dove manca qualcuno
+    assert "quarto regno" not in clones.create(conn, _p(conn)) and len(clones.clones(conn)) == 2
+    clones.assign(conn, "guardia")
+    assert {c["task"] for c in clones.clones(conn)} == {"guardia"}
+    out = clones.deploy(conn, _p(conn))
+    assert len({c["task"] for c in clones.clones(conn)}) == 2 and "Dispieghi" in out
+    assert "clone n.2" in clones.assign(conn, "esplora", "2")
+    assert clones.clones(conn)[1]["task"] == "esplora"
+    clones.assign(conn, "lavora", "1")                                  # i vecchi nomi funzionano ancora
+    assert clones.clones(conn)[0]["task"] == "arti"
+
+
+def test_clone_on_missions_does_the_daily_hunt(conn):
+    from engine.systems import system_daily
+    _two_clones(conn)
+    clones.assign(conn, "missioni", "1")
+    t = 120 * 30
+    tick.advance_tick(conn, t)
+    system_daily.get(conn, 1)
+    out = clones.daily(conn, tick.get_tick(conn), random.Random(3), _p(conn))
+    assert out and "prede per il Sistema" in out[0]
+    kills = next(g for g in system_daily.progress(conn, 1) if g["k"] == "kills")
+    soul = next(g for g in system_daily.progress(conn, 1) if g["k"] == "soul")
+    assert kills["ok"] and soul["ok"]
+
+
+def test_clones_menu(conn):
+    from engine.systems import menus
+    m = menus.build(conn, _p(conn), "cloni")
+    assert m["sections"][0]["actions"][0]["ok"] is False                 # niente cloni prima del quarto regno
+    _two_clones(conn)
+    m = menus.build(conn, _p(conn), "cloni")
+    assert len(m["sections"]) == 3 and m["sections"][0]["actions"][0]["ok"] is False   # al massimo per ora

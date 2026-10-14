@@ -59,8 +59,8 @@ def _lines(conn, player) -> list[tuple[str, str, str]]:
             "elementi"))
     cs = clones.clones(conn)
     if cs:
-        out.append(("cloni", f"☯ Cloni: {len(cs)} — " + ", ".join(f"n.{c['n']} liv.{c['level']}" for c in cs),
-                    "clone"))
+        out.append(("cloni", f"☯ Cloni: {len(cs)} — " + ", ".join(
+            f"n.{c['n']} liv.{c['level']} ({c['task']})" for c in cs), "cloni"))
     return out
 
 
