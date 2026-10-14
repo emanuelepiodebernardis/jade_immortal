@@ -194,6 +194,10 @@ def events(conn, player) -> dict:
         cal.append("Nessuna invasione in corso.")
     secs.append(section("Il calendario del mondo", cal,
                         [act("Tutte le mete", "mete"), act("Classifiche del Cielo", "classifica")], icon="📅"))
+    from engine.systems import intrigues
+    _tr = intrigues.menu_section(conn, player)
+    if _tr:
+        secs.insert(0, _tr)
     return menu("eventi", "✦ EVENTI DEL MONDO", ["Tutto ciò a cui puoi partecipare, con i comandi pronti."], secs)
 
 

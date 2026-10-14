@@ -398,6 +398,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("sangue", "lignaggi", "bloodline", "bloodlines", "lignaggio"):
         from engine.systems import blood_menu
         return blood_menu.command(conn, player, arg)
+    if cmd in ("trame", "intrighi", "trama_intrighi"):
+        from engine.systems import intrigues
+        return intrigues.describe(conn, player)
     if cmd in ("evolvi", "evolvi_sangue", "evoluzione"):
         from engine.systems import blood_evolution
         return blood_evolution.evolve(conn, player, arg)

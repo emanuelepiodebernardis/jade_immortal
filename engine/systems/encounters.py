@@ -408,6 +408,9 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     if eff.get("quest_target") and ctx.get("npc_id"):
         from engine.systems import npc_quests
         npc_quests.set_target(conn, int(eff["quest_target"]), ctx["npc_id"])
+    if eff.get("intrigue") is not None and ctx.get("intrigue_id"):
+        from engine.systems import intrigues
+        lines += intrigues.on_effect(conn, t, rng, player, eff["intrigue"], ctx)
     if eff.get("heart"):
         from engine.systems import dao_heart
         lines += dao_heart.adjust(conn, int(eff["heart"]))

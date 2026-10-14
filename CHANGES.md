@@ -2144,3 +2144,40 @@ scendono da 8–9 a circa 6 per partita.
   - Il guadagno di spirito si mostra senza decimali.
   - Un test dipendeva dall'ordine delle righe nel database.
 
+## Aggiornamento 54 — Il regista delle trame
+
+Il gioco ora tiene una raccolta di trame a più atti, scritte a mano (`engine/systems/intrigue_data.py`).
+Ogni giorno un regista (`engine/systems/intrigues.py`) sceglie il momento di storia più adatto. Non
+genera testo nuovo: dà un punteggio ai candidati e prende il migliore, in una passata sola.
+
+- **I candidati** sono l'atto successivo di ogni trama aperta e l'inizio delle trame nuove adatte al
+  tuo regno. Il punteggio sale se l'atto è maturo o aspetta da giorni, se tocca i tuoi legami o la
+  tua setta e se chi è in scena ti è vicino. Scende se hai appena vissuto una trama dello stesso tipo.
+- **Il ritmo**: un solo momento di trama al giorno, e solo se non c'è un'altra scena aperta. Al
+  massimo due trame aperte, una nuova ogni 6 giorni al più, la stessa non prima di 60 giorni. Una
+  trama lasciata a metà per 30 giorni si chiude da sola.
+- **Il cast** viene dal mondo vivo: i tuoi legami e compagni di setta, i potenti delle altre sette,
+  oppure personaggi creati per la trama. Chi deve combattere ti raggiunge.
+- **Indizi e rami**: le prove riuscite danno indizi e le scelte aprono rami. L'atto finale cambia
+  con quello che sai. Con due indizi puoi smascherare il mandante; senza, la verità resta
+  nell'ombra. Alcune scelte compaiono solo se hai preso un certo ramo, per esempio perdere apposta
+  il torneo dopo aver accettato il denaro.
+- **Sette trame** ispirate alle grandi saghe di coltivazione:
+  - *La mano nell'ombra*: un delitto per far scoppiare una guerra tra sette.
+  - *Il Torneo delle Cento Sette*: corruzione, lame avvelenate, un genio che nasconde la sua forza
+    e una finale contro chi ha comprato i giudici.
+  - *Il debito dell'Oltretomba*: un falsario dei registri della vita e della morte.
+  - *L'eredità del Dio-Demone*: una mappa incisa nell'osso, le tre prove e un tradimento nella
+    tomba.
+  - *La maledizione della vita passata*.
+  - *Il traditore della setta*, con la possibilità del doppio gioco.
+  - *L'Isola della Spada Nascosta*, che appare ogni sessant'anni.
+- **Dove si vede**: le trame aperte e concluse compaiono in testa al menu Eventi e con il comando
+  `trame`. Ogni finale entra nella cronaca, e il titolo «Tessitore di Trame» arriva dopo cinque
+  trame concluse.
+- **Come aggiungerne**: una trama nuova è un dizionario (cast, atti, scelte, esiti); il formato è
+  spiegato in testa a `intrigue_data.py`. I nomi delle sette prendono l'articolo giusto («del
+  Palazzo…», «della Setta…»).
+- I corpi leggendari degli NPC ora sono deterministici per mondo, e nei test che confrontano le
+  forze vengono neutralizzati.
+

@@ -1913,6 +1913,8 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     from engine.systems import constitutions, dao_heart, prodigies
     lines += ["  " + ln for ln in constitutions.daily(conn, t, random.Random(t * 79 + day), player)]
     lines += ["  " + ln for ln in prodigies.daily(conn, t, random.Random(t * 83 + day), player)]
+    from engine.systems import intrigues
+    lines += ["  " + ln for ln in intrigues.daily(conn, t, random.Random(t * 101 + day), player)]
     from engine.systems import (mentor_ring, inner_space, clones, celestial_elements, family, divine_sense, gu,
                                 lost_legacy)
     _rng2 = random.Random(t * 97 + day)

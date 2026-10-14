@@ -184,6 +184,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "use essenze                   — assorbi tutte le essenze (di sangue e del Dao) in una volta sola",
         "fondi_sangue <n> <m> [...]    — fondi due o più lignaggi Puri in un sangue ibrido",
         "sangue evolvi <n> [forma]     — EVOLUZIONE: il lignaggio diventa la bestia più nobile di cui è erede (serpente ▸ Jiao ▸ Drago…)",
+        "trame                         — le TRAME aperte (intrighi, tornei, eredità, maledizioni): atti, indizi, finali",
         "corpo supremo                 — (corpo compiuto + sangue ancestrale primordiale) fondi corpo e sangue nel CORPO SUPREMO",
         "use essenza del corpo         — assorbi il corpo leggendario di un nemico sconfitto (o fondilo col tuo)",
         "trasformati [n]               — (grado Sacro) nel prossimo scontro assumi la forma della bestia sacra",

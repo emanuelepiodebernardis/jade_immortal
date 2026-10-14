@@ -25,9 +25,12 @@ _RANK_BONUS = {"patriarca": 0.12, "anziano": 0.08, "prodigio": 0.12, "genio": 0.
 
 
 def _salt(conn) -> int:
+    """Un sale per mondo: deterministico (dal nome del mondo), così ogni NPC ha sempre lo stesso corpo."""
+    import zlib
     s = state.get_int(conn, "body_salt", 0)
     if not s:
-        s = random.randrange(1, 10 ** 9)
+        r = conn.execute("SELECT name FROM worlds ORDER BY id LIMIT 1;").fetchone()
+        s = zlib.crc32((r["name"] if r else "mondo").encode("utf-8")) or 1
         state.set(conn, "body_salt", str(s))
     return s
 

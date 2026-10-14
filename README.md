@@ -169,6 +169,11 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
 - **Corpo Supremo** (`corpo supremo`): quando il corpo è compiuto e il sangue è ancestrale e
   primordiale, i due si fondono in un corpo superiore a entrambi. Ne esistono otto forme, e cresce
   senza fine.
+- **Trame e intrighi** (`trame`, menu Eventi): un regista sceglie ogni giorno il momento di storia
+  più adatto tra trame a più atti scritte a mano. Ci sono delitti tra sette, tornei truccati, debiti
+  con l'Oltretomba, eredità di antichi Dèi-Demoni, maledizioni di vite passate, traditori nella
+  setta e l'isola che appare ogni sessant'anni. Il cast viene dal mondo vivo, gli indizi cambiano
+  il finale e le scelte aprono rami.
 - **Fucina delle tecniche** (menu `tecniche`): fondi due o tre tecniche in una nuova, allenala,
   rinominala. Si carica solo la tecnica più forte per categoria, le vecchie restano in archivio.
 
