@@ -37,11 +37,9 @@ def _spawn_one(conn, rng, kind, location_id, lo, hi) -> int:
     pool = {"beast": BEASTS, "demon": DEMONS, "spirit": SPIRITS}[kind]
     name = rng.choice(pool)
     # nome unico-ish con un suffisso se serve
-    used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
-    base = name
-    i = 2
-    while name in used:
-        name = f"{base} {i}"; i += 1
+    used = {r["name"] for r in conn.execute("SELECT name FROM npcs WHERE status='alive';")}   # i nomi dei caduti tornano liberi
+    from engine.systems import names
+    name = names.creature(rng, name, used)            # «Tigre di Giada dalla Cicatrice», mai «Tigre di Giada 7»
     from engine.systems import ascension               # il tetto del mondo vale anche per le bestie
     cap = ascension.cap_at(conn, location_id)
     lo, hi = min(lo, cap), min(hi, cap)

@@ -502,6 +502,7 @@ def choose(conn: sqlite3.Connection, player: entities.Player, n: int) -> tuple[s
         lines.append(varia.outcome(ok, rng))
     else:
         branch = ch.get("effects", {}) or {}
+    ctx["_command"] = ch.get("command") or branch.get("command") or ""   # (le trame aspettano l'esito dei duelli)
     lines += apply_effects(conn, t, rng, player, branch, ctx)
     _log(conn, t, player, sc, ch)
     if branch.get("then"):

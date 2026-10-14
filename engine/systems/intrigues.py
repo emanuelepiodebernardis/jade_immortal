@@ -568,6 +568,70 @@ def journal(conn, player) -> list[dict]:
     return out
 
 
+def _duel_target(it: dict, cmd: str, ctx: dict) -> int | None:
+    for role, nid in it["cast"].items():
+        if "{" + role + "}" in cmd:
+            return nid
+    return ctx.get("npc_id")
+
+
+_WON = {"ucciso", "risparmiato", "sigillato"}
+DUEL_TEXT = {"ucciso": "{nome} è caduto per mano tua.",
+             "risparmiato": "Hai risparmiato {nome}: ti deve la vita, e lo sa.",
+             "sigillato": "Hai marchiato l'anima di {nome}: ora ti serve.",
+             "sconfitta": "Ma {nome} ha avuto la meglio su di te.",
+             "fuga": "Ma sei fuggito dal duello con {nome}."}
+
+
+def on_duel(conn, player, npc_id: int, outcome: str) -> list[str]:
+    """L'esito di un duello acceso da una trama: apre rami («duello_vinto», «duello_perso»…), fa parlare
+    lo sconfitto (un indizio), e se il duello era il finale decide come finisce."""
+    d = get(conn)
+    it = next((x for x in d["active"] if x.get("duel_npc") == npc_id), None)
+    if not it:
+        return []
+    tpl = _templates().get(it["key"], {})
+    nm_row = conn.execute("SELECT name FROM npcs WHERE id=?;", (npc_id,)).fetchone()
+    nome = nm_row["name"] if nm_row else "il tuo avversario"
+    role = next((r for r, n in it["cast"].items() if n == npc_id), "")
+    cat = "vinto" if outcome in _WON else "perso" if outcome == "sconfitta" else "fuga"
+    for b in (f"duello_{cat}", f"duello_{outcome}", f"{role}_{cat}"):
+        if b not in it["branches"]:
+            it["branches"].append(b)
+    it.pop("duel_npc", None)
+    _log(it, f"Duello con {nome}: " + {"vinto": "vinto", "perso": "perso", "fuga": "fuggito"}[cat]
+         + (f" ({outcome})" if cat == "vinto" else ""))
+    out = []
+    if cat == "vinto" and role != "mandante" and _clue_list(tpl) and len(it.get("found", [])) < len(_clue_list(tpl)) \
+            and outcome != "ucciso":
+        out.append(f"{nome}, a terra, parla per salvarsi.")
+        out += _reveal(conn, player, it, tpl, 1)          # lo sconfitto (vivo) parla
+    end = it.pop("pending_end", None)
+    act_def = (tpl.get("acts") or [{}])[min(it.pop("duel_act", it["act"]), len(tpl.get("acts", [1])) - 1)] \
+        if tpl.get("acts") else {}
+    plain = False
+    if not end and cat != "vinto" and act_def.get("dopo_sconfitta"):
+        end = act_def["dopo_sconfitta"]                 # perdere qui chiude la storia (eliminato dal torneo…)
+        plain = True
+    if end:
+        _save(conn, d)
+        from engine.systems import rewards, reputation
+        rng = random.Random(tick_mod.get_tick(conn) + npc_id)
+        f = _names(conn, it, player)
+        base = (tpl.get("outcomes") or {}).get(f"{end}_{cat}") or (tpl.get("outcomes") or {}).get(end, "La storia si chiude.")
+        msg = _fmt(base, f) + " " + DUEL_TEXT[outcome].format(nome=nome)
+        if cat == "vinto":
+            out += rewards.grant(conn, rng, player, rank=2, kinds=["tesoro", "manuale", "pillola"], n=1)
+            reputation.adjust(conn, player.id, fame=6)
+        else:
+            reputation.adjust(conn, player.id, fame=-4)
+        out.append("✦ " + _finish(conn, it, end if plain else f"{end}_{cat}", msg))
+        return out
+    it["next_day"] = min(it["next_day"], _day(conn) + 2)
+    _save(conn, d)
+    return out
+
+
 def _make_enemies(conn, rng, player, it: dict, extra: int, reason: str) -> list[int]:
     """Il cast della trama più `extra` nuovi personaggi (di altre sette) diventano tuoi nemici: il primo
     una nemesi che tornerà a cercarti, gli altri rivali ostili (ti tenderanno agguati se vi incrociate)."""
@@ -617,6 +681,18 @@ def on_effect(conn, t: int, rng, player, data: dict, ctx: dict) -> list[str]:
         d.setdefault("flags", [])
         if data["flag"] not in d["flags"]:
             d["flags"].append(data["flag"])
+    cmd = ctx.get("_command") or ""
+    if cmd.startswith("duello"):                        # chi affronti in duello: l'esito conterà
+        target = _duel_target(it, cmd, ctx)
+        if target:
+            it["duel_npc"] = target
+            it["duel_act"] = it["act"]
+            it["pending_day"] = _day(conn)
+            if data.get("end"):                         # il finale lo decide il duello, non la scelta
+                it["pending_end"] = data["end"]
+                it["next_day"] = _day(conn) + 999
+                _save(conn, d)
+                return out + ["(Come finisce questa storia lo deciderà il duello.)"]
     if data.get("end"):
         _save(conn, d)
         return out + ["✦ " + _finish(conn, it, data["end"])]
@@ -640,6 +716,12 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
     d = get(conn)
     day = _day(conn)
     out = []
+    for it in list(d["active"]):                        # un duello annunciato e mai combattuto: sei fuggito
+        if it.get("pending_end") and day - it.get("pending_day", day) >= 2 and it.get("duel_npc"):
+            from engine.systems import duel as _duel
+            if not _duel.get(conn):
+                out += on_duel(conn, player, it["duel_npc"], "fuga")
+    d = get(conn)
     for it in list(d["active"]):                        # le trame dimenticate si chiudono da sole
         if day - it["next_day"] > EXPIRE:
             tpl = _templates().get(it["key"], {})

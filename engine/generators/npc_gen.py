@@ -103,7 +103,8 @@ def _unique_name(rng: random.Random, used: set[str]) -> str:
         if n not in used:
             used.add(n)
             return n
-    return f"{rng.choice(_SURNAMES)} {rng.choice(_GIVEN)}{rng.randint(2, 99)}"
+    from engine.systems import names
+    return names.person(rng, used)
 
 
 def generate_static_npcs(conn: sqlite3.Connection, rng: random.Random,

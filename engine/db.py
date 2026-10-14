@@ -52,6 +52,12 @@ def _migrate(conn) -> None:
                 conn.execute("UPDATE cultivation_realms SET name=? WHERE id=?;", (nm, r[0]))
     except Exception:
         pass
+    # (Agg. 57) niente più nomi con i numeri («Bai Cheng44», «Landa di Drago62»)
+    try:
+        from engine.systems import names
+        names.migrate(conn)
+    except Exception:
+        pass
     # (Agg. 53) il finto Dao «random» nato da un bug: la sua comprensione va al Dao più praticato
     try:
         for r in conn.execute("SELECT character_type, character_id, comprehension FROM character_daos "

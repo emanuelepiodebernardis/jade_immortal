@@ -32,7 +32,8 @@ def seed_outlaws(conn: sqlite3.Connection, rng: random.Random, n: int = 5) -> No
     # candidati: NPC vivi che non guidano una fazione
     leaders = {r["leader_id"] for r in conn.execute("SELECT leader_id FROM factions;")}
     cands = [r["id"] for r in conn.execute(
-        "SELECT id FROM npcs WHERE status='alive' AND (kind='human' OR kind IS NULL);")
+        "SELECT id FROM npcs WHERE status='alive' AND (kind='human' OR kind IS NULL) "
+        "AND id NOT IN (SELECT npc_id FROM outlaws);")                    # chi ha già avuto una taglia non conta
         if r["id"] not in leaders]
     rng.shuffle(cands)
     for nid in cands[:n]:

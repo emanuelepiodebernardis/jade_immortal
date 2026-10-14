@@ -90,8 +90,8 @@ def _hatch(conn, rng, player, spec: dict) -> str:
     rarity = spec.get("rarity", "comune")
     els = spec.get("elements") or ["corpo"]
     name = spec["species"]
-    if conn.execute("SELECT 1 FROM npcs WHERE name=?;", (name,)).fetchone():
-        name = f"{name} {rng.randint(2, 99)}"
+    from engine.systems import names
+    name = names.creature(rng, name, {r["name"] for r in conn.execute("SELECT name FROM npcs WHERE status='alive';")})
     nid = npc_factory.spawn(conn, rng, archetype="vagabondo", location_id=loc, tier=max(1, ptier - 1), stage=1,
                             name=name, dao=els[0], dao_comp=10 + 5 * ptier, traits={"loyalty": 95})
     conn.execute("UPDATE npcs SET kind='beast', archetype='bestia', description=? WHERE id=?;",

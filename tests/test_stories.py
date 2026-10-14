@@ -84,7 +84,7 @@ def test_dialogue_favour_and_rescue(conn):
     loc = _p(conn).location_id
     nid = npc_factory.spawn(conn, rng, archetype="eremita", location_id=loc, tier=1, gender="f")
     bonds.add_bond(conn, 1, nid, "companion", 0, reason="un incontro")
-    first = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"].split()[0]
+    first = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
     out = loop.dispatch(conn, f"parla {first}", allow_nl=False)
     assert "Con " in out and encounters.pending(conn)["key"].startswith("dialogo_")
     loop.dispatch(conn, "2", allow_nl=False)                         # «Come stai, davvero?»

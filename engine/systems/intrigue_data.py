@@ -118,6 +118,8 @@ TEMPLATES: list[dict] = [
         ],
         "outcomes": {"smascherato": "Hai smascherato {mandante}: la guerra tra le sette è evitata.",
                      "duello": "Hai sfidato {mandante} davanti alla sua setta.",
+                     "duello_vinto": "Hai battuto {mandante} davanti alla sua setta: la guerra non ci sarà, e {vittima} è libero.",
+                     "duello_perso": "{mandante} ti ha battuto davanti a tutti: {vittima} paga per un delitto non suo.",
                      "ricatto": "Hai venduto il tuo silenzio a {mandante}.",
                      "fuga": "Hai strappato {vittima} alla morte.",
                      "perduto": "{vittima} è caduto per un delitto che non aveva commesso."},
@@ -149,7 +151,7 @@ TEMPLATES: list[dict] = [
                   "failure": {"text": "I giudici fanno sparire il sacchetto. Forse sono comprati anche loro.",
                               "intrigue": {"branch": "onesto"}}},
              ]},
-            {"title": "Il veleno nella lama", "focus": "pedina", "gap": (1, 2),
+            {"title": "Il veleno nella lama", "focus": "pedina", "gap": (1, 2), "dopo_sconfitta": "eliminato",
              "text": ("Secondo turno. Il tuo avversario è {pedina} in persona, iscritto all'ultimo momento. Quando "
                       "sguaina, la lama manda un riflesso verdastro: veleno dei Cento Serpenti, vietato dal regolamento."),
              "choices": [
@@ -163,11 +165,16 @@ TEMPLATES: list[dict] = [
                   "failure": {"text": "«Nessun veleno», sentenzia il giudice senza guardare. Il duello comincia.",
                               "intrigue": {}}, "command": ""},
              ]},
-            {"title": "Il genio che nasconde la sua forza", "focus": "genio", "gap": (1, 2),
+            {"title": "Il genio che nasconde la sua forza", "focus": "genio", "gap": (1, 2), "dopo_sconfitta": "eliminato",
              "text": ("Semifinale. {genio} ha vinto ogni incontro con un solo colpo, sempre lo stesso, senza mai "
                       "usare la mano sinistra. Gli spettatori lo chiamano «il Muto». Prima di salire sulla pedana "
                       "ti dice, a bassa voce: «Il tuo prossimo avversario non sono io. È chi ha comprato i giudici.»"),
-             "text_branch": {"venduto": ("Semifinale: è il terzo turno, quello che hai promesso di perdere. Davanti "
+             "text_branch": {"duello_risparmiato": ("Semifinale. Dicono che hai risparmiato {pedina} dopo averlo battuto: "
+                                                    "metà del pubblico ti chiama sciocco, l'altra metà ti applaude. "
+                                                    "{genio}, «il Muto», ti aspetta sulla pedana e per la prima volta "
+                                                    "parla: «Chi risparmia un avvelenatore ha un cuore. Vediamo se ha "
+                                                    "anche una spada.»"),
+                             "venduto": ("Semifinale: è il terzo turno, quello che hai promesso di perdere. Davanti "
                                          "a te {genio}, che non sa nulla del patto, ti saluta con rispetto.")},
              "choices": [
                  {"label": "Combatti al massimo",
@@ -205,6 +212,9 @@ TEMPLATES: list[dict] = [
              ]},
         ],
         "outcomes": {"finale": "Hai combattuto la finale contro {mandante}.",
+                     "finale_vinto": "Hai vinto il Torneo delle Cento Sette battendo {mandante} in finale!",
+                     "finale_perso": "Hai perso la finale del Torneo delle Cento Sette contro {mandante}.",
+                     "eliminato": "Sei stato eliminato dal Torneo delle Cento Sette.",
                      "denuncia": "Hai svelato il torneo truccato: la vittoria è tua.",
                      "venduto": "Hai venduto il torneo.", "ritiro": "Ti sei ritirato dalla finale."},
     },
@@ -476,7 +486,7 @@ TEMPLATES: list[dict] = [
                   "success": {"text": "Noti che le spade migliori sono quelle che nessuno guarda.", "intrigue": {"clue": 1}},
                   "failure": {"text": "Mentre guardi, le spade migliori se ne vanno.", "intrigue": {}}},
              ]},
-            {"title": "La scala delle novantanove spade", "focus": "pedina", "gap": (1, 2),
+            {"title": "La scala delle novantanove spade", "focus": "pedina", "gap": (1, 2), "dopo_sconfitta": "respinto",
              "text": ("Una scala di novantanove gradini: su ognuno l'eco di un maestro morto ti attacca. A metà "
                       "salita, {pedina} ti sbarra la strada: «Solo uno arriva in cima. Meglio scoprire subito chi.»"),
              "choices": [
@@ -506,6 +516,9 @@ TEMPLATES: list[dict] = [
              ]},
         ],
         "outcomes": {"spada": "Hai conquistato la Spada Nascosta.",
+                     "spada_vinto": "Hai battuto il custode e conquistato la Spada Nascosta.",
+                     "spada_perso": "Il custode ti ha respinto: la Spada Nascosta resta sull'isola.",
+                     "respinto": "Sei stato respinto sulla scala delle novantanove spade.",
                      "intento": "Hai compreso l'intento della Spada Nascosta senza toccarla.",
                      "rinuncia": "Hai lasciato la Spada Nascosta al suo custode."},
     },

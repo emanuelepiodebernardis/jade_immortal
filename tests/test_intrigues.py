@@ -232,3 +232,56 @@ def test_failed_investigation_and_journal_logs_choices(conn, monkeypatch):
     assert "non portano da nessuna parte" in out
     j = intrigues.journal(conn, p)[0]
     assert any("Bruci incenso" in x for x in j["diario"]) and not j["indizi"]
+
+
+def _duel_win(conn, monkeypatch, outcome="risparmiato"):
+    """Simula la fine del duello acceso dalla trama."""
+    from engine.systems import duel
+    d = intrigues.get(conn)
+    nid = next(x["duel_npc"] for x in d["active"] if x.get("duel_npc"))
+    return intrigues.on_duel(conn, _p(conn), nid, outcome)
+
+
+def test_final_duel_decides_the_ending(conn, monkeypatch):
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    p = _p(conn)
+    intrigues.start(conn, p, "mano_ombra", random.Random(1))
+    d = intrigues.get(conn); d["active"][0]["act"] = 2; intrigues._save(conn, d)
+    encounters.clear(conn)
+    intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+    res, cmd = _pick(conn, "Lo sfidi a duello")
+    assert cmd.startswith("duello") and "lo deciderà il duello" in res
+    assert intrigues.get(conn)["active"]                        # la trama aspetta l'esito
+    out = _duel_win(conn, monkeypatch, "ucciso")
+    assert any("Hai battuto" in x for x in out)
+    assert intrigues.get(conn)["done"][-1]["outcome"] == "duello_vinto"
+
+
+def test_losing_a_tournament_duel_eliminates_you(conn, monkeypatch):
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    p = _p(conn)
+    intrigues.start(conn, p, "torneo_truccato", random.Random(1))
+    _pick(conn, "Rifiuti")
+    d = intrigues.get(conn); d["active"][0]["next_day"] = 0; intrigues._save(conn, d)
+    intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+    _pick(conn, "Combatti lo stesso")
+    out = _duel_win(conn, monkeypatch, "sconfitta")
+    assert intrigues.get(conn)["done"][-1]["outcome"] == "eliminato"
+
+
+def test_spared_opponent_talks_and_changes_next_act(conn, monkeypatch):
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    p = _p(conn)
+    intrigues.start(conn, p, "torneo_truccato", random.Random(1))
+    _pick(conn, "Rifiuti")
+    d = intrigues.get(conn); d["active"][0]["next_day"] = 0; intrigues._save(conn, d)
+    intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+    _pick(conn, "Combatti lo stesso")
+    out = _duel_win(conn, monkeypatch, "risparmiato")
+    assert any("parla per salvarsi" in x for x in out)
+    it = intrigues.get(conn)["active"][0]
+    assert "duello_risparmiato" in it["branches"] and it["clues"] == 1
+    it["next_day"] = 0
+    d = intrigues.get(conn); d["active"][0] = it; intrigues._save(conn, d)
+    txt = intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+    assert "hai risparmiato" in txt

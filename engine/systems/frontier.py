@@ -200,9 +200,8 @@ def _frontier_name(rng, ltype: str, used: set[str]) -> str:
         if name not in used:
             used.add(name)
             return name
-    name = f"{rng.choice(_FORMS[ltype])[0]} {rng.choice(_OF)} {rng.randint(2, 99)}"
-    used.add(name)
-    return name
+    from engine.systems import names
+    return names.place(rng, f"{rng.choice(_FORMS[ltype])[0]} {rng.choice(_OF)}", used)
 
 
 def _new_location(conn, rng, region: int, layer: int, ring: int, used: set[str]) -> int:

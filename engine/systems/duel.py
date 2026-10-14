@@ -303,7 +303,8 @@ def act(conn, player, arg: str) -> str:
         ratio = perception.strength_ratio(conn, player.id, npc.id)
         if rng.random() < max(0.15, min(0.9, 0.35 + 0.4 * (ratio - 0.5))):
             state.delete(conn, KEY)
-            return f"Rompi il contatto e ti dilegui. {d['name']} ti grida dietro qualcosa che preferisci non sentire."
+            msg = f"Rompi il contatto e ti dilegui. {d['name']} ti grida dietro qualcosa che preferisci non sentire."
+            return "\n".join([msg] + _plot(conn, player, d["npc"], "fuga"))
         lines.append("Provi a fuggire, ma ti taglia la strada!")
         taken = 1.3
     elif what == "difendi":
@@ -392,7 +393,8 @@ def act(conn, player, arg: str) -> str:
     lines.append("  " + loop._enemy_line(d["name"], edmg, d["pmax"], ecrit, rng))
     if d["hp_p"] <= 0:
         state.delete(conn, KEY)
-        return loop._auto_end_player(conn, t, rng, player, npc, d["round"], lines)
+        out = loop._auto_end_player(conn, t, rng, player, npc, d["round"], lines)
+        return "\n".join([out] + _plot(conn, player, npc.id, "sconfitta"))
     _save(conn, d)
     return _next_turn(conn, player, lines)
 
@@ -426,8 +428,19 @@ def finish(conn, player, kill: bool, seal: bool = False) -> str:
         return "Il tuo avversario non c'è più."
     t = tick_mod.get_tick(conn)
     rng = random.Random(t * 17 + d["npc"])
-    return loop._auto_end_enemy(conn, t, rng, player, npc, d["round"], max(1.0, d["hp_p"]), d["pmax"],
-                                d.get("crit", False), {}, None, [], force_died=kill, seal=seal)
+    out = loop._auto_end_enemy(conn, t, rng, player, npc, d["round"], max(1.0, d["hp_p"]), d["pmax"],
+                               d.get("crit", False), {}, None, [], force_died=kill, seal=seal)
+    how = "sigillato" if seal else "ucciso" if kill else "risparmiato"
+    return "\n".join([out] + _plot(conn, player, npc.id, how))
+
+
+def _plot(conn, player, npc_id: int, outcome: str) -> list[str]:
+    """L'esito del duello torna alla trama che lo ha acceso (se c'è)."""
+    try:
+        from engine.systems import intrigues
+        return intrigues.on_duel(conn, player, npc_id, outcome)
+    except Exception:  # noqa: BLE001
+        return []
 
 
 def command(conn, player, arg: str) -> str:

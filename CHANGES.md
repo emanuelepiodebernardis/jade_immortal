@@ -2283,3 +2283,35 @@ Gli indizi ora hanno un contenuto, e si possono cercare.
   dell'asta e la marea di bestie. Le altre (reami, eredità, tornei d'isola, carovane) si vivono atto
   dopo atto, e i loro «indizi» sono le scoperte fatte lungo la strada.
 
+## Aggiornamento 57 — Nomi veri, duelli che contano, una colonna centrale che respira
+
+- **Niente più nomi con i numeri.** Un generatore unico (`engine/systems/names.py`) per persone, creature,
+  luoghi e sette.
+  - Cognomi semplici e delle grandi casate (Ouyang, Murong, Shangguan…), nomi di una o due sillabe:
+    centinaia di migliaia di combinazioni.
+  - Le creature che si ripetono prendono un epiteto («Tigre di Giada dalla Cicatrice», «Orso di Ferro
+    dalla Pelle di Pietra»), e i nomi dei caduti tornano liberi.
+  - I luoghi e le sette prendono un determinativo («del Nord», «Superiore»…).
+  - I salvataggi vecchi vengono rinominati da soli all'avvio. Nel tuo c'erano 1.286 nomi numerati su
+    1.856 personaggi e 6 luoghi su 27.
+- **I duelli delle trame contano.**
+  - L'esito (vinto uccidendo, risparmiando o marchiando l'anima, perso, fuggito) apre rami nella
+    trama e cambia gli atti successivi.
+  - Chi sconfiggi e lasci vivo parla, e ti dà un indizio.
+  - Se il duello era il finale, è il duello a decidere come finisce: vinto, la storia si chiude bene,
+    con un premio e fama; perso, si chiude male.
+  - Alcuni atti chiudono la storia se perdi: nel Torneo delle Cento Sette perdere un incontro ti
+    elimina, e sull'Isola della Spada vieni respinto dalla scala.
+  - Un duello annunciato e mai combattuto conta come una fuga.
+- **La colonna centrale fa spazio alle scene.**
+  - Quando si apre una scena o un duello, il riquadro del luogo si riduce a una striscia con uscite e
+    presenti scorrevoli.
+  - Il diario si stringe e i filtri spariscono; la scena prende tutto lo spazio che resta ed è
+    scorrevole fino in fondo.
+  - Nel duello le carte delle mosse vengono subito sotto i combattenti e restano in vista mentre
+    scorri il resoconto.
+  - Gli alleati in campo sono raccolti in una riga che si apre al clic, e le scelte sono in caratteri
+    più grandi e leggibili.
+- Corretto: i ricercati già puniti potevano tornare tra i candidati alla taglia (la taglia nuova veniva
+  ignorata).
+

@@ -491,7 +491,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .tile.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--panel2)); }
 .tile.warn { border-color: color-mix(in srgb, var(--warn) 60%, var(--line)); }
 .tile.info { border-color: var(--info); }
-#place { max-height: 46vh; overflow-y: auto; }
+#place { max-height: 34vh; overflow-y: auto; }
 
 .dup { display: none !important; }
 .badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 4px; border-radius: 99px;
@@ -593,3 +593,31 @@ details.mrest > summary { font-size: 13px; font-weight: 600; color: var(--ink, i
 .plot ul.plotlog { margin: 4px 0 0 16px; padding: 0; font-size: 12px; color: var(--muted); }
 .plot .tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .plot .lvtag { display: inline-block; width: auto; }
+
+/* Agg. 57 — la colonna centrale fa spazio alla scena e al duello */
+#scene { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+body.scene-on #scene { flex: 1 1 auto; }
+#scene.in-duel { overflow-y: auto; }
+body.scene-on #place { max-height: 104px; padding: 8px 12px; }
+body.scene-on #place .desc, body.scene-on #place .tiles { display: none; }
+body.scene-on #place h2 { font-size: 16px; }
+body.scene-on #place .exits, body.scene-on #place .npcs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+body.scene-on #log { flex: 0 0 auto; height: 15vh; min-height: 72px; }
+body.scene-on #logfilter { display: none; }
+#scene .choices { display: grid; gap: 6px; }
+#scene .choices button { font-size: 14.5px; line-height: 1.4; text-align: left; white-space: normal; padding: 8px 12px; }
+.scene p { font-size: 15px; line-height: 1.6; }
+.hand { position: sticky; top: 0; z-index: 2; background: var(--panel); }
+.card-act { min-height: 84px; }
+.allies-box { padding: 0 14px 8px; font-size: 12px; }
+.allies-box summary { cursor: pointer; color: var(--muted); }
+.allies-box .allies { padding: 6px 0 0; }
+.arena-log { max-height: none; }
+.ring-fight { padding: 10px 14px 4px; }
+@media (max-height: 820px) {
+  .fighter .portrait, .fighter svg { width: 52px; height: 52px; }
+  body.scene-on #log { height: 12vh; }
+}
+.plot-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.plot-head .lvtag { flex: none; }
+body.scene-on #place .exits button, body.scene-on #place .npc { white-space: nowrap; flex: none; }

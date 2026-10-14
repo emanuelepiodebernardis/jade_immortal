@@ -49,12 +49,13 @@ def unique_name(rng: random.Random, used: set[str] | None = None,
     if used is None:
         used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")} if conn else set()
     pool = _GIVEN_F if female else _GIVEN
-    for _ in range(200):
+    for _ in range(60):                               # prima i nomi classici…
         n = f"{rng.choice(_SURNAMES)} {rng.choice(pool)}"
         if n not in used:
             used.add(n)
             return n
-    return npc_gen._unique_name(rng, used)
+    from engine.systems import names                  # …poi lo spazio grande, mai con i numeri
+    return names.person(rng, used, female=female)
 
 
 def realm_id_for(conn: sqlite3.Connection, tier: int) -> int:

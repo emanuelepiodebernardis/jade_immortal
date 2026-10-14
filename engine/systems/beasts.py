@@ -170,8 +170,8 @@ def spawn_rare(conn, rng: random.Random, player, species: tuple | None = None) -
     nid = npc_factory.spawn(conn, rng, archetype="vagabondo", location_id=loc,
                             tier=ptier + (0 if rarity == "rara" else 1 if rarity in ("leggendaria", "ibrida") else 2),
                             stage=rng.randint(3, 8),
-                            name=name if not conn.execute("SELECT 1 FROM npcs WHERE name=?;", (name,)).fetchone()
-                            else f"{name} {rng.randint(2, 99)}",
+                            name=__import__("engine.systems.names", fromlist=["x"]).creature(
+                                rng, name, {r["name"] for r in conn.execute("SELECT name FROM npcs WHERE status='alive';")}),
                             dao=els[0], dao_comp=30 + ptier * 10,
                             traits={"courage": 90, "pride": 80})
     conn.execute("UPDATE npcs SET kind='beast', archetype='bestia', description=? WHERE id=?;",

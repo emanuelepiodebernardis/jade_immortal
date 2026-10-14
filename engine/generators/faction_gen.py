@@ -29,7 +29,8 @@ def _faction_name(rng: random.Random, used: set[str]) -> str:
         if name not in used:
             used.add(name)
             return name
-    return f"{rng.choice(_PREFIX)} {rng.choice(_SUFFIX)} {rng.randint(2, 99)}"
+    from engine.systems import names
+    return names.place(rng, f"{rng.choice(_PREFIX)} {rng.choice(_SUFFIX)}", used, names.SECT_DETERMINERS)
 
 
 def faction_relation_type(score: int) -> str:

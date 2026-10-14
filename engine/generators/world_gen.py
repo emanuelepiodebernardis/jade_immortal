@@ -271,9 +271,8 @@ def _unique_place(rng, used: set[str]) -> str:
             used.add(w)
             return w
     # esauriti: aggiungi suffisso
-    w = rng.choice(_PLACE_WORDS) + str(rng.randint(2, 99))
-    used.add(w)
-    return w
+    from engine.systems import names
+    return names.place(rng, rng.choice(_PLACE_WORDS), used)
 
 
 def _location_name(rng, ltype: str, used: set[str]) -> str:

@@ -272,15 +272,15 @@ function arenaHtml(a, s) {
       <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>
       ${a.vantaggio > 1 ? `<span class="tag good">☸ elemento a tuo favore</span>` : a.vantaggio < 1 ? `<span class="tag bad">☸ elemento a suo favore</span>` : ""}
       ${a.carica ? `<span class="tag bad blink">⚠ carica un colpo pesante</span>` : ""}</div>${pop(L.inflitto, "good" + (L.critico ? " crit" : ""))}</div>`;
-  const allies = a.alleati.length ? `<div class="allies">${a.alleati.map((x) => `<span>${esc(x)}</span>`).join("")}</div>` : "";
+  const allies = a.alleati.length ? `<details class="allies-box"><summary>${a.alleati.length} alleat${a.alleati.length === 1 ? "o" : "i"} in campo</summary><div class="allies">${a.alleati.map((x) => `<span>${esc(x)}</span>`).join("")}</div></details>` : "";
   const cards = a.carte.map((c, i) => `<button class="card-act k-${esc(c.kind)} ${c.hot ? "hot" : ""}" ${c.ok ? `data-cmd="${esc(c.cmd)}"` : "disabled"} title="${esc(c.desc)}${c.why ? " — " + esc(c.why) : ""}">
       <span class="ci">${esc(c.icon)}${i < 9 ? `<kbd>${i + 1}</kbd>` : ""}</span><b>${esc(c.name)}</b><small>${esc(c.desc)}</small>
       <em>${c.ok ? esc(c.cost) : esc(c.why)}</em></button>`).join("");
   const ab = S && slotImg("luoghi", S.luogo.type);
   return `<div class="arena"${ab ? ` style="background-image:linear-gradient(color-mix(in srgb, var(--panel) 80%, transparent), var(--panel) 70%), url('${ab}')"` : ""}><div class="arena-head">⚔ Duello — turno ${a.turno}</div>
-    <div class="ring-fight">${me}<div class="vs">VS</div>${foe}</div>${allies}
-    <div class="arena-log">${txt.slice(-6).map((l) => `<div class="${lineClass(l)}">${actionize(esc(l))}</div>`).join("")}</div>
-    ${a.finito ? "" : `<div class="hand">${cards}</div>`}</div>`;
+    <div class="ring-fight">${me}<div class="vs">VS</div>${foe}</div>
+    ${a.finito ? "" : `<div class="hand">${cards}</div>`}
+    <div class="arena-log">${txt.slice(-6).map((l) => `<div class="${lineClass(l)}">${actionize(esc(l))}</div>`).join("")}</div>${allies}</div>`;
 }
 
 // IMMAGINI: la cartella «immagini» (anche le sottocartelle luoghi/, ritratti/, bestie/, creature/, mondi/)
@@ -318,6 +318,9 @@ function face(name, size, aura, kind = "", o = {}) {
 let lastArenaTurn = null;
 function renderScene(s) {
   const box = $("#scene");
+  // con una scena aperta la colonna centrale fa spazio: luogo e diario si stringono, la scena si allarga
+  document.body.classList.toggle("scene-on", !!s.scena);
+  document.body.classList.toggle("duel-on", !!(s.scena && s.duello));
   if (!s.scena) { box.hidden = true; box.innerHTML = ""; box.classList.remove("in-duel"); return; }
   box.hidden = false;
   const ar = s.duello && s.duello.arena;
@@ -475,7 +478,7 @@ function plotCard(j) {
   else if (need && j.indagato_oggi && have < j.totale) btn.push(`<button disabled title="si può indagare una volta al giorno">🔎 Domani potrai indagare ancora</button>`);
   if (j.accusa) btn.push(`<button class="primary" data-cmd="trame accusa ${j.n}">⚖ Affronta il colpevole</button>`);
   else if (j.continua) btn.push(`<button data-cmd="trame continua ${j.n}">▶ Continua la trama</button>`);
-  return `<div class="card sec plot"><b>🕸 ${esc(j.titolo)}</b> <span class="lvtag">atto ${j.atto}/${j.atti}</span>
+  return `<div class="card sec plot"><div class="plot-head"><b>🕸 ${esc(j.titolo)}</b><span class="lvtag">atto ${j.atto}/${j.atti}</span></div>
     <div class="muted small">${j.attesa ? `Prossimo atto «${esc(j.prossimo)}» tra ${j.attesa} giorni` : `Prossimo atto «${esc(j.prossimo)}»: pronto`}</div>
     ${clues}${log}${btn.length ? `<div class="tools">${btn.join("")}</div>` : ""}</div>`;
 }
