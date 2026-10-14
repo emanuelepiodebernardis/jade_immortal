@@ -295,7 +295,7 @@ def _pick_best(conn, player, cand: list, core: list) -> list[tuple[str, str]]:
     s = inner_space.get(conn)
     if s and s.get("planted") and tick_mod.get_tick(conn) // 120 >= s.get("ready_day", 0):
         care = True
-    if mentor_ring.get(conn) and professions.material(conn, player.id, "nuclei") > 0:
+    if mentor_ring.active(conn) and professions.material(conn, player.id, "nuclei") > 0:
         care = True
     if care:
         routine.append(("Cura tutti i tesori (spazio, anello…)", "tesori cura"))

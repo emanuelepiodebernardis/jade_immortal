@@ -403,6 +403,12 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("purifica", "depura", "purificati", "disintossica"):
         from engine.systems import dao_heart
         return dao_heart.purify_command(conn, player)
+    if cmd in ("vasi", "artefatti", "anime", "vasi_anima"):
+        from engine.systems import soul_artifacts
+        return soul_artifacts.overview(conn, player)
+    if cmd in ("pagoda", "stendardo", "calderone", "perla"):
+        from engine.systems import soul_artifacts
+        return soul_artifacts.command(conn, player, cmd, arg)
     if cmd in ("via", "latuavia"):
         from engine.systems import via_menu
         return via_menu.show(conn, player, arg)

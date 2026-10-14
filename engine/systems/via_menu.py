@@ -22,12 +22,14 @@ TABS = [
     ("tecniche", "⚒ Tecniche", "tecniche"),
     ("profondi", "🌌 Dao profondi", "profondi"),
     ("spiriti", "✺ Spiriti", "spiriti"),
+    ("anime", "✧ Anime", None),
     ("forza", "⚖ Forza", "forza"),
 ]
 KEYS = [k for k, _l, _s in TABS]
 DEFAULT = "coltivazione"
 ALIAS = {"costituzione": "corpo", "body": "corpo", "lignaggi": "sangue", "attr": "attributi",
-         "fucina": "tecniche", "dao": "profondi", "bilancio": "forza", "fonti": "forza"}
+         "fucina": "tecniche", "dao": "profondi", "bilancio": "forza", "fonti": "forza",
+         "vasi": "anime", "anello": "anime", "artefatti": "anime"}
 
 
 def tab_of(arg: str) -> str:
@@ -59,7 +61,13 @@ def _body(conn, player) -> dict:
 def build(conn, player, key: str) -> dict:
     tab = tab_of(key.split(":", 1)[1] if ":" in key else "")
     src = dict((k, s) for k, _l, s in TABS)[tab]
-    inner = _body(conn, player) if src is None else M._builders()[src](conn, player)
+    if tab == "anime":
+        from engine.systems import soul_artifacts
+        inner = M.menu("via:anime", "✧ I VASI D'ANIMA",
+                       ["Oggetti con un'anima dentro: crescono, insegnano, combattono con te, e hanno una storia."],
+                       soul_artifacts.menu_sections(conn, player))
+    else:
+        inner = _body(conn, player) if src is None else M._builders()[src](conn, player)
     m = M.menu("via", "La tua Via", sub=inner.get("sub"), sections=inner.get("sections"), foot=inner.get("foot", ""))
     m["key"] = "via:" + tab
     m["tab"] = tab

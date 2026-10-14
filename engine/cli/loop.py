@@ -293,6 +293,10 @@ def _after_arrival(conn: sqlite3.Connection, player: entities.Player) -> str:
         _mr = mentor_ring.offer_scene(conn, random.Random(tick.get_tick(conn) * 3 + player.id), player)
         if _mr:
             return out + "\n\n" + _mr
+        from engine.systems import soul_artifacts
+        _sa = soul_artifacts.offer_scene(conn, random.Random(tick.get_tick(conn) * 7 + player.id), player)
+        if _sa:
+            return out + "\n\n" + _sa
         from engine.systems import npc_quests
         _qa = npc_quests.on_arrival(conn, player)
         if _qa:
@@ -510,8 +514,10 @@ def _after_player_kill(conn, t, rng, player, npc, move) -> list[str]:
     from engine.systems import npc_quests, soul_war, lost_legacy, kingdoms
     lines += npc_quests.check(conn, player)
     lines += kingdoms.on_kill(conn, player, npc.id)
-    from engine.systems import body_absorb
+    from engine.systems import body_absorb, mentor_ring as _mring, soul_artifacts as _sart
     lines += body_absorb.on_kill(conn, t, rng, player, npc.id)
+    lines += _mring.on_kill(conn, t, rng, player, npc.id)        # un anello vuoto può accogliere l'anima
+    lines += _sart.on_kill(conn, t, rng, player, npc.id)         # lo stendardo beve l'anima
     lines += soul_war.on_kill(conn, t, player, _vk["kind"] if _vk else None)
     _fl = soul_war.maybe_find_flag(conn, rng, player)
     if _fl:
@@ -1931,8 +1937,10 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     from engine.systems import constitutions, dao_heart, prodigies
     lines += ["  " + ln for ln in constitutions.daily(conn, t, random.Random(t * 79 + day), player)]
     lines += ["  " + ln for ln in prodigies.daily(conn, t, random.Random(t * 83 + day), player)]
-    from engine.systems import intrigues
+    from engine.systems import intrigues, soul_arcs, soul_artifacts
     lines += ["  " + ln for ln in intrigues.daily(conn, t, random.Random(t * 101 + day), player)]
+    lines += ["  " + ln for ln in soul_artifacts.daily(conn, t, random.Random(t * 103 + day), player)]
+    lines += ["  " + ln for ln in soul_arcs.daily(conn, t, random.Random(t * 107 + day), player)]   # i capitoli dei vasi
     from engine.systems import (mentor_ring, inner_space, clones, celestial_elements, family, divine_sense, gu,
                                 lost_legacy)
     _rng2 = random.Random(t * 97 + day)

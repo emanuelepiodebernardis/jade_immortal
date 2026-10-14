@@ -2473,3 +2473,67 @@ Due comandi nuovi, anche come pulsanti:
   duelli subito invece di aspettarlo.
 
 Test: 4 nuovi in `tests/test_agg59.py`. Suite totale: **650 passati**.
+
+## Aggiornamento 61 — Le anime negli oggetti
+
+Prima il maestro nell'anello si nutriva, consigliava e prestava la sua forza. Al livello 6 arrivava
+un solo nemico, il discepolo traditore, e la storia finiva lì. Ora l'anello e altri quattro oggetti
+con un'anima dentro hanno ciascuno una storia a capitoli. Il modello è quello del genere: il vecchio
+alchimista nell'anello tradito dal discepolo e cacciato dal Palazzo delle Anime, lo spirito
+d'artefatto (器灵) che si risveglia piano per piano, lo stendardo delle diecimila anime delle vie
+demoniache, il calderone con la fiamma viva, il demone sigillato che offre patti.
+
+### Il motore dei capitoli (`engine/systems/soul_arcs.py`)
+
+- Ogni vaso apre i suoi capitoli quando cresce abbastanza: uno alla volta, con qualche giorno di
+  respiro tra l'uno e l'altro.
+- Ogni capitolo è una trama vera (`engine/systems/intrigue_data3.py`), con scelte, prove, indizi e
+  duelli.
+- Se un capitolo va male si può ritentare dopo qualche giorno.
+- L'esito cambia il vaso: l'anima cresce, viene rapita, rinasce in un corpo, si ribella, ti tradisce.
+- Il regista non sceglie mai queste trame da solo: le apre il vaso.
+- Aggiungere un capitolo è una riga in `ARCS` e una trama nel file dei dati.
+
+### Il maestro nell'anello: quattro capitoli
+
+1. **Il Legno Nutrianime** (livello 3). Lo strappi in duello a chi lo custodisce, lo compri, oppure
+   lasci che il maestro guidi le tue mani per rubarlo. Da allora ogni nucleo vale doppio.
+2. **Il discepolo che uccise il maestro** (livello 6). Prima una spia ti segue: se la catturi ti
+   rivela il punto debole del traditore. Poi arriva lui, e racconta la sua versione. Scegli tra
+   vendetta (l'eredità del maestro) e perdono (un'altra eredità, e il maestro sale di livello).
+3. **Il Palazzo delle Anime** (livello 8). Ti strappano il maestro dall'anello e l'anello resta muto:
+   niente doni finché non lo liberi. Puoi assaltare la Montagna delle Anime Perdute, entrare al cambio
+   della guardia (servono gli indizi), pagare il riscatto o abbandonarlo. Se lo salvi torna più forte
+   di due livelli.
+4. **Un corpo per un'anima antica** (livello 10). Gli forgi un corpo di giada o gli offri una salma.
+   Nella notte della rinascita, se vegli su di lui o ti fidi, rinasce: diventa un personaggio vivo,
+   il tuo maestro nel mondo, e ti lascia il suo lascito. Se ti addormenti e la prova fallisce, prova a
+   prendersi il tuo corpo: lo respingi, e ti restano i suoi ricordi.
+
+**L'anello vuoto** (maestro rinato, perduto o spezzato) può accogliere un'altra anima. Abbatti un
+coltivatore forte o un anziano e, per un giorno, la sua anima vaga: `anello accogli`. Con la nuova
+anima i capitoli ricominciano, e la storia non finisce mai.
+
+### Quattro vasi nuovi (`engine/systems/soul_artifacts.py`)
+
+Si trovano esplorando, al massimo uno al mese, ognuno una volta per vita.
+
+| Vaso | Dove | Come cresce | Cosa dona | Capitoli |
+|---|---|---|---|---|
+| 🏯 Pagoda delle Nove Prigioni | rovine, montagne | pietre spirituali (`pagoda nutri`) | coltivazione +3% e nemici −2,5% di attacco per piano | il prigioniero del terzo piano · i padroni di un tempo · il nome della pagoda (legarla a te o lasciarla libera) |
+| 🏴 Stendardo delle Diecimila Anime | zone proibite, rovine | da solo, a ogni coltivatore che abbatti (il karma scende) | attacco in battaglia; `stendardo scatena` per il prossimo scontro | la bambina tra le anime · i giusti ti cercano · la rivolta delle anime (dominarle, abbattere il loro capo o liberarle tutte) |
+| 🔥 Calderone della Fiamma Dormiente | montagne, rovine, città | erbe spirituali (`calderone nutri`) | arti più riuscite, tossine bruciate ogni giorno | la fiamma strana · l'alchimista che lo forgiò · la fiamma celeste |
+| 🔮 Perla dei Nove Sigilli | zone proibite | patti (`perla patto forza\|vita\|segreto`), ognuno col suo prezzo | forza permanente, guarigione, passi nel Dao | la voce gentile · il prezzo dei patti (il monaco e il Sutra del Sigillo) · la notte in cui la perla si aprì (divorarlo, risigillarlo o condividere il corpo) |
+
+### Dove si vedono e come si curano
+
+- **La scheda «✧ Anime»** in *La tua Via* mostra tutti i vasi, con barre, capitolo in corso e pulsanti.
+  C'è anche il comando `vasi`.
+- **«Cura tesori»** nutre anche pagoda e calderone. La pagoda la nutre solo se le pietre avanzano
+  (almeno il triplo del necessario).
+- **Il pilota automatico** fa lo stesso nelle faccende quotidiane.
+- **I doni in battaglia** passano dal bilancio della potenza («anello e altri»), quindi hanno il
+  tetto come tutto il resto.
+
+Test: `tests/test_soul_vessels.py` (11, che giocano tutti i 16 capitoli fino in fondo con scelte
+diverse). Suite totale: **661 passati**.

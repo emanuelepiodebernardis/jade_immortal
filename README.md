@@ -129,6 +129,11 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
 - **Poteri dei protagonisti**: retaggio spezzato da ricomporre, maestro nell'anello, spazio
   interiore, cloni, elementi celesti, famiglia, senso divino, marionette e tesori, Gu,
   bandiera delle anime: tutto coltivabile senza fine.
+- **Vasi d'anima** (`vasi`, scheda *La tua Via → Anime*): oggetti con un'anima dentro, ognuno con
+  la sua storia a capitoli. Il **maestro nell'anello** (il Legno Nutrianime, il discepolo traditore,
+  il Palazzo delle Anime che lo rapisce, un corpo nuovo; poi l'anello vuoto accoglie l'anima di un
+  nemico caduto e la storia ricomincia), la **Pagoda delle Nove Prigioni**, lo **Stendardo delle
+  Diecimila Anime**, il **Calderone della Fiamma Dormiente** e la **Perla dei Nove Sigilli**.
 - Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.
@@ -356,7 +361,7 @@ sette) possono schierare qualcuno molto più forte.
 | Corpo leggendario | `costituzione` (storia, stadio e doni) |
 | Eroe e Sistema | `finestra`, `attributi`, `osserva <nome>`, `quotidiana`, `spiriti`, `profondi`, `arcano <nome>`, `cielo …` |
 | Corpo e mondo | `corpo`, `tribolazioni`, `prodigi`, `uova`, `alleva`, `richieste`, `incarichi`, `consegna` |
-| Eredità | `tesori` (pannello unico, `tesori cura`), `retaggio`, `anello`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
+| Eredità | `tesori` (pannello unico, `tesori cura`), `vasi`, `anello [nutri|forza|accogli]`, `pagoda`, `stendardo`, `calderone`, `perla [patto]`, `retaggio`, `spazio`, `clone`, `elementi`, `famiglia`, `scruta`, `cela`, `marionetta`, `tesoro`, `gu`, `bandiera` |
 | Svolte e ritmo | `svolte`, `vola <luogo>`, `crea_dao <nome>`, `capolavoro <nome>`, `ritmo` |
 | Trama | `trama`, `arcinemico`, `regni`, `corte`, `sostieni`, `tributo`, `guerra_regni`, `trono`, `razze`, `ambasciata`, `era`, `calamita`, `gara`, `evadi` |
 | Interfaccia | `tutorial`, `mappa`, `codex`, `salva`, `carica`, `salvataggi`, `colori` |

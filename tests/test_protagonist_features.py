@@ -49,7 +49,9 @@ def test_mentor_ring_feed_lend_and_traitor(conn):
     assert mentor_ring.level(conn) == 1
     professions.give(conn, 1, "nuclei", 200)
     out = mentor_ring.feed(conn, _p(conn), "200")
-    assert mentor_ring.level(conn) >= 6 and "traditore" in out
+    assert mentor_ring.level(conn) >= 6                       # il traditore ora arriva col suo capitolo
+    assert mentor_ring.prepare(conn, _p(conn), "anello_traditore") is True
+    assert mentor_ring.get(conn)["traitor"]
     assert mentor_ring.cultivation_mult(conn)[0] > 1.2
     assert "Lascia" in mentor_ring.lend(conn, _p(conn))
     fx = _fx(conn)

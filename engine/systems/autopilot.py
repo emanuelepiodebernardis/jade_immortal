@@ -689,6 +689,10 @@ def _routine(conn, p, cfg: dict) -> list[str]:
         _s = own_sect.get(conn)
         if any(int(e.get("acc", 0)) for e in dominion.vassals(conn).values()) or (_s and _s.get("treasury", 0) > 0):
             run("rendite riscuoti")
+        from engine.systems import treasury as _tr, mentor_ring as _mr, soul_artifacts as _sa
+        if _mr.active(conn) or _sa.owned(conn):           # nutre anello, pagoda e calderone
+            _c = _tr.care(conn, p)
+            out += [ln for ln in _c.splitlines() if ln.startswith("✦")]
     if cfg.get("potenzia"):
         ab = cave_abode.get(conn, p.id)
         if ab and ab["loc"] == p.location_id:

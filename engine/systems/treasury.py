@@ -26,7 +26,12 @@ def _lines(conn, player) -> list[tuple[str, str, str]]:
         out.append(("arma", "⚔ " + w, "arma"))
     r = mentor_ring.get(conn)
     if r:
-        out.append(("anello", f"💍 Maestro nell'anello: {r['name']} — livello {r.get('level', 0)}", "anello"))
+        out.append(("anello", f"💍 Maestro nell'anello: {r['name']} — livello {r.get('level', 0)}"
+                    + (" (rapito)" if r.get("captive") else " (anello vuoto)" if r.get("gone") else ""), "anello"))
+    from engine.systems import soul_artifacts
+    for _k in soul_artifacts.owned(conn):
+        _v = soul_artifacts.V[_k]
+        out.append((_k, f"{_v['icon']} {_v['name']} — livello {soul_artifacts.level(conn, _k)}", _k))
     s = inner_space.get(conn)
     if s:
         day = tick_mod.get_tick(conn) // 120
@@ -71,8 +76,9 @@ def describe(conn, player) -> str:
 
 
 def care(conn, player) -> str:
-    from engine.systems import inner_space, mentor_ring, professions, gu
+    from engine.systems import inner_space, mentor_ring, professions, gu, soul_artifacts
     out = []
+    out += soul_artifacts.care(conn, player)            # pagoda (se le pietre bastano) e calderone (erbe)
     s = inner_space.get(conn)
     if s:
         day = tick_mod.get_tick(conn) // 120
@@ -83,7 +89,7 @@ def care(conn, player) -> str:
             n = min(herbs, 10 * s["level"])
             if n > 0:
                 out.append(inner_space.sow(conn, player, str(n)))
-    if mentor_ring.get(conn) and professions.material(conn, player.id, "nuclei") > 0:
+    if mentor_ring.active(conn) and professions.material(conn, player.id, "nuclei") > 0:
         need = mentor_ring.feed_need(mentor_ring.level(conn))
         out.append(mentor_ring.feed(conn, player, str(min(need, professions.material(conn, player.id, "nuclei")))))
     if any(x.get("hunger") for x in gu.gus(conn)):

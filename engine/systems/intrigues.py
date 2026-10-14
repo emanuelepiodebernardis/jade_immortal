@@ -31,8 +31,10 @@ from engine.systems.calibration import (PLOT_MAX_ACTIVE as MAX_ACTIVE, PLOT_NEW_
 
 
 def _templates() -> dict:
-    from engine.systems import intrigue_data
-    return {t["key"]: t for t in intrigue_data.TEMPLATES}
+    from engine.systems import intrigue_data, intrigue_data3
+    out = {t["key"]: t for t in intrigue_data.TEMPLATES}
+    out.update({t["key"]: t for t in intrigue_data3.ARCS})      # i capitoli dei vasi d'anima (li apre il vaso)
+    return out
 
 
 def get(conn) -> dict:
@@ -113,6 +115,13 @@ def _cast(conn, rng, player, tpl: dict, d: dict | None = None) -> dict:
     taken: set = set()
     cast = {}
     for role, kind in tpl.get("cast", {}).items():
+        if kind.startswith("stato:"):                    # un personaggio preparato da chi apre la trama
+            nid = state.get_int(conn, kind[6:], 0)
+            if nid and _alive(conn, nid) and nid not in taken:
+                cast[role] = nid
+                taken.add(nid)
+                continue
+            kind = "anziano"
         if kind.startswith("legame:"):                   # chi è legato a una tua scelta passata
             links = [i for i in ((d or {}).get("links", {}).get(kind.split(":", 1)[1]) or [])
                      if _alive(conn, i) and i not in taken]
@@ -148,6 +157,10 @@ def _names(conn, it: dict, player) -> dict:
     f.update(_articled("mia_setta", mem["sect_name"] if mem else "Setta senza nome"))
     loc = conn.execute("SELECT name FROM locations WHERE id=?;", (player.location_id,)).fetchone()
     f["luogo"] = loc["name"] if loc else "qui"
+    tpl = _templates().get(it.get("key"))
+    if tpl and tpl.get("arc"):
+        from engine.systems import soul_arcs
+        f.update(soul_arcs.placeholders(conn, tpl["arc"]))
     return f
 
 
@@ -231,6 +244,8 @@ def candidates(conn, player, rng: random.Random) -> list[tuple[float, str, dict]
         member = bool(sects.get_membership(conn, player.id))
         bonded = _bonded(conn, player)
         for k, tpl in tpls.items():
+            if tpl.get("arc"):
+                continue                                   # i capitoli dei vasi d'anima non li sceglie il regista
             if k in active_keys or pt < tpl.get("tier_min", 1) or (tpl.get("req_sect") and not member):
                 continue
             if tpl.get("req_flag") and tpl["req_flag"] not in d.get("flags", []):
@@ -321,7 +336,7 @@ def _act_scene(conn, player, it: dict, tpl: dict) -> dict:
     # chi deve combattere viene da te: il focus e chi è nominato nei duelli
     movers = {it["cast"][foc]} if foc and it["cast"].get(foc) else set()
     for ch in choices:
-        cmd = ch.get("command") or ""
+        cmd = " ".join(x.get("command") or "" for x in (ch, ch.get("success") or {}, ch.get("failure") or {}))
         for role, nid in it["cast"].items():
             if "{" + role + "}" in cmd:
                 movers.add(nid)
@@ -417,7 +432,7 @@ def play(conn, player, it: dict) -> str | None:
     return encounters.start_scene(conn, player, _act_scene(conn, player, it, tpl), force=True)
 
 
-def start(conn, player, key: str, rng: random.Random | None = None) -> str | None:
+def start(conn, player, key: str, rng: random.Random | None = None, branches: list | None = None) -> str | None:
     """Comincia una trama (il regista la sceglie; i test e i comandi possono forzarla)."""
     tpl = _templates().get(key)
     if not tpl:
@@ -429,7 +444,7 @@ def start(conn, player, key: str, rng: random.Random | None = None) -> str | Non
     if tpl.get("req_flag") and tpl["req_flag"] in d.get("flags", []):
         d["flags"].remove(tpl["req_flag"])               # la conseguenza si consuma
     it = {"id": d["seq"], "key": key, "cast": cast, "act": 0, "clues": 0,
-          "branches": [], "next_day": _day(conn), "start_day": _day(conn)}
+          "branches": list(branches or []), "next_day": _day(conn), "start_day": _day(conn)}
     _log(it, f"Comincia: {tpl['acts'][0]['title']}")
     d["active"].append(it)
     d["last_start"] = _day(conn)
@@ -455,6 +470,11 @@ def _finish(conn, it: dict, outcome: str, text: str | None = None) -> str:
         pass
     if len([x for x in d["done"] if x.get("outcome") not in ("sfumata", "spezzata")]) == 5:
         state.grant_title(conn, "Tessitore di Trame")
+    if tpl.get("arc"):                                   # un capitolo di un vaso d'anima: cambia il vaso
+        from engine.systems import soul_arcs
+        extra = [x for x in soul_arcs.on_finish(conn, tpl["arc"], it["key"], outcome) if x]
+        if extra:
+            msg = msg + "\n" + "\n".join(extra)
     return msg
 
 

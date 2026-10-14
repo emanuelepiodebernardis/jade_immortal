@@ -159,8 +159,8 @@ class FightCtx:
         trk.mark("prodigi")
         self.lines_intro += heaven_trib.combat(conn, self)
         trk.mark("tribolazione_celeste")
-        from engine.systems import mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte
-        for _m in (mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte):
+        from engine.systems import mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte, soul_artifacts
+        for _m in (mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte, soul_artifacts):
             self.lines_intro += _m.combat(conn, self)
         trk.mark("anello e altri")
         # COSTITUZIONE SPECIALE
