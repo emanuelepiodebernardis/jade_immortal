@@ -410,6 +410,7 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
         npc_quests.set_target(conn, int(eff["quest_target"]), ctx["npc_id"])
     if eff.get("intrigue") is not None and ctx.get("intrigue_id"):
         from engine.systems import intrigues
+        ctx["_text"] = eff.get("text") if isinstance(eff.get("text"), str) else ""
         lines += intrigues.on_effect(conn, t, rng, player, eff["intrigue"], ctx)
     if eff.get("heart"):
         from engine.systems import dao_heart
@@ -491,6 +492,7 @@ def choose(conn: sqlite3.Connection, player: entities.Player, n: int) -> tuple[s
     rng = random.Random(t * 4243 + n * 17 + player.id + (sc.get("tick") or 0))
     ctx = sc.get("ctx", {})
     ctx.setdefault("title", sc.get("title", "incontro"))
+    ctx["_choice"] = ch["label"]                 # (le trame tengono il diario delle tue scelte)
     clear(conn)
     lines = [f"» {ch['label']}"]
     if ch.get("check"):

@@ -201,3 +201,34 @@ def test_secret_realm_take_one_keeps_the_rule(conn, monkeypatch):
     res, _ = _pick(conn, "solo la reliquia")
     assert "reliquia" in res.lower() and "Ora ti odiano" not in res
     assert intrigues.get(conn)["done"][-1]["outcome"] == "un_tesoro"
+
+
+def test_investigation_reveals_one_clue_at_a_time_then_accuse(conn, monkeypatch):
+    p = _p(conn)
+    intrigues.start(conn, p, "mano_ombra", random.Random(1))
+    encounters.clear(conn)
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    out = intrigues.command(conn, p, "indaga 1")
+    assert "Indizio 1" in out and "colpo dall'alto" in out
+    assert "già indagato" in intrigues.command(conn, p, "indaga 1")      # una volta al giorno
+    assert "Non sai ancora abbastanza" in intrigues.command(conn, p, "accusa 1")
+    conn.execute("UPDATE worlds SET current_tick=current_tick+120;")
+    out = intrigues.command(conn, p, "indaga 1")
+    assert "Indizio 2" in out and "affrontare il colpevole" in out
+    j = intrigues.journal(conn, p)[0]
+    assert len(j["indizi"]) == 2 and j["accusa"] and j["servono"] == 2
+    out = intrigues.command(conn, p, "accusa 1")
+    assert "Il terzo giorno" in out                                     # dritto all'atto della resa dei conti
+    labels = [ch["label"] for ch in encounters.pending(conn)["choices"]]
+    assert any("Smascheri" in x for x in labels)
+
+
+def test_failed_investigation_and_journal_logs_choices(conn, monkeypatch):
+    p = _p(conn)
+    intrigues.start(conn, p, "maledizione", random.Random(1))
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (False, 1, 99))
+    _pick(conn, "Bruci incenso")
+    out = intrigues.command(conn, p, "indaga 1")
+    assert "non portano da nessuna parte" in out
+    j = intrigues.journal(conn, p)[0]
+    assert any("Bruci incenso" in x for x in j["diario"]) and not j["indizi"]

@@ -386,6 +386,7 @@ def start(conn, player, key: str, rng: random.Random | None = None) -> str | Non
         d["flags"].remove(tpl["req_flag"])               # la conseguenza si consuma
     it = {"id": d["seq"], "key": key, "cast": cast, "act": 0, "clues": 0,
           "branches": [], "next_day": _day(conn), "start_day": _day(conn)}
+    _log(it, f"Comincia: {tpl['acts'][0]['title']}")
     d["active"].append(it)
     d["last_start"] = _day(conn)
     _save(conn, d)
@@ -411,6 +412,160 @@ def _finish(conn, it: dict, outcome: str, text: str | None = None) -> str:
     if len([x for x in d["done"] if x.get("outcome") not in ("sfumata", "spezzata")]) == 5:
         state.grant_title(conn, "Tessitore di Trame")
     return msg
+
+
+# ============================================================
+# Il diario e le indagini
+# ============================================================
+
+GENERIC_CLUES = ["Qualcosa non torna: c'è una mano che muove i fili.",
+                 "Le tracce portano verso {la_setta}.",
+                 "Dietro tutto c'è {mandante}."]
+
+
+def _log(it: dict, text: str) -> None:
+    it.setdefault("log", []).append(text)
+    it["log"] = it["log"][-12:]
+
+
+def _clue_list(tpl: dict) -> list[str]:
+    return tpl.get("indizi") or (GENERIC_CLUES if tpl.get("need") else [])
+
+
+def need(tpl: dict) -> int:
+    return int(tpl.get("need", 2))
+
+
+def _reveal(conn, player, it: dict, tpl: dict, n: int, fallback: str = "") -> list[str]:
+    """Svela i prossimi n indizi della trama, uno alla volta, nel loro ordine."""
+    f = _names(conn, it, player)
+    out = []
+    lst = _clue_list(tpl)
+    before = it.get("clues", 0)
+    for _ in range(max(0, n)):
+        it["clues"] = it.get("clues", 0) + 1
+        idx = len(it.setdefault("found", []))
+        txt = (_fmt(lst[idx], f) if idx < len(lst)
+               else (fallback or "Un altro tassello conferma ciò che sospettavi."))
+        it["found"].append(txt)
+        _log(it, "🔎 " + txt)
+        out.append(f"🔎 Indizio {it['clues']}: {txt}")
+    if (lst and before < need(tpl) <= it["clues"] and tpl.get("reveal_act") is not None
+            and it["act"] < tpl["reveal_act"]):
+        out.append("⚖ Sai abbastanza: puoi affrontare il colpevole ('trame accusa').")
+    return out
+
+
+def _find(conn, arg: str) -> tuple[dict | None, dict | None, dict]:
+    d = get(conn)
+    nums = [int(x) for x in arg.split() if x.isdigit()]
+    i = nums[0] if nums else 1
+    if not (1 <= i <= len(d["active"])):
+        return None, None, d
+    it = d["active"][i - 1]
+    return it, _templates().get(it["key"]), d
+
+
+def investigate(conn, player, arg: str) -> str:
+    """Indaga su una trama aperta: mezza giornata di ricerche e una prova; se riesce, un indizio in più.
+    Una sola indagine al giorno per trama."""
+    from engine.systems import encounters
+    from engine.simulation import world_tick
+    it, tpl, d = _find(conn, arg)
+    if not it:
+        return "Nessuna trama aperta con quel numero ('trame' per l'elenco)."
+    lst = _clue_list(tpl)
+    if not lst:
+        return f"«{_fmt(tpl['title'], _names(conn, it, player))}» non è un mistero da indagare: si vive, atto dopo atto."
+    if len(it.get("found", [])) >= len(lst):
+        return "Hai già trovato tutto quello che c'era da trovare: ora agisci ('trame accusa')."
+    day = _day(conn)
+    if it.get("inv_day") == day:
+        return "Per oggi hai già indagato su questa trama: le tracce si rinnovano domani."
+    it["inv_day"] = day
+    rng = random.Random(tick_mod.get_tick(conn) * 9173 + it["id"])
+    found = len(it.get("found", []))
+    ok, _v, _r = encounters.roll(conn, rng, player.id, {"stat": tpl.get("indagine", "istinto"), "dc": 48 + 6 * found})
+    world_tick.advance(conn, 60)                    # mezza giornata di domande, appostamenti, tracce
+    f = _names(conn, it, player)
+    title = _fmt(tpl["title"], f)
+    if ok:
+        lines = [f"Indaghi su «{title}»: domande, appostamenti, tracce."] + _reveal(conn, player, it, tpl, 1)
+    else:
+        _log(it, "Un giorno di ricerche senza frutto.")
+        lines = [f"Indaghi su «{title}», ma oggi le tracce non portano da nessuna parte. Domani riprova."]
+    _save(conn, d)
+    return "\n".join(lines)
+
+
+def accuse(conn, player, arg: str) -> str:
+    """Con abbastanza indizi, vai dritto al colpevole: l'atto della resa dei conti comincia adesso."""
+    from engine.systems import encounters
+    it, tpl, d = _find(conn, arg)
+    if not it:
+        return "Nessuna trama aperta con quel numero ('trame' per l'elenco)."
+    if encounters.pending(conn):
+        return "Prima chiudi la scena in corso."
+    if not _clue_list(tpl) or tpl.get("reveal_act") is None:
+        return continue_now(conn, player, arg)
+    if it.get("clues", 0) < need(tpl):
+        return (f"Non sai ancora abbastanza: hai {it.get('clues', 0)} indizi, te ne servono {need(tpl)}. "
+                "Indaga ('trame indaga') o segui la trama.")
+    if it["act"] < tpl["reveal_act"]:
+        it["act"] = tpl["reveal_act"]
+        _log(it, "Vai dritto al colpevole.")
+    it["next_day"] = _day(conn)
+    _save(conn, d)
+    return play(conn, player, it) or ""
+
+
+def continue_now(conn, player, arg: str) -> str:
+    from engine.systems import encounters
+    it, tpl, d = _find(conn, arg)
+    if not it:
+        return "Nessuna trama aperta con quel numero ('trame' per l'elenco)."
+    if encounters.pending(conn):
+        return "Prima chiudi la scena in corso."
+    wait = it["next_day"] - _day(conn)
+    if wait > 0:
+        return f"Il prossimo atto non è ancora maturo: tra {wait} giorni."
+    return play(conn, player, it) or ""
+
+
+def command(conn, player, arg: str) -> str:
+    a = arg.strip().lower()
+    if a.startswith(("indaga", "investiga")):
+        return investigate(conn, player, a.split(maxsplit=1)[1] if " " in a else "")
+    if a.startswith(("accusa", "smaschera", "colpevole")):
+        return accuse(conn, player, a.split(maxsplit=1)[1] if " " in a else "")
+    if a.startswith(("continua", "avanti", "gioca")):
+        return continue_now(conn, player, a.split(maxsplit=1)[1] if " " in a else "")
+    return describe(conn, player)
+
+
+def journal(conn, player) -> list[dict]:
+    """Per la dashboard: ogni trama aperta col suo diario, gli indizi, e cosa puoi fare adesso."""
+    d = get(conn)
+    day = _day(conn)
+    out = []
+    for i, it in enumerate(d["active"], 1):
+        tpl = _templates().get(it["key"], {})
+        f = _names(conn, it, player)
+        acts = tpl.get("acts", [])
+        lst = _clue_list(tpl)
+        wait = it["next_day"] - day
+        nxt = acts[it["act"]]["title"] if it["act"] < len(acts) else ""
+        out.append({
+            "n": i, "titolo": _fmt(tpl.get("title", ""), f), "tipo": tpl.get("kind", ""),
+            "atto": it["act"] + 1, "atti": len(acts), "prossimo": nxt, "attesa": max(0, wait),
+            "indizi": it.get("found", []), "servono": need(tpl) if lst else 0, "totale": len(lst),
+            "diario": [x for x in it.get("log", []) if not x.startswith("🔎")][-5:],
+            "indaga": bool(lst) and len(it.get("found", [])) < len(lst) and it.get("inv_day") != day,
+            "indagato_oggi": it.get("inv_day") == day,
+            "accusa": bool(lst) and tpl.get("reveal_act") is not None and it.get("clues", 0) >= need(tpl),
+            "continua": wait <= 0,
+        })
+    return out
 
 
 def _make_enemies(conn, rng, player, it: dict, extra: int, reason: str) -> list[int]:
@@ -444,9 +599,10 @@ def on_effect(conn, t: int, rng, player, data: dict, ctx: dict) -> list[str]:
         return []
     tpl = _templates().get(it["key"])
     out = []
+    if ctx.get("_choice"):
+        _log(it, f"{ctx.get('title', '')}: {ctx['_choice']}")
     if data.get("clue"):
-        it["clues"] = it.get("clues", 0) + int(data["clue"])
-        out.append(f"🔎 Indizio raccolto (ora {it['clues']}).")
+        out += _reveal(conn, player, it, tpl, int(data["clue"]), ctx.get("_text") or "")
     if data.get("branch") and data["branch"] not in it["branches"]:
         it["branches"].append(data["branch"])
     if data.get("enemies") is not None:                 # ti fai nemici tutti quelli che erano lì
@@ -528,8 +684,15 @@ def describe(conn, player) -> str:
         acts = tpl.get("acts", [])
         nxt = acts[it["act"]]["title"] if it["act"] < len(acts) else "?"
         wait = it["next_day"] - day
-        lines.append(f"  • {_fmt(tpl.get('title', ''), f)} — atto {it['act'] + 1}/{len(acts)} «{nxt}» "
-                     + (f"tra {wait} giorni" if wait > 0 else "pronto") + f" · indizi {it.get('clues', 0)}")
+        lines.append(f"  {d['active'].index(it) + 1}. {_fmt(tpl.get('title', ''), f)} — atto {it['act'] + 1}/{len(acts)} «{nxt}» "
+                     + (f"tra {wait} giorni" if wait > 0 else "pronto") + f" · indizi {it.get('clues', 0)}"
+                     + (f"/{need(tpl)}" if _clue_list(tpl) else ""))
+        for x in it.get("found", []):
+            lines.append(f"     🔎 {x}")
+        if _clue_list(tpl):
+            lines.append(f"     'trame indaga {d['active'].index(it) + 1}' per cercare il prossimo indizio"
+                         + (f", 'trame accusa {d['active'].index(it) + 1}' per affrontare il colpevole"
+                            if it.get("clues", 0) >= need(tpl) and tpl.get("reveal_act") is not None else ""))
     if d["done"]:
         lines.append("  Concluse di recente:")
         for x in d["done"][-4:]:
@@ -546,12 +709,17 @@ def menu_section(conn, player):
     tpls = _templates()
     day = _day(conn)
     lines = []
-    for it in d["active"]:
-        tpl = tpls.get(it["key"], {})
-        f = _names(conn, it, player)
-        wait = it["next_day"] - day
-        lines.append(f"{_fmt(tpl.get('title', ''), f)} — atto {it['act'] + 1}/{len(tpl.get('acts', []))}, "
-                     f"indizi {it.get('clues', 0)}, " + (f"continua tra {wait} giorni" if wait > 0 else "pronta a continuare"))
+    acts = []
+    for j in journal(conn, player):
+        lines.append(f"{j['titolo']} — atto {j['atto']}/{j['atti']}"
+                     + (f", indizi {len(j['indizi'])}/{j['servono']}" if j["servono"] else "")
+                     + (f", continua tra {j['attesa']} giorni" if j["attesa"] else ", pronta a continuare"))
+        if j["indaga"]:
+            acts.append(act(f"🔎 Indaga: {j['titolo']}", f"trame indaga {j['n']}", main=True))
+        if j["accusa"]:
+            acts.append(act(f"⚖ Affronta il colpevole: {j['titolo']}", f"trame accusa {j['n']}", main=True))
+        elif j["continua"]:
+            acts.append(act(f"▶ Continua: {j['titolo']}", f"trame continua {j['n']}"))
     for x in d["done"][-2:]:
         lines.append(f"Conclusa: {x['title']} — {x['text']}")
-    return section("Trame e intrighi", lines, [act("Le trame in dettaglio", "trame")], icon="🕸")
+    return section("Trame e intrighi", lines, acts + [act("Le trame in dettaglio", "trame")], icon="🕸")

@@ -34,7 +34,9 @@ _ORO = {"rank": 1, "kinds": ["tesoro", "manuale"]}
 TEMPLATES: list[dict] = [
     # ------------------------------------------------------------------ 1. LA MANO NELL'OMBRA
     {
-        "key": "mano_ombra", "title": "La mano nell'ombra", "kind": "intrigo", "weight": 6, "tier_min": 2,
+        "key": "mano_ombra",
+        "indagine": "istinto", "need": 2, "reveal_act": 2, "indizi": ["La ferita è un colpo dall'alto, di qualcuno molto più forte del morto: non può essere stato {vittima}.", "Sotto le unghie del morto c'è terra rossa, che a {luogo} non esiste: viene dalle colline a nord.", '{pedina}, un vagabondo con gli stivali rossi di quella terra, spende pietre che non può avere.', "{pedina} consegna i suoi guadagni a un emissario col sigillo di {mandante}: è lui la mano nell'ombra."],
+         "title": "La mano nell'ombra", "kind": "intrigo", "weight": 6, "tier_min": 2,
         "cast": {"vittima": "alleato", "pedina": "sgherro", "mandante": "rivale"},
         "acts": [
             {"title": "Il cadavere al pozzo", "focus": "vittima", "gap": (2, 3),
@@ -122,7 +124,9 @@ TEMPLATES: list[dict] = [
     },
     # ------------------------------------------------------------------ 2. IL TORNEO TRUCCATO
     {
-        "key": "torneo_truccato", "title": "Il Torneo delle Cento Sette", "kind": "torneo", "weight": 7, "tier_min": 1,
+        "key": "torneo_truccato",
+        "indagine": "istinto", "need": 2, "reveal_act": None, "indizi": ['Il sacchetto offerto per perdere porta il sigillo {della_setta}.', 'Le lame di {pedina} sono unte di veleno dei Cento Serpenti, vietato dal regolamento.', 'Tre giudici su cinque hanno ricevuto doni dalla stessa mano.', 'Chi paga giudici e sicari è {mandante}: vuole il posto dei Venerabili per un suo protetto.'],
+         "title": "Il Torneo delle Cento Sette", "kind": "torneo", "weight": 7, "tier_min": 1,
         "cast": {"pedina": "sgherro", "genio": "genio", "mandante": "rivale"},
         "acts": [
             {"title": "L'invito e il patto", "focus": "pedina", "gap": (1, 2),
@@ -206,7 +210,9 @@ TEMPLATES: list[dict] = [
     },
     # ------------------------------------------------------------------ 3. IL DEBITO DELL'OLTRETOMBA
     {
-        "key": "debito_oltretomba", "title": "Il debito dell'Oltretomba", "kind": "mistero", "weight": 4, "tier_min": 3,
+        "key": "debito_oltretomba",
+        "indagine": "anima", "need": 2, "reveal_act": 1, "indizi": ["Il rotolo del debito ha l'inchiostro fresco: non può venire dall'Oltretomba.", 'La firma accanto al tuo nome è di un uomo vivo, non del Re dei Mille Inferi.', "Al mercato nero si vendono «debiti dell'Oltretomba»: un nome sul rotolo, e uno spettro va a riscuotere.", 'Il falsario è {mandante}, un vecchio che lavora per chi ha nemici da far sparire.'],
+         "title": "Il debito dell'Oltretomba", "kind": "mistero", "weight": 4, "tier_min": 3,
         "cast": {"pedina": "spettro", "mandante": "anziano"},
         "acts": [
             {"title": "Il messaggero dalla lanterna verde", "focus": "pedina", "gap": (2, 4),
@@ -334,7 +340,9 @@ TEMPLATES: list[dict] = [
     },
     # ------------------------------------------------------------------ 5. LA MALEDIZIONE DELLA VITA PASSATA
     {
-        "key": "maledizione", "title": "La maledizione della vita passata", "kind": "maledizione", "weight": 4,
+        "key": "maledizione",
+        "indagine": "anima", "need": 2, "reveal_act": 2, "indizi": ["Il filo nero ti esce dal petto e si perde a nord: qualcuno tiene l'altro capo.", "A nord c'è un altare d'ossa con la tua vecchia faccia scolpita: lo custodisce {pedina}.", "Sotto l'altare, una tavoletta col sigillo {della_setta}.", 'Chi tiene il filo è {mandante}: in una vita passata gli hai tolto tutto.'],
+         "title": "La maledizione della vita passata", "kind": "maledizione", "weight": 4,
         "tier_min": 2, "cast": {"pedina": "sgherro", "mandante": "rivale"},
         "acts": [
             {"title": "Il filo nero", "focus": None, "gap": (2, 4),
@@ -393,7 +401,9 @@ TEMPLATES: list[dict] = [
     },
     # ------------------------------------------------------------------ 6. IL TRADITORE NELLA SETTA
     {
-        "key": "traditore_setta", "title": "Il traditore {della_mia_setta}", "kind": "intrigo", "weight": 5,
+        "key": "traditore_setta",
+        "indagine": "istinto", "need": 2, "reveal_act": 2, "indizi": ['Le firme dei prelievi dal tesoro sono di {pedina}, un discepolo esterno senza diritto di firma.', 'Di notte {pedina} lascia biglietti in un nido di gru sul tetto.', 'Le gru volano verso le terre {della_setta}.', 'I biglietti portano il sigillo di {mandante}, anziano {della_setta}: è lui che compra il traditore.'],
+         "title": "Il traditore {della_mia_setta}", "kind": "intrigo", "weight": 5,
         "tier_min": 2, "req_sect": True, "cast": {"vittima": "alleato", "pedina": "sgherro", "mandante": "rivale"},
         "acts": [
             {"title": "Le pillole che spariscono", "focus": "vittima", "gap": (2, 3),
@@ -598,7 +608,9 @@ TEMPLATES += [
     },
     # ------------------------------------------------------------------ 9. LA MAREA DI BESTIE
     {
-        "key": "marea_bestie", "title": "La marea di bestie", "kind": "assedio", "weight": 5, "tier_min": 2,
+        "key": "marea_bestie",
+        "indagine": "istinto", "need": 2, "reveal_act": None, "indizi": ['Gli uccelli fuggono verso sud e i pozzi tremano: qualcosa spinge le bestie giù dalle montagne.', "Il Re delle Bestie è un vecchio orso d'argento, ferito: la marea fugge, non attacca.", "C'è una gola a est dove la marea potrebbe passare oltre la città."],
+         "title": "La marea di bestie", "kind": "assedio", "weight": 5, "tier_min": 2,
         "cast": {"mandante": "anziano"},
         "acts": [
             {"title": "Gli uccelli fuggono verso sud", "focus": "mandante", "gap": (1, 2),
@@ -649,7 +661,9 @@ TEMPLATES += [
     },
     # ------------------------------------------------------------------ 10. IL SIGILLO MALEDETTO DELL'ASTA
     {
-        "key": "sigillo_asta", "title": "Il sigillo dell'asta", "kind": "asta", "weight": 4, "tier_min": 2,
+        "key": "sigillo_asta",
+        "indagine": "anima", "need": 1, "reveal_act": None, "indizi": ['Il sigillo di bronzo nero non è un tesoro: è una prigione, e dentro dorme qualcosa.', '{mandante} conosce il contenuto del sigillo: ci ha inciso una runa di sangue.', 'Lo spirito si sveglierà alla luna piena.'],
+         "title": "Il sigillo dell'asta", "kind": "asta", "weight": 4, "tier_min": 2,
         "cast": {"mandante": "rivale", "pedina": "sgherro"},
         "acts": [
             {"title": "Il lotto senza nome", "focus": "mandante", "gap": (1, 2),
@@ -790,7 +804,9 @@ TEMPLATES += [
     },
     # ------------------------------------------------------------------ 13. IL SACRIFICIO DI SANGUE
     {
-        "key": "sacrificio_sangue", "title": "La formazione dei diecimila spiriti", "kind": "demoniaco", "weight": 5,
+        "key": "sacrificio_sangue",
+        "indagine": "istinto", "need": 2, "reveal_act": 2, "indizi": ["I segni di sangue a forma d'occhio formano un cerchio attorno a {luogo}: è una formazione.", 'Le persone scomparse vengono trascinate nelle fogne, di notte.', "Nelle fogne c'è uno dei nove nodi: una colonna d'ossa incisa da {pedina}.", 'Il cuore della formazione è sulla torre, e chi la guida è {mandante}.'],
+         "title": "La formazione dei diecimila spiriti", "kind": "demoniaco", "weight": 5,
         "tier_min": 3, "cast": {"pedina": "sgherro", "mandante": "rivale"},
         "acts": [
             {"title": "Le case vuote", "focus": None, "gap": (2, 3),
@@ -837,7 +853,9 @@ TEMPLATES += [
     },
     # ------------------------------------------------------------------ 14. IL VECCHIO MOSTRO NEL CORPO GIOVANE
     {
-        "key": "possessione", "title": "Il vecchio mostro negli occhi di {vittima}", "kind": "possessione", "weight": 4,
+        "key": "possessione",
+        "indagine": "anima", "need": 2, "reveal_act": 1, "indizi": ["{vittima} usa tecniche di un'era morta da secoli.", 'Di notte parla con una voce che non è la sua, e ride.', "Dietro i suoi occhi c'è un'anima vecchia: un mostro che si è preso il suo corpo."],
+         "title": "Il vecchio mostro negli occhi di {vittima}", "kind": "possessione", "weight": 4,
         "tier_min": 3, "cast": {"vittima": "alleato"},
         "acts": [
             {"title": "Una tecnica che non poteva conoscere", "focus": "vittima", "gap": (2, 3),

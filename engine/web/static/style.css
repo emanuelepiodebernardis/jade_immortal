@@ -586,3 +586,10 @@ details.mrest > summary { font-size: 13px; font-weight: 600; color: var(--ink, i
 .msec.mini { padding: 6px 10px; margin: 6px 0; }
 .msec.mini .mline { color: var(--muted); }
 .mact button.chip { font-size: 11px; padding: 3px 8px; }
+
+/* Agg. 56 — trame e indagini */
+.plot ol.clues { margin: 6px 0 4px 18px; padding: 0; font-size: 13px; }
+.plot ol.clues li { margin: 3px 0; }
+.plot ul.plotlog { margin: 4px 0 0 16px; padding: 0; font-size: 12px; color: var(--muted); }
+.plot .tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.plot .lvtag { display: inline-block; width: auto; }

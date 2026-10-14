@@ -727,7 +727,9 @@ def objectives_data() -> dict:
                 mis.append({"t": "Sistema — " + system_quest.QUESTS[q["key"]][0].format(n=q["need"])
                                  + (" ✔" if q["done"] else f" ({pr}/{q['need']})"),
                             "cmd": "sistema riscuoti" if pr >= q["need"] and not q["done"] else "sistema"})
-    return {"primari": prim, "secondari": sec, "missioni": mis}
+        from engine.systems import intrigues
+        indagini = intrigues.journal(conn, p)
+    return {"primari": prim, "secondari": sec, "missioni": mis, "indagini": indagini}
 
 
 def people_data() -> dict:

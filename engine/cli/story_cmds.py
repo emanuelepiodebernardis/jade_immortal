@@ -400,7 +400,10 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return blood_menu.command(conn, player, arg)
     if cmd in ("trame", "intrighi", "trama_intrighi"):
         from engine.systems import intrigues
-        return intrigues.describe(conn, player)
+        return intrigues.command(conn, player, arg)
+    if cmd in ("indaga", "investiga"):
+        from engine.systems import intrigues
+        return intrigues.investigate(conn, player, arg)
     if cmd in ("evolvi", "evolvi_sangue", "evoluzione"):
         from engine.systems import blood_evolution
         return blood_evolution.evolve(conn, player, arg)

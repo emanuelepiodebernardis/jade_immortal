@@ -2256,3 +2256,30 @@ Le modifiche:
 partita automatica in un mondo a parte, senza toccare il tuo salvataggio. Poi
 `python strumenti/taratura_analisi.py <file.json>…` stampa la tabella per fase.
 
+## Aggiornamento 56 — Le indagini
+
+Gli indizi ora hanno un contenuto, e si possono cercare.
+
+- **Indizi veri**: ogni trama-mistero ha la sua catena di indizi (3 o 4), svelati uno alla volta e
+  sempre in ordine. Il primo è un dettaglio («la ferita è un colpo dall'alto…»), l'ultimo fa il nome
+  del colpevole. Si trovano in due modi:
+  - con le scelte giuste negli atti, come prima;
+  - con il nuovo comando **Indaga**.
+- **Indaga** (`trame indaga <n>`, oppure `indaga`): mezza giornata di ricerche e una prova
+  (istinto o anima, secondo la trama), più difficile a ogni indizio. Se riesce, svela il prossimo
+  indizio; se fallisce, riprovi domani. Si indaga una volta al giorno per trama.
+- **Affronta il colpevole** (`trame accusa <n>`): quando gli indizi bastano (di solito 2), salti
+  gli atti di mezzo e vai dritto alla resa dei conti. Lì si apre la scelta di smascherarlo, che
+  senza indizi non compare.
+- **Continua** (`trame continua <n>`): se un atto è maturo, lo giochi subito senza aspettare il
+  nuovo giorno.
+- **Il diario**: ogni trama ricorda cosa è successo finora (gli atti, le tue scelte, le ricerche).
+- **Nella dashboard**, in testa al pannello **Mete**, c'è una scheda per ogni trama aperta. Mostra
+  l'atto, quando arriva il prossimo, la barra degli indizi, gli indizi trovati, il diario e i
+  pulsanti 🔎 Indaga · ⚖ Affronta il colpevole · ▶ Continua. Gli stessi pulsanti sono nel menu
+  Eventi.
+- Le trame che sono misteri: la mano nell'ombra, il torneo truccato, il debito dell'Oltretomba, la
+  maledizione, il traditore della setta, la formazione di sangue, la possessione, il sigillo
+  dell'asta e la marea di bestie. Le altre (reami, eredità, tornei d'isola, carovane) si vivono atto
+  dopo atto, e i loro «indizi» sono le scoperte fatte lungo la strada.
+

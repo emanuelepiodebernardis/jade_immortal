@@ -464,9 +464,25 @@ function itemList(title, items, empty) {
     `<button class="obj" data-cmd="${esc(x.cmd)}" title="${esc(x.cmd)}"><span>${esc(x.t)}</span><span class="go">▶ ${esc(x.cmd)}</span></button>`).join("")
     : `<div class="empty">${actionize(empty)}</div>`) + `</div>`;
 }
+// le TRAME in corso: cosa è successo finora, gli indizi svelati uno alla volta, e i pulsanti per indagare
+function plotCard(j) {
+  const need = j.servono, have = j.indizi.length;
+  const clues = need ? `<div class="mbar rare"><span>Indizi</span><div class="bar"><i style="width:${Math.min(100, Math.round(100 * have / Math.max(1, j.totale)))}%"></i></div><em>${have}/${j.totale} · ${have >= need ? "sai abbastanza" : `ne servono ${need}`}</em></div>` +
+    (have ? `<ol class="clues">${j.indizi.map((c) => `<li>🔎 ${esc(c)}</li>`).join("")}</ol>` : `<div class="muted small">Nessun indizio ancora: indaga, o segui la trama.</div>`) : "";
+  const log = j.diario.length ? `<details class="more"><summary>cosa è successo finora</summary><ul class="plotlog">${j.diario.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details>` : "";
+  const btn = [];
+  if (j.indaga) btn.push(`<button class="primary" data-cmd="trame indaga ${j.n}">🔎 Indaga</button>`);
+  else if (need && j.indagato_oggi && have < j.totale) btn.push(`<button disabled title="si può indagare una volta al giorno">🔎 Domani potrai indagare ancora</button>`);
+  if (j.accusa) btn.push(`<button class="primary" data-cmd="trame accusa ${j.n}">⚖ Affronta il colpevole</button>`);
+  else if (j.continua) btn.push(`<button data-cmd="trame continua ${j.n}">▶ Continua la trama</button>`);
+  return `<div class="card sec plot"><b>🕸 ${esc(j.titolo)}</b> <span class="lvtag">atto ${j.atto}/${j.atti}</span>
+    <div class="muted small">${j.attesa ? `Prossimo atto «${esc(j.prossimo)}» tra ${j.attesa} giorni` : `Prossimo atto «${esc(j.prossimo)}»: pronto`}</div>
+    ${clues}${log}${btn.length ? `<div class="tools">${btn.join("")}</div>` : ""}</div>`;
+}
 async function objectivesHtml() {
   const o = await api("/api/obiettivi");
-  return itemList("★ Obiettivi primari", o.primari, "Nessuno, per ora: la tua leggenda la scrivi tu.") +
+  return (o.indagini && o.indagini.length ? `<div class="card sec"><b>🕸 Trame e indagini</b></div>` + o.indagini.map(plotCard).join("") : "") +
+    itemList("★ Obiettivi primari", o.primari, "Nessuno, per ora: la tua leggenda la scrivi tu.") +
     itemList("◆ Obiettivi secondari", o.secondari, "Niente in sospeso.") +
     itemList("✎ Missioni", o.missioni, "Nessuna missione: unisciti a una setta per la bacheca, o ascolta chi ha bisogno di te ('richieste').");
 }

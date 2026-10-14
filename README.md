@@ -176,6 +176,9 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
   il finale e le scelte aprono rami. Alcune trame si concludono da sole con premi, come reliquie,
   sangue nobile o corpi leggendari. Nei reami segreti scegli un tesoro solo oppure tutti, e in quel
   caso ti fai nemici quelli che erano entrati con te, e da lì nasce una nuova trama.
+- **Indagini** (pannello Mete, `trame indaga`): nei misteri gli indizi si svelano uno alla volta,
+  con le scelte o indagando (una volta al giorno). Con abbastanza indizi puoi affrontare subito il
+  colpevole. Ogni trama tiene il diario di cosa è successo finora.
 - **Taratura** (`engine/systems/calibration.py`): tutte le manopole del pericolo e del ritmo in un
   file solo. Riguardano imboscate, inseguitori, morte negli scontri persi, creature di frontiera e
   ritmo delle trame, e sono tarate su partite automatiche da 400 giorni.

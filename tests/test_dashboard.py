@@ -161,7 +161,7 @@ def test_objectives_people_and_voluntary_rebirth(world):
     for _ in range(3):
         game.turn("train")
     o = game.objectives_data()
-    assert set(o) == {"primari", "secondari", "missioni"} and o["primari"]
+    assert set(o) == {"primari", "secondari", "missioni", "indagini"} and o["primari"]
     pp = game.people_data()
     assert pp["io"]["potenza"] > 0 and pp["alleati"]                  # la famiglia
     assert all("potenza" in c and "confronto" in c for c in pp["alleati"])
