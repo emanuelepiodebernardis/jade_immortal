@@ -636,8 +636,14 @@ def run(conn, player, days: int) -> str:
             notes += [ln.strip() for ln in banner.splitlines() if any(k in ln for k in _NOTABLE)]
             for rep in reports.drain(conn, player.id):
                 notes += [ln.strip() for ln in rep.splitlines()[:3]]
+            if cfg["oggetti"]:
+                from engine.systems import dao_heart as _dh
+                if _dh.pills_blocked(conn):                    # meridiani intasati: prima si purifica
+                    _po = loop.dispatch(conn, "purifica", allow_nl=False) or ""
+                    notes += ["✧ " + ln.strip() for ln in _po.splitlines() if ln.strip().startswith("Bagno di Qi")]
             if cfg["oggetti"] and _usable_items(conn, player.id):
                 out = loop.dispatch(conn, "use all", allow_nl=False) or ""
+                out = "\n".join(ln for ln in out.splitlines() if "Lasci nello zaino" not in ln)
                 notes += [ln.strip() for ln in out.splitlines() if any(k in ln for k in _NOTABLE)]
             notes += _routine(conn, entities.get_player(conn, player.id), cfg)
             done_days += 1

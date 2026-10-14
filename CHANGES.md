@@ -2431,3 +2431,45 @@ Aggiungere una scheda è una riga in `TABS`.
 - Anche il testo di un atto, un testo «a pochi indizi» o un ramo può essere una lista di varianti.
 
 Test: `tests/test_agg59.py` (8). Suite totale: **646 passati**.
+
+## Aggiornamento 60 — Purificare le tossine, sfidare il Cielo quando vuoi tu
+
+### Le tossine delle pillole (`engine/systems/dao_heart.py`)
+
+Il pilota automatico ingoiava ogni pillola dello zaino. In una partita lunga le tossine erano
+arrivate a 1195, e con quel livello la coltivazione scende a ×0,05. Calavano di 1,5 al giorno: sarebbe
+servito quasi un anno per smaltirle.
+
+Le novità:
+- **`purifica`** (anche dal pannello *La tua Via → Corpo*). Prima usa le Pillole di Purificazione
+  dello zaino, poi fa un **bagno di Qi**: −35% delle tossine (almeno 25), al costo di 30 pietre per
+  regno, una volta al giorno.
+- **Ogni giorno** le tossine calano di 1,5 più il 3% di quelle che hai: più sono, più in fretta
+  scendono.
+- **In ritiro** calano di 5 più il 6% per ogni giorno.
+- **Un nuovo regno** dimezza le tossine.
+- **Niente più pillole con i meridiani intasati**: da 60 di tossine in su, `use all` e il pilota
+  automatico lasciano nello zaino le pillole di coltivazione. Il pilota prima purifica, poi usa il
+  resto.
+
+Da 1195, con un bagno al giorno, si torna sotto i 60 in circa una settimana.
+
+### La guerra con il Cielo (`engine/systems/deep_dao.py`)
+
+Il pannello diceva «Il Cielo chiede una risposta», ma era solo il nome del capitolo: il Giudizio
+torna a ogni raddoppio della Sfida (600, 1200, 2400, 4800…). Chi ne aveva già affrontati tre non
+poteva fare nulla fino a 4800.
+
+Il pannello ora:
+- dice chiaramente se c'è un Giudizio aperto, se la Volontà del Cielo ti sta cercando, oppure
+  quando arriva il prossimo Giudizio e quanto manca;
+- per la tribolazione divina mostra a che Sfida arriva la prossima.
+
+Due comandi nuovi, anche come pulsanti:
+- **`cielo provoca`**: chiami tu la Volontà del Cielo e il duello comincia subito. Abbatterla dà un
+  Sigillo della Sfida come il Giudizio vero. Si può fare ogni 15 giorni, da Sfida 600 in su, e
+  provocare il Cielo rompe l'inganno del Destino.
+- **`cielo affronta`**: porti a te la Volontà del Cielo, o un Messaggero che ti dà la caccia, e
+  duelli subito invece di aspettarlo.
+
+Test: 4 nuovi in `tests/test_agg59.py`. Suite totale: **650 passati**.

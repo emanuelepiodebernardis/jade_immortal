@@ -38,6 +38,8 @@ LA GUERRA CON IL CIELO (capitoli, senza fine):
   arcano <nome> [bersaglio]   usa un arcano (passo, taglio, prigione, mondo, domani, camera,
                               rallenta, leggi, benedici, recidi)
   cielo sottometti|sfida|inganna   la risposta al Giudizio
+  cielo provoca                    non aspetti il Cielo: chiami tu la sua Volontà (ogni 15 giorni)
+  cielo affronta                   porti a te la Volontà del Cielo o un Messaggero, e duelli
 """
 
 from __future__ import annotations
@@ -90,6 +92,7 @@ CHAPTERS = [
 ]
 JUDGMENT_BASE = 600
 MESSENGER_EVERY = 20       # giorni tra un Messaggero e l'altro
+PROVOKE_EVERY = 15         # giorni tra una provocazione e l'altra
 
 _HEAVEN_NAMES = ["Esecutore della Legge", "Messaggero del Cielo", "Guardiano del Dao Celeste",
                  "Ufficiale della Tribolazione", "Inviato delle Nove Nubi", "Custode del Registro"]
@@ -614,8 +617,14 @@ def heaven_command(conn, player, arg: str) -> str:
     lvl = judgment_level(dfy)
     if not a or a in ("stato", "info"):
         return describe(conn, player)
+    if a.startswith(("provoc", "chiama", "evoca")) or (a.startswith("sfid") and not d["pending_judgment"]):
+        return _provoke(conn, player, d, dfy)
+    if a.startswith(("affront", "combatt", "duell")):
+        return _face(conn, player, d)
     if not d["pending_judgment"]:
-        return "Il Cielo non ti ha chiamato a giudizio. Per ora."
+        nxt = JUDGMENT_BASE * 2 ** lvl
+        return (f"Il Cielo non ti ha chiamato a giudizio: il prossimo Giudizio arriva a Sfida {nxt} (ora {dfy}). "
+                "Se non vuoi aspettare: 'cielo provoca'.")
     rng = random.Random(tick_mod.get_tick(conn) * 7 + player.id)
     if a.startswith("sotto") or a.startswith("pieg"):
         from engine.systems import dao_heart
@@ -654,6 +663,58 @@ def heaven_command(conn, player, arg: str) -> str:
         return ("Disfi il tuo fato in mille fili e lo nascondi tra quelli dei mortali. Il Cielo cerca, non trova, "
                 "e dimentica: per due mesi niente Messaggeri e niente Giudizio. Ma il debito resta.")
     return "Rispondi con: cielo sottometti · cielo sfida · cielo inganna"
+
+
+def _alive_id(conn, nid) -> bool:
+    r = conn.execute("SELECT status FROM npcs WHERE id=?;", (nid,)).fetchone() if nid else None
+    return bool(r and r["status"] == "alive")
+
+
+def provoke_status(conn, d: dict, dfy: int) -> tuple[bool, str]:
+    if dfy < JUDGMENT_BASE:
+        return False, f"serve Sfida al Cielo {JUDGMENT_BASE} (ora {dfy})"
+    if _alive_id(conn, d.get("will_npc")):
+        return False, "la Volontà del Cielo è già scesa: affrontala"
+    if d["pending_judgment"]:
+        return False, "prima rispondi al Giudizio"
+    left = d.get("provoke_day", -999) + PROVOKE_EVERY - _day(conn)
+    if left > 0:
+        return False, f"il Cielo tace ancora per {left} giorni"
+    return True, ""
+
+
+def _duel_now(conn, player, nid: int, intro: str) -> str:
+    from engine.systems import duel
+    conn.execute("UPDATE npcs SET location_id=? WHERE id=?;", (player.location_id, nid))
+    nm = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
+    return intro + "\n" + (duel.start(conn, player, nm) or "")
+
+
+def _provoke(conn, player, d: dict, dfy: int) -> str:
+    """Non aspetti il Giudizio: lo chiami tu. La Volontà del Cielo scende, e abbatterla dà un Sigillo."""
+    ok, why = provoke_status(conn, d, dfy)
+    if not ok:
+        return f"Non puoi provocare il Cielo: {why}."
+    rng = random.Random(tick_mod.get_tick(conn) * 13 + player.id)
+    nid = _spawn_heaven_npc(conn, rng, player, "Volontà del Cielo", "campione")
+    d["will_npc"] = nid
+    d["provoke_day"] = _day(conn)
+    d["hidden_until"] = min(d["hidden_until"], _day(conn) - 1)      # chi chiama il Cielo non resta nascosto
+    _save(conn, d)
+    from engine.systems import chronicle
+    chronicle.add(conn, "svolta", "Provochi il Cielo: la sua Volontà scende a combatterti.")
+    return _duel_now(conn, player, nid, "Alzi la mano verso le nubi e pronunci il nome che il Cielo non vuole sentire. "
+                                        "Il cielo si spacca: la sua Volontà scende, con un volto, davanti a te.")
+
+
+def _face(conn, player, d: dict) -> str:
+    """La Volontà del Cielo o un Messaggero: li porti a te e duelli, invece di aspettarli."""
+    if _alive_id(conn, d.get("will_npc")):
+        return _duel_now(conn, player, d["will_npc"], "Chiami la Volontà del Cielo. Risponde.")
+    alive = [n for n in d["messengers"] if _alive_id(conn, n)]
+    if alive:
+        return _duel_now(conn, player, alive[0], "Lasci che il Messaggero ti trovi: lo aspetti a viso aperto.")
+    return "Nessun inviato del Cielo da affrontare. ('cielo provoca' per chiamarne la Volontà)"
 
 
 # ---------------------------------------------------------------- pannello e menu
@@ -699,18 +760,37 @@ def menu_build(conn, player) -> dict:
     nxt_ch = next((th for th, _n, _t in CHAPTERS if th > dfy), None)
     lvl = judgment_level(dfy)
     nxt_j = JUDGMENT_BASE * 2 ** lvl
+    will = _alive_id(conn, d.get("will_npc"))
+    if d["pending_judgment"]:
+        now = "⚡ IL GIUDIZIO È APERTO: il Cielo attende la tua risposta (sotto)."
+    elif will:
+        now = "⚡ La Volontà del Cielo è scesa e ti cerca: affrontala per un Sigillo della Sfida."
+    elif lvl:
+        now = (f"Nessun Giudizio in attesa: il {_ordinal(lvl + 1).lower()} arriva a Sfida {nxt_j} "
+               f"(mancano {max(0, nxt_j - dfy)}). Oppure provoca tu il Cielo.")
+    else:
+        now = f"Il primo Giudizio arriva a Sfida {JUDGMENT_BASE}."
     lines = [f"Sfida al Cielo: {dfy} — {dao_powers.defiance_label(dfy)}",
-             f"Capitolo: {CHAPTERS[ch][1]} — {CHAPTERS[ch][2]}",
+             now,
+             f"Capitolo: {CHAPTERS[ch][1]}",
              f"Sigilli della Sfida: {d['seals']}" + (f" (forza ×{seal_mult(conn):.2f})" if d["seals"] else ""),
-             f"Giudizi affrontati: {d['judgments']} · il prossimo a Sfida {nxt_j}"]
+             f"Giudizi affrontati: {d['judgments']}"]
     if d["small_world"]:
         lines.append("🌌 Il tuo Piccolo Mondo esiste: coltivazione +15%.")
     if _day(conn) <= d["hidden_until"]:
         lines.append(f"🎲 Il tuo fato è nascosto: il Cielo non ti trova fino al giorno {d['hidden_until']}.")
     if d["messengers"]:
         lines.append(f"⚔ Messaggeri del Cielo sulle tue tracce: {len(d['messengers'])}")
+    nxt_t = (dfy // dao_powers.DEFIANCE_STEP + 1) * dao_powers.DEFIANCE_STEP
     acts = [act("Affronta la tribolazione divina", "tribulation", dao_powers.tribulation_due(conn, player.id) > 0,
-                "nessuna tribolazione incombe")]
+                f"la prossima a Sfida {nxt_t}")]
+    if will or d["messengers"]:
+        acts.append(act("Affronta la Volontà del Cielo" if will else "Affronta il Messaggero del Cielo",
+                        "cielo affronta", main=True))
+    if not d["pending_judgment"]:
+        ok, why = provoke_status(conn, d, dfy)
+        if dfy >= JUDGMENT_BASE and not will:
+            acts.append(act("Provoca il Cielo: chiama tu la sua Volontà", "cielo provoca", ok, why))
     if d["pending_judgment"]:
         acts += [act("Piegati al Giudizio", "cielo sottometti"), act("Sfida la Volontà del Cielo", "cielo sfida", main=True),
                  act("Inganna il Cielo", "cielo inganna", idx(conn, "destino", player.id) >= 3, "serve Destino «esperto»")]

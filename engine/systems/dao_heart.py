@@ -12,11 +12,15 @@ CUORE DEL DAO (0-100, parte da 60)
 
 TOSSINE DELLE PILLOLE
   Ogni pillola di coltivazione lascia scorie nei meridiani. Le tossine rallentano la
-  coltivazione (fino a dimezzarla e oltre). Si smaltiscono da sole piano piano, molto più
-  in fretta in ritiro, o con una Pillola di Purificazione (alchimia). Gli alchimisti esperti
+  coltivazione (fino a dimezzarla e oltre). Si smaltiscono da sole (di più quando sono
+  tante), molto più in fretta in ritiro, con una Pillola di Purificazione (alchimia), con
+  il comando PURIFICA (un bagno di Qi al giorno, a pagamento in pietre) e a ogni nuovo
+  regno (lo sfondamento lava i meridiani a metà). Con i meridiani intasati, 'use all' e
+  il pilota automatico non ingoiano più pillole di coltivazione. Gli alchimisti esperti
   ne assorbono di meno; il Corpo dei Cento Veleni ne è immune.
 
   corpo       costituzione, cuore del Dao e tossine
+  purifica    pillole di purificazione dallo zaino, poi un bagno di Qi (una volta al giorno)
 """
 
 from __future__ import annotations
@@ -28,6 +32,11 @@ from engine.systems import state
 
 HEART_KEY = "dao_heart"
 TOXIN_KEY = "pill_toxin"
+PILL_STOP = 60.0           # da qui in su 'use all' e il pilota lasciano le pillole di coltivazione nello zaino
+DAILY_BASE, DAILY_FRAC = 1.5, 0.03       # smaltimento quotidiano: fisso + una quota di ciò che c'è
+RETREAT_BASE, RETREAT_FRAC = 5.0, 0.06   # in ritiro, per giorno
+BATH_FRAC, BATH_MIN = 0.35, 25.0         # il bagno di Qi del comando 'purifica'
+BATH_COST_PER_TIER = 30                  # pietre spirituali per regno
 
 
 # ============================================================
@@ -80,10 +89,15 @@ def on_breakthrough(conn) -> list[str]:
     day = tick_mod.get_tick(conn) // 120
     last = state.get_int(conn, "last_bt_day", -999)
     state.set(conn, "last_bt_day", str(day))
+    tox = []
+    v = toxin(conn)
+    if v >= 10:
+        _set_toxin(conn, v * 0.5)
+        tox = [f"Il nuovo regno lava i meridiani: tossine {v:.0f} → {v * 0.5:.0f}."]
     if day - last < 20:
-        return adjust(conn, -6, "sfondamenti troppo ravvicinati") + \
+        return tox + adjust(conn, -6, "sfondamenti troppo ravvicinati") + \
             ["Sei salito troppo in fretta: il cuore fatica a stare dietro al corpo."]
-    return adjust(conn, 2)
+    return tox + adjust(conn, 2)
 
 
 def on_cultivate(conn, t: int, rng: random.Random, player) -> list[str]:
@@ -175,7 +189,7 @@ def purify(conn, amount: float) -> str:
 def daily(conn, t: int, rng, player) -> list[str]:
     v = toxin(conn)
     if v > 0:
-        _set_toxin(conn, v - 1.5)
+        _set_toxin(conn, v - DAILY_BASE - DAILY_FRAC * v)
     # il tempo guarisce: un cuore ferito torna piano verso la calma (più in fretta quando è
     # in pericolo). Senza questo un cuore a zero era una spirale senza uscita.
     from engine.systems import constitutions
@@ -189,10 +203,64 @@ def on_retreat_days(conn, days: int) -> list[str]:
     out = []
     v = toxin(conn)
     if v > 0:
-        _set_toxin(conn, v - 5.0 * days)
+        w = v
+        for _ in range(max(0, days)):
+            w = w - RETREAT_BASE - RETREAT_FRAC * w
+        _set_toxin(conn, w)
         out.append(f"Nel ritiro smaltisci le tossine: {toxin_label(v)} → {toxin_label(toxin(conn))}.")
     out += adjust(conn, min(10, days // 3))
     return out
+
+
+def pills_blocked(conn) -> bool:
+    """Meridiani intasati: le pillole di coltivazione farebbero più male che bene."""
+    from engine.systems import constitutions
+    return toxin(conn) >= PILL_STOP and not constitutions.toxin_immune(conn)
+
+
+def purify_command(conn, player) -> str:
+    """PURIFICA: prima le Pillole di Purificazione dello zaino, poi un bagno di Qi (una volta al giorno)."""
+    from engine.systems import items, sects
+    from engine.simulation import cultivation
+    v0 = toxin(conn)
+    if v0 < 1:
+        return "I tuoi meridiani sono puliti: non c'è nulla da purificare."
+    out = [f"Purifichi i meridiani (tossine {v0:.0f} — {toxin_label(v0)})."]
+    t = tick_mod.get_tick(conn)
+    rng = random.Random(t * 41 + player.id)
+    for r in items.player_inventory(conn, player.id):
+        if toxin(conn) < 1:
+            break
+        if "purificazione" not in r["name"].lower():
+            continue
+        for _ in range(r["quantity"]):
+            if toxin(conn) < 1:
+                break
+            res = items.use_item(conn, t, rng, player.id, r["name"])
+            if res["status"] == "used":
+                out.append(f"  · {res['name']}: " + "; ".join(res["lines"]))
+    day = t // 120
+    v = toxin(conn)
+    if v >= 1:
+        tier = cultivation.realm_tier(conn, "player", player.id) or 1
+        cost = BATH_COST_PER_TIER * tier
+        if state.get_int(conn, "purify_day", -1) == day:
+            out.append("  Il bagno di Qi l'hai già fatto oggi: domani potrai ripeterlo (o ritirati: 'ritiro 5').")
+        elif sects.get_resource(conn, "pietre_spirituali", player.id) < cost:
+            out.append(f"  Per un bagno di Qi servono {cost} pietre spirituali.")
+        else:
+            sects.grant_resource(conn, "pietre_spirituali", -cost, player.id)
+            state.set(conn, "purify_day", str(day))
+            cut = max(BATH_MIN, BATH_FRAC * v)
+            _set_toxin(conn, v - cut)
+            out.append(f"  Bagno di Qi ({cost} pietre): sciogli le scorie col fuoco del tuo Qi, "
+                       f"{v:.0f} → {toxin(conn):.0f}.")
+    v1 = toxin(conn)
+    m, _ = cultivation_mult(conn)
+    out.append(f"Tossine ora: {v1:.0f} — {toxin_label(v1)}" + (f" (coltivazione ×{m:.2f})" if m < 1 else "") + ".")
+    if v1 >= 10:
+        out.append("Le tossine calano anche da sole ogni giorno, molto di più in ritiro, e si dimezzano a ogni nuovo regno.")
+    return "\n".join(out)
 
 
 # ============================================================

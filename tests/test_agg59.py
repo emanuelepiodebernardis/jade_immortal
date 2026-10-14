@@ -99,3 +99,55 @@ def test_plot_scene_has_atmosphere_and_no_placeholders(conn):
     p = entities.get_player(conn)
     out = intrigues.start(conn, p, "grotta_maestro", random.Random(3)) or ""
     assert "{" not in out and "volpe bianca" in out
+
+
+# ---------------------------------------------------------------- tossine e Giudizio (Aggiornamento 60)
+
+def test_purify_command(conn):
+    from engine.core import entities
+    from engine.systems import dao_heart, sects
+    p = entities.get_player(conn)
+    dao_heart._set_toxin(conn, 500)
+    sects.grant_resource(conn, "pietre_spirituali", 1000, p.id)
+    out = dao_heart.purify_command(conn, p)
+    assert "Bagno di Qi" in out and dao_heart.toxin(conn) < 500 * 0.7
+    again = dao_heart.purify_command(conn, p)
+    assert "già fatto oggi" in again
+
+
+def test_toxin_decays_faster_when_high(conn):
+    from engine.systems import dao_heart
+    dao_heart._set_toxin(conn, 1000)
+    dao_heart.daily(conn, 0, random.Random(1), None)
+    assert dao_heart.toxin(conn) < 1000 - 25
+    dao_heart._set_toxin(conn, 200)
+    dao_heart.on_breakthrough(conn)
+    assert abs(dao_heart.toxin(conn) - 100) < 0.5
+
+
+def test_use_all_keeps_cult_pills_when_blocked(conn):
+    from engine.core import entities
+    from engine.systems import dao_heart, items
+    from engine.cli import loop
+    p = entities.get_player(conn)
+    iid = items.create_item(conn, "Pillola di Prova", "pillola", "comune", "test", {"cultivation_progress": 0.2})
+    items.grant(conn, "player", p.id, iid, 3)
+    dao_heart._set_toxin(conn, 200)
+    out = loop.cmd_use_all(conn, p)
+    assert "Lasci nello zaino 3" in out
+    assert any(r["name"] == "Pillola di Prova" for r in items.player_inventory(conn, p.id))
+
+
+def test_provoke_heaven(conn):
+    from engine.core import entities
+    from engine.systems import deep_dao
+    p = entities.get_player(conn)
+    d = deep_dao.get(conn)
+    ok, why = deep_dao.provoke_status(conn, d, 100)
+    assert not ok and "600" in why
+    ok, _ = deep_dao.provoke_status(conn, d, 1000)
+    assert ok
+    out = deep_dao._provoke(conn, p, d, 1000)
+    assert "Volontà" in out
+    d = deep_dao.get(conn)
+    assert d["will_npc"] and not deep_dao.provoke_status(conn, d, 1000)[0]

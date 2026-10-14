@@ -388,6 +388,8 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return supreme_body.unite(conn, player)
     if cmd in ("corpo", "costituzione", "cuore", "tossine", "body"):
         from engine.systems import dao_heart
+        if cmd == "tossine" and arg.strip().lower().startswith("purif"):
+            return dao_heart.purify_command(conn, player)
         return dao_heart.describe(conn, player)
     if cmd in ("arma", "miaarma", "spirito_arma"):
         from engine.systems import weapon_spirit
@@ -398,6 +400,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("sangue", "lignaggi", "bloodline", "bloodlines", "lignaggio"):
         from engine.systems import blood_menu
         return blood_menu.command(conn, player, arg)
+    if cmd in ("purifica", "depura", "purificati", "disintossica"):
+        from engine.systems import dao_heart
+        return dao_heart.purify_command(conn, player)
     if cmd in ("via", "latuavia"):
         from engine.systems import via_menu
         return via_menu.show(conn, player, arg)

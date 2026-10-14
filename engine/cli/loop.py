@@ -1734,14 +1734,31 @@ def cmd_use_all(conn: sqlite3.Connection, player: entities.Player) -> str:
     rng = random.Random(t * 7351 + player.id)
     total = sum(r["quantity"] for r in inv)
     out = [f"Usi tutto ciò che hai nello zaino ({total} oggetti):"]
+    from engine.systems import dao_heart
+    inv = sorted(inv, key=lambda r: "purificazione" not in r["name"].lower())   # prima si puliscono i meridiani
+    kept = 0
     for r in list(inv):
         if r["item_type"] in ("formazione", "talismano"):
             continue                  # da usare con criterio: nel luogo / prima dello scontro giusto
         for _ in range(r["quantity"]):
+            if r["item_type"] == "pillola" and _is_cult_pill(r) and dao_heart.pills_blocked(conn):
+                kept += 1
+                continue
             res = items.use_item(conn, t, rng, player.id, r["name"])
             if res["status"] == "used":
                 out.append(f"  · {res['name']}: " + "; ".join(res["lines"]))
+    if kept:
+        out.append(f"  ⚠ Lasci nello zaino {kept} pillole di coltivazione: i meridiani sono intasati "
+                   f"(tossine {dao_heart.toxin(conn):.0f}). Prima 'purifica'.")
     return "\n".join(out)
+
+
+def _is_cult_pill(row) -> bool:
+    import json as _json
+    try:
+        return bool((_json.loads(row["effects"]) if row["effects"] else {}).get("cultivation_progress"))
+    except Exception:
+        return False
 
 
 _KIND_WORDS = {"essenze": ("essenza", "le essenze"), "essenza": ("essenza", "le essenze"),

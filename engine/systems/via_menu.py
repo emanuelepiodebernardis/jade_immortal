@@ -47,7 +47,10 @@ def _body(conn, player) -> dict:
         from engine.systems import dao_heart
         h = dao_heart.describe(conn, player).split("\n")[1:]
         own = [ln.strip() for ln in h if ln.startswith("  ") and not ln.startswith("   ") and not ln.startswith("  ✦")]
-        secs.append(M.section("Cuore e tossine", own, icon="♥"))       # solo cuore e tossine: il corpo è già sopra
+        from engine.systems import dao_heart as dh
+        tox_act = [M.act("Purifica i meridiani (pillole, poi un bagno di Qi)", "purifica", dh.toxin(conn) >= 1,
+                         "i meridiani sono puliti", main=dh.toxin(conn) >= 30)]
+        secs.append(M.section("Cuore e tossine", own, tox_act, icon="♥"))   # solo cuore e tossine: il corpo è già sopra
     except Exception:
         pass
     return M.menu("via:corpo", "Corpo", sections=secs)

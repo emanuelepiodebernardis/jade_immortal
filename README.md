@@ -122,7 +122,8 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
 - **Armi vive** che si temprano con il tempo e l'uso, si risvegliano e crescono senza tetto.
 - **Corpi leggendari** (`costituzione`): 22 corpi con la loro storia, i doni e gli stadi di
   risveglio fino al *Corpo Compiuto* (vedi sotto).
-- **Cuore del Dao** (deviazione del Qi), **tossine delle pillole**,
+- **Cuore del Dao** (deviazione del Qi), **tossine delle pillole** (si smaltiscono col tempo, in
+  ritiro, a ogni nuovo regno e con `purifica`: pillole di purificazione e un bagno di Qi al giorno),
   **tribolazioni del fulmine** a ogni regno da assorbire e controllare.
 - **Prodigi** che crescono senza di te, **uova e allevamento** di bestie ibride, **incarichi a catena**.
 - **Poteri dei protagonisti**: retaggio spezzato da ricomporre, maestro nell'anello, spazio
@@ -274,7 +275,9 @@ sette) possono schierare qualcuno molto più forte.
 - **Risonanze**: Dominio Spazio-Tempo, Fiume del Destino, Causalità, e la Trinità delle Leggi.
 - **La guerra con il Cielo**, a capitoli: Presagi, Occhio del Cielo, Messaggeri del Cielo che ti
   danno la caccia, poi il **Giudizio** (`cielo sottometti|sfida|inganna`). Il Giudizio ritorna più
-  alto a ogni raddoppio; abbattere la Volontà del Cielo dà i **Sigilli della Sfida**.
+  alto a ogni raddoppio; abbattere la Volontà del Cielo dà i **Sigilli della Sfida**. Non vuoi
+  aspettare? `cielo provoca` chiama la Volontà del Cielo (ogni 15 giorni), `cielo affronta` porta a
+  te lei o un Messaggero e duelli subito.
 
 ### Tribolazioni divine ⚡
 - Scattano salendo nella Sfida al Cielo, **al breakthrough** e **divorando troppi cadaveri**.
