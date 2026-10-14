@@ -21,14 +21,7 @@ from __future__ import annotations
 import sqlite3
 
 # fascia di forza (sua / tua) per tipo di inseguitore
-BANDS = {                           # (Agg. 52: dopo 4 simulazioni da 400 giorni, un po' più bassi)
-    "cacciatore": (0.7, 1.05),
-    "campione": (0.8, 1.1),
-    "nemesi": (0.85, 1.2),
-    "arcinemico": (0.85, 1.2),
-    "vendicatore": (0.7, 1.05),
-    "anziano": (0.8, None),          # faide degli anziani: mai indeboliti, solo tenuti al passo
-}
+from engine.systems.calibration import PURSUER_BANDS as BANDS   # la taratura sta in calibration.py
 PEER_RELATIONS = {"fratello", "sorella", "figlio", "figlia", "giurato", "allievo"}
 SENIOR_RELATIONS = {"padre", "madre", "maestro", "setta"}
 MIN_F, MAX_F = 0.01, 50.0

@@ -205,24 +205,46 @@ def _safe_exit(conn, player, rng) -> str | None:
     return f"move {rng.choice(sorted(safe))}" if safe else None
 
 
+def _hunt_fit(conn, player, loc: int, ptier: int) -> float:
+    """Quanto un luogo selvaggio è adatto a te: gli anelli della frontiera hanno nemici del loro regno;
+    il pilota cerca quelli del tuo livello (né troppo facili né troppo duri)."""
+    from engine.systems import frontier, ascension
+    ring = frontier.ring_of(conn, loc)
+    if not ring:
+        return -0.5 * max(0, ptier - 2)                 # le terre d'origine: buone all'inizio
+    lt = frontier.ring_tier(ascension.layer_of_location(conn, loc), ring)
+    if lt > ptier:
+        return -3.0 * (lt - ptier)                      # troppo lontano per te
+    return -0.7 * (ptier - lt)
+
+
 def _step_to_wild(conn, player) -> str | None:
+    """Il primo passo verso il terreno di caccia più adatto (entro 14 passi): il più vicino tra quelli
+    del tuo livello (Agg. 55: prima era sempre il più vicino, e il pilota restava tra le prede facili)."""
     from collections import deque
+    from engine.simulation import cultivation
+    ptier = cultivation.realm_tier(conn, "player", player.id) or 1
     start = player.location_id
     seen = {start}
-    q = deque([(start, None)])
+    q = deque([(start, None, 0)])
+    best = None
     while q:
-        cur, first = q.popleft()
+        cur, first, dist = q.popleft()
+        if dist >= 14:
+            continue
         for r in conn.execute("SELECT direction, to_location_id FROM location_connections "
                               "WHERE from_location_id=?;", (cur,)).fetchall():
             nxt = r["to_location_id"]
             if nxt in seen or _danger(conn, player.id, nxt):
                 continue
             fd = first or r["direction"]
-            if _loc_type(conn, nxt) in _WILD:
-                return fd
             seen.add(nxt)
-            q.append((nxt, fd))
-    return None
+            if _loc_type(conn, nxt) in _WILD:
+                sc = _hunt_fit(conn, player, nxt, ptier) - 0.15 * (dist + 1)
+                if best is None or sc > best[0]:
+                    best = (sc, fd)
+            q.append((nxt, fd, dist + 1))
+    return best[1] if best else None
 
 
 def _wander(conn, player, rng) -> str | None:
@@ -300,9 +322,18 @@ def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | Non
     # prima ciò che è a terra
     if cfg["loot"] and loot.drops_in_location(conn, player.location_id):
         return "loot"
-    if cfg["assorbi"] and ents.dead_npcs_in_location(conn, player.location_id) \
-            and absorption.can_absorb(conn, player.id):
-        return "absorb all"
+    _today = tick_mod.get_tick(conn) // 120
+    if cfg["assorbi"] and state.get_int(conn, "auto_absorb_day", -1) != _today \
+            and ents.dead_npcs_in_location(conn, player.location_id) and absorption.can_absorb(conn, player.id):
+        from engine.systems import reputation
+        state.set(conn, "auto_absorb_day", str(_today))      # un tentativo al giorno: niente giri a vuoto
+        bodies = ents.dead_npcs_in_location(conn, player.location_id)
+        watched = any(reputation.witnesses(conn, player.location_id, b.id) for b in bodies)
+        if not watched or reputation.is_disguised(conn, player.id):
+            return "absorb all"
+        if cfg.get("condotta") in ("spietata", "opportunista"):
+            return "absorb all confirm"               # davanti ai testimoni: solo chi non teme l'infamia
+        # (prima il pilota ritentava all'infinito e il giorno passava senza allenarsi)
     inj = conn.execute("SELECT COALESCE(SUM(severity),0) s FROM injuries WHERE character_type='player' "
                        "AND character_id=? AND healed=0;", (player.id,)).fetchone()["s"]
     from engine.simulation import cultivation
@@ -344,6 +375,12 @@ def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | Non
     if act == "caccia":
         if cfg["bersagli"] == "nessuno":
             return "train"
+        if wild_here and not tg:                          # qui non c'è niente alla tua portata: cerca altrove
+            ptier = cultivation.realm_tier(conn, "player", player.id) or 1
+            if _hunt_fit(conn, player, player.location_id, ptier) < -1.0:
+                st = _step_to_wild(conn, player)
+                if st:
+                    return f"move {st}"
         if not wild_here:
             st = _step_to_wild(conn, player)
             return f"move {st}" if st else "train"

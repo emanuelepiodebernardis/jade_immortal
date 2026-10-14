@@ -2181,3 +2181,78 @@ genera testo nuovo: dà un punteggio ai candidati e prende il migliore, in una p
 - I corpi leggendari degli NPC ora sono deterministici per mondo, e nei test che confrontano le
   forze vengono neutralizzati.
 
+## Aggiornamento 55 — Nove trame nuove e la taratura del gioco
+
+### Trame che si concludono da sole
+
+- **Atti automatici**: un atto può raccontarsi e risolversi senza chiedere una scelta. Il finale è il
+  primo che corrisponde a ciò che sai (indizi) e alle strade che hai preso (rami), e porta il suo
+  premio.
+- **Trame lasciate a metà**: con un finale previsto per questo caso (`auto_end`), una trama non
+  sfuma più nel nulla ma si conclude da sola, con le conseguenze del caso.
+- **Premi nuovi** in `rewards.grant`:
+  - `reliquia`: una reliquia delle razze antiche;
+  - `sangue`: un'essenza di sangue nobile, più alta col rango;
+  - `corpo`: l'essenza di un corpo leggendario;
+  - il numero di oggetti si può fissare con `n`.
+- **Otto trame nuove**, prese da tutto il genere:
+  - *Il Reame dei Mille Tesori*;
+  - *La marea di bestie*;
+  - *Il sigillo dell'asta*, una prigione con dentro uno spirito antico;
+  - *La grotta del maestro senza nome*: nove inchini, l'anima residua, l'eredità;
+  - *Il fulmine sul Picco Solitario*: proteggi chi affronta la tribolazione o aspetti il suo anello;
+  - *La formazione dei diecimila spiriti*;
+  - *Il vecchio mostro negli occhi del tuo amico*, la possessione;
+  - *La carovana del Mercante Dorato*.
+- **Il reame segreto finisce con una scelta**: nella sala dei tesori la regola è un tesoro a testa.
+  - Puoi prendere **un solo tesoro** (una reliquia, una tecnica o il sangue di Kun).
+  - Puoi **dividere** con chi è diventato tuo alleato nel reame.
+  - Con due indizi puoi strappare **il cuore del reame**.
+  - Oppure prendi **tutto**: allora tutti quelli che erano entrati diventano tuoi nemici. Il primo
+    diventa una nemesi che torna a cercarti, gli altri rivali ostili.
+- **Conseguenze che diventano trame**: le scelte possono lasciare un segno (`flag`) e i personaggi
+  coinvolti. Le trame con `req_flag` nascono solo da quel segno, con quel cast (tipo
+  `legame:<segno>`), e hanno la precedenza sulle altre. La prima è *I tesori del reame*: le sette
+  di chi è rimasto a mani vuote vengono a chiederti conto. Puoi restituire, combattere o metterli
+  l'uno contro l'altro.
+
+### La taratura (`engine/systems/calibration.py`)
+
+Tutte le manopole del pericolo e del ritmo stanno ora in un file solo. Le ho tarate con quattro giri
+di partite automatiche da 400 giorni (4 origini × 2 mondi), misurando per fase di gioco (regni 1-3,
+4-6, 7-9) scontri, forza dei nemici, imboscate, morti e scene.
+
+| | prima | dopo |
+|---|---|---|
+| morti ogni 100 giorni (regni 1-3 / 4-6 / 7-9) | 1,90 / 3,87 / – | 0,34 / 0,40 / 0,16 |
+| imboscate al giorno (regni 1-3) | 0,61 | 0,14 |
+| imboscate vinte | 31% | 78–88% |
+| forza di chi ti tende agguati (mediana) | 1,05 | 0,78–0,85 |
+| nemici scelti, forza mediana (4-6 / 7-9) | 0,33 / 0,12 | 0,41 / 0,53 |
+| regno raggiunto in 400 giorni | 1–3 | 2–9 (6 partite su 8 tra il 6 e il 9) |
+| scene al giorno | ~1 | ~1, un atto di trama ogni 4-5 giorni |
+
+Le modifiche:
+- **Imboscate**:
+  - al massimo una ogni 4 giorni nei regni 1-3, poi ogni 3, e nei mondi superiori ogni 2;
+  - un nemico ostile attacca più di rado (12%) e mai se è più forte di 1,4 volte;
+  - dopo averti attaccato aspetta 4 giorni, e un cacciatore che ti ha affrontato si ritira per 3;
+  - un'imboscata persa uccide di rado (×0,25).
+- **Inseguitori** più bassi: cacciatori 0,6–0,95, campioni 0,7–1,0, nemesi 0,8–1,1.
+- **Scontri persi**: la morte arriva il 30% delle volte (prima il 50%), il 45% se sei travolto al
+  primo round (prima il 70%).
+- **Terre di frontiera**: ripulite, si ripopolano dopo 5 giorni. Nelle terre del tuo livello le
+  creature hanno tra il 45% e il 100% della tua forza, mentre quelle più vicine restano facili, per
+  raccogliere.
+- **Pilota automatico**:
+  - va a cacciare nelle terre del suo livello invece che sempre nelle più vicine;
+  - **corretto un blocco**: col Divoratore, se c'erano testimoni ritentava di divorare i caduti
+    all'infinito e passava i giorni senza allenarsi (un personaggio restava al 1° regno per 400
+    giorni). Ora prova una volta al giorno, e davanti ai testimoni divora solo con la condotta
+    spietata o opportunista.
+- **Trame**: la prima non prima del 4° giorno, una nuova ogni 9 giorni al più.
+
+**Per ritarare da te**: `python strumenti/taratura.py <origine> <seme> <giorni> <uscita.json>` gioca una
+partita automatica in un mondo a parte, senza toccare il tuo salvataggio. Poi
+`python strumenti/taratura_analisi.py <file.json>…` stampa la tabella per fase.
+

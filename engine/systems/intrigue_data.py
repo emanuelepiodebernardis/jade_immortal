@@ -26,9 +26,10 @@ PER AGGIUNGERE UNA TRAMA basta un dizionario in TEMPLATES:
 
 from __future__ import annotations
 
-_P = {"rank": 2, "kinds": ["pillola", "tesoro"]}
-_P3 = {"rank": 3, "kinds": ["tesoro", "manuale", "pillola"]}
-_P4 = {"rank": 4, "kinds": ["tesoro", "manuale"]}
+# premi (rewards.grant: rank 1 = oro, 2 = argento, 3 = bronzo)
+_BRONZO = {"rank": 3, "kinds": ["pillola", "tesoro"]}
+_ARGENTO = {"rank": 2, "kinds": ["tesoro", "manuale", "pillola"]}
+_ORO = {"rank": 1, "kinds": ["tesoro", "manuale"]}
 
 TEMPLATES: list[dict] = [
     # ------------------------------------------------------------------ 1. LA MANO NELL'OMBRA
@@ -87,7 +88,7 @@ TEMPLATES: list[dict] = [
              "choices": [
                  {"label": "Smascheri {mandante} davanti a tutti, prove alla mano",
                   "need_clues": 2,
-                  "effects": {"fame": 15, "karma": 25, "prize": _P3,
+                  "effects": {"fame": 15, "karma": 25, "prize": _ARGENTO,
                               "text": ("Il ciondolo, la terra rossa, l'emissario, le pietre: pezzo dopo pezzo la "
                                        "piazza capisce. {mandante} impallidisce, poi fugge. La guerra non ci sarà."),
                               "intrigue": {"end": "smascherato"}}},
@@ -185,12 +186,12 @@ TEMPLATES: list[dict] = [
                       "torneo». I giudici non fiatano: sono suoi. Tutta la città trattiene il fiato."),
              "choices": [
                  {"label": "Accetti la finale",
-                  "effects": {"fame": 10, "prize": _P3,
+                  "effects": {"fame": 10, "prize": _ARGENTO,
                               "text": "Il gong suona. Cento sette guardano la pedana.",
                               "intrigue": {"end": "finale"}}, "command": "duello {npc}"},
                  {"label": "Denunci il torneo truccato davanti ai Venerabili",
                   "need_clues": 2,
-                  "effects": {"fame": 18, "karma": 20, "prize": _P4,
+                  "effects": {"fame": 18, "karma": 20, "prize": _ORO,
                               "text": ("Il sigillo, il veleno, il nome sussurrato: i Venerabili ascoltano. {mandante} "
                                        "è cacciato con disonore, e la vittoria è assegnata a te."),
                               "intrigue": {"end": "denuncia"}}},
@@ -237,7 +238,7 @@ TEMPLATES: list[dict] = [
              "choices": [
                  {"label": "Lo costringi a dirti chi ha comprato il tuo nome",
                   "need_clues": 2,
-                  "effects": {"karma": 20, "lifespan_years": 20, "prize": _P,
+                  "effects": {"karma": 20, "lifespan_years": 20, "prize": _BRONZO,
                               "text": ("Il vecchio trema e confessa: il nome lo ha comprato un tuo vecchio nemico. "
                                        "Bruci il rotolo: dal fuoco escono vent'anni che non sapevi di avere."),
                               "intrigue": {"end": "smascherato"}}},
@@ -297,7 +298,7 @@ TEMPLATES: list[dict] = [
              "choices": [
                  {"label": "Affronti la prova della carne",
                   "check": {"stat": "corpo", "dc": 64},
-                  "success": {"prize": _P4, "lifespan_years": 30,
+                  "success": {"prize": _ORO, "lifespan_years": 30,
                               "text": ("Le sei braccia ti colpiscono insieme e tu resti in piedi. La statua si "
                                        "inchina: un frammento della sua arte scorre in te."),
                               "intrigue": {"clue": 1, "branch": "erede"}},
@@ -371,7 +372,7 @@ TEMPLATES: list[dict] = [
              "choices": [
                  {"label": "Tagli il filo davanti ai suoi occhi",
                   "need_clues": 2,
-                  "effects": {"karma": 15, "heart": 8, "prize": _P3,
+                  "effects": {"karma": 15, "heart": 8, "prize": _ARGENTO,
                               "text": ("Con gli indizi trovi il nodo del filo e lo recidi. {mandante} vomita sangue: "
                                        "la maledizione torna a chi l'ha lanciata."),
                               "intrigue": {"end": "spezzata"}}},
@@ -431,7 +432,7 @@ TEMPLATES: list[dict] = [
              "choices": [
                  {"label": "Smascheri il traditore davanti al consiglio della setta",
                   "need_clues": 2,
-                  "effects": {"merit": 300, "fame": 10, "sect_influence": 5, "prize": _P3,
+                  "effects": {"merit": 300, "fame": 10, "sect_influence": 5, "prize": _ARGENTO,
                               "text": "{pedina} viene giudicato. {vittima} è libero. Il consiglio ti guarda con occhi nuovi.",
                               "intrigue": {"end": "smascherato"}}},
                  {"label": "Affronti {mandante} nella gola",
@@ -482,10 +483,10 @@ TEMPLATES: list[dict] = [
                       "dentro.»"),
              "choices": [
                  {"label": "Lo sfidi per la spada",
-                  "effects": {"fame": 12, "prize": _P4, "intrigue": {"end": "spada"}}, "command": "duello {npc}"},
+                  "effects": {"fame": 12, "prize": _ORO, "intrigue": {"end": "spada"}}, "command": "duello {npc}"},
                  {"label": "Comprendi la spada senza lama, senza toccarla",
                   "need_clues": 2,
-                  "effects": {"prize": _P4, "heart": 6, "fame": 10,
+                  "effects": {"prize": _ORO, "heart": 6, "fame": 10,
                               "text": ("Capisci: la lama è l'intento. Lo porti via dentro di te, e l'isola resta. Il "
                                        "custode ti saluta da lontano, mentre la nebbia si richiude."),
                               "intrigue": {"end": "intento"}}},
@@ -497,5 +498,470 @@ TEMPLATES: list[dict] = [
         "outcomes": {"spada": "Hai conquistato la Spada Nascosta.",
                      "intento": "Hai compreso l'intento della Spada Nascosta senza toccarla.",
                      "rinuncia": "Hai lasciato la Spada Nascosta al suo custode."},
+    },
+]
+
+
+# ======================================================================================================
+# TRAME CHE SI CONCLUDONO DA SOLE — l'ultimo atto non chiede una scelta: racconta come finisce, con il
+# premio che ti sei guadagnato (indizi e rami decidono quale finale). "auto_end" decide anche come
+# finiscono se le lasci a metà.
+# ======================================================================================================
+
+_RELIQUIA = {"rank": 1, "kinds": ["reliquia", "tesoro"]}
+_SANGUE = {"rank": 2, "kinds": ["sangue", "nucleo"]}
+_CORPO = {"rank": 1, "kinds": ["corpo", "manuale"]}
+
+TEMPLATES += [
+    # ------------------------------------------------------------------ 8. IL REAME SEGRETO
+    {
+        "key": "reame_mille_tesori", "title": "Il Reame dei Mille Tesori", "kind": "reame", "weight": 6, "tier_min": 2,
+        "cast": {"genio": "genio", "vittima": "alleato"},
+        "acts": [
+            {"title": "La porta nella cascata", "focus": "vittima", "gap": (2, 3),
+             "text": ("Dietro la cascata vicino a {luogo} si è aperta una porta di luce: un reame segreto, sigillato "
+                      "da mille anni, che resterà aperto sette giorni. Le sette mandano i loro discepoli migliori. "
+                      "{vittima} ti chiede di entrare insieme."),
+             "choices": [
+                 {"label": "Entri con {vittima}",
+                  "effects": {"relation": 10, "text": "Varcate insieme la luce.", "intrigue": {"branch": "insieme"}}},
+                 {"label": "Entri da solo: nel reame non ci si fida di nessuno",
+                  "effects": {"text": "Varchi la luce da solo.", "intrigue": {"branch": "solo"}}},
+                 {"label": "Studi la porta prima di entrare",
+                  "check": {"stat": "anima", "dc": 56},
+                  "success": {"text": "Le rune dicono dove batte il cuore del reame: al centro, sotto il lago.",
+                              "intrigue": {"clue": 1}},
+                  "failure": {"text": "Le rune non ti dicono niente. Entri alla cieca.", "intrigue": {}}},
+             ]},
+            {"title": "L'erba dei mille anni", "focus": "genio", "gap": (1, 2),
+             "text": ("Su una rupe cresce un'Erba dei Mille Anni, custodita da un serpente di giada. {genio} è già lì, "
+                      "e sta per attaccare il serpente da solo."),
+             "choices": [
+                 {"label": "Aspetti che si sfianchino e prendi l'erba",
+                  "check": {"stat": "istinto", "dc": 60},
+                  "success": {"prize": {"rank": 2, "kinds": ["pillola"]}, "infamy": 2,
+                              "text": "Mentre il serpente stritola {genio}, l'erba è tua.", "intrigue": {"clue": 1}},
+                  "failure": {"injury": 2, "text": "Il serpente ti vede. Fuggi con le mani vuote.", "intrigue": {}}},
+                 {"label": "Aiuti {genio} contro il serpente",
+                  "check": {"stat": "potenza", "dc": 58},
+                  "success": {"relation": 25, "text": "Insieme lo abbattete. {genio} ti lascia metà dell'erba.",
+                              "prize": {"rank": 3, "kinds": ["pillola"]}, "intrigue": {"branch": "alleanza"}},
+                  "failure": {"injury": 2, "text": "Il serpente vi respinge entrambi. {genio} però non lo dimentica.",
+                              "intrigue": {"branch": "alleanza"}}},
+                 {"label": "Sfidi {genio} per il diritto all'erba",
+                  "effects": {"fame": 4, "intrigue": {}}, "command": "duello {npc}"},
+             ]},
+            {"title": "La sala dei mille tesori", "focus": "genio", "gap": (1, 2),
+             "text": ("Al settimo giorno, mentre il reame comincia a tremare, trovi la sala che tutti cercavano: sui "
+                      "piedistalli brillano una reliquia antica, un rotolo d'oro, una fiala di sangue di Kun, una "
+                      "pillola che profuma di mille anni. Le porte si chiudono tra pochi respiri. Alle tue spalle "
+                      "arrivano {genio} e altri due discepoli di sette diverse: ansimano, feriti, e guardano i "
+                      "piedistalli come guardi tu. La regola non scritta dei reami è una sola: ognuno prende un "
+                      "tesoro."),
+             "choices": [
+                 {"label": "Prendi solo la reliquia antica",
+                  "effects": {"prize": {"rank": 1, "kinds": ["reliquia"], "n": 1, "stones": False}, "fame": 3,
+                              "text": "Prendi la reliquia e lasci il resto. {genio} annuisce: è la regola.",
+                              "intrigue": {"end": "un_tesoro"}}},
+                 {"label": "Prendi solo il rotolo d'oro (una tecnica)",
+                  "effects": {"prize": {"rank": 1, "kinds": ["manuale"], "n": 1, "stones": False}, "fame": 3,
+                              "intrigue": {"end": "un_tesoro"}}},
+                 {"label": "Prendi solo il sangue di Kun",
+                  "effects": {"prize": {"rank": 1, "kinds": ["sangue"], "n": 1, "stones": False}, "fame": 3,
+                              "intrigue": {"end": "un_tesoro"}}},
+                 {"label": "Dividi con {genio}: un tesoro a testa, insieme",
+                  "need_branch": "alleanza",
+                  "effects": {"prize": {"rank": 1, "kinds": ["tesoro", "pillola"], "n": 2}, "relation": 20,
+                              "bond": "companion",
+                              "text": "Uscite insieme dalla sala, ognuno col suo tesoro. Un'amicizia nata nel reame.",
+                              "intrigue": {"end": "alleanza"}}},
+                 {"label": "Prendi il cuore del reame, sotto il lago (il reame crollerà con gli altri dentro)",
+                  "need_clues": 2,
+                  "effects": {"prize": {"rank": 1, "kinds": ["reliquia", "corpo"], "n": 2}, "karma": -25, "infamy": 8,
+                              "text": ("Strappi il cuore del reame. La sala crolla: tu esci dalla cascata; gli altri, "
+                                       "forse, no. Chi sopravvive non lo dimenticherà."),
+                              "intrigue": {"enemies": 1, "flag": "reame_avido", "end": "cuore"}}},
+                 {"label": "Prendi TUTTO, prima che gli altri si muovano",
+                  "effects": {"prize": {"rank": 1, "kinds": ["reliquia", "manuale", "sangue", "pillola"], "n": 4},
+                              "infamy": 10, "karma": -15, "fame": 5,
+                              "text": ("Una manica che spazza i piedistalli, un passo nel varco che si chiude. Dietro "
+                                       "di te, tre voci giurano vendetta sui loro maestri."),
+                              "intrigue": {"enemies": 2, "flag": "reame_avido", "end": "avido",
+                                           "reason": "hai preso tutti i tesori del reame"}}},
+             ]},
+        ],
+        "auto_end": [{"outcome": "chiuso", "text": "Il reame si è richiuso senza di te."}],
+        "outcomes": {"un_tesoro": "Sei uscito dal reame con un tesoro, secondo la regola.",
+                     "alleanza": "Hai diviso i tesori del reame con {genio}.",
+                     "cuore": "Hai strappato il cuore del reame: chi era dentro ti cerca.",
+                     "avido": "Hai preso tutti i tesori del reame, e ti sei fatto nemici tutti quelli che erano entrati."},
+    },
+    # ------------------------------------------------------------------ 9. LA MAREA DI BESTIE
+    {
+        "key": "marea_bestie", "title": "La marea di bestie", "kind": "assedio", "weight": 5, "tier_min": 2,
+        "cast": {"mandante": "anziano"},
+        "acts": [
+            {"title": "Gli uccelli fuggono verso sud", "focus": "mandante", "gap": (1, 2),
+             "text": ("Da tre giorni gli uccelli fuggono verso sud e i pozzi di {luogo} tremano. {mandante}, che "
+                      "governa la città, ti ferma per strada: «Una marea di bestie scende dalle montagne. Tra pochi "
+                      "giorni sarà alle mura. Ci aiuterai?»"),
+             "choices": [
+                 {"label": "Ti unisci alla difesa delle mura",
+                  "effects": {"fame": 4, "text": "{mandante} ti affida la porta nord.", "intrigue": {"branch": "difesa"}}},
+                 {"label": "Vai in esplorazione a cercare il Re delle Bestie",
+                  "check": {"stat": "istinto", "dc": 60},
+                  "success": {"text": "Lo trovi: un vecchio orso d'argento, ferito. La marea fugge da qualcosa, non attacca.",
+                              "intrigue": {"clue": 2}},
+                  "failure": {"injury": 2, "text": "Le bestie ti fiutano. Torni in città di corsa.", "intrigue": {}}},
+                 {"label": "Te ne vai prima che arrivino",
+                  "effects": {"fame": -6, "text": "Da lontano, vedi il fumo salire dalle mura.",
+                              "intrigue": {"end": "fuggito"}}},
+             ]},
+            {"title": "La notte dell'assalto", "focus": "mandante", "gap": (1, 2),
+             "text": ("A mezzanotte la marea arriva: lupi, cinghiali, serpenti grandi come alberi. Le mura gemono."),
+             "choices": [
+                 {"label": "Tieni la porta nord",
+                  "check": {"stat": "potenza", "dc": 58},
+                  "success": {"fame": 8, "text": "Per tutta la notte la porta non cede.", "intrigue": {"clue": 1}},
+                  "failure": {"injury": 3, "text": "La porta cede per un attimo; ricacci le bestie a caro prezzo.",
+                              "intrigue": {}}},
+                 {"label": "Guidi le bestie lontano dalla città, verso la gola",
+                  "need_clues": 2,
+                  "effects": {"karma": 20, "text": ("Sapendo cosa le spinge, apri loro la strada verso la gola. La "
+                                                   "marea passa oltre, e la città quasi non viene toccata."),
+                              "intrigue": {"clue": 1, "branch": "saggio"}}},
+             ]},
+            {"title": "L'alba dopo la marea", "auto": True,
+             "text": "All'alba la marea si ritira. La città conta i morti e cerca chi l'ha salvata.",
+             "endings": [
+                 {"need_branch": "saggio", "outcome": "salvata",
+                  "effects": {"fame": 15, "karma": 15, "prize": _SANGUE},
+                  "text": "La città ti chiama il Pastore delle Bestie: dal Re delle Bestie ricevi un dono di sangue."},
+                 {"need_clues": 1, "outcome": "difesa",
+                  "effects": {"fame": 10, "prize": _ARGENTO},
+                  "text": "{mandante} ti consegna il tesoro della città come ricompensa."},
+                 {"outcome": "superstite", "effects": {"prize": _BRONZO},
+                  "text": "La città resiste a fatica. Ti ringraziano con quello che possono."},
+             ]},
+        ],
+        "auto_end": [{"outcome": "caduta", "effects": {"fame": -4}, "text": "Senza di te le mura hanno ceduto."}],
+        "outcomes": {"fuggito": "Hai lasciato la città alla marea."},
+    },
+    # ------------------------------------------------------------------ 10. IL SIGILLO MALEDETTO DELL'ASTA
+    {
+        "key": "sigillo_asta", "title": "Il sigillo dell'asta", "kind": "asta", "weight": 4, "tier_min": 2,
+        "cast": {"mandante": "rivale", "pedina": "sgherro"},
+        "acts": [
+            {"title": "Il lotto senza nome", "focus": "mandante", "gap": (1, 2),
+             "text": ("Alla casa d'aste di {luogo} l'ultimo lotto è un sigillo di bronzo nero, senza nome. Il banditore "
+                      "lo vende «così com'è». In prima fila, {mandante} alza la mano con troppa fretta."),
+             "choices": [
+                 {"label": "Rilanci e lo compri (1500 pietre)",
+                  "effects": {"stones": -1500, "text": "Il martelletto cade. {mandante} ti guarda come si guarda un ladro.",
+                              "intrigue": {"branch": "comprato"}}},
+                 {"label": "Lasci che lo compri lui e lo segui",
+                  "check": {"stat": "istinto", "dc": 56},
+                  "success": {"text": "Lo vedi incidere una runa di sangue sul sigillo: sa cosa contiene.",
+                              "intrigue": {"clue": 1}},
+                  "failure": {"text": "Lo perdi nella folla.", "intrigue": {}}},
+                 {"label": "Esamini il sigillo prima dell'asta",
+                  "check": {"stat": "anima", "dc": 60},
+                  "success": {"text": "Dentro dorme qualcosa: il sigillo è una prigione, non un tesoro.",
+                              "intrigue": {"clue": 1}},
+                  "failure": {"text": "Il sigillo ti morde il dito. Brucia per ore.", "intrigue": {}}},
+             ]},
+            {"title": "Gli assassini nella notte", "focus": "pedina", "gap": (1, 2),
+             "text": "Di notte {pedina} scavalca la finestra con un pugnale avvelenato. Vuole il sigillo, o la tua vita.",
+             "text_branch": {"comprato": "Di notte {pedina} scavalca la tua finestra: {mandante} rivuole il sigillo."},
+             "choices": [
+                 {"label": "Lo affronti",
+                  "effects": {"intrigue": {"clue": 1}}, "command": "duello {npc}"},
+                 {"label": "Gli lasci trovare un sigillo falso",
+                  "need_branch": "comprato",
+                  "check": {"stat": "istinto", "dc": 55},
+                  "success": {"text": "Scappa col falso. {mandante} avrà una brutta sorpresa.", "intrigue": {"clue": 1}},
+                  "failure": {"injury": 2, "text": "Non ci casca. Ti ferisce e fugge.", "intrigue": {}}},
+             ]},
+            {"title": "Ciò che dormiva nel sigillo", "auto": True,
+             "text": "Il sigillo si incrina da solo, alla luna piena. Quello che ne esce ha atteso diecimila anni.",
+             "endings": [
+                 {"need_branch": "comprato", "need_clues": 1, "outcome": "reliquia",
+                  "effects": {"prize": _RELIQUIA},
+                  "text": "Preparato, sottometti lo spirito del sigillo: diventa una reliquia che ti obbedisce."},
+                 {"need_branch": "comprato", "outcome": "maledizione",
+                  "effects": {"injury": 3, "prize": _BRONZO},
+                  "text": "Lo spirito ti ferisce prima di dissolversi: resta solo un guscio prezioso."},
+                 {"need_clues": 1, "outcome": "rivale_maledetto",
+                  "effects": {"prize": _ARGENTO, "karma": 5},
+                  "text": "Lo spirito divora la casa di {mandante}. Tra le macerie raccogli ciò che resta."},
+                 {"outcome": "perduto", "text": "Il sigillo si apre lontano da te. Qualcun altro ne avrà i frutti."},
+             ]},
+        ],
+        "auto_end": [{"outcome": "perduto", "text": "Il sigillo si è aperto lontano da te."}],
+        "outcomes": {},
+    },
+    # ------------------------------------------------------------------ 11. LA GROTTA DEL MAESTRO
+    {
+        "key": "grotta_maestro", "title": "La grotta del maestro senza nome", "kind": "eredita", "weight": 5,
+        "tier_min": 1, "cast": {"spettro": "spettro"},
+        "acts": [
+            {"title": "Lo scheletro seduto", "focus": None, "gap": (1, 2),
+             "text": ("Inseguendo una volpe bianca cadi in un crepaccio, e il crepaccio finisce in una grotta. Seduto "
+                      "nella posizione del loto c'è uno scheletro con un anello al dito. Sulla parete, una frase: "
+                      "«Chi si inchina nove volte avrà ciò che cerca.»"),
+             "choices": [
+                 {"label": "Ti inchini nove volte",
+                  "effects": {"karma": 10, "text": "Al nono inchino la pietra sotto le tue ginocchia si apre: un rotolo.",
+                              "intrigue": {"clue": 2, "branch": "rispetto"}}},
+                 {"label": "Prendi l'anello e basta",
+                  "effects": {"text": "L'anello è freddo. Lo scheletro, per un attimo, sembra guardarti.",
+                              "intrigue": {"branch": "avido"}}},
+             ]},
+            {"title": "La prova del maestro", "focus": "spettro", "gap": (1, 2),
+             "text": ("Di notte l'anima residua del maestro, {spettro}, si siede davanti a te: «Mi resta poco. Mostrami "
+                      "che meriti la mia eredità.»"),
+             "choices": [
+                 {"label": "Gli mostri la tua comprensione del Dao",
+                  "check": {"stat": "anima", "dc": 58},
+                  "success": {"text": "Annuisce piano. «Sì… sì.»", "intrigue": {"clue": 1}},
+                  "failure": {"text": "Sospira. «Ancora acerbo.»", "intrigue": {}}},
+                 {"label": "Gli mostri la tua forza",
+                  "check": {"stat": "corpo", "dc": 58},
+                  "success": {"text": "Ride. «Un bue. Ma un bue onesto.»", "intrigue": {"clue": 1}},
+                  "failure": {"injury": 1, "text": "Un dito, e sei a terra.", "intrigue": {}}},
+             ]},
+            {"title": "L'ultimo dono", "auto": True,
+             "text": "All'alba l'anima del maestro si dissolve, e lascia dietro di sé ciò che ha deciso di lasciare.",
+             "endings": [
+                 {"need_branch": "rispetto", "need_clues": 3, "outcome": "erede",
+                  "effects": {"prize": _CORPO, "heart": 5},
+                  "text": "Ti chiama discepolo prima di svanire: la sua arte e il suo corpo sono tuoi."},
+                 {"need_branch": "rispetto", "outcome": "discepolo", "effects": {"prize": _ARGENTO},
+                  "text": "Ti lascia il suo rotolo e una benedizione."},
+                 {"outcome": "anello", "effects": {"prize": _BRONZO, "injury": 1},
+                  "text": "Ti lascia solo l'anello, e una trappola che scatta quando esci."},
+             ]},
+        ],
+        "auto_end": [{"outcome": "anello", "effects": {"prize": _BRONZO}, "text": "Esci dalla grotta con il solo anello."}],
+        "outcomes": {},
+    },
+    # ------------------------------------------------------------------ 12. LA TRIBOLAZIONE DI UN ALTRO
+    {
+        "key": "tribolazione_altrui", "title": "Il fulmine sul Picco Solitario", "kind": "tribolazione", "weight": 4,
+        "tier_min": 3, "cast": {"mandante": "anziano", "pedina": "sgherro"},
+        "acts": [
+            {"title": "Nubi a forma di drago", "focus": "mandante", "gap": (1, 1),
+             "text": ("Sopra il Picco Solitario le nubi si avvolgono come un drago: un vecchio, {mandante}, affronta la "
+                      "tribolazione celeste. Se sopravvive salirà di regno; se muore, il suo anello sarà di chiunque."),
+             "choices": [
+                 {"label": "Fai la guardia ai piedi del picco",
+                  "effects": {"karma": 10, "intrigue": {"branch": "protettore"}}},
+                 {"label": "Aspetti, nascosto, che il fulmine finisca il suo lavoro",
+                  "effects": {"karma": -5, "intrigue": {"branch": "avvoltoio"}}},
+                 {"label": "Raccogli l'essenza del fulmine che cade intorno",
+                  "check": {"stat": "corpo", "dc": 62},
+                  "success": {"prize": {"rank": 2, "kinds": ["essenza", "nucleo"]}, "text": "Il fulmine ti brucia le mani e ti tempra.",
+                              "intrigue": {"clue": 1}},
+                  "failure": {"injury": 3, "text": "Il fulmine non perdona i ladri.", "intrigue": {}}},
+             ]},
+            {"title": "Chi sale a uccidere", "focus": "pedina", "gap": (0, 1),
+             "text": "Al terzo fulmine, {pedina} sale il sentiero con una lama: vuole uccidere il vecchio ora che è indifeso.",
+             "choices": [
+                 {"label": "Gli sbarri la strada",
+                  "effects": {"intrigue": {"branch": "protettore"}}, "command": "duello {npc}"},
+                 {"label": "Lo lasci passare",
+                  "effects": {"karma": -10, "intrigue": {"branch": "avvoltoio"}}},
+             ]},
+            {"title": "Dopo l'ultimo fulmine", "auto": True,
+             "text": "Il nono fulmine cade. Poi il silenzio.",
+             "endings": [
+                 {"need_branch": "protettore", "outcome": "patrono",
+                  "effects": {"relation": 40, "lifespan_years": 20, "prize": _ARGENTO},
+                  "text": "{mandante} scende dal picco rinato. «Ti devo la vita», dice, e ti dona ciò che ha di più caro."},
+                 {"need_branch": "avvoltoio", "outcome": "anello",
+                  "effects": {"karma": -15, "infamy": 4, "prize": _ORO},
+                  "text": "{mandante} non scende. Sul picco, tra le ceneri, il suo anello è ancora caldo."},
+                 {"outcome": "testimone", "effects": {"prize": _BRONZO},
+                  "text": "Hai visto un uomo sfidare il Cielo. Qualcosa ti resta dentro."},
+             ]},
+        ],
+        "auto_end": [{"outcome": "testimone", "text": "La tribolazione è finita senza di te."}],
+        "outcomes": {},
+    },
+    # ------------------------------------------------------------------ 13. IL SACRIFICIO DI SANGUE
+    {
+        "key": "sacrificio_sangue", "title": "La formazione dei diecimila spiriti", "kind": "demoniaco", "weight": 5,
+        "tier_min": 3, "cast": {"pedina": "sgherro", "mandante": "rivale"},
+        "acts": [
+            {"title": "Le case vuote", "focus": None, "gap": (2, 3),
+             "text": ("A {luogo} spariscono persone: prima i mendicanti, poi i bambini. Sulle soglie delle case vuote, "
+                      "un segno di sangue a forma di occhio."),
+             "choices": [
+                 {"label": "Segui i segni di sangue",
+                  "check": {"stat": "istinto", "dc": 58},
+                  "success": {"text": "I segni formano un cerchio attorno alla città: una formazione.", "intrigue": {"clue": 1}},
+                  "failure": {"text": "I segni ti confondono. Ne perdi il filo.", "intrigue": {}}},
+                 {"label": "Fai la ronda di notte",
+                  "effects": {"text": "Vedi un'ombra trascinare un sacco verso le fogne.", "intrigue": {"clue": 1}}},
+             ]},
+            {"title": "Il nodo nelle fogne", "focus": "pedina", "gap": (1, 2),
+             "text": "Nelle fogne {pedina} incide rune su una colonna di ossa. Uno dei nove nodi della formazione.",
+             "choices": [
+                 {"label": "Lo affronti",
+                  "effects": {"intrigue": {"clue": 1}}, "command": "duello {npc}"},
+                 {"label": "Spezzi il nodo senza farti vedere",
+                  "check": {"stat": "anima", "dc": 60},
+                  "success": {"text": "Il nodo si spegne. Gli altri otto tremano.", "intrigue": {"clue": 1}},
+                  "failure": {"injury": 2, "text": "La formazione ti morde l'anima.", "intrigue": {}}},
+             ]},
+            {"title": "La luna di sangue", "focus": "mandante", "gap": (1, 2),
+             "text": ("Alla luna di sangue {mandante} sale sulla torre: la formazione si accende. Diecimila anime "
+                      "urlano. Ancora un'ora e la città sarà un deserto."),
+             "choices": [
+                 {"label": "Spezzi la formazione dal suo cuore",
+                  "need_clues": 2,
+                  "effects": {"karma": 40, "fame": 15, "prize": _ORO,
+                              "text": "Sai dove colpire: la formazione crolla, e {mandante} ne viene travolto.",
+                              "intrigue": {"end": "salvata"}}},
+                 {"label": "Sali sulla torre e lo affronti",
+                  "effects": {"fame": 10, "karma": 15, "intrigue": {"end": "duello"}}, "command": "duello {npc}"},
+                 {"label": "Fuggi dalla città",
+                  "effects": {"karma": -25, "text": "Alle tue spalle, diecimila voci si spengono.",
+                              "intrigue": {"end": "caduta"}}},
+             ]},
+        ],
+        "auto_end": [{"outcome": "caduta", "effects": {"karma": -5},
+                      "text": "Alla luna di sangue la città si è spenta. Nessuno l'ha fermato."}],
+        "outcomes": {"salvata": "Hai salvato la città dalla formazione dei diecimila spiriti.",
+                     "duello": "Hai affrontato {mandante} sulla torre.", "caduta": "La città è caduta."},
+    },
+    # ------------------------------------------------------------------ 14. IL VECCHIO MOSTRO NEL CORPO GIOVANE
+    {
+        "key": "possessione", "title": "Il vecchio mostro negli occhi di {vittima}", "kind": "possessione", "weight": 4,
+        "tier_min": 3, "cast": {"vittima": "alleato"},
+        "acts": [
+            {"title": "Una tecnica che non poteva conoscere", "focus": "vittima", "gap": (2, 3),
+             "text": ("{vittima} è cambiato. Usa tecniche che nessuno gli ha insegnato, parla di imperatori morti da "
+                      "secoli, e di notte lo senti ridere con una voce che non è la sua."),
+             "choices": [
+                 {"label": "Guardi nei suoi occhi con il senso divino",
+                  "check": {"stat": "anima", "dc": 62},
+                  "success": {"text": "Dietro i suoi occhi c'è un vecchio: un mostro che si è preso il suo corpo.",
+                              "intrigue": {"clue": 2}},
+                  "failure": {"text": "Ti respinge con una forza che non dovrebbe avere.", "intrigue": {}}},
+                 {"label": "Ne parli con lui apertamente",
+                  "effects": {"text": "Sorride. «Sei perspicace. Parliamone, da vecchi amici.»",
+                              "intrigue": {"branch": "patto"}}},
+             ]},
+            {"title": "Il prezzo del vecchio mostro", "focus": "vittima", "gap": (1, 2),
+             "text": ("Il vecchio mostro parla con la bocca di {vittima}: «Il ragazzo dorme. Posso insegnarti cose che "
+                      "nessuna setta conosce. In cambio, lascia stare.»"),
+             "choices": [
+                 {"label": "Lo scacci dal corpo del tuo amico",
+                  "need_clues": 2,
+                  "check": {"stat": "anima", "dc": 60},
+                  "success": {"relation": 50, "karma": 25, "prize": _CORPO,
+                              "text": "L'anima vecchia urla e si disperde. {vittima} apre gli occhi: i suoi.",
+                              "intrigue": {"end": "salvato"}},
+                  "failure": {"injury": 3, "text": "Il mostro ti respinge e fugge col corpo del tuo amico.",
+                              "intrigue": {"end": "perduto"}}},
+                 {"label": "Accetti il patto e impari da lui",
+                  "effects": {"infamy": 6, "karma": -20, "prize": {"rank": 1, "kinds": ["manuale"]},
+                              "text": "Impari tre tecniche dimenticate. Del tuo amico non resta niente.",
+                              "intrigue": {"end": "patto"}}},
+                 {"label": "Lo affronti: il corpo è già perduto",
+                  "effects": {"karma": -5, "intrigue": {"end": "duello"}}, "command": "duello {npc}"},
+             ]},
+        ],
+        "auto_end": [{"outcome": "perduto", "text": "Il vecchio mostro se n'è andato, col corpo del tuo amico."}],
+        "outcomes": {"salvato": "Hai salvato {vittima} dal vecchio mostro.", "patto": "Hai fatto un patto col vecchio mostro.",
+                     "duello": "Hai affrontato il vecchio mostro nel corpo di {vittima}.",
+                     "perduto": "{vittima} è perduto."},
+    },
+    # ------------------------------------------------------------------ 15. LA CAROVANA
+    {
+        "key": "carovana", "title": "La carovana del Mercante Dorato", "kind": "scorta", "weight": 5, "tier_min": 1,
+        "cast": {"mandante": "anziano", "pedina": "sgherro"},
+        "acts": [
+            {"title": "Un ingaggio troppo generoso", "focus": "mandante", "gap": (1, 2),
+             "text": ("{mandante}, mercante della Lega Dorata, cerca una scorta fino al passo: «Pago il triplo. Non fare "
+                      "domande sul carico.» Uno dei carri è coperto da un telo nero, e respira."),
+             "choices": [
+                 {"label": "Accetti l'ingaggio",
+                  "effects": {"stones": 300, "intrigue": {"branch": "scorta"}}},
+                 {"label": "Sbirci sotto il telo nero",
+                  "check": {"stat": "istinto", "dc": 55},
+                  "success": {"text": "Un uovo grande come un uomo, caldo, con scaglie dorate.", "intrigue": {"clue": 1, "branch": "scorta"}},
+                  "failure": {"text": "Il mercante ti afferra il polso: «Ti avevo detto niente domande.»",
+                              "intrigue": {"branch": "scorta"}}},
+             ]},
+            {"title": "L'agguato al passo", "focus": "pedina", "gap": (1, 2),
+             "text": "Al passo, {pedina} e i suoi sbarrano la strada: sanno cosa c'è nel carro nero.",
+             "choices": [
+                 {"label": "Difendi la carovana",
+                  "effects": {"fame": 4, "intrigue": {"clue": 1}}, "command": "duello {npc}"},
+                 {"label": "Li aggiri per un sentiero di capre",
+                  "check": {"stat": "istinto", "dc": 58},
+                  "success": {"text": "La carovana scivola via mentre i banditi aspettano.", "intrigue": {"clue": 1}},
+                  "failure": {"injury": 2, "text": "Vi scoprono: si combatte tra le rocce.", "intrigue": {}}},
+             ]},
+            {"title": "Oltre il passo", "auto": True,
+             "text": "Oltre il passo il mercante conta il carico, e il carro nero si muove da solo.",
+             "endings": [
+                 {"need_clues": 2, "outcome": "uovo",
+                  "effects": {"prize": _SANGUE, "stones": 600},
+                  "text": "L'uovo si schiude ai tuoi piedi: il mercante, tremando, ti lascia il sangue del piccolo e la paga doppia."},
+                 {"outcome": "paga", "effects": {"stones": 500, "prize": _BRONZO},
+                  "text": "Il mercante paga quanto promesso, e qualcosa di più."},
+             ]},
+        ],
+        "auto_end": [{"outcome": "partita", "text": "La carovana è partita senza di te."}],
+        "outcomes": {},
+    },
+    # ------------------------------------------------------------------ 16. LA VENDETTA DEL REAME
+    {
+        "key": "vendetta_reame", "title": "I tesori del reame", "kind": "vendetta", "weight": 6, "tier_min": 1,
+        "req_flag": "reame_avido", "cast": {"pedina": "legame:reame_avido", "mandante": "rivale"},
+        "acts": [
+            {"title": "I maestri chiedono conto", "focus": "pedina", "gap": (2, 4),
+             "text": ("{pedina}, uno dei discepoli rimasti a mani vuote nel reame, è tornato dalla sua setta. Ora "
+                      "cammina verso di te alla testa di sei compagni, e dietro di loro, a cavallo di una gru, "
+                      "{mandante}: «I tesori del reame appartengono a chi è entrato. Restituisci la nostra parte.»"),
+             "choices": [
+                 {"label": "Restituisci una parte (2000 pietre) e chiudi la questione",
+                  "effects": {"stones": -2000, "infamy": -4, "relation": 30,
+                              "text": "{mandante} conta le pietre e annuisce. Per ora basta.",
+                              "intrigue": {"end": "restituito"}}},
+                 {"label": "Rifiuti: chi vuole i tesori venga a prenderli",
+                  "effects": {"fame": 6, "intrigue": {"branch": "sfida"}}, "command": "duello {npc}"},
+                 {"label": "Metti i discepoli l'uno contro l'altro: a uno prometti tutto",
+                  "check": {"stat": "karma", "dc": 58},
+                  "success": {"text": "La notte stessa litigano tra loro. {pedina} se ne va da solo, furioso.",
+                              "intrigue": {"clue": 1, "branch": "divisi"}},
+                  "failure": {"text": "Ti ridono in faccia. «Pensi che siamo sciocchi?»", "intrigue": {"branch": "sfida"}}},
+             ]},
+            {"title": "L'agguato della setta", "focus": "mandante", "gap": (2, 4),
+             "text": "Al passo, {mandante} ti aspetta da solo: «Ho mandato via i ragazzi. Questo è tra noi due.»",
+             "text_branch": {"divisi": ("Divisi e litigiosi, i discepoli non si sono fatti più vedere. Solo {mandante} "
+                                        "ti aspetta al passo, stanco: «Hai seminato zizzania. Abile. Parliamo.»")},
+             "choices": [
+                 {"label": "Lo affronti",
+                  "effects": {"fame": 10, "intrigue": {"end": "battaglia"}}, "command": "duello {npc}"},
+                 {"label": "Trattate: un tesoro in cambio di pace",
+                  "need_branch": "divisi",
+                  "effects": {"karma": 10, "relation": 40, "prize": {"rank": 2, "kinds": ["manuale"], "n": 1},
+                              "text": "Vi scambiate un tesoro e una tecnica della sua setta. Nemici, ma non più in guerra.",
+                              "intrigue": {"end": "pace"}}},
+                 {"label": "Fuggi con i tesori",
+                  "effects": {"infamy": 4, "text": "Sparisci nella nebbia. La caccia continuerà.",
+                              "intrigue": {"end": "fuga"}}},
+             ]},
+        ],
+        "auto_end": [{"outcome": "caccia", "effects": {"infamy": 3},
+                      "text": "Le sette del reame ti hanno messo una taglia sulla testa."}],
+        "outcomes": {"restituito": "Hai restituito parte dei tesori del reame.",
+                     "battaglia": "Hai difeso i tesori del reame contro {mandante}.",
+                     "pace": "Hai fatto pace con chi ti cercava per i tesori del reame.",
+                     "fuga": "Sei fuggito con i tesori del reame: la caccia continua."},
     },
 ]

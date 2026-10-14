@@ -49,6 +49,9 @@ def test_templates_are_well_formed():
         keys.add(t["key"])
         assert t["acts"] and t["cast"]
         for a in t["acts"]:
+            if a.get("auto"):                         # atto che si conclude da solo
+                assert a.get("endings") or a.get("effects") is not None
+                continue
             assert a["choices"]
             assert a.get("focus") is None or a["focus"] in t["cast"]
             for ch in a["choices"]:
@@ -95,6 +98,7 @@ def test_without_clues_the_reveal_is_hidden_and_branch_choices_gate(conn, monkey
 
 def test_director_scores_due_acts_above_new_plots(conn):
     p = _p(conn)
+    conn.execute("UPDATE worlds SET current_tick=current_tick+600;")   # giorno 5: le trame possono cominciare
     intrigues.start(conn, p, "maledizione", random.Random(5))
     encounters.clear(conn)
     d = intrigues.get(conn)
@@ -117,3 +121,83 @@ def test_forgotten_plots_close_and_menu_shows_them(conn):
     out = intrigues.daily(conn, tick.get_tick(conn), random.Random(1), p)
     assert any("chiusa senza di te" in x for x in out)
     assert intrigues.get(conn)["done"][-1]["outcome"] == "sfumata"
+
+
+def test_self_concluding_plot_ends_with_prize_by_branch(conn, monkeypatch):
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    p = _p(conn)
+    intrigues.start(conn, p, "grotta_maestro", random.Random(2))
+    _pick(conn, "inchini nove volte")                    # ramo «rispetto», due indizi
+    d = intrigues.get(conn); d["active"][0]["next_day"] = 0; intrigues._save(conn, d)
+    intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+    _pick(conn, "comprensione del Dao")                  # terzo indizio
+    d = intrigues.get(conn); d["active"][0]["next_day"] = 0; intrigues._save(conn, d)
+    before = conn.execute("SELECT COUNT(*) n FROM inventories WHERE owner_type='player';").fetchone()["n"]
+    out = intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+    assert "L'ultimo dono" in out and "discepolo prima di svanire" in out
+    assert intrigues.get(conn)["done"][-1]["outcome"] == "erede"
+    after = conn.execute("SELECT COUNT(*) n FROM inventories WHERE owner_type='player';").fetchone()["n"]
+    assert after > before
+    assert not encounters.pending(conn)                  # nessuna scelta: si è concluso da solo
+
+
+def test_ignored_plot_self_concludes_with_auto_end(conn):
+    p = _p(conn)
+    intrigues.start(conn, p, "marea_bestie", random.Random(3))
+    encounters.clear(conn)
+    d = intrigues.get(conn); d["active"][0]["next_day"] = -100; intrigues._save(conn, d)
+    out = intrigues.daily(conn, tick.get_tick(conn), random.Random(1), p)
+    assert any("si conclude senza di te" in x for x in out)
+    assert intrigues.get(conn)["done"][-1]["outcome"] == "caduta"
+
+
+def test_special_rewards_relic_blood_body(conn):
+    from engine.systems import rewards
+    p = _p(conn)
+    for k in ("reliquia", "sangue", "corpo"):
+        lines = rewards.grant(conn, random.Random(5), p, rank=1, kinds=[k], stones=False)
+        assert lines, k
+
+
+def test_secret_realm_take_all_makes_enemies_and_a_followup_plot(conn, monkeypatch):
+    from engine.systems import bonds
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    conn.execute("UPDATE worlds SET current_tick=current_tick+600;")
+    p = _p(conn)
+    intrigues.start(conn, p, "reame_mille_tesori", random.Random(8))
+    _pick(conn, "Entri da solo")
+    for _ in range(2):
+        d = intrigues.get(conn); d["active"][0]["next_day"] = 0; intrigues._save(conn, d)
+        intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+        sc = encounters.pending(conn)
+        if "sala" in sc["title"].lower():
+            break
+        _pick(conn, "Aspetti che si sfianchino")
+    labels = [ch["label"] for ch in encounters.pending(conn)["choices"]]
+    assert any("solo la reliquia" in x for x in labels) and any("TUTTO" in x for x in labels)
+    res, _ = _pick(conn, "TUTTO")
+    assert "Ora ti odiano" in res
+    d = intrigues.get(conn)
+    assert "reame_avido" in d["flags"] and len(d["links"]["reame_avido"]) == 3
+    assert bonds.nemeses(conn, p.id) or bonds.bond_kinds(conn, d["links"]["reame_avido"][1], p.id)
+    # la conseguenza: la trama della vendetta può nascere, col cast legato al reame
+    d["last_start"] = -999; intrigues._save(conn, d)
+    keys = [x[2].get("key") for x in intrigues.candidates(conn, p, random.Random(1)) if x[1] == "nuova"]
+    assert "vendetta_reame" in keys
+    encounters.clear(conn)
+    intrigues.start(conn, p, "vendetta_reame", random.Random(2))
+    it = next(x for x in intrigues.get(conn)["active"] if x["key"] == "vendetta_reame")
+    assert it["cast"]["pedina"] in d["links"]["reame_avido"]
+    assert "reame_avido" not in intrigues.get(conn)["flags"]
+
+
+def test_secret_realm_take_one_keeps_the_rule(conn, monkeypatch):
+    monkeypatch.setattr(encounters, "roll", lambda c, r, pid, chk: (True, 99, 1))
+    p = _p(conn)
+    intrigues.start(conn, p, "reame_mille_tesori", random.Random(9))
+    _pick(conn, "Entri da solo")
+    d = intrigues.get(conn); d["active"][0]["act"] = 2; d["active"][0]["next_day"] = 0; intrigues._save(conn, d)
+    intrigues.play(conn, p, intrigues.get(conn)["active"][0])
+    res, _ = _pick(conn, "solo la reliquia")
+    assert "reliquia" in res.lower() and "Ora ti odiano" not in res
+    assert intrigues.get(conn)["done"][-1]["outcome"] == "un_tesoro"

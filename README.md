@@ -173,7 +173,12 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
   più adatto tra trame a più atti scritte a mano. Ci sono delitti tra sette, tornei truccati, debiti
   con l'Oltretomba, eredità di antichi Dèi-Demoni, maledizioni di vite passate, traditori nella
   setta e l'isola che appare ogni sessant'anni. Il cast viene dal mondo vivo, gli indizi cambiano
-  il finale e le scelte aprono rami.
+  il finale e le scelte aprono rami. Alcune trame si concludono da sole con premi, come reliquie,
+  sangue nobile o corpi leggendari. Nei reami segreti scegli un tesoro solo oppure tutti, e in quel
+  caso ti fai nemici quelli che erano entrati con te, e da lì nasce una nuova trama.
+- **Taratura** (`engine/systems/calibration.py`): tutte le manopole del pericolo e del ritmo in un
+  file solo. Riguardano imboscate, inseguitori, morte negli scontri persi, creature di frontiera e
+  ritmo delle trame, e sono tarate su partite automatiche da 400 giorni.
 - **Fucina delle tecniche** (menu `tecniche`): fondi due o tre tecniche in una nuova, allenala,
   rinominala. Si carica solo la tecnica più forte per categoria, le vecchie restano in archivio.
 

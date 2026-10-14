@@ -41,7 +41,8 @@ def _rarity(rank: int, scale: float, rng) -> str:
 
 
 def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
-          kinds: list[str] | None = None, stones: bool = True) -> list[str]:
+          kinds: list[str] | None = None, stones: bool = True, n: int | None = None) -> list[str]:
+    n_req = n                                     # quanti oggetti (None = secondo il piazzamento)
     tier = _tier(conn, player.id)
     ridx = RARITY.index(_rarity(rank, scale, rng))
     rar = RARITY[ridx]
@@ -53,9 +54,13 @@ def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
     pool = kinds or ["pillola", "essenza", "manuale", "nucleo", "tesoro", "incenso"]
     if rank >= 4:
         pool = [k for k in pool if k in ("pillola", "nucleo")] or pool
-    n_items = 3 if rank == 1 else 2 if rank == 2 else 1
-    for _ in range(n_items):
-        k = rng.choice(pool)
+    n_items = n_req if n_req is not None else (3 if rank == 1 else 2 if rank == 2 else 1)
+    for i in range(n_items):
+        k = pool[i % len(pool)] if n_req is not None and n_req <= len(pool) else rng.choice(pool)
+        special = _special(conn, rng, player, k, tier, ridx)
+        if special is not None:
+            lines += special
+            continue
         it = _make(rng, k, tier, ridx, scale)
         iid = items.create_item(conn, it["name"], it["type"], rar, it["desc"], it["eff"])
         items.grant(conn, "player", player.id, iid)
@@ -72,6 +77,36 @@ def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
         lines.append("☠ Canone del Ritorno della Salma (leggendario)")
         _remember(conn, "Canone del Ritorno della Salma", "manuale", "leggendario", "Arte proibita delle salme.")
     return lines
+
+
+def _special(conn, rng, player, kind: str, tier: int, ridx: int) -> list[str] | None:
+    """I premi che non sono oggetti generici: reliquie delle razze, sangue nobile, corpi leggendari."""
+    if kind == "reliquia":
+        from engine.systems import race_realms
+        rid, rn = race_realms.relic_item(conn, rng.choice(list(race_realms.BLOOD)), rng, max(1, ridx - 1))
+        items.grant(conn, "player", player.id, rid)
+        return [f"🏺 {rn} (reliquia)"]
+    if kind == "sangue":
+        from engine.systems import bloodlines
+        fam = rng.choice(["drago", "fenice", "qilin", "kun", "nove code", "bai ze", "tigre bianca", "tartaruga nera",
+                          "uccello vermiglio", "drago azzurro", "pixiu", "suanni"][:6 + 2 * ridx])
+        sp = bloodlines.FAMILIES[fam][0]
+        els = [bloodlines.FAMILY_ELEMENT.get(fam, "corpo")]
+        nm = f"Essenza di Sangue di {sp}"
+        iid = items.create_item(conn, nm, "essenza", RARITY[min(4, ridx + 1)], "Sangue nobile: assorbilo con 'use'.",
+                                {"bloodline": {"species": sp, "elements": els, "gain": round(8 * (1 + ridx) * (1 + 0.3 * tier), 1)}})
+        items.grant(conn, "player", player.id, iid)
+        return [f"🩸 {nm}"]
+    if kind == "corpo":
+        from engine.systems import constitutions
+        keys = [k for k in constitutions.BODIES if k != "spezzati"]
+        key = rng.choices(keys, weights=[constitutions.BODIES[k][3] for k in keys])[0]
+        nm = constitutions.BODIES[key][0]
+        iid = items.create_item(conn, f"Essenza del Corpo: {nm}", "essenza_corpo", "leggendario",
+                                f"L'essenza di un {nm}. Assorbila con 'use'.", {"body_essence": key})
+        items.grant(conn, "player", player.id, iid)
+        return [f"✦ Essenza del Corpo: {nm} (leggendario)"]
+    return None
 
 
 _ICON = {"pillola": "💊", "essenza": "☸", "manuale": "📜", "nucleo": "◆", "tesoro": "🏺", "incenso": "🌀"}

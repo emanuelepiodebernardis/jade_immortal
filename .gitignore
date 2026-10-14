@@ -4,3 +4,4 @@ database/world.db
 saves/*.json
 .pytest_cache/
 database/saves/
+strumenti/taratura_out/

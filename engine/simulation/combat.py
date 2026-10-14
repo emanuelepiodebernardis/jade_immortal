@@ -247,7 +247,8 @@ def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
     if winner == atk:
         death_prob += mods.get("death_bonus", 0.0)    # mossa esecutrice
     if loser[0] == "player" and dfn[0] == "player":
-        death_prob *= 0.4        # colto di sorpresa, il protagonista spesso riesce a fuggire ferito
+        from engine.systems import calibration as _cal
+        death_prob *= _cal.AMBUSH_DEATH_MULT   # colto di sorpresa, il protagonista spesso riesce a fuggire ferito
     died = rng.random() < death_prob
 
     _apply_outcome(conn, tick, rng, winner, loser, rounds, died, killing_crit,

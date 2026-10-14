@@ -153,6 +153,13 @@ def pursue(conn, tick, rng, player, observations) -> int:
             events += 1
             continue
         if h["location_id"] == player.location_id:
+            from engine.systems import calibration as _cal, state as _st
+            hcd = _st.get_json(conn, "hunter_cd", {}) or {}
+            if hcd.get(str(h["id"]), -1) > tick or not _cal.ambush_ok(conn, player.id, tick):
+                continue                         # si ritira a leccarsi le ferite, o aspetta il momento
+            _cal.mark_ambush(conn, tick)
+            hcd[str(h["id"])] = tick + _cal.HUNTER_COOLDOWN_DAYS * 120
+            _st.set_json(conn, "hunter_cd", {k: v for k, v in hcd.items() if v > tick})
             _confront(conn, tick, rng, player, h, observations)
             events += 1
             st = conn.execute("SELECT status FROM players WHERE id=?;",

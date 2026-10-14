@@ -26,10 +26,8 @@ from engine.core import tick as tick_mod
 from engine.systems import state
 
 KEY = "intrigues"
-MAX_ACTIVE = 2
-NEW_GAP = 6                # giorni minimi tra l'inizio di due trame
-EXPIRE = 30                # giorni dopo cui un atto non giocato chiude la trama
-REPEAT_GAP = 60            # giorni prima che la stessa trama possa tornare
+from engine.systems.calibration import (PLOT_MAX_ACTIVE as MAX_ACTIVE, PLOT_NEW_GAP_DAYS as NEW_GAP,   # noqa: E402
+                                       PLOT_EXPIRE_DAYS as EXPIRE, PLOT_REPEAT_GAP_DAYS as REPEAT_GAP)
 
 
 def _templates() -> dict:
@@ -111,10 +109,18 @@ def _cast_one(conn, rng, player, kind: str, taken: set) -> int:
     return _spawn(conn, rng, player, "vagabondo", pt, {"greed": 85, "honor": 20, "courage": 60})
 
 
-def _cast(conn, rng, player, tpl: dict) -> dict:
+def _cast(conn, rng, player, tpl: dict, d: dict | None = None) -> dict:
     taken: set = set()
     cast = {}
     for role, kind in tpl.get("cast", {}).items():
+        if kind.startswith("legame:"):                   # chi è legato a una tua scelta passata
+            links = [i for i in ((d or {}).get("links", {}).get(kind.split(":", 1)[1]) or [])
+                     if _alive(conn, i) and i not in taken]
+            if links:
+                cast[role] = links[0]
+                taken.add(links[0])
+                continue
+            kind = "rivale"
         nid = _cast_one(conn, rng, player, kind, taken)
         taken.add(nid)
         cast[role] = nid
@@ -217,7 +223,8 @@ def candidates(conn, player, rng: random.Random) -> list[tuple[float, str, dict]
         if foc and it["cast"].get(foc) and _near(conn, player, it["cast"][foc]):
             s += 1.5
         out.append((s, "atto", it))
-    if len(d["active"]) < MAX_ACTIVE and day - d["last_start"] >= NEW_GAP:
+    from engine.systems.calibration import PLOT_FIRST_DAY
+    if len(d["active"]) < MAX_ACTIVE and day - d["last_start"] >= NEW_GAP and day >= PLOT_FIRST_DAY:
         pt = _ptier(conn, player.id)
         active_keys = {it["key"] for it in d["active"]}
         last_done = {x["key"]: x["day"] for x in d["done"]}
@@ -226,6 +233,8 @@ def candidates(conn, player, rng: random.Random) -> list[tuple[float, str, dict]
         for k, tpl in tpls.items():
             if k in active_keys or pt < tpl.get("tier_min", 1) or (tpl.get("req_sect") and not member):
                 continue
+            if tpl.get("req_flag") and tpl["req_flag"] not in d.get("flags", []):
+                continue                                   # nasce solo da una scelta passata
             if day - last_done.get(k, -999) < REPEAT_GAP:
                 continue
             s = 1.0 + 0.4 * tpl.get("weight", 3)
@@ -233,6 +242,8 @@ def candidates(conn, player, rng: random.Random) -> list[tuple[float, str, dict]
                 s += 1.5                                   # c'è di mezzo qualcuno che conosci
             if tpl.get("req_sect"):
                 s += 1.0
+            if tpl.get("req_flag"):
+                s += 3.0                                   # le conseguenze delle tue scelte arrivano prima
             if tpl.get("kind") in recent_kinds:
                 s -= 2.0                                   # varietà
             s -= 0.5 * max(0, pt - tpl.get("tier_min", 1) - 4)   # le trame troppo «basse» stancano
@@ -299,12 +310,62 @@ def _dead_focus(conn, it: dict, tpl: dict) -> bool:
     return bool(foc and it["cast"].get(foc) and not _alive(conn, it["cast"][foc]))
 
 
+def _match(it: dict, cond: dict) -> bool:
+    if cond.get("need_clues") and it.get("clues", 0) < cond["need_clues"]:
+        return False
+    if cond.get("max_clues") is not None and it.get("clues", 0) > cond["max_clues"]:
+        return False
+    if cond.get("need_branch") and cond["need_branch"] not in it.get("branches", []):
+        return False
+    return True
+
+
+def _apply(conn, player, it: dict, eff: dict, f: dict) -> list[str]:
+    """Effetti di un atto che si risolve da solo (premi, ferite, fama…), senza scelte."""
+    from engine.systems import encounters
+    t = tick_mod.get_tick(conn)
+    rng = random.Random(t * 7907 + it["id"])
+    eff = dict(eff or {})
+    if eff.get("text"):
+        eff["text"] = _fmt(eff["text"], f)
+    ctx = dict(f)
+    ctx.pop("intrigue_id", None)
+    return encounters.apply_effects(conn, t, rng, player, eff, ctx)
+
+
+def _auto_act(conn, player, it: dict, tpl: dict, act: dict) -> str:
+    """Un atto che si racconta e si risolve da solo. Se ha dei finali, la trama si conclude col primo
+    finale che corrisponde a ciò che sai (indizi) e alle strade prese (rami)."""
+    f = _names(conn, it, player)
+    title = _fmt(tpl["title"], f)
+    lines = [f"✦ {title} — {act['title']} ✦", _fmt(act.get("text", ""), f)]
+    if act.get("endings"):
+        end = next((e for e in act["endings"] if _match(it, e)), act["endings"][-1])
+        lines += _apply(conn, player, it, end.get("effects", {}), f)
+        lines.append("✦ " + _finish(conn, it, end.get("outcome", "compiuta"), _fmt(end.get("text", ""), f) or None))
+        return "\n".join(x for x in lines if x)
+    lines += _apply(conn, player, it, act.get("effects", {}), f)
+    d = get(conn)
+    cur = next(x for x in d["active"] if x["id"] == it["id"])
+    cur["act"] += 1
+    if cur["act"] >= len(tpl["acts"]):
+        _save(conn, d)
+        lines.append("✦ " + _finish(conn, cur, "compiuta"))
+    else:
+        lo, hi = tpl["acts"][cur["act"]].get("gap", (2, 3))
+        cur["next_day"] = _day(conn) + random.Random(cur["id"] * 31 + cur["act"]).randint(lo, hi)
+        _save(conn, d)
+    return "\n".join(x for x in lines if x)
+
+
 def play(conn, player, it: dict) -> str | None:
     """Mette in scena l'atto corrente di una trama."""
     from engine.systems import encounters
     tpl = _templates().get(it["key"])
     if not tpl:
         return None
+    if tpl["acts"][it["act"]].get("auto"):
+        return _auto_act(conn, player, it, tpl, tpl["acts"][it["act"]])
     if _dead_focus(conn, it, tpl):                     # chi doveva esserci è morto: la trama si chiude
         f = _names(conn, it, player)
         _finish(conn, it, "spezzata", f"La trama si spezza: {f.get(tpl['acts'][it['act']]['focus'], 'qualcuno')} è morto prima del tempo.")
@@ -320,7 +381,10 @@ def start(conn, player, key: str, rng: random.Random | None = None) -> str | Non
     rng = rng or random.Random(tick_mod.get_tick(conn) * 6151 + player.id)
     d = get(conn)
     d["seq"] += 1
-    it = {"id": d["seq"], "key": key, "cast": _cast(conn, rng, player, tpl), "act": 0, "clues": 0,
+    cast = _cast(conn, rng, player, tpl, d)
+    if tpl.get("req_flag") and tpl["req_flag"] in d.get("flags", []):
+        d["flags"].remove(tpl["req_flag"])               # la conseguenza si consuma
+    it = {"id": d["seq"], "key": key, "cast": cast, "act": 0, "clues": 0,
           "branches": [], "next_day": _day(conn), "start_day": _day(conn)}
     d["active"].append(it)
     d["last_start"] = _day(conn)
@@ -349,6 +413,28 @@ def _finish(conn, it: dict, outcome: str, text: str | None = None) -> str:
     return msg
 
 
+def _make_enemies(conn, rng, player, it: dict, extra: int, reason: str) -> list[int]:
+    """Il cast della trama più `extra` nuovi personaggi (di altre sette) diventano tuoi nemici: il primo
+    una nemesi che tornerà a cercarti, gli altri rivali ostili (ti tenderanno agguati se vi incrociate)."""
+    from engine.systems import bonds, relations, sects
+    t = tick_mod.get_tick(conn)
+    ids = [nid for role, nid in it["cast"].items() if role in ("genio", "pedina", "rivale") and _alive(conn, nid)]
+    mem = sects.get_membership(conn, player.id)
+    facs = [r["id"] for r in conn.execute("SELECT id FROM factions WHERE (? IS NULL OR id<>?) ORDER BY id;",
+                                          (mem["faction_id"] if mem else None, mem["faction_id"] if mem else None))]
+    for _ in range(extra):
+        nid = _spawn(conn, rng, player, "discepolo", _ptier(conn, player.id), {"pride": 80, "ambition": 75})
+        if facs:
+            conn.execute("UPDATE npcs SET faction_id=? WHERE id=?;", (rng.choice(facs), nid))
+        ids.append(nid)
+    for i, nid in enumerate(ids):
+        relations.adjust(conn, nid, -80, t, player.id)
+        kind = "nemesis" if i == 0 else "rival"
+        if bonds.add_bond(conn, player.id, nid, kind, t, rng=rng, reason=reason) is None and kind == "nemesis":
+            bonds.add_bond(conn, player.id, nid, "rival", t, rng=rng, reason=reason)
+    return ids
+
+
 def on_effect(conn, t: int, rng, player, data: dict, ctx: dict) -> list[str]:
     """Dagli effetti di una scelta: indizi, rami, atto successivo o fine."""
     iid = ctx.get("intrigue_id")
@@ -363,6 +449,18 @@ def on_effect(conn, t: int, rng, player, data: dict, ctx: dict) -> list[str]:
         out.append(f"🔎 Indizio raccolto (ora {it['clues']}).")
     if data.get("branch") and data["branch"] not in it["branches"]:
         it["branches"].append(data["branch"])
+    if data.get("enemies") is not None:                 # ti fai nemici tutti quelli che erano lì
+        ids = _make_enemies(conn, rng, player, it, int(data["enemies"]), data.get("reason", tpl["title"]))
+        f = _names(conn, it, player)
+        names = [conn.execute("SELECT name FROM npcs WHERE id=?;", (i,)).fetchone()["name"] for i in ids]
+        if names:
+            out.append("⚔ Ora ti odiano: " + ", ".join(names) + ". Torneranno a cercarti.")
+        if data.get("flag"):
+            d.setdefault("links", {})[data["flag"]] = ids
+    if data.get("flag"):
+        d.setdefault("flags", [])
+        if data["flag"] not in d["flags"]:
+            d["flags"].append(data["flag"])
     if data.get("end"):
         _save(conn, d)
         return out + ["✦ " + _finish(conn, it, data["end"])]
@@ -388,8 +486,18 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
     out = []
     for it in list(d["active"]):                        # le trame dimenticate si chiudono da sole
         if day - it["next_day"] > EXPIRE:
+            tpl = _templates().get(it["key"], {})
+            ae = tpl.get("auto_end")
+            if ae:                                      # alcune si concludono da sole, con quel che sai
+                f = _names(conn, it, player)
+                end = next((e for e in ae if _match(it, e)), ae[-1])
+                lines = _apply(conn, player, it, end.get("effects", {}), f)
+                msg = _finish(conn, it, end.get("outcome", "compiuta"), _fmt(end.get("text", ""), f) or None)
+                out.append(f"✦ {_fmt(tpl.get('title', ''), f)} si conclude senza di te: {msg}")
+                out += lines
+                continue
             _finish(conn, it, "sfumata", "Hai lasciato la trama a metà: il mondo è andato avanti senza di te.")
-            out.append(f"✦ Una trama si è chiusa senza di te ({_templates().get(it['key'], {}).get('title', '')}).")
+            out.append(f"✦ Una trama si è chiusa senza di te ({tpl.get('title', '')}).")
     if encounters.pending(conn):
         return out
     cands = candidates(conn, player, rng)

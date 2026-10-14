@@ -1130,7 +1130,8 @@ def _auto_end_enemy(conn, t, rng, player, npc, rounds, hp_p, pmax,
 
 
 def _auto_end_player(conn, t, rng, player, npc, rounds, lines) -> str:
-    died = rng.random() < (0.5 if rounds > 1 else 0.7)
+    from engine.systems import calibration as _cal
+    died = rng.random() < (_cal.LOSS_DEATH_CHANCE if rounds > 1 else _cal.WIPE_DEATH_CHANCE)
     obs: list[str] = []
     combat._apply_outcome(conn, t, rng, ("npc", npc.id, npc.name),
                           ("player", player.id, "Tu"), rounds, died, False,

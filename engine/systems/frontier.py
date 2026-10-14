@@ -224,7 +224,8 @@ def _populate(conn, rng, loc: int, ltype: str, tier: int) -> None:
     if ltype != "city":
         for _ in range(rng.randint(1, 3)):
             kind = rng.choice(["beast", "beast", "demon", "spirit"])
-            creature_gen._spawn_one(conn, rng, kind, loc, tier, tier + 1)
+            nid = creature_gen._spawn_one(conn, rng, kind, loc, tier, tier + 1)
+            _fit_fauna(conn, rng, nid, tier)
     for _ in range(rng.randint(0, 2) + (2 if ltype == "city" else 0)):
         npc_factory.spawn(conn, rng, archetype=rng.choice(["vagabondo", "eremita", "mercante", "guardia", "discepolo"]),
                           location_id=loc, tier=tier, tick=t)
@@ -335,8 +336,54 @@ def mystery_here(conn, player) -> dict | None:
     return m if m and not m["done"] else None
 
 
+def repopulate(conn, loc: int) -> int:
+    """Le terre di frontiera si ripopolano col tempo (Agg. 55): dopo che le hai ripulite, in qualche
+    giorno tornano creature del loro anello. Prima restavano vuote e si cacciavano solo prede facili."""
+    from engine.systems import ascension, calibration
+    ring = ring_of(conn, loc)
+    if not ring:
+        return 0
+    lt = conn.execute("SELECT location_type FROM locations WHERE id=?;", (loc,)).fetchone()
+    if not lt or lt["location_type"] == "city":
+        return 0
+    alive = conn.execute("SELECT COUNT(*) n FROM npcs WHERE location_id=? AND status='alive' AND kind<>'human';",
+                         (loc,)).fetchone()["n"]
+    if alive >= 2:
+        return 0
+    day = tick_mod.get_tick(conn) // 120
+    marks = state.get_json(conn, "frontier_respawn", {}) or {}
+    if day - int(marks.get(str(loc), -999)) < calibration.FRONTIER_RESPAWN_DAYS:
+        return 0
+    marks[str(loc)] = day
+    state.set_json(conn, "frontier_respawn", marks)
+    from engine.generators import creature_gen
+    tier = ring_tier(ascension.layer_of_location(conn, loc), ring)
+    rng = random.Random(day * 131 + loc)
+    n = rng.randint(2, 3)
+    for _ in range(n):
+        nid = creature_gen._spawn_one(conn, rng, rng.choice(["beast", "beast", "demon", "spirit"]), loc, tier, tier + 1)
+        _fit_fauna(conn, rng, nid, tier)
+    return n
+
+
+def _fit_fauna(conn, rng, nid: int, ring_t: int) -> None:
+    """Le creature delle terre del TUO livello restano una sfida: forza tra FAUNA_BAND della tua
+    (le terre più vicine, sotto il tuo livello, restano facili: lì si caccia per raccogliere)."""
+    from engine.systems import calibration, pursuers
+    from engine.simulation import cultivation
+    pt = cultivation.realm_tier(conn, "player", 1) or 1
+    if ring_t < pt - 1:
+        return
+    lo, hi = calibration.FAUNA_BAND
+    try:
+        pursuers.fit(conn, 1, nid, "fauna", target=rng.uniform(lo, hi))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def on_arrival(conn, player) -> str | None:
     from engine.systems import encounters
+    repopulate(conn, player.location_id)
     m = mystery_here(conn, player)
     if not m or encounters.pending(conn):
         return None
