@@ -2385,3 +2385,49 @@ accende un segno, e dopo il tempo giusto nasce la trama successiva con gli stess
   - un segno ricorda i personaggi coinvolti.
 - **Un test gioca ogni trama** dall'inizio alla fine.
 
+## Aggiornamento 59 — La difficoltà, «La tua Via», trame che non si ripetono
+
+### La difficoltà (`engine/systems/calibration.py`)
+
+Tre livelli costruiti sulle manopole che c'erano già: agguati, inseguitori, rischio di morte, fauna.
+- **Sereno**: i valori dell'Aggiornamento 58. Circa una morte ogni 1000 giorni.
+- **Normale**: inseguitori fino a ×1,15–1,2 la tua forza, agguati più frequenti, fauna più forte.
+  Circa una morte ogni 200 giorni.
+- **Spietato**: inseguitori fino a ×1,35, agguati quasi ogni giorno nelle fasi alte, sconfitte più
+  letali. Circa una morte ogni 100 giorni, e la salita è molto più lenta.
+
+Le cifre vengono da simulazioni di 400 giorni con le quattro origini.
+
+Come si sceglie e si cambia:
+- alla creazione, nella finestra della nuova vita;
+- in fondo alla colonna di sinistra;
+- con il comando `difficolta sereno|normale|spietato`.
+
+La scelta resta anche dopo la rinascita. Le partite già iniziate partono da **Normale**.
+
+### Un pannello solo: «☯ La tua Via» (`engine/systems/via_menu.py`)
+
+Sette pulsanti della barra diventano uno solo, con **otto schede**:
+- Coltivazione;
+- Corpo: il corpo leggendario, i suoi poteri, il Corpo Supremo, cuore e tossine;
+- Sangue;
+- Attributi;
+- Tecniche;
+- Dao profondi;
+- Spiriti;
+- Forza.
+
+Il pannello ricorda l'ultima scheda aperta. Il comando è `via <scheda>`. I vecchi comandi
+(`sangue`, `tecniche`, `forza`…) continuano a funzionare e nella dashboard aprono la scheda giusta.
+Aggiungere una scheda è una riga in `TABS`.
+
+### Trame che non si raccontano due volte uguali
+
+- **Varianti di testo** (`engine/systems/intrigue_variants.py`): due versioni in più per l'atto
+  d'apertura di 14 trame. Il motore ne sceglie una per ogni trama, sempre la stessa se rileggi la
+  scena, diversa in una partita nuova. Aggiungerne altre è solo scrivere testo.
+- **Il mondo entra nella scena**: il primo atto si apre con una riga sulla stagione. Ci sono anche
+  i segnaposto nuovi `{stagione}`, `{quando}` e `{atmo}`.
+- Anche il testo di un atto, un testo «a pochi indizi» o un ramo può essere una lista di varianti.
+
+Test: `tests/test_agg59.py` (8). Suite totale: **646 passati**.

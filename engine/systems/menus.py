@@ -25,6 +25,8 @@ avanzamento, e le AZIONI che puoi fare da lì. Le stesse strutture vengono mostr
   asta            i lotti della casa d'aste, con le offerte pronte
   ricette         le ricette di tutte le arti che conosci
   bacheca         missioni della setta, inviti delle sette superiori, tecniche segrete
+  via             LA TUA VIA: coltivazione, corpo, sangue, attributi, tecniche, Dao profondi, spiriti,
+                  forza — un pannello a schede ('via sangue'); i menu singoli restano
 """
 
 from __future__ import annotations
@@ -78,10 +80,13 @@ NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi",
          "tecniche": "Tecniche", "sangue": "Sangue", "rendite": "Rendite",
          "profondi": "Dao profondi", "spiriti": "Spiriti del Dao", "attributi": "Attributi",
          "mercato": "Mercato", "asta": "Casa d'aste", "ricette": "Ricette", "bacheca": "Bacheca",
-         "forza": "La tua forza"}
+         "forza": "La tua forza", "via": "La tua Via"}
 
 
 def build(conn, player, key: str) -> dict:
+    if key == "via" or key.startswith("via:"):            # il pannello unico della crescita, a schede
+        from engine.systems import via_menu
+        return via_menu.build(conn, player, key)
     return _builders()[key](conn, player)
 
 

@@ -259,15 +259,44 @@ def candidates(conn, player, rng: random.Random) -> list[tuple[float, str, dict]
 # Gli atti
 # ============================================================
 
+def _pick(v, seed: str):
+    """Una variante fra tante, sempre la stessa per la stessa trama e lo stesso atto."""
+    if isinstance(v, (list, tuple)):
+        import zlib
+        return v[zlib.crc32(seed.encode()) % len(v)] if v else ""
+    return v
+
+
+def _world(conn, player, it: dict, f: dict) -> None:
+    """I segnaposto del mondo: {stagione}, {quando} (l'ora a parole), {atmo} (una frase sulla stagione)."""
+    from engine.narrative import varia
+    t = tick_mod.get_tick(conn)
+    r = conn.execute("SELECT location_type FROM locations WHERE id=?;", (player.location_id,)).fetchone()
+    rng = random.Random(it["id"] * 7919 + it["act"] * 31 + t // 120)
+    f["stagione"] = varia.season(t)
+    ctx = varia.ctx_for(t, r["location_type"] if r else None)
+    f["quando"] = varia._choose("quando", ctx["quando"], rng)
+    a = varia._choose("stagione_breve", ctx["stagione_breve"], rng).strip()   # la stagione: non litiga con «a mezzanotte»
+    a = a[:1].upper() + a[1:]
+    f["atmo"] = a if a.endswith((".", "!", "?", "…")) else a + "."
+
+
 def _act_scene(conn, player, it: dict, tpl: dict) -> dict:
     act = tpl["acts"][it["act"]]
     f = _names(conn, it, player)
-    text = act["text"]
+    _world(conn, player, it, f)
+    seed = f"{it['id']}:{it['act']}"
+    from engine.systems import intrigue_variants
+    base = act["text"]
+    alts = intrigue_variants.VARIANTS.get(tpl["key"], {}).get(it["act"], [])
+    text = _pick(([base] if isinstance(base, str) else list(base)) + list(alts), seed)
     if act.get("text_low") and it.get("clues", 0) < 2:
-        text = act["text_low"]
+        text = _pick(act["text_low"], seed)
     for br in it.get("branches", []):
         if br in (act.get("text_branch") or {}):
-            text = act["text_branch"][br]
+            text = _pick(act["text_branch"][br], seed)
+    if it["act"] == 0 and "{atmo}" not in text and not tpl.get("no_atmo"):
+        text = "{atmo} " + text                     # il mondo in cui accade: ora, tempo, stagione
     choices = []
     for ch in act["choices"]:
         if ch.get("need_clues") and it.get("clues", 0) < ch["need_clues"]:
@@ -339,8 +368,13 @@ def _auto_act(conn, player, it: dict, tpl: dict, act: dict) -> str:
     """Un atto che si racconta e si risolve da solo. Se ha dei finali, la trama si conclude col primo
     finale che corrisponde a ciò che sai (indizi) e alle strade prese (rami)."""
     f = _names(conn, it, player)
+    _world(conn, player, it, f)
+    from engine.systems import intrigue_variants
+    base = act.get("text", "")
+    alts = intrigue_variants.VARIANTS.get(tpl["key"], {}).get(it["act"], [])
+    text = _pick(([base] if isinstance(base, str) else list(base)) + list(alts), f"{it['id']}:{it['act']}")
     title = _fmt(tpl["title"], f)
-    lines = [f"✦ {title} — {act['title']} ✦", _fmt(act.get("text", ""), f)]
+    lines = [f"✦ {title} — {act['title']} ✦", _fmt(text, f)]
     if act.get("endings"):
         end = next((e for e in act["endings"] if _match(it, e)), act["endings"][-1])
         lines += _apply(conn, player, it, end.get("effects", {}), f)

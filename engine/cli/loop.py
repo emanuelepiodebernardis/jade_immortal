@@ -2355,6 +2355,8 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
     player = entities.get_player(conn)
     if player is None:
         return "Nessun giocatore trovato. DB non generato?"
+    from engine.systems import calibration as _cal
+    _cal.ensure(conn)                                 # la difficoltà della partita (sereno/normale/spietato)
 
     if cmd in ("quit", "exit"):
         return None

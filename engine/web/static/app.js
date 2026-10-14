@@ -130,12 +130,19 @@ function addCard(html) {
 const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite",
   "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu"];
 // i comandi che mostrano una lista da cui scegliere si aprono come menu cliccabili
+// LA TUA VIA: le schede della crescita in un pannello solo (l'ultima aperta si ricorda)
+const VIA_TABS = ["coltivazione", "corpo", "sangue", "attributi", "tecniche", "profondi", "spiriti", "forza"];
+let lastVia = "coltivazione";
+try { lastVia = localStorage.getItem("ji_via") || lastVia; } catch (e) { /* niente */ }
 const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: "asta", auction: "asta", recipes: "ricette",
   invitations: "bacheca", inviti: "bacheca", missioni: "bacheca", missions: "bacheca", techniques: "tecniche", skills: "tecniche" };
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
-  if (MENUS.includes(cmd.toLowerCase())) return loadTab("m:" + cmd.toLowerCase());   // i menu si aprono nel pannello
+  const lc = cmd.toLowerCase();
+  if (VIA_TABS.includes(lc)) return loadTab("m:via:" + lc);                              // la crescita: schede della Via
+  if (lc === "via" || lc.startsWith("via ")) return loadTab("m:via:" + (lc.split(" ")[1] || lastVia));
+  if (MENUS.includes(lc)) return loadTab("m:" + lc);   // i menu si aprono nel pannello
   if (AS_MENU[cmd.toLowerCase()]) return loadTab("m:" + AS_MENU[cmd.toLowerCase()]);
   busy = true;
   document.body.style.cursor = "progress";
@@ -156,7 +163,8 @@ async function run(cmd) {
 // Ordine di precedenza: i pulsanti fissi e i menu a sinistra, poi le tessere del luogo, poi la scena, il pannello di destra,
 // infine le azioni suggerite. Il registro (testo narrativo) non viene toccato.
 const KEY_ALIAS = { t: "train", allenati: "train", dormi: "sleep", market: "mercato", shop: "mercato", aste: "asta",
-  auction: "asta", recipes: "ricette", missioni: "bacheca", inviti: "bacheca", invitations: "bacheca", save: "salva" };
+  auction: "asta", recipes: "ricette", missioni: "bacheca", inviti: "bacheca", invitations: "bacheca", save: "salva",
+  coltivazione: "via", sangue: "via", attributi: "via", tecniche: "via", profondi: "via", spiriti: "via", forza: "via" };
 function actKey(el) {
   let k = (el.dataset.menu || el.dataset.cmd || "").trim().toLowerCase();
   return KEY_ALIAS[k] || k;
@@ -175,6 +183,7 @@ function dedupe() {
         if (el.closest(".attr") || el.closest(".choices")) return;          // +1 attributi e scelte delle scene: sempre
         const k = actKey(el);
         el.classList.remove("dup");
+        if (k === "via" && r === "#tabbody") return;                          // i collegamenti tra le schede della Via restano
         if (!k || /^\d+$/.test(k)) return;
         if (seen.has(k)) el.classList.add("dup"); else seen.add(k);
       });
@@ -381,7 +390,9 @@ async function loadTab(name) {
   const keep = tab === name;
   tab = name;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
-  document.querySelectorAll("[data-menu]").forEach((b) => b.classList.toggle("on", "m:" + b.dataset.menu === name));
+  if (name.startsWith("m:via:")) { lastVia = name.slice(6); try { localStorage.setItem("ji_via", lastVia); } catch (e) { /* niente */ } }
+  document.querySelectorAll("#actions [data-menu]").forEach((b) => b.classList.toggle("on",
+    "m:" + b.dataset.menu === name || (b.dataset.menu === "via" && name.startsWith("m:via:"))));
   const b = $("#tabbody");
   if (name.startsWith("m:")) {
     if (!keep) b.innerHTML = `<div class="empty">Carico…</div>`;
@@ -449,7 +460,8 @@ function msecHtml(s, full) {
 }
 function menuHtml(m) {
   if (m.errore) return `<div class="empty">${esc(m.errore)}</div>`;
-  let h = `<div class="card menuhead"><h3>${esc(m.title)}</h3>${m.sub.map((s) => `<div class="muted">${esc(s)}</div>`).join("")}</div>`;
+  const tabs = m.tabs ? `<div class="subtabs viatabs">` + m.tabs.map((t) => `<button class="chip ${t.on ? "on" : ""}" data-menu="${esc(t.key)}">${esc(t.label)}</button>`).join("") + `</div>` : "";
+  let h = tabs + `<div class="card menuhead"><h3>${esc(m.inner_title || m.title)}</h3>${m.sub.map((s) => `<div class="muted">${esc(s)}</div>`).join("")}</div>`;
   m.sections.slice(0, MENU_FULL).forEach((s) => { h += msecHtml(s, true); });
   const rest = m.sections.slice(MENU_FULL);
   if (rest.length) h += `<details class="card more mrest"><summary>Altre ${rest.length} voci</summary>` + rest.map((s) => msecHtml(s, false)).join("") + `</details>`;
@@ -745,6 +757,8 @@ function autoStart() {
 async function autoStop() { await api("/api/auto/stop", {}); }
 
 function renderAutoCfg(s) {
+  const d = $("#diff");
+  if (d && s.difficolta && document.activeElement !== d) d.value = s.difficolta;
   const c = s.auto || {};
   document.querySelectorAll("[data-auto]").forEach((el) => {
     const k = el.dataset.auto;
@@ -773,12 +787,13 @@ async function showCreation() {
     <fieldset><legend>Origine</legend>${choiceList("o", o.origini, "key", (x) => `<b>${esc(x.name)}</b> — ${esc(x.desc)}`)}</fieldset>
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
     <fieldset><legend>Rivali</legend>${choiceList("r", o.rivali, "key", (x) => esc(x.label), 1)}</fieldset>
+    ${o.difficolta ? `<fieldset><legend>Difficoltà</legend>${choiceList("df", o.difficolta, "key", (x) => esc(x.label), 1)}</fieldset>` : ""}
     <p><label>Nome <input id="nm" value="Viandante" maxlength="32"></label></p>
     <p><label><input type="checkbox" id="hc"> Modalità <b>Senza Ritorno</b>: la morte è definitiva, niente reincarnazione</label></p>
     <p><label><input type="checkbox" id="cb"> ✦ Affidati al Cielo: nasci con un <b>corpo leggendario</b> a caso (Caos Primordiale, Osso Supremo, Doppie Pupille, Vene Yin…)</label></p>
     <button class="primary" id="go-new">Comincia</button>`);
   $("#go-new").onclick = async () => {
-    const r = await api("/api/nuovo", { origine: val("o"), destino: val("d"), rivali: val("r"), nome: $("#nm").value, senza_ritorno: $("#hc").checked, corpo: $("#cb").checked });
+    const r = await api("/api/nuovo", { origine: val("o"), destino: val("d"), rivali: val("r"), nome: $("#nm").value, senza_ritorno: $("#hc").checked, corpo: $("#cb").checked, difficolta: val("df") || "" });
     closeModal(); addLog(r.log); await refresh();
   };
 }
@@ -860,7 +875,7 @@ document.addEventListener("click", async (ev) => {
   const tb = ev.target.closest("[data-tab]");
   if (tb) loadTab(tb.dataset.tab);
   const mb = ev.target.closest("[data-menu]");
-  if (mb) loadTab("m:" + mb.dataset.menu);
+  if (mb) loadTab("m:" + (mb.dataset.menu === "via" ? "via:" + lastVia : mb.dataset.menu));
 });
 document.addEventListener("change", (ev) => { if (ev.target.matches("[data-auto]")) autoSet(ev.target); });
 $("#cmdform").addEventListener("submit", (ev) => {
@@ -893,6 +908,7 @@ function setWide(on) {
 }
 try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
 $("#auto-go").onclick = autoStart;
+if ($("#diff")) $("#diff").onchange = (ev) => run(`difficolta ${ev.target.value}`);
 $("#sound").textContent = SOUND ? "🔊" : "🔈";
 $("#auto-stop").onclick = autoStop;
 

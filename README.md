@@ -44,8 +44,9 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
   legami, nemici, faide e debiti di vita), il **Libro** illustrato di tesori, bestie, sangue,
   reliquie e nemici (con i tuoi disegni nella cartella `immagini/`), il registro **filtrabile** e
   una **legenda** dei simboli;
-- i **menu** nella colonna di sinistra, raggruppati in *La Via* (Coltivazione, Attributi, Tecniche,
-  Dao profondi, Spiriti del Dao, Sangue), *Potere* (Setta, Dominio, Rendite, Dimora, Arti) e
+- i **menu** nella colonna di sinistra: **☯ La tua Via**, un pannello solo a schede per tutta la
+  crescita (Coltivazione, Corpo, Sangue, Attributi, Tecniche, Dao profondi, Spiriti, Forza; comando
+  `via sangue`…), poi *Potere* (Setta, Dominio, Rendite, Dimora, Arti) e
   *Mondo* (Eventi, Regni, Razze, Famiglia, Faide):
   ogni azione è un pulsante, e quelle non ancora possibili dicono cosa manca;
 - il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
@@ -224,6 +225,16 @@ Ispirati a *The Gamer* e *Solo Leveling*:
 Ogni Dao a «maestro» prende forma (Salamandra di Fiamma, Ondina, Silfide, Drago del Tuono,
 Tessitrice del Fato…). Cresce da Scintilla fino a Forma del Dharma, Antenato e oltre. Combatte al
 tuo fianco e allena il suo Dao ogni giorno (`spiriti`, `spiriti allena`).
+
+### La difficoltà
+Tre livelli, scelti alla creazione e cambiabili quando vuoi (in fondo alla colonna di sinistra, o
+`difficolta sereno|normale|spietato`):
+- **Sereno** — per goderti la storia: nelle simulazioni si muore circa una volta ogni 1000 giorni;
+- **Normale** — il mondo morde: circa una morte ogni 200 giorni, inseguitori e agguati alla pari;
+- **Spietato** — il genere senza sconti: circa una morte ogni 100 giorni, chi ti insegue può
+  superarti.
+
+Le manopole (agguati, inseguitori, rischio di morte, fauna) stanno in `engine/systems/calibration.py`.
 
 ### Chi ti insegue cresce con te
 Cacciatori, campioni, nemesi, arcinemico e vendicatori restano sempre a una forza vicina alla tua.

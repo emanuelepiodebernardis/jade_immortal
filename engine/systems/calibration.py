@@ -77,3 +77,92 @@ def ambush_ok(conn, player_id: int, tick: int) -> bool:
 def mark_ambush(conn, tick: int) -> None:
     from engine.systems import state
     state.set(conn, "ambush_day", str(tick // 120))
+
+
+# ================================================================================================
+# LA DIFFICOLTÀ (Aggiornamento 59) — tre preset sulle stesse manopole. I valori qui sopra sono
+# quelli di partenza; apply() li sostituisce con quelli del preset scelto per la partita.
+#
+#   sereno     si muore di rado (≈1 volta ogni 1000 giorni nelle simulazioni): per goderti la storia
+#   normale    il mondo morde (≈1 morte ogni 200-300 giorni): nemici alla pari più spesso
+#   spietato   il genere senza sconti: agguati frequenti, nemici più forti di te, la morte è vicina
+# ================================================================================================
+
+PRESETS = {
+    "sereno": {
+        "PURSUER_BANDS": {"cacciatore": (0.6, 0.95), "campione": (0.7, 1.0), "nemesi": (0.8, 1.1),
+                          "arcinemico": (0.8, 1.15), "vendicatore": (0.6, 0.95), "anziano": (0.8, None)},
+        "AMBUSH_GAP_DAYS": {"A": 4, "B": 3, "C": 3, "D": 2},
+        "THREAT_CHANCE": 0.12, "THREAT_MAX_RATIO": 1.4,
+        "LOSS_DEATH_CHANCE": 0.30, "WIPE_DEATH_CHANCE": 0.45, "AMBUSH_DEATH_MULT": 0.25,
+        "FAUNA_BAND": (0.45, 1.0),
+    },
+    "normale": {
+        "PURSUER_BANDS": {"cacciatore": (0.65, 1.0), "campione": (0.75, 1.05), "nemesi": (0.85, 1.15),
+                          "arcinemico": (0.85, 1.2), "vendicatore": (0.65, 1.0), "anziano": (0.85, None)},
+        "AMBUSH_GAP_DAYS": {"A": 3, "B": 3, "C": 2, "D": 2},
+        "THREAT_CHANCE": 0.16, "THREAT_MAX_RATIO": 1.5,
+        "LOSS_DEATH_CHANCE": 0.30, "WIPE_DEATH_CHANCE": 0.45, "AMBUSH_DEATH_MULT": 0.25,
+        "FAUNA_BAND": (0.5, 1.1),
+    },
+    "spietato": {
+        "PURSUER_BANDS": {"cacciatore": (0.75, 1.1), "campione": (0.85, 1.2), "nemesi": (0.95, 1.3),
+                          "arcinemico": (0.95, 1.35), "vendicatore": (0.75, 1.1), "anziano": (0.95, None)},
+        "AMBUSH_GAP_DAYS": {"A": 3, "B": 2, "C": 2, "D": 1},
+        "THREAT_CHANCE": 0.22, "THREAT_MAX_RATIO": 1.8,
+        "LOSS_DEATH_CHANCE": 0.40, "WIPE_DEATH_CHANCE": 0.55, "AMBUSH_DEATH_MULT": 0.4,
+        "FAUNA_BAND": (0.6, 1.2),
+    },
+}
+DIFFICULTY_LABEL = {"sereno": "Sereno", "normale": "Normale", "spietato": "Spietato"}
+DIFFICULTY_DESC = {
+    "sereno": "Per goderti la storia: si muore di rado, gli agguati sono pochi e chi ti insegue non ti supera.",
+    "normale": "Il mondo morde: nemici alla pari più spesso, agguati ogni pochi giorni, la morte è possibile.",
+    "spietato": "Il genere senza sconti: agguati frequenti, inseguitori più forti di te, ogni sconfitta può essere l'ultima.",
+}
+DEFAULT = "normale"
+_APPLIED = [None]
+
+
+def apply(name: str) -> str:
+    """Imposta le manopole del preset (in place: anche chi le ha importate vede i valori nuovi)."""
+    name = name if name in PRESETS else DEFAULT
+    g = globals()
+    for k, v in PRESETS[name].items():
+        if isinstance(g.get(k), dict):
+            g[k].clear()
+            g[k].update(v)
+        else:
+            g[k] = v
+    _APPLIED[0] = name
+    return name
+
+
+def current(conn) -> str:
+    from engine.systems import state
+    v = (state.get(conn, "difficolta") or "").lower()
+    return v if v in PRESETS else DEFAULT
+
+
+def ensure(conn) -> str:
+    """Prima di ogni comando: la partita usa il suo preset."""
+    name = current(conn)
+    if _APPLIED[0] != name:
+        apply(name)
+    return name
+
+
+def set_difficulty(conn, name: str) -> str:
+    from engine.systems import state
+    name = (name or "").strip().lower()
+    alias = {"facile": "sereno", "storia": "sereno", "medio": "normale", "difficile": "spietato", "duro": "spietato"}
+    name = alias.get(name, name)
+    if name not in PRESETS:
+        return ("Difficoltà:\n" + "\n".join(f"  {DIFFICULTY_LABEL[k]} — {DIFFICULTY_DESC[k]}" for k in PRESETS)
+                + f"\nOra: {DIFFICULTY_LABEL[current(conn)]}. Cambia con 'difficolta sereno|normale|spietato'.")
+    state.set(conn, "difficolta", name)
+    apply(name)
+    return f"Difficoltà: {DIFFICULTY_LABEL[name]}. {DIFFICULTY_DESC[name]}"
+
+
+apply(DEFAULT)

@@ -39,15 +39,7 @@
       <button data-cmd="raccogli" id="q-raccogli" title="Raccogli il bottino e assorbi essenze, nuclei, manuali e incensi">✋ Raccogli</button>
       <button data-cmd="tesori cura" title="Cura di tutti i tesori">✧ Cura tesori</button>
     </div>
-    <details class="grp" open><summary>☯ La Via</summary>
-      <button data-menu="coltivazione">☯ Coltivazione</button>
-      <button data-menu="attributi">🪟 Attributi <span class="badge" id="nav-punti" hidden></span></button>
-      <button data-menu="forza">⚖ La tua forza</button>
-      <button data-menu="tecniche">⚒ Tecniche</button>
-      <button data-menu="profondi">🌌 Dao profondi</button>
-      <button data-menu="spiriti">✺ Spiriti del Dao</button>
-      <button data-menu="sangue">🩸 Sangue</button>
-    </details>
+    <button data-menu="via" class="via-btn" title="Coltivazione, corpo, sangue, attributi, tecniche, Dao profondi, spiriti, forza — tutto in un pannello">☯ La tua Via <span class="badge" id="nav-punti" hidden></span></button>
     <details class="grp" open><summary>⛩ Potere</summary>
       <button data-menu="setta">⛩ Setta</button>
       <button data-menu="dominio">⛓ Dominio</button>
@@ -85,6 +77,9 @@
       <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora</label>
       <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label>
     </details>
+    <label class="diff" title="Quanto morde il mondo: agguati, inseguitori, rischio di morte">Difficoltà <select id="diff">
+      <option value="sereno">Sereno</option><option value="normale">Normale</option><option value="spietato">Spietato</option>
+    </select></label>
     <button data-cmd="salva" title="Salva la partita" class="save">💾 Salva</button>
   </nav>
 

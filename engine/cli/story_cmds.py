@@ -398,6 +398,12 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("sangue", "lignaggi", "bloodline", "bloodlines", "lignaggio"):
         from engine.systems import blood_menu
         return blood_menu.command(conn, player, arg)
+    if cmd in ("via", "latuavia"):
+        from engine.systems import via_menu
+        return via_menu.show(conn, player, arg)
+    if cmd in ("difficolta", "difficoltà", "difficulty"):
+        from engine.systems import calibration
+        return calibration.set_difficulty(conn, arg)
     if cmd in ("forza", "fonti", "bilancio"):
         from engine.systems import menus
         return menus.show(conn, player, "forza")

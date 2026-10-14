@@ -46,15 +46,18 @@ def phase() -> str:
 
 
 def creation_options(life_no: int = 1) -> dict:
-    from engine.systems import character, destinies
+    from engine.systems import character, destinies, calibration
     hand = destinies.draw_hand(random.Random(), life_no)
     return {"origini": [{"key": k, "name": o["name"], "desc": o["desc"]} for k, o in character.list_origins()],
             "destini": [{"key": k, "label": destinies.label(k)} for k in hand],
-            "rivali": [{"key": k, "label": f"{k.capitalize()} — {v[1]}"} for k, v in destinies.RIVAL_LEVELS.items()]}
+            "rivali": [{"key": k, "label": f"{k.capitalize()} — {v[1]}"} for k, v in destinies.RIVAL_LEVELS.items()],
+            "difficolta": [{"key": k, "label": f"{calibration.DIFFICULTY_LABEL[k]} — {calibration.DIFFICULTY_DESC[k]}"}
+                           for k in calibration.PRESETS]}
 
 
-def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = False, body: bool = False) -> str:
-    from engine.systems import character, destinies, constitutions, rebirth
+def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = False, body: bool = False,
+           difficulty: str = "") -> str:
+    from engine.systems import character, destinies, constitutions, rebirth, calibration
     name = " ".join((name or "Viandante").split())[:32] or "Viandante"
     with LOCK, transaction() as conn:
         if character.has_profile(conn):
@@ -66,6 +69,8 @@ def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = F
         conn.execute("UPDATE players SET name=? WHERE id=1;", (name,))
         if hardcore:
             rebirth.set_hardcore(conn, True)
+        if difficulty in calibration.PRESETS:
+            calibration.set_difficulty(conn, difficulty)
         lines = [f"Sei {name}. Hai scelto: {applied['name']}" + (f", destino «{d['name']}»." if d else ".")]
         lines += constitutions.roll_at_birth(conn, random.Random(), origin, forced=body)
         lines.append(character.describe_profile(conn))
@@ -321,6 +326,8 @@ def state_snapshot() -> dict:
         except Exception:                      # la dashboard non deve mai cadere per una tessera
             snap["azioni_luogo"], snap["rapidi"] = [], {}
         snap["punti"] = attributes.free(conn, p.id)
+        from engine.systems import calibration
+        snap["difficolta"] = calibration.current(conn)
     return snap
 
 
@@ -347,7 +354,7 @@ PANELS = {
 def menu_data(key: str) -> dict:
     """Un menu a sezioni (setta, arti, coltivazione, eventi, regni, famiglia, menu): guardarlo non cambia nulla."""
     from engine.systems import menus
-    if key not in menus.NAMES:
+    if key not in menus.NAMES and not key.startswith("via:"):
         return {"errore": f"menu sconosciuto: {key}"}
     with LOCK, transaction() as conn:
         p = entities.get_player(conn)

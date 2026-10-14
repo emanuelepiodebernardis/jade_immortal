@@ -93,7 +93,8 @@ body.wide #layout { grid-template-columns: 200px minmax(0, 1fr) minmax(520px, 56
 #actions details.auto .row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
 #actions details.auto input[type=number] { width: 60px; }
 #actions details.auto > button { width: 100%; margin: 3px 0; }
-#actions .save { margin-top: auto; }
+#actions .diff { margin-top: auto; display: flex; gap: 6px; align-items: center; font-size: .85em; opacity: .85; }
+#actions .diff select { flex: 1; }
 #actions hr { width: 100%; border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 #actions details { font-size: 13px; }
 #actions details label { margin: 4px 0; }
@@ -463,7 +464,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
   #actions { flex-direction: row; flex-wrap: wrap; overflow: visible; }
   #actions .quick { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
   #actions details.grp { flex: 1 1 160px; }
-  #actions .save { margin-top: 0; }
+  #actions .save, #actions .diff { margin-top: 0; }
   #center { min-height: 0; }
   #log { height: 55vh; flex: none; }
   #side { min-height: 0; }

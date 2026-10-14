@@ -181,7 +181,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/nuovo":
                 return self._json({"log": game.create(b.get("origine", "mortale"), b.get("destino", ""),
                                                       b.get("nome", ""), b.get("rivali", "normale"),
-                                                      bool(b.get("senza_ritorno")), bool(b.get("corpo")))})
+                                                      bool(b.get("senza_ritorno")), bool(b.get("corpo")),
+                                                      str(b.get("difficolta", "")))})
             if path == "/api/reincarnati":
                 return self._json(game.voluntary())
             if path == "/api/nuovo_mondo":
