@@ -52,7 +52,9 @@ def _bar(cur: float, mx: float, n: int = 20) -> str:
     return "█" * k + "·" * (n - k)
 
 
-def start(conn, player, arg: str) -> str:
+def start(conn, player, arg: str, arena: bool = False) -> str:
+    """arena=True: uno scontro d'arena (Torre, Gran Torneo, il discepolo nel demone del cuore): chi perde
+    viene fermato dai giudici, non muore."""
     from engine.cli import loop
     from engine.simulation import combat
     from engine.systems import encounters
@@ -76,7 +78,7 @@ def start(conn, player, arg: str) -> str:
          "hp_e": pd["vitality"] * sc, "emax": pd["vitality"] * sc, "round": 0, "charge_e": False,
          "focus": False, "cd": {}, "crit": False, "style": style, "adv": adv, "feint": False,
          "log": [f"⚔ DUELLO: tu contro {npc.name}."], "allies": _allies(conn, player, npc, pa, pd, sc),
-         "last": {}}
+         "last": {}, "arena": bool(arena)}
     _save(conn, d)
     intro = [f"Stile di {npc.name}: {STYLES[style][0]} — {STYLES[style][1]}"]
     if adv_txt:
@@ -393,6 +395,12 @@ def act(conn, player, arg: str) -> str:
     lines.append("  " + loop._enemy_line(d["name"], edmg, d["pmax"], ecrit, rng))
     if d["hp_p"] <= 0:
         state.delete(conn, KEY)
+        if d.get("arena"):
+            from engine.systems import dao_heart
+            lines.append(f"Cadi in ginocchio: lo scontro viene fermato prima del colpo di grazia. {d['name']} vince. "
+                         f"({d['round']} round)")
+            lines += dao_heart.adjust(conn, -2, "sconfitta")
+            return "\n".join(lines + _plot(conn, player, npc.id, "sconfitta"))
         out = loop._auto_end_player(conn, t, rng, player, npc, d["round"], lines)
         return "\n".join([out] + _plot(conn, player, npc.id, "sconfitta"))
     _save(conn, d)

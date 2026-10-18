@@ -452,6 +452,7 @@ function pilotHtml() {
     <label><input type="checkbox" data-auto="oggetti"> Usa pillole ed essenze</label>
     <label><input type="checkbox" data-auto="routine"> Faccende (stipendio, missioni, cura dei tesori)</label>
     <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora</label>
+    <label><input type="checkbox" data-auto="pietre"> Assorbi le pietre in eccesso</label>
     <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label></div>
     <div class="card sec"><b>⚖ Difficoltà</b><div class="muted small">Quanto morde il mondo: agguati, inseguitori, rischio di morte.</div>
     <select id="diff"><option value="sereno">Sereno</option><option value="normale">Normale</option><option value="spietato">Spietato</option><option value="immortale">Immortale (senza numeri né salvataggi manuali)</option></select></div>`;

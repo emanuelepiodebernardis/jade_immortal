@@ -32,6 +32,8 @@ from engine.systems import state
 
 HEART_KEY = "dao_heart"
 TOXIN_KEY = "pill_toxin"
+TOXIN_MAX = 300.0          # (Agg. 66) oltre, i meridiani non trattengono altro: le scorie si disperdono
+TOXIN_FLOOR = 0.3          # anche avvelenato, il Qi scorre almeno a un terzo
 PILL_STOP = 60.0           # da qui in su 'use all' e il pilota lasciano le pillole di coltivazione nello zaino
 DAILY_BASE, DAILY_FRAC = 1.5, 0.03       # smaltimento quotidiano: fisso + una quota di ciò che c'è
 RETREAT_BASE, RETREAT_FRAC = 5.0, 0.06   # in ritiro, per giorno
@@ -132,13 +134,13 @@ def on_cultivate(conn, t: int, rng: random.Random, player) -> list[str]:
 
 def toxin(conn) -> float:
     try:
-        return float(state.get(conn, TOXIN_KEY, "0") or 0)
+        return min(TOXIN_MAX, float(state.get(conn, TOXIN_KEY, "0") or 0))
     except ValueError:
         return 0.0
 
 
 def _set_toxin(conn, v: float) -> None:
-    state.set(conn, TOXIN_KEY, f"{max(0.0, v):.1f}")
+    state.set(conn, TOXIN_KEY, f"{min(TOXIN_MAX, max(0.0, v)):.1f}")
 
 
 def toxin_label(v: float) -> str:
@@ -157,7 +159,8 @@ def cultivation_mult(conn) -> tuple[float, str]:
     v = toxin(conn)
     if v < 10:
         return 1.0, ""
-    return 1.0 / (1.0 + (v - 10) / 60.0), f"tossine delle pillole ({toxin_label(v)})"
+    # (Agg. 66) un pavimento: prima a 1.200 tossine la coltivazione scendeva a ×0,05, una trappola senza uscita
+    return max(TOXIN_FLOOR, 1.0 / (1.0 + (v - 10) / 60.0)), f"tossine delle pillole ({toxin_label(v)})"
 
 
 def on_pill(conn, pid: int, potency: float) -> list[str]:

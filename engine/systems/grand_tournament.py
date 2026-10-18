@@ -88,7 +88,7 @@ def fight(conn, player) -> str:
     _save(conn, d)
     nm = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
     return (f"🏟 Gran Torneo dell'Ascesa — {ROUND_NAME[d['round']]}. Sull'arena sale {nm}, prodigio di un'altra "
-            "regione. Il pubblico trattiene il fiato.\n" + (duel.start(conn, player, nm) or ""))
+            "regione. Il pubblico trattiene il fiato.\n" + (duel.start(conn, player, nm, arena=True) or ""))
 
 
 def on_duel(conn, player, npc_id: int, outcome: str) -> list[str]:

@@ -35,6 +35,16 @@ def soft(m: float, cap: float) -> float:
     return math.exp(lc * math.tanh(math.log(m) / lc))
 
 
+def gifts(raw: float) -> float:
+    """I doni in combattimento: il tetto morbido, più una coda lenta (ogni raddoppio oltre il tetto
+    vale ancora un poco), così nessun dono nuovo diventa inutile."""
+    from engine.systems import calibration as cal
+    base = soft(raw, cal.GIFTS_ATK_CAP)
+    if raw > cal.GIFTS_ATK_CAP:
+        base *= 1.0 + cal.GIFTS_TAIL * math.log2(raw / cal.GIFTS_ATK_CAP)
+    return base
+
+
 def dao_amp(dao_power: float, vessel: float) -> float:
     """L'amplificatore dei Dao: 1 senza Dao, ~1,3 col vaso del regno pieno, poi sempre più piano
     verso DAO_AMP_MAX."""
@@ -66,7 +76,7 @@ class Tracker:
         from engine.systems import calibration as cal
         fx = self.fx
         raw = fx.p.atk_mult
-        fx.p.atk_mult = soft(raw, cal.GIFTS_ATK_CAP)
+        fx.p.atk_mult = gifts(raw)
         pr = fx.p.prof
         pr["extra_strikes"] = min(int(pr.get("extra_strikes", 0)), cal.MAX_EXTRA_STRIKES)
         fx.p.lethal_saves = min(int(fx.p.lethal_saves), cal.MAX_LETHAL_SAVES)
@@ -157,7 +167,8 @@ def menu_build(conn, player) -> dict:
         gb = [bar(f"{n} ×{v:.2f}", 100 * math.log(max(1.0, v)) / lt2 if lt2 > 0 else 0, "") for n, v in b["doni"]]
         u = b["ultimo"]
         secs.append(section("I doni in combattimento (ultimo scontro)", [
-            f"Tutti insieme: ×{b['doni_grezzi']:.2f}, con il tetto ×{b['doni_finali']:.2f} (massimo ×{b['tetto']:.1f}).",
+            f"Tutti insieme: ×{b['doni_grezzi']:.2f}, con il tetto ×{b['doni_finali']:.2f} (verso ×{b['tetto']:.1f}, "
+            "poi poco a poco).",
             f"Colpi in più {u['strikes']} · resurrezioni {u['saves']} · danni subiti −{int(100 * u['taken'])}% · "
             f"schivata {int(100 * u['evade'])}% · critici +{int(100 * u['crit'])}%"], [], gb, icon="⚔"))
     else:

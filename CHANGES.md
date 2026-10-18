@@ -2691,3 +2691,42 @@ Test: 2 nuovi. Suite totale: **675 passati**.
 - «Cosa fare ora» segnala il torneo aperto, l'orto maturo e il dantian vuoto.
 
 **Test:** `tests/test_agg65.py` (6 test). Suite totale: **681 passati**.
+
+---
+
+## Aggiornamento 66 — Calibrazione dopo la grande espansione
+
+Simulazioni di 1000 giorni per le quattro origini (Normale, stesso seme), con un giocatore che usa
+anche le novità (dantian, orto, torneo, torre, meditazioni, cloni, cavalcature). Prima e dopo.
+
+**Morti.** Da 25 a 13 in totale: in media una ogni ~300 giorni (era una ogni ~160). Le cause erano
+quasi tutte evitabili:
+- **Le arene uccidevano.** La Torre della Deificazione, il Gran Torneo e il duello con il discepolo
+  nel demone del cuore usavano il duello normale: perdere poteva voler dire morire. Ora sono
+  **arene**: chi cade viene fermato prima del colpo di grazia (cuore −2, nient'altro).
+- **Le faide della vita passata** tornavano a «scoprirti» dopo 90 giorni e cacciavano l'anima appena
+  rinata, al primo regno, con vendicatori del nono. Ora si spengono con la vita che le aveva accese.
+- **La tregua del Samsara.** Dopo la rinascita, per qualche giorno, niente agguati e nessuna sconfitta
+  uccide: Sereno 30 giorni, Normale 20, Spietato 12. In Spietato si moriva fino a quattro volte in
+  venti giorni; ora tra una morte e l'altra passano almeno tre settimane.
+
+**Tossine.** Un tetto (300) e un pavimento alla coltivazione (×0,30). Prima a 1.200 tossine la
+coltivazione scendeva a ×0,05: una trappola senza uscita (vale anche per i salvataggi vecchi).
+
+**Doni in combattimento.** Restano diretti verso ×3, ma ora con una coda lenta: +10% per ogni
+raddoppio oltre il tetto. Prima a ×20 grezzi un dono nuovo (il dantian, una cavalcatura) non
+spostava più nulla; ora conta ancora un poco, senza tornare all'esplosione.
+
+**Pietre spirituali: nessun taglio alle entrate.** Le rendite restano quelle di prima. In più si possono
+**assorbire per coltivare** (`pietre`, scheda *La Via → Coltivazione*):
+- una sessione costa 25 pietre per regno e +50% per ogni sessione in più nello stesso giorno;
+- vale circa due terzi di una coltivazione normale, senza tossine; massimo 10 sessioni al giorno;
+- allo strato più alto del regno (in attesa dello sfondamento o dell'ascensione) il Qi scende nel
+  Dao migliore: comprensione +1 ogni tre regni, per sessione;
+- il pilota lo fa da solo solo se glielo chiedi (`auto imposta pietre si`, casella nelle impostazioni
+  del pilota), e solo con ciò che supera una riserva di 500 pietre per regno.
+
+**Già misurato e lasciato così:** coltivazione (×3–5 grazie ai tetti morbidi), probabilità di
+sfondamento, Spietato (circa una morte ogni 80–100 giorni: è il genere senza sconti).
+
+**Test:** `tests/test_agg66.py` (8 test). Suite totale: **689 passati**.

@@ -173,7 +173,7 @@ def face(conn, player, which: str) -> str:
     conn.execute("UPDATE npcs SET location_id=? WHERE id=?;", (player.location_id, r["npc_id"]))
     state.set(conn, "disciple_demon_duel", str(r["npc_id"]))
     return (f"{r['name']} ti aspetta con gli occhi rossi e la voce di un altro. «Maestro… scappa.» "
-            "Vincilo, e risparmialo: solo così torna in sé.\n" + (duel.start(conn, player, r["name"]) or ""))
+            "Vincilo, e risparmialo: solo così torna in sé.\n" + (duel.start(conn, player, r["name"], arena=True) or ""))
 
 
 def on_duel(conn, player, npc_id: int, outcome: str) -> list[str]:

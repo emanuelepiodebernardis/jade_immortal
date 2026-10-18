@@ -415,6 +415,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("torneo", "gran_torneo", "granTorneo"):
         from engine.systems import grand_tournament
         return grand_tournament.command(conn, player, arg)
+    if cmd in ("pietre", "pietre_spirituali", "assorbi_pietre"):
+        from engine.systems import stone_qi
+        return stone_qi.command(conn, player, ("assorbi " + arg) if cmd == "assorbi_pietre" else arg)
     if cmd in ("dantian", "dan_tian"):
         from engine.systems import dantian
         return dantian.command(conn, player, arg)

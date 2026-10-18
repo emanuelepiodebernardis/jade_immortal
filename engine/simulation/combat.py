@@ -249,6 +249,10 @@ def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
     if loser[0] == "player" and dfn[0] == "player":
         from engine.systems import calibration as _cal
         death_prob *= _cal.AMBUSH_DEATH_MULT   # colto di sorpresa, il protagonista spesso riesce a fuggire ferito
+    if loser[0] == "player":
+        from engine.systems import calibration as _cal
+        if _cal.in_grace(conn):
+            death_prob = 0.0                   # l'anima appena rinata: il Samsara la protegge ancora
     died = rng.random() < death_prob
 
     _apply_outcome(conn, tick, rng, winner, loser, rounds, died, killing_crit,

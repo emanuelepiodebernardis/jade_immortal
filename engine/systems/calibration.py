@@ -45,7 +45,9 @@ FAUNA_BAND = (0.45, 1.0)          # le creature delle terre del tuo livello: tra
 
 # --- il bilancio della potenza (power_budget.py) ------------------------------------------------
 DAO_AMP_MAX = 2.5                 # i Dao moltiplicano l'attacco al massimo ×2,5 (prima senza tetto: ×6,7 in un salvataggio)
-GIFTS_ATK_CAP = 3.0               # tutti i doni in combattimento insieme: al massimo ×3
+GIFTS_ATK_CAP = 3.0               # tutti i doni in combattimento insieme: verso ×3 in fretta...
+GIFTS_TAIL = 0.10                 # ...poi +10% per ogni raddoppio oltre ×3 (Agg. 66): prima a ×20 grezzi un dono
+                                  # nuovo (il dantian, una cavalcatura) non spostava più nulla
 MAX_EXTRA_STRIKES = 3             # colpi in più per turno
 MAX_LETHAL_SAVES = 3              # resurrezioni per scontro
 MAX_DAMAGE_REDUCTION = 0.6        # danni subiti: al massimo −60%
@@ -64,10 +66,25 @@ def phase(tier: int) -> str:
     return "A" if tier <= 3 else "B" if tier <= 6 else "C" if tier <= 9 else "D"
 
 
+REBIRTH_GRACE_DAYS = 15           # (Agg. 66) i primi giorni di una vita nuova: niente agguati, e una sconfitta non uccide
+REBIRTH_KEY = "reborn_day"
+
+
+def in_grace(conn) -> bool:
+    """L'anima appena rinata è ancora avvolta dal Samsara. Prima, in Spietato, si moriva fino a quattro volte
+    in venti giorni al primo regno, in una spirale senza scampo."""
+    from engine.systems import state
+    from engine.core import tick as tick_mod
+    d = state.get_int(conn, REBIRTH_KEY, -9999)
+    return tick_mod.get_tick(conn) // 120 - d < REBIRTH_GRACE_DAYS
+
+
 def ambush_ok(conn, player_id: int, tick: int) -> bool:
     """Una sola imboscata ogni qualche giorno (secondo la fase): il mondo è pericoloso, non accanito."""
     from engine.systems import state
     from engine.simulation import cultivation
+    if in_grace(conn):
+        return False
     day = tick // 120
     last = state.get_int(conn, "ambush_day", -999)
     gap = AMBUSH_GAP_DAYS[phase(cultivation.realm_tier(conn, "player", player_id) or 1)]
@@ -95,7 +112,7 @@ PRESETS = {
         "AMBUSH_GAP_DAYS": {"A": 4, "B": 3, "C": 3, "D": 2},
         "THREAT_CHANCE": 0.12, "THREAT_MAX_RATIO": 1.4,
         "LOSS_DEATH_CHANCE": 0.30, "WIPE_DEATH_CHANCE": 0.45, "AMBUSH_DEATH_MULT": 0.25,
-        "FAUNA_BAND": (0.45, 1.0),
+        "FAUNA_BAND": (0.45, 1.0), "REBIRTH_GRACE_DAYS": 30,
     },
     "normale": {
         "PURSUER_BANDS": {"cacciatore": (0.65, 1.0), "campione": (0.75, 1.05), "nemesi": (0.85, 1.15),
@@ -103,7 +120,7 @@ PRESETS = {
         "AMBUSH_GAP_DAYS": {"A": 3, "B": 3, "C": 2, "D": 2},
         "THREAT_CHANCE": 0.16, "THREAT_MAX_RATIO": 1.5,
         "LOSS_DEATH_CHANCE": 0.30, "WIPE_DEATH_CHANCE": 0.45, "AMBUSH_DEATH_MULT": 0.25,
-        "FAUNA_BAND": (0.5, 1.1),
+        "FAUNA_BAND": (0.5, 1.1), "REBIRTH_GRACE_DAYS": 20,
     },
     "spietato": {
         "PURSUER_BANDS": {"cacciatore": (0.75, 1.1), "campione": (0.85, 1.2), "nemesi": (0.95, 1.3),
@@ -111,7 +128,7 @@ PRESETS = {
         "AMBUSH_GAP_DAYS": {"A": 3, "B": 2, "C": 2, "D": 1},
         "THREAT_CHANCE": 0.22, "THREAT_MAX_RATIO": 1.8,
         "LOSS_DEATH_CHANCE": 0.40, "WIPE_DEATH_CHANCE": 0.55, "AMBUSH_DEATH_MULT": 0.4,
-        "FAUNA_BAND": (0.6, 1.2),
+        "FAUNA_BAND": (0.6, 1.2), "REBIRTH_GRACE_DAYS": 12,
     },
 }
 # IMMORTALE (spunto: la modalità Immortale di Amazing Cultivation Simulator): le manopole di Spietato, ma

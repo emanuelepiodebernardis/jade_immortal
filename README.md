@@ -143,6 +143,8 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
 - **Dal meglio del genere** (Agg. 65): il dantian a incastri (`dantian`), continuare come erede alla morte,
   feng shui della dimora e giardino spirituale (`fengshui`, `orto`), modalità Immortale, filtro ricette,
   Gran Torneo dell'Ascesa ogni 90 giorni (`torneo`).
+- **Calibrazione** (Agg. 66): arene non mortali, tregua del Samsara dopo la rinascita, tetto alle tossine,
+  e le pietre spirituali si possono assorbire per coltivare (`pietre`).
 - Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.

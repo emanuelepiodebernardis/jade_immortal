@@ -96,7 +96,7 @@ def challenge(conn, player) -> str:
     nm = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()["name"]
     out.append(f"🗼 Sali al {floor}° piano della Torre della Deificazione. Ti aspetta {nm}. "
                f"(tentativo {d['tries']}/{TRIES} di oggi)")
-    return "\n".join(out) + "\n" + (duel.start(conn, player, nm) or "")
+    return "\n".join(out) + "\n" + (duel.start(conn, player, nm, arena=True) or "")
 
 
 def on_duel(conn, player, npc_id: int, outcome: str) -> list[str]:

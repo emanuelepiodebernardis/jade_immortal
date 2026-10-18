@@ -83,7 +83,8 @@ def build(conn, player, key: str) -> dict:
         inner = dict(inner)
         from engine.systems import soul_roam
         _s = list(inner.get("sections", []))
-        inner["sections"] = _s[:1] + [soul_roam.menu_section(conn, player)] + _s[1:] + [M.section(
+        from engine.systems import stone_qi
+        inner["sections"] = _s[:1] + [soul_roam.menu_section(conn, player), stone_qi.menu_section(conn, player)] + _s[1:] + [M.section(
             "Destini dello sfondamento", fl or ["A ogni nuovo regno il Cielo ti offre tre destini: ne scegli uno, "
                                               "per tutta la vita."], icon="✧")]
     m = M.menu("via", "La tua Via", sub=inner.get("sub"), sections=inner.get("sections"), foot=inner.get("foot", ""))

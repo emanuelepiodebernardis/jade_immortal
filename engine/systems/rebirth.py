@@ -520,8 +520,10 @@ def _purge_player(conn, pid: int) -> None:
     conn.execute("UPDATE npcs SET hunting=0 WHERE hunting=1;")
     conn.execute("UPDATE sect_wars SET status='lost' WHERE status='active';")
     try:                                             # chi giurava vendetta alla vita passata non ti riconosce
-        conn.execute("UPDATE feuds SET status='ignoto', knows=0, ready_day=ready_day+90 "
-                     "WHERE kind='faida' AND status IN ('giurata','in caccia');")
+        # (Agg. 66) prima tornavano a «scoprirti» dopo 90 giorni e cacciavano l'anima appena rinata, ancora
+        # debolissima: una spirale di morti. Ora la faida della vita passata si spegne con lei.
+        conn.execute("UPDATE feuds SET status='sopita', knows=0, note='vita passata' "
+                     "WHERE kind='faida' AND status IN ('ignoto','giurata','in caccia');")
     except Exception:
         pass
     try:                                             # i servi della vita passata tornano liberi
@@ -620,6 +622,10 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
         sects.grant_resource(conn, "pietre_spirituali", int(vol.get("pietre", 0)), player_id)
         lines.append(f"☸ Hai scelto tu di rinascere: porti con te {int(vol.get('pietre', 0))} pietre spirituali, e il "
                      f"ciclo del Samsara ti accompagna (coltivazione ×{samsara_cult_mult(conn)[0]:.2f}).")
+    from engine.systems import calibration as _cal, state as _st
+    _st.set(conn, _cal.REBIRTH_KEY, str(t // 120))
+    lines.append(f"Per {_cal.REBIRTH_GRACE_DAYS} giorni il Samsara ti avvolge ancora: niente agguati, e nessuna "
+                 "sconfitta potrà ucciderti.")
     from engine.systems import chronicle
     chronicle.add(conn, "rinascita", f"Una nuova vita comincia (la n.{n_next}): {origin['name']}"
                   + (" — scelta, non subita." if vol else "."))
