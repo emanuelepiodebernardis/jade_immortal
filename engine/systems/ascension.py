@@ -321,8 +321,10 @@ def ascend(conn, player, arg: str = "") -> str:
         if dest:
             _link(conn, player.location_id, dest)
             entities.move_player(conn, player.id, dest)
+            from engine.systems import heaven_bonds
             return "\n".join([f"Riapri la Porta Celeste e risali al {layer_name(target)}."] + lost + rise
-                              + arrive(conn, entities.get_player(conn, player.id), target))
+                              + arrive(conn, entities.get_player(conn, player.id), target)
+                              + heaven_bonds.on_ascend(conn, entities.get_player(conn, player.id), target))
     rng = random.Random(tick_mod.get_tick(conn) * 997 + target)
     dest = _generate_layer(conn, rng, target, tier)
     _link(conn, player.location_id, dest)
@@ -337,6 +339,8 @@ def ascend(conn, player, arg: str = "") -> str:
     title = f"Asceso al {layer_name(target)}"
     state.grant_title(conn, title)
     plane = arrive(conn, entities.get_player(conn, player.id), target)
+    from engine.systems import heaven_bonds                     # chi ti è legato ti seguirà
+    plane += heaven_bonds.on_ascend(conn, entities.get_player(conn, player.id), target)
     return (f"✦ Il cielo si squarcia. Una scala di luce ti solleva oltre le nuvole, oltre le stelle… ✦\n"
             + "\n".join(lost + rise) + ("\n" if lost or rise else "") +
             f"Sei giunto nel {layer_name(target)}. Il Qi qui è così denso che respirarlo è già coltivare "

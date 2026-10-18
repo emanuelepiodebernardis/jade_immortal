@@ -1306,6 +1306,8 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
         _cl += _fam.on_realm_up(conn)
         _cl += heaven_trib.on_realm_up(conn, t, random.Random(t * 17 + player.id), entities.get_player(conn),
                                        cultivation.realm_tier(conn, "player", player.id) or 1)
+        from engine.systems import breakthrough_fates as _btf      # tre destini tra cui scegliere
+        _cl += _btf.on_realm_up(conn, player, cultivation.realm_tier(conn, "player", player.id) or 1)
         if _cl:
             out += "\n" + "\n".join(_cl)
         # sfondare ATTIRA il castigo del Cielo se sfidi le sue leggi (Spazio/Tempo/Destino)
@@ -1940,6 +1942,12 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     from engine.systems import intrigues, soul_arcs, soul_artifacts
     lines += ["  " + ln for ln in intrigues.daily(conn, t, random.Random(t * 101 + day), player)]
     lines += ["  " + ln for ln in soul_artifacts.daily(conn, t, random.Random(t * 103 + day), player)]
+    from engine.systems import breakthrough_fates as _btf, disciple_life as _dl
+    lines += ["  " + ln for ln in _btf.daily(conn, t, random.Random(t * 109 + day), player)]
+    lines += ["  " + ln for ln in _dl.daily(conn, t, random.Random(t * 113 + day), player)]
+    from engine.systems import heaven_bonds as _hb, lower_world as _lw
+    lines += ["  " + ln for ln in _hb.daily(conn, t, random.Random(t * 127 + day), player)]
+    lines += ["  " + ln for ln in _lw.daily(conn, t, random.Random(t * 131 + day), player)]
     lines += ["  " + ln for ln in soul_arcs.daily(conn, t, random.Random(t * 107 + day), player)]   # i capitoli dei vasi
     from engine.systems import (mentor_ring, inner_space, clones, celestial_elements, family, divine_sense, gu,
                                 lost_legacy)

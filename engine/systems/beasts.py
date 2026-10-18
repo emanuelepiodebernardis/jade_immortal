@@ -310,7 +310,11 @@ def describe(conn, player) -> str:
 
 def combat_allies(conn, player_id: int, npc_id: int, fx) -> list[dict]:
     out = []
+    from engine.systems import state as _st
+    ride = _st.get_int(conn, "mount", 0)                # la bestia che cavalchi ti porta, non combatte da sola
     for pt in pets(conn, player_id):
+        if pt["npc_id"] == ride:
+            continue
         a = combat_ally(conn, player_id, npc_id, fx, pt)
         if a:
             out.append(a)

@@ -198,6 +198,15 @@ def events(conn, player) -> dict:
     _tr = intrigues.menu_section(conn, player)
     if _tr:
         secs.insert(0, _tr)
+    from engine.systems import deification_tower as _dt
+    _d = _dt.get(conn)
+    _day = tick_mod.get_tick(conn) // 120
+    _tries = _d["tries"] if _d["tries_day"] == _day else 0
+    secs.insert(0, section("Torre della Deificazione", [
+        f"Il tuo piano questa settimana: {_d['floor'] if _d['week'] == _day // _dt.WEEK else 0} (record {_d['best']}). "
+        f"Tentativi di oggi: {_tries}/{_dt.TRIES}. Ogni 5 piani un forziere; a fine settimana un premio per la classifica."],
+        [act("Sfida il guardiano del piano successivo", "torre sfida", _tries < _dt.TRIES, "tentativi finiti per oggi",
+             main=True), act("La lavagna della torre", "torre")], icon="🗼"))
     return menu("eventi", "✦ EVENTI DEL MONDO", ["Tutto ciò a cui puoi partecipare, con i comandi pronti."], secs)
 
 

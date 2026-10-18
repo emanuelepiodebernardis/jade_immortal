@@ -156,6 +156,8 @@ def _after(conn, player) -> list[str]:
     out += frontier.expand(conn, player)
     from engine.systems import supreme_body
     out += supreme_body.after_command(conn, player)
+    from engine.systems import breakthrough_fates
+    out += breakthrough_fates.after_command(conn, player)
     ch = story_cmds.story_tick(conn, player)
     if ch:
         out.append(ch)

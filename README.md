@@ -136,6 +136,10 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
   il Palazzo delle Anime che lo rapisce, un corpo nuovo; poi l'anello vuoto accoglie l'anima di un
   nemico caduto e la storia ricomincia), la **Pagoda delle Nove Prigioni**, lo **Stendardo delle
   Diecimila Anime**, il **Calderone della Fiamma Dormiente** e la **Perla dei Nove Sigilli**.
+- **Spunti da Immortal Taoists e Tale of Immortal** (Agg. 63): destini dello sfondamento (uno tra tre a
+  ogni regno), discepoli con tratti e demone del cuore (Potere → Discepoli), i legami che ti seguono in
+  Cielo, il mondo di sotto che ti prega (Mondo → Mondo di sotto), viaggio dell'anima e meditazioni con
+  le venti Note del Tao, cavalcature, Torre della Deificazione (in Eventi).
 - Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.

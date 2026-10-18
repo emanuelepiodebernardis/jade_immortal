@@ -37,6 +37,9 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
                    mentor_ring.cultivation_mult(conn), inner_space.cultivation_mult(conn),
                    celestial_elements.cultivation_mult(conn), lost_legacy.cultivation_mult(conn),
                    __import__("engine.systems.soul_artifacts", fromlist=["x"]).cultivation_mult(conn),
+                   __import__("engine.systems.breakthrough_fates", fromlist=["x"]).cultivation_mult(conn),
+                   __import__("engine.systems.lower_world", fromlist=["x"]).cultivation_mult(conn),
+                   __import__("engine.systems.soul_roam", fromlist=["x"]).cultivation_mult(conn),
                    _era(conn)):
         if m != 1.0:
             out.append((m, lbl))

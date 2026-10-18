@@ -55,7 +55,9 @@ def earned(conn, pid: int = 1) -> int:
     from engine.simulation import cultivation
     t = cultivation.realm_tier(conn, "player", pid) or 1
     from engine.systems import system_daily           # le missioni quotidiane del Sistema
-    return level(conn, pid) + 5 * (t - 1) + len(state.titles(conn)) // 5 + 3 + system_daily.bonus_points(conn)
+    from engine.systems import soul_roam                # le meditazioni del corpo
+    return (level(conn, pid) + 5 * (t - 1) + len(state.titles(conn)) // 5 + 3 + system_daily.bonus_points(conn)
+            + soul_roam.bonus_points(conn))
 
 
 def allocated(conn) -> dict:

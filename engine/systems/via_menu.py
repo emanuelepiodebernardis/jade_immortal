@@ -55,6 +55,11 @@ def _body(conn, player) -> dict:
         secs.append(M.section("Cuore e tossine", own, tox_act, icon="♥"))   # solo cuore e tossine: il corpo è già sopra
     except Exception:
         pass
+    from engine.systems import mounts, beasts
+    if beasts.pets(conn, player.id):
+        b = mounts.mounted(conn, player.id)
+        secs.append(M.section("La cavalcatura", [mounts.describe(conn, player)],
+                              [M.act("Smonta" if b else "Cavalca la tua bestia", "smonta" if b else "cavalca")], icon="🐎"))
     return M.menu("via:corpo", "Corpo", sections=secs)
 
 
@@ -68,6 +73,15 @@ def build(conn, player, key: str) -> dict:
                        soul_artifacts.menu_sections(conn, player))
     else:
         inner = _body(conn, player) if src is None else M._builders()[src](conn, player)
+    if tab == "coltivazione":
+        from engine.systems import breakthrough_fates
+        fl = breakthrough_fates.lines_for_menu(conn)
+        inner = dict(inner)
+        from engine.systems import soul_roam
+        _s = list(inner.get("sections", []))
+        inner["sections"] = _s[:1] + [soul_roam.menu_section(conn, player)] + _s[1:] + [M.section(
+            "Destini dello sfondamento", fl or ["A ogni nuovo regno il Cielo ti offre tre destini: ne scegli uno, "
+                                              "per tutta la vita."], icon="✧")]
     m = M.menu("via", "La tua Via", sub=inner.get("sub"), sections=inner.get("sections"), foot=inner.get("foot", ""))
     m["key"] = "via:" + tab
     m["tab"] = tab

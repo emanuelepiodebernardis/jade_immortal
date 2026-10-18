@@ -2570,3 +2570,64 @@ più rende. I vecchi compiti si convertono da soli: «lavora» diventa *arti*, �
 Comandi: `cloni`, `clone crea`, `clone dispiega`, `clone <compito> [n]`.
 
 Test: 3 nuovi in `tests/test_protagonist_features.py`. Suite totale: **664 passati**.
+
+## Aggiornamento 63 — Spunti da Immortal Taoists (e uno da Tale of Immortal)
+
+Tutto ciò che valeva la pena prendere da Immortal Taoists, adattato ai nostri sistemi. In più, i destini
+di sfondamento di Tale of Immortal.
+
+### Destini dello sfondamento (`breakthrough_fates.py`)
+A ogni nuovo regno il Cielo ti mostra tre destini: ne scegli uno, ed è tuo per tutta la vita.
+- **Cosa sono:** 28 destini (comuni, rari, epici, leggendari). Toccano coltivazione, attacco, danni
+  subiti, schivata, critici, colpi in più, colpi mortali evitati, sfondamenti, anni di vita e pietre.
+  Alcuni hanno un prezzo (il Patto con l'Abisso, il Voto dell'Asceta).
+- **Rarità:** più alto è il regno, più spesso compaiono quelli rari.
+- **Bilancio:** i doni in battaglia passano dal bilancio della potenza.
+- **Dove si vedono:** in *La tua Via → Coltivazione*, o col comando `fati`.
+
+### La vita dei discepoli (`disciple_life.py`, Potere → 🎓 Discepoli)
+- **Tratti:** ogni discepolo ne ha due (Diligente, Geniale, Leale, Fortunato, Mani d'Oro, Coraggioso;
+  Pigro, Ambizioso, Ingenuo, Fragile, Arrogante).
+- **Compiti:** come i cloni, ognuno fa una cosa al giorno: allena, missioni (merito e pietre), arti,
+  esplora.
+- **Lezione aperta:** una al giorno, a domande e risposte. Dà merito, i discepoli crescono, e a volte
+  capisci qualcosa anche tu.
+- **Demone del cuore:** ogni tanto un discepolo ci cade e smette di lavorare. Torna in sé solo se lo
+  vinci in duello e lo risparmi; se lo uccidi, lo perdi. Gli Ambiziosi rischiano il doppio; un
+  Ambizioso salvato due volte diventa Leale.
+
+### I legami ti seguono in Cielo (`heaven_bonds.py`)
+- **Chi ti segue:** quando ascendi, compagni, discepoli, maestro, fratelli giurati, compagna del Dao e
+  famiglia rimasti nel mondo di sotto ti raggiungono nei giorni successivi, uno alla volta. Arrivano
+  più forti, all'altezza del nuovo mondo.
+- **Il nemico:** un tuo nemico giurato morto può rinascere lassù, ricordarsi di te e darti la caccia.
+- **Comando:** `legami_cielo`.
+
+### Il mondo di sotto ti prega (`lower_world.py`, Mondo → 🙏 Mondo di sotto)
+Dopo l'ascensione:
+- **Preghiere:** arrivano dai mortali; esaudirle costa pietre o spirito e dà fede e karma.
+- **Predica:** una al giorno, dà fede e merito.
+- **Metti alla prova un mortale:** se è degno diventa il tuo erede e ogni giorno porta fede.
+- **Tempio:** sale di livello con la fede (coltivazione +2% per livello).
+- **Notizie:** a volte arrivano notizie della tua vecchia setta e dei tuoi nemici.
+
+### Viaggio dell'anima e meditazioni (`soul_roam.py`, La tua Via → Coltivazione)
+- **`vaga`:** dall'Anima Nascente l'anima esce dal corpo, da 3 a 6 volte al giorno (costa spirito).
+  Trova tesori ed erbe, incontra anime antiche che ti insegnano, ritrova Note del Tao. A volte torna
+  ferita: coltivazione −20% per due giorni.
+- **`meditazione mente` e `meditazione corpo`:** una al giorno ciascuna. La mente tempra lo spirito e
+  ogni 10 meditazioni ritrova una delle **20 Note del Tao**, frammenti della storia antica del mondo
+  (`note`). Il corpo, ogni 10 meditazioni, dà un punto attributo.
+
+### Cavalcature (`mounts.py`, La tua Via → Corpo)
+- **`cavalca` / `smonta`:** la bestia montata non combatte da sola ma ti porta: più attacco e meno danni
+  subiti, tanto più quanto è forte.
+- **Legame perfetto:** se il suo elemento è quello del tuo Dao più forte, il dono cresce della metà.
+
+### La Torre della Deificazione (`deification_tower.py`, in Eventi)
+- **I piani:** ogni piano ha un guardiano misurato su di te e un po' più forte del precedente. Tre
+  tentativi al giorno; ogni 5 piani un forziere.
+- **La settimana:** la torre si azzera ogni 7 giorni, con una lavagna contro i prodigi del mondo e un
+  premio di fine settimana secondo la posizione.
+
+Test: `tests/test_agg63.py` (9). Suite totale: **673 passati**.

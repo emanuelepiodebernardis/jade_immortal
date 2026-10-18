@@ -387,6 +387,9 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
     if eff.get("mentor_ring"):
         from engine.systems import mentor_ring
         lines += mentor_ring.awaken(conn, rng)
+    if eff.get("bt_fate"):                        # destini dello sfondamento
+        from engine.systems import breakthrough_fates
+        lines += breakthrough_fates.take(conn, t, rng, player, eff["bt_fate"])
     if eff.get("vaso"):                           # i vasi d'anima: pagoda, stendardo, calderone, perla
         from engine.systems import soul_artifacts
         lines += soul_artifacts.on_effect(conn, t, rng, player, eff["vaso"])

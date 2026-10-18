@@ -436,11 +436,19 @@ def finish(conn, player, kill: bool, seal: bool = False) -> str:
 
 def _plot(conn, player, npc_id: int, outcome: str) -> list[str]:
     """L'esito del duello torna alla trama che lo ha acceso (se c'è)."""
+    out = []
+    try:
+        from engine.systems import disciple_life
+        out += disciple_life.on_duel(conn, player, npc_id, outcome)      # il discepolo nel demone del cuore
+        from engine.systems import deification_tower
+        out += deification_tower.on_duel(conn, player, npc_id, outcome)  # i guardiani della Torre
+    except Exception:  # noqa: BLE001
+        pass
     try:
         from engine.systems import intrigues
-        return intrigues.on_duel(conn, player, npc_id, outcome)
+        return out + intrigues.on_duel(conn, player, npc_id, outcome)
     except Exception:  # noqa: BLE001
-        return []
+        return out
 
 
 def command(conn, player, arg: str) -> str:

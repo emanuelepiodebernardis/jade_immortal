@@ -128,7 +128,7 @@ function addCard(html) {
 
 // ---------------- comandi ----------------
 const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite",
-  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu", "cloni"];
+  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu", "cloni", "discepoli", "sotto"];
 // i comandi che mostrano una lista da cui scegliere si aprono come menu cliccabili
 // LA TUA VIA: le schede della crescita in un pannello solo (l'ultima aperta si ricorda)
 const VIA_TABS = ["coltivazione", "corpo", "sangue", "attributi", "tecniche", "profondi", "spiriti", "anime", "forza"];

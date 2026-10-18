@@ -403,6 +403,34 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("purifica", "depura", "purificati", "disintossica"):
         from engine.systems import dao_heart
         return dao_heart.purify_command(conn, player)
+    if cmd in ("preghiere", "tempio", "mondo_di_sotto", "sotto", "esaudisci", "esaudire", "ignora",
+               "predica", "sermone", "metti_alla_prova", "prova_mortale"):
+        from engine.systems import lower_world
+        return lower_world.command(conn, player, cmd, arg)
+    if cmd in ("cavalca", "monta", "cavalcatura"):
+        from engine.systems import mounts
+        return mounts.mount(conn, player, arg) if (arg.strip() or cmd != "cavalcatura") else mounts.describe(conn, player)
+    if cmd in ("smonta", "scendi_cavalcatura"):
+        from engine.systems import mounts
+        return mounts.dismount(conn, player)
+    if cmd in ("torre", "torre_deificazione", "deificazione"):
+        from engine.systems import deification_tower
+        return deification_tower.command(conn, player, arg)
+    if cmd in ("vaga", "viaggio_anima", "anima_vaga", "vagare"):
+        from engine.systems import soul_roam
+        return soul_roam.roam(conn, player)
+    if cmd in ("meditazione", "meditazioni"):
+        from engine.systems import soul_roam
+        return soul_roam.meditate(conn, player, arg)
+    if cmd in ("note", "note_del_tao", "notetao"):
+        from engine.systems import soul_roam
+        return soul_roam.notes_text(conn)
+    if cmd in ("legami_cielo", "ricongiungimenti"):
+        from engine.systems import heaven_bonds
+        return heaven_bonds.describe(conn, player)
+    if cmd in ("destini_sfondamento", "fati", "destinisfondamento"):
+        from engine.systems import breakthrough_fates
+        return breakthrough_fates.describe(conn, player)
     if cmd in ("vasi", "artefatti", "anime", "vasi_anima"):
         from engine.systems import soul_artifacts
         return soul_artifacts.overview(conn, player)
@@ -451,9 +479,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("classifica", "classifiche", "ranking", "rankings", "lista"):
         from engine.systems import rankings
         return rankings.describe(conn, player, arg)
-    if cmd in ("discepoli", "disciples"):
-        from engine.systems import own_sect
-        return own_sect.describe_disciples(conn, player)
+    if cmd in ("discepoli", "disciples", "discepolo"):
+        from engine.systems import disciple_life
+        return disciple_life.command(conn, player, arg)
     if cmd in ("fonda", "found"):
         from engine.systems import own_sect
         return own_sect.found(conn, tick.get_tick(conn), player, arg)
@@ -627,8 +655,9 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     out += dao_superiori.check_awakenings(conn, player.id)
     out += system_daily.check(conn, player)
     out += frontier.expand(conn, player)
-    from engine.systems import supreme_body
+    from engine.systems import supreme_body, breakthrough_fates
     out += supreme_body.after_command(conn, player)
+    out += breakthrough_fates.after_command(conn, player)
     ch = story_tick(conn, player)
     if ch:
         out.append(ch)
