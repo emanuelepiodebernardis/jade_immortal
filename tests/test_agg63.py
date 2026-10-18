@@ -170,3 +170,20 @@ def test_tower(conn):
     res = tower.on_duel(conn, p, g, "risparmiato")
     assert "conquistato il 1° piano" in res[0] and tower.get(conn)["floor"] == 1
     assert "lavagna" in tower.describe(conn, p)
+
+
+def test_attention_items_and_badges(conn):
+    from engine.systems import attention
+    p = _p(conn)
+    its = attention.items(conn, p)
+    assert its and all({"icon", "title", "why", "cmd", "palace", "tab", "hot"} <= set(x) for x in its)
+    assert any(x["cmd"] == "meditazione mente" for x in its)
+    b = attention.badges(its)
+    assert sum(v for k, v in b.items() if ":" not in k) == len(its)
+    hot = [x["hot"] for x in its]
+    assert hot == sorted(hot, reverse=True)                      # le urgenti prima
+
+
+def test_snapshot_has_todo():
+    from engine.web import game
+    assert "attention" in open(game.__file__).read()

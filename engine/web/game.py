@@ -330,6 +330,9 @@ def state_snapshot() -> dict:
         snap["punti"] = attributes.free(conn, p.id)
         from engine.systems import calibration
         snap["difficolta"] = calibration.current(conn)
+        from engine.systems import attention                    # pallini rossi e «Cosa fare ora»
+        snap["todo"] = attention.items(conn, p)
+        snap["badges"] = attention.badges(snap["todo"])
     return snap
 
 

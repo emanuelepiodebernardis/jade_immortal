@@ -28,65 +28,40 @@
 </header>
 
 <main id="layout">
-  <nav id="actions" aria-label="Azioni e menu">
-    <div class="quick" id="quick">
-      <button data-cmd="train" title="Qi, Dao e arte insieme (t)">☯ Allenati</button>
-      <button data-cmd="tempra" id="q-tempra" title="Tempra lo spirito: la terza via">🌀 Tempra</button>
-      <button data-cmd="spiriti allena" id="q-spiriti" title="Allenati con gli Spiriti del Dao" hidden>✺ Spiriti</button>
-      <button data-cmd="sleep" id="q-sonno" title="Dormi fino all'alba: recuperi Qi e spirito">☾ Dormi</button>
-      <button data-cmd="breakthrough" id="q-sfonda" title="Tenta lo sfondamento">⇑ Sfonda</button>
-      <button data-cmd="tribulation" id="q-trib" title="Una tribolazione divina ti aspetta" hidden>⚡ Tribolazione</button>
-      <button data-cmd="raccogli" id="q-raccogli" title="Raccogli il bottino e assorbi essenze, nuclei, manuali e incensi">✋ Raccogli</button>
-      <button data-cmd="tesori cura" title="Cura di tutti i tesori">✧ Cura tesori</button>
-    </div>
-    <button data-menu="via" class="via-btn" title="Coltivazione, corpo, sangue, attributi, tecniche, Dao profondi, spiriti, forza — tutto in un pannello">☯ La tua Via <span class="badge" id="nav-punti" hidden></span></button>
-    <details class="grp" open><summary>⛩ Potere</summary>
-      <button data-menu="setta">⛩ Setta</button>
-      <button data-menu="cloni" title="Crea i cloni e dai a ognuno un compito">☯ Cloni</button>
-      <button data-menu="discepoli" title="Tratti, compiti, lezioni e demone del cuore">🎓 Discepoli</button>
-      <button data-menu="dominio">⛓ Dominio</button>
-      <button data-menu="rendite">💰 Rendite</button>
-      <button data-menu="dimora">⌂ Dimora</button>
-      <button data-menu="arti">⚗ Arti</button>
-      <button data-menu="ricette">📜 Ricette</button>
-      <button data-menu="bacheca">📋 Bacheca</button>
-    </details>
-    <details class="grp" open><summary>🌍 Mondo</summary>
-      <button data-menu="mercato">🏪 Mercato</button>
-      <button data-menu="asta">⚖ Casa d'aste</button>
-      <button data-menu="eventi">✦ Eventi</button>
-      <button data-menu="regni">👑 Regni</button>
-      <button data-menu="razze">🐉 Razze</button>
-      <button data-menu="famiglia">🏠 Famiglia</button>
-      <button data-menu="faide">⚔ Faide</button>
-      <button data-menu="sotto" title="Dopo l'ascensione: il tempio, le preghiere dei mortali">🙏 Mondo di sotto</button>
-    </details>
-    <details class="grp auto"><summary>✧ Pilota automatico</summary>
-      <div class="row"><input id="auto-giorni" type="number" min="1" max="60" value="7"><span>giorni</span></div>
-      <button id="auto-go" class="primary">▶ Avvia</button>
-      <button id="auto-stop" hidden>■ Interrompi</button>
-      <label>Bersagli <select data-auto="bersagli">
-        <option>nessuno</option><option>bestie</option><option>ricercati</option><option>deboli</option><option>tutti</option>
-      </select></label>
-      <label>Condotta <select data-auto="condotta">
-        <option>virtuosa</option><option>prudente</option><option>opportunista</option><option>spietata</option>
-      </select></label>
-      <label><input type="checkbox" data-auto="sfonda"> Sfonda da solo</label>
-      <label>Rischio <input type="number" min="0" max="100" data-auto="rischio"> %</label>
-      <label><input type="checkbox" data-auto="assorbi"> Divora i caduti</label>
-      <label><input type="checkbox" data-auto="loot"> Raccogli il bottino</label>
-      <label><input type="checkbox" data-auto="oggetti"> Usa pillole ed essenze</label>
-      <label><input type="checkbox" data-auto="routine"> Faccende (stipendio, missioni)</label>
-      <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora</label>
-      <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label>
-    </details>
-    <label class="diff" title="Quanto morde il mondo: agguati, inseguitori, rischio di morte">Difficoltà <select id="diff">
-      <option value="sereno">Sereno</option><option value="normale">Normale</option><option value="spietato">Spietato</option>
-    </select></label>
-    <button data-cmd="salva" title="Salva la partita" class="save">💾 Salva</button>
+  <nav id="rail" aria-label="I palazzi">
+    <button data-palace="oggi" title="Cosa fare oggi, le mete, il calendario"><span class="ic">🏯</span><span class="lb">Oggi</span><span class="dot" hidden></span></button>
+    <button data-palace="via" title="La tua Via: coltivazione, corpo, sangue, Dao, tecniche, anime, forza"><span class="ic">☯</span><span class="lb">La Via</span><span class="dot" hidden></span></button>
+    <button data-palace="setta" title="Setta, bacheca, arti, dimora, rendite, dominio"><span class="ic">⛩</span><span class="lb">Setta</span><span class="dot" hidden></span></button>
+    <button data-palace="seguaci" title="Cloni, discepoli, legami, famiglia, faide"><span class="ic">👥</span><span class="lb">Seguaci</span><span class="dot" hidden></span></button>
+    <button data-palace="mondo" title="Mappa, mercato, aste, regni, razze, mondo di sotto"><span class="ic">🌍</span><span class="lb">Mondo</span><span class="dot" hidden></span></button>
+    <button data-palace="tesori" title="Zaino e Libro"><span class="ic">🎒</span><span class="lb">Tesori</span><span class="dot" hidden></span></button>
+    <button data-palace="storia" title="Cronaca, trama, mondo"><span class="ic">📜</span><span class="lb">Storia</span><span class="dot" hidden></span></button>
+    <button data-palace="opzioni" class="opt" title="Pilota automatico, difficoltà, salvataggi"><span class="ic">⚙</span><span class="lb">Opzioni</span></button>
+    <button data-cmd="salva" class="save" title="Salva la partita"><span class="ic">💾</span><span class="lb">Salva</span></button>
   </nav>
 
   <section id="center">
+    <div id="altar" class="card">
+      <div class="ring" id="ring" title="Esperienza dello strato"><svg viewBox="0 0 120 120"><circle class="rb" cx="60" cy="60" r="52"/><circle class="rf" id="ring-f" cx="60" cy="60" r="52"/></svg>
+        <div class="rt"><b id="ring-pct">—</b><small id="ring-sub">strato</small></div></div>
+      <div class="altar-main">
+        <div class="altar-head"><b id="altar-realm">—</b><span class="muted" id="altar-where"></span></div>
+        <div class="altar-acts" id="quick">
+          <button class="primary big" id="primary" data-cmd="train">☯ Allenati</button>
+          <button data-cmd="breakthrough" id="q-sfonda" title="Tenta lo sfondamento">⇑ Sfonda</button>
+          <button data-cmd="tribulation" id="q-trib" title="Una tribolazione divina ti aspetta" hidden>⚡ Tribolazione</button>
+          <button data-cmd="tempra" id="q-tempra" title="Tempra lo spirito: la terza via">🌀 Tempra</button>
+          <button data-cmd="spiriti allena" id="q-spiriti" title="Allenati con gli Spiriti del Dao" hidden>✺ Spiriti</button>
+          <button data-cmd="sleep" id="q-sonno" title="Dormi fino all'alba: recuperi Qi e spirito">☾ Dormi</button>
+          <button data-cmd="raccogli" id="q-raccogli" title="Raccogli il bottino e assorbi essenze, nuclei, manuali e incensi">✋ Raccogli</button>
+          <button data-cmd="tesori cura" id="q-cura" title="Nutre anello, pagoda, calderone, semina lo spazio interiore">✧ Cura tesori</button>
+        </div>
+        <div class="altar-auto"><span>✧ Pilota</span><input id="auto-giorni" type="number" min="1" max="60" value="7" title="giorni"><span class="muted">giorni</span>
+          <button id="auto-go">▶ Avvia</button><button id="auto-stop" hidden>■ Interrompi</button>
+          <button class="link" data-palace="opzioni" title="Impostazioni del pilota">impostazioni</button></div>
+      </div>
+    </div>
+    <div id="todo"></div>
     <div id="place" class="card"></div>
     <div id="logfilter" role="toolbar" aria-label="Filtra il registro">
       <button class="chip on" data-logf="tutto">Tutto</button><button class="chip" data-logf="combattimento">⚔ Combattimento</button><button class="chip" data-logf="coltivazione">☯ Coltivazione</button><button class="chip" data-logf="legami">♥ Legami</button><button class="chip" data-logf="setta">⛩ Setta</button><button class="chip" data-logf="mondo">✦ Mondo</button>
@@ -101,18 +76,9 @@
   </section>
 
   <aside id="side">
-    <div id="tabs" role="tablist">
-      <button data-tab="mete" class="on" title="Mete, obiettivi e missioni">🎯 Mete</button>
-      <button data-tab="personaggio" title="Finestra di stato, Dao, radici, corpo, sangue, crescita">🪟 Eroe</button>
-      <button data-tab="mappa" title="La mappa">🗺 Mappa</button>
-      <button data-tab="persone" title="Alleati, nemici e la rete delle relazioni">♥ Legami</button>
-      <button data-tab="tesori" title="Zaino e Libro">🎒 Tesori</button>
-      <button data-tab="storia" title="Cronaca, trama e mondo">📜 Storia</button>
-      <button data-tab="aiuto" title="Salvataggi, rinascita, legenda">⚙</button>
-      <button id="sound" title="Suoni discreti: sì / no">🔊</button>
-      <button id="theme" title="Tema: automatico, chiaro, scuro">◐</button>
-      <button id="widen" title="Allarga o restringi il pannello">⤢</button>
-    </div>
+    <div id="phead"><b id="ptitle">Oggi</b>
+      <span class="ptools"><button id="sound" title="Suoni discreti: sì / no">🔊</button><button id="theme" title="Tema: automatico, chiaro, scuro">◐</button><button id="widen" title="Allarga o restringi il pannello">⤢</button></span></div>
+    <div id="subnav" class="subtabs"></div>
     <div id="tabbody"></div>
   </aside>
 </main>

@@ -2631,3 +2631,35 @@ Dopo l'ascensione:
   premio di fine settimana secondo la posizione.
 
 Test: `tests/test_agg63.py` (9). Suite totale: **673 passati**.
+
+## Aggiornamento 64 — Una dashboard a palazzi
+
+Riorganizzata sul modello degli idle del genere (Immortal Taoists, Overmortal, Cultivation Core
+Incremental): pochi ingressi grandi, un tasto principale, i pallini rossi su ciò che aspetta.
+
+- **Otto palazzi** al posto dei ventitré pulsanti e menu della colonna sinistra e delle sette schede di
+  destra. Ognuno apre le sue schede nel pannello a destra:
+  - **Oggi:** cosa fare, mete, eventi;
+  - **La Via:** eroe e le nove schede della crescita;
+  - **Setta:** setta, bacheca, arti, ricette, dimora, rendite, dominio;
+  - **Seguaci:** cloni, discepoli, legami, famiglia, faide;
+  - **Mondo:** mappa, mercato, aste, regni, razze, mondo di sotto;
+  - **Tesori**, **Storia**;
+  - **Opzioni:** pilota automatico, difficoltà, salvataggi.
+  Il pannello ricorda l'ultima scheda aperta di ogni palazzo.
+- **Pallini rossi** (`engine/systems/attention.py`). Un'unica lista raccoglie ciò che aspetta: punti
+  attributo, sfondamento pronto, tribolazione, Giudizio, tossine alte, destini da scegliere, capitoli
+  dei vasi, un'anima da accogliere, cloni da creare, discepoli nel demone, lezione, preghiere,
+  predica, Torre, trame pronte, missione quotidiana, meditazioni, cavalcatura. Ogni palazzo mostra
+  quante sono, ogni scheda ha il suo puntino.
+- **L'altare al centro.** Il cerchio dello strato e **un tasto principale** che cambia col momento:
+  Allenati, Sfonda quando sei pronto, Tribolazione quando incombe, Dormi quando serve. Accanto, le
+  azioni rapide e il pilota automatico (giorni e avvio; le impostazioni stanno in Opzioni).
+- **«Cosa fare ora»**: le tre cose più urgenti, con il perché e il tasto. Il palazzo *Oggi* le mostra
+  tutte, raggruppate.
+- **Più spazio:** la barra in alto sta su una riga sola (ora, stagione ed età passano nell'altare),
+  la chip delle ferite sparisce quando sei illeso, e su 1366×768 tutto sta nello schermo. Con una
+  scena aperta l'altare si stringe e «cosa fare» si nasconde.
+- I comandi scritti continuano a funzionare e aprono il palazzo giusto (`sangue`, `cloni`, `mappa`…).
+
+Test: 2 nuovi. Suite totale: **675 passati**.

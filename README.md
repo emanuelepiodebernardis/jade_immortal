@@ -44,12 +44,11 @@ Si apre il browser su `http://127.0.0.1:8765`: è la **stessa partita** del term
   legami, nemici, faide e debiti di vita), il **Libro** illustrato di tesori, bestie, sangue,
   reliquie e nemici (con i tuoi disegni nella cartella `immagini/`), il registro **filtrabile** e
   una **legenda** dei simboli;
-- i **menu** nella colonna di sinistra: **☯ La tua Via**, un pannello solo a schede per tutta la
-  crescita (Coltivazione, Corpo, Sangue, Attributi, Tecniche, Dao profondi, Spiriti, Forza; comando
-  `via sangue`…), poi *Potere* (Setta, Dominio, Rendite, Dimora, Arti) e
-  *Mondo* (Eventi, Regni, Razze, Famiglia, Faide). In *Potere* c'è anche **☯ Cloni**: crei i cloni
-  con un tasto e dai a ognuno un compito (missioni del giorno, allenamento, arti, esplorazione,
-  guardia), oppure li dispieghi tutti in un colpo.
+- **otto palazzi** nella colonna di sinistra (Oggi, La Via, Setta, Seguaci, Mondo, Tesori, Storia,
+  Opzioni): ognuno apre a destra le sue schede, e un **pallino rosso** dice quante cose ti aspettano
+  dentro. Al centro l'**altare**: il cerchio dello strato e un solo tasto principale, quello giusto
+  per il momento (Allenati, Sfonda, Tribolazione, Dormi), più il pilota automatico. Sotto, **«Cosa
+  fare ora»**: le tre cose più urgenti, col perché e il tasto per farle.
   ogni azione è un pulsante, e quelle non ancora possibili dicono cosa manca;
 - il **pilota automatico dal vivo**, un giorno alla volta, con un pulsante per interromperlo;
 - la creazione del personaggio e la rinascita in finestre guidate, con la scelta facoltativa

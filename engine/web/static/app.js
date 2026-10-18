@@ -134,6 +134,54 @@ const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "
 const VIA_TABS = ["coltivazione", "corpo", "sangue", "attributi", "tecniche", "profondi", "spiriti", "anime", "forza"];
 let lastVia = "coltivazione";
 try { lastVia = localStorage.getItem("ji_via") || lastVia; } catch (e) { /* niente */ }
+// ---------------- I PALAZZI (Aggiornamento 64): pochi pulsanti grandi, ognuno con le sue schede ----------------
+// [chiave, etichetta, destinazione] — la destinazione è ciò che loadTab sa aprire
+const PALACES = {
+  oggi: { t: "🏯 Oggi", tabs: [["sintesi", "✦ Cosa fare", "oggi"], ["mete", "🎯 Mete", "mete"], ["eventi", "📅 Eventi", "m:eventi"]] },
+  via: { t: "☯ La tua Via", tabs: [["eroe", "🪟 Eroe", "personaggio"], ["coltivazione", "☯ Coltivazione", "m:via:coltivazione"],
+    ["corpo", "✦ Corpo", "m:via:corpo"], ["sangue", "🩸 Sangue", "m:via:sangue"], ["attributi", "🪟 Attributi", "m:via:attributi"],
+    ["tecniche", "⚒ Tecniche", "m:via:tecniche"], ["profondi", "🌌 Dao profondi", "m:via:profondi"], ["spiriti", "✺ Spiriti", "m:via:spiriti"],
+    ["anime", "✧ Anime", "m:via:anime"], ["forza", "⚖ Forza", "m:via:forza"]] },
+  setta: { t: "⛩ Setta e potere", tabs: [["setta", "⛩ Setta", "m:setta"], ["bacheca", "📋 Bacheca", "m:bacheca"], ["arti", "⚗ Arti", "m:arti"],
+    ["ricette", "📜 Ricette", "m:ricette"], ["dimora", "⌂ Dimora", "m:dimora"], ["rendite", "💰 Rendite", "m:rendite"], ["dominio", "⛓ Dominio", "m:dominio"]] },
+  seguaci: { t: "👥 Seguaci", tabs: [["cloni", "☯ Cloni", "m:cloni"], ["discepoli", "🎓 Discepoli", "m:discepoli"], ["legami", "♥ Legami", "persone"],
+    ["famiglia", "🏠 Famiglia", "m:famiglia"], ["faide", "⚔ Faide", "m:faide"]] },
+  mondo: { t: "🌍 Il mondo", tabs: [["mappa", "🗺 Mappa", "mappa"], ["mercato", "🏪 Mercato", "m:mercato"], ["asta", "⚖ Aste", "m:asta"],
+    ["regni", "👑 Regni", "m:regni"], ["razze", "🐉 Razze", "m:razze"], ["sotto", "🙏 Mondo di sotto", "m:sotto"]] },
+  tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["libro", "📖 Libro", "tesori:libro"]] },
+  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"]] },
+  opzioni: { t: "⚙ Opzioni", tabs: [["pilota", "✧ Pilota e difficoltà", "pilota"], ["partita", "💾 Partita", "aiuto"]] },
+};
+const TARGET_OF = {};                               // destinazione → [palazzo, scheda]
+for (const [p, d] of Object.entries(PALACES)) for (const [k, , dest] of d.tabs) TARGET_OF[dest] = [p, k];
+let palace = "oggi";
+const lastTab = {};
+try { palace = localStorage.getItem("ji_palace") || palace; Object.assign(lastTab, JSON.parse(localStorage.getItem("ji_ptab") || "{}")); } catch (e) { /* niente */ }
+if (!PALACES[palace]) palace = "oggi";
+function openPalace(p, key) {
+  if (!PALACES[p]) return;
+  palace = p;
+  const tabs = PALACES[p].tabs;
+  const k = key || lastTab[p] || tabs[0][0];
+  const t = tabs.find((x) => x[0] === k) || tabs[0];
+  loadTab(t[2]);
+}
+function renderPalaceHead() {
+  const P = PALACES[palace]; if (!P) return;
+  const cur = (TARGET_OF[tab] || [palace, ""])[1];
+  const B = (S && S.badges) || {};
+  $("#ptitle").textContent = P.t;
+  $("#subnav").innerHTML = P.tabs.map(([k, l, dest]) => `<button class="chip ${k === cur ? "on" : ""}" data-ptab="${palace}:${k}">${esc(l)}${B[palace + ":" + k] ? `<i class="pdot"></i>` : ""}</button>`).join("");
+  document.querySelectorAll("#rail [data-palace]").forEach((b) => b.classList.toggle("on", b.dataset.palace === palace));
+}
+function renderBadges(s) {
+  const B = s.badges || {};
+  document.querySelectorAll("#rail [data-palace]").forEach((b) => {
+    const d = b.querySelector(".dot"); if (!d) return;
+    const n = B[b.dataset.palace] || 0;
+    d.hidden = !n; d.textContent = n > 9 ? "9+" : n;
+  });
+}
 const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: "asta", auction: "asta", recipes: "ricette",
   invitations: "bacheca", inviti: "bacheca", missioni: "bacheca", missions: "bacheca", techniques: "tecniche", skills: "tecniche",
   clone: "cloni", clones: "cloni" };
@@ -141,6 +189,7 @@ async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
   const lc = cmd.toLowerCase();
+  if (lc === "mappa" || lc === "map") return loadTab("mappa");
   if (VIA_TABS.includes(lc)) return loadTab("m:via:" + lc);                              // la crescita: schede della Via
   if (lc === "via" || lc.startsWith("via ")) return loadTab("m:via:" + (lc.split(" ")[1] || lastVia));
   if (MENUS.includes(lc)) return loadTab("m:" + lc);   // i menu si aprono nel pannello
@@ -177,11 +226,11 @@ function dedupe() {
   requestAnimationFrame(() => {
     dedupeQueued = false;
     const seen = new Set();
-    const regions = ["#actions", "#place", "#scene", "#tabbody", "#sugg"];
+    const regions = ["#altar", "#todo", "#place", "#scene", "#tabbody", "#sugg"];
     for (const r of regions) {
       const root = $(r); if (!root) continue;
       root.querySelectorAll("button[data-cmd], button[data-menu]").forEach((el) => {
-        if (el.closest(".attr") || el.closest(".choices")) return;          // +1 attributi e scelte delle scene: sempre
+        if (el.closest(".attr") || el.closest(".choices") || el.closest("#todo") || el.closest(".todo-list")) return;   // scelte e «cosa fare»: sempre
         const k = actKey(el);
         el.classList.remove("dup");
         if (k === "via" && r === "#tabbody") return;                          // i collegamenti tra le schede della Via restano
@@ -199,8 +248,10 @@ async function refresh() {
   if (s.fase === "nuovo") return showCreation();
   if (s.fase === "morto") return showDeath();
   S = s;
-  renderTop(s); renderPlace(s); renderScene(s); renderSugg(s); renderAutoCfg(s);
+  renderTop(s); renderTodo(s); renderBadges(s); renderPlace(s); renderScene(s); renderSugg(s); renderAutoCfg(s);
+  renderPalaceHead();
   if (tab === "mete") renderMete(s);
+  else if (tab === "oggi") renderToday(s);
   else if (tab === "mappa" || tab === "persone" || tab === "personaggio" || tab.startsWith("m:")) loadTab(tab);
 }
 
@@ -211,7 +262,7 @@ function renderTop(s) {
   $("#t-regno").textContent = s.regno;
   $("#t-lv").textContent = "Lv " + (s.livello ?? "—");
   const pts = $("#t-punti");
-  pts.hidden = !s.punti; pts.textContent = `✦ ${s.punti} punti`;
+  pts.hidden = !s.punti; pts.textContent = `✦ ${s.punti} punti`; pts.dataset.cmd = "via attributi";
   const q = s.rapidi || {};
   $("#q-spiriti").hidden = !q.spiriti; $("#q-trib").hidden = !q.tribulation;
   $("#q-sfonda").classList.toggle("ready", !!q.breakthrough);
@@ -219,7 +270,19 @@ function renderTop(s) {
   $("#q-tempra").disabled = q.tempra === false;
   $("#q-raccogli").textContent = q.raccogli ? `✋ Raccogli (${q.raccogli})` : "✋ Raccogli";
   $("#q-raccogli").classList.toggle("ready", !!q.raccogli);
-  const nb = $("#nav-punti"); nb.hidden = !s.punti; nb.textContent = s.punti || "";
+  // l'ALTARE: il cerchio dello strato e un solo tasto principale, quello giusto per il momento
+  const rf = $("#ring-f"); if (rf) { const C = 2 * Math.PI * 52; rf.style.strokeDasharray = C; rf.style.strokeDashoffset = C * (1 - Math.max(0, Math.min(100, s.esperienza)) / 100); }
+  $("#ring-pct").textContent = s.esperienza + "%";
+  const mst = /Strato (\d+)\/(\d+)/.exec(s.regno || "");
+  $("#ring-sub").textContent = mst ? `strato ${mst[1]}/${mst[2]}` : "strato";
+  $("#altar-realm").textContent = (s.regno || "").split("·")[0].trim();
+  $("#altar-where").textContent = ` · giorno ${s.giorno}, ore ${String(s.ora).padStart(2, "0")} · ${s.stagione}, ${s.meteo} · età ${s.eta}`;
+  const pr = $("#primary");
+  const P = q.tribulation ? ["tribulation", "⚡ Affronta la tribolazione"] : q.breakthrough ? ["breakthrough", "⇑ Sfonda!"]
+          : q.sonno ? ["sleep", "☾ Dormi fino all'alba"] : ["train", "☯ Allenati"];
+  pr.dataset.cmd = P[0]; pr.textContent = P[1];
+  $("#q-sfonda").hidden = P[0] === "breakthrough"; $("#q-trib").hidden = !q.tribulation || P[0] === "tribulation";
+  $("#q-sonno").hidden = P[0] === "sleep";
   setBar("#b-esp", s.esperienza); $("#v-esp").textContent = s.esperienza + "%";
   setBar("#b-qi", s.qi.pct); $("#v-qi").textContent = `${s.qi.cur}/${s.qi.max}`;
   setBar("#b-sp", s.spirito.pct); $("#v-sp").textContent = `${s.spirito.cur}/${s.spirito.max}`;
@@ -230,6 +293,7 @@ function renderTop(s) {
   const f = $("#t-ferite");
   f.textContent = s.ferite.n ? `Ferite ${s.ferite.n} (max ${s.ferite.max})` : "Illeso";
   f.className = "chip" + (s.ferite.max >= 6 ? " bad" : s.ferite.n ? " warn" : "");
+  f.hidden = !s.ferite.n;                                     // illeso: niente chip, più spazio
   $("#t-pietre").textContent = `Pietre ${s.pietre} · Fama ${s.fama}`;
   $("#t-tempo").textContent = `Giorno ${s.giorno}, ore ${String(s.ora).padStart(2, "0")} · ${s.stagione}, ${s.meteo} · ${s.era} · età ${s.eta}`;
 }
@@ -352,9 +416,49 @@ function renderScene(s) {
     `</div>`;
 }
 
+// «COSA FARE ORA»: le tre cose più urgenti, con il perché e il tasto per farle
+function todoCard(x) {
+  return `<button class="todo-card ${x.hot ? "hot" : ""}" data-cmd="${esc(x.cmd)}" title="${esc(x.cmd)}"><span class="ti">${esc(x.icon)}</span>
+    <span class="tt"><b>${esc(x.title)}</b><small>${esc(x.why)}</small></span></button>`;
+}
+function renderTodo(s) {
+  const box = $("#todo"); if (!box) return;
+  const items = (s.todo || []).slice(0, 3);
+  box.innerHTML = s.scena || !items.length ? "" : `<div class="h">Cosa fare ora</div><div class="todo-row">${items.map(todoCard).join("")}</div>`
+    + ((s.todo || []).length > 3 ? `<button class="link more-todo" data-ptab="oggi:sintesi">e altre ${(s.todo || []).length - 3} cose ›</button>` : "");
+}
+function renderToday(s) {
+  const b = $("#tabbody");
+  const groups = {};
+  for (const x of s.todo || []) (groups[x.palace] = groups[x.palace] || []).push(x);
+  let h = s.quotidiana ? V.dailyQuest(s.quotidiana) : "";
+  if (!(s.todo || []).length) h += `<div class="empty">Niente di urgente: allenati, esplora, segui le tue mete.</div>`;
+  for (const p of Object.keys(PALACES)) {
+    if (!groups[p]) continue;
+    h += `<div class="card sec todo-list"><b>${esc(PALACES[p].t)}</b>${groups[p].map(todoCard).join("")}</div>`;
+  }
+  b.innerHTML = h;
+}
+function pilotHtml() {
+  return `<div class="card sec pilot"><b>✧ Pilota automatico</b>
+    <div class="muted small">Si avvia dall'altare, al centro. Qui decidi come si comporta.</div>
+    <label>Bersagli <select data-auto="bersagli"><option>nessuno</option><option>bestie</option><option>ricercati</option><option>deboli</option><option>tutti</option></select></label>
+    <label>Condotta <select data-auto="condotta"><option>virtuosa</option><option>prudente</option><option>opportunista</option><option>spietata</option></select></label>
+    <label><input type="checkbox" data-auto="sfonda"> Sfonda da solo</label>
+    <label>Rischio massimo <input type="number" min="0" max="100" data-auto="rischio"> %</label>
+    <label><input type="checkbox" data-auto="assorbi"> Divora i caduti</label>
+    <label><input type="checkbox" data-auto="loot"> Raccogli il bottino</label>
+    <label><input type="checkbox" data-auto="oggetti"> Usa pillole ed essenze</label>
+    <label><input type="checkbox" data-auto="routine"> Faccende (stipendio, missioni, cura dei tesori)</label>
+    <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora</label>
+    <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label></div>
+    <div class="card sec"><b>⚖ Difficoltà</b><div class="muted small">Quanto morde il mondo: agguati, inseguitori, rischio di morte.</div>
+    <select id="diff"><option value="sereno">Sereno</option><option value="normale">Normale</option><option value="spietato">Spietato</option></select></div>`;
+}
+
 function renderSugg(s) {
   // niente doppioni: via le azioni che hanno già un pulsante fisso a sinistra o una tessera del luogo
-  const fixed = new Set([...document.querySelectorAll("#actions [data-cmd], #actions [data-menu], #place [data-cmd]")]
+  const fixed = new Set([...document.querySelectorAll("#altar [data-cmd], #todo [data-cmd], #place [data-cmd]")]
     .filter((b) => !b.hidden).map(actKey));
   const norm = (c) => { const k = c.trim().toLowerCase(); return KEY_ALIAS[k] || k; };
   s.suggVisibili = s.suggerimenti.filter((x) => !fixed.has(norm(x.cmd)));
@@ -385,16 +489,25 @@ const SUBTABS = {
 const sub = { personaggio: "stato", tesori: "zaino", storia: "cronaca" };
 try { const j = JSON.parse(localStorage.getItem("ji_sub") || "{}"); Object.assign(sub, j); } catch (e) { /* niente */ }
 function subChips(name) {
+  if (name === "tesori" || name === "storia") return "";                    // le schede le mostra il palazzo
   return `<div class="subtabs">` + SUBTABS[name].map(([k, l]) => `<button class="chip ${sub[name] === k ? "on" : ""}" data-sub="${name}:${k}">${l}</button>`).join("") + `</div>`;
 }
 async function loadTab(name) {
+  if (name === "tesori" || name === "storia") name = name + ":" + sub[name];      // le schede interne ora sono del palazzo
+  if (name.startsWith("tesori:") || name.startsWith("storia:")) { const [t, k] = name.split(":"); sub[t] = k; }
+  if (name.startsWith("m:via:")) { lastVia = name.slice(6); try { localStorage.setItem("ji_via", lastVia); } catch (e) { /* niente */ } }
+  const where = TARGET_OF[name] || TARGET_OF[name.split(":").slice(0, 2).join(":")];
+  if (where) {
+    palace = where[0]; lastTab[palace] = where[1];
+    try { localStorage.setItem("ji_palace", palace); localStorage.setItem("ji_ptab", JSON.stringify(lastTab)); } catch (e) { /* niente */ }
+  }
   const keep = tab === name;
   tab = name;
-  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
-  if (name.startsWith("m:via:")) { lastVia = name.slice(6); try { localStorage.setItem("ji_via", lastVia); } catch (e) { /* niente */ } }
-  document.querySelectorAll("#actions [data-menu]").forEach((b) => b.classList.toggle("on",
-    "m:" + b.dataset.menu === name || (b.dataset.menu === "via" && name.startsWith("m:via:"))));
+  renderPalaceHead();
   const b = $("#tabbody");
+  if (name === "oggi") { if (S) renderToday(S); return; }
+  if (name === "pilota") { b.innerHTML = pilotHtml(); if (S) renderAutoCfg(S); return; }
+  if (name.startsWith("tesori:") || name.startsWith("storia:")) name = name.split(":")[0];
   if (name.startsWith("m:")) {
     if (!keep) b.innerHTML = `<div class="empty">Carico…</div>`;
     try { const top = b.scrollTop; b.innerHTML = menuHtml(await api("/api/menu/" + name.slice(2))); if (keep) b.scrollTop = top; }
@@ -461,7 +574,7 @@ function msecHtml(s, full) {
 }
 function menuHtml(m) {
   if (m.errore) return `<div class="empty">${esc(m.errore)}</div>`;
-  const tabs = m.tabs ? `<div class="subtabs viatabs">` + m.tabs.map((t) => `<button class="chip ${t.on ? "on" : ""}" data-menu="${esc(t.key)}">${esc(t.label)}</button>`).join("") + `</div>` : "";
+  const tabs = m.tabs && palace !== "via" ? `<div class="subtabs viatabs">` + m.tabs.map((t) => `<button class="chip ${t.on ? "on" : ""}" data-menu="${esc(t.key)}">${esc(t.label)}</button>`).join("") + `</div>` : "";
   let h = tabs + `<div class="card menuhead"><h3>${esc(m.inner_title || m.title)}</h3>${m.sub.map((s) => `<div class="muted">${esc(s)}</div>`).join("")}</div>`;
   m.sections.slice(0, MENU_FULL).forEach((s) => { h += msecHtml(s, true); });
   const rest = m.sections.slice(MENU_FULL);
@@ -871,6 +984,12 @@ document.addEventListener("click", async (ev) => {
     document.querySelectorAll("#log .ln").forEach((l) => { l.hidden = logFilter !== "tutto" && !l.classList.contains("cat-" + logFilter); });
     return;
   }
+  const pa = ev.target.closest("[data-palace]");
+  if (pa) { openPalace(pa.dataset.palace); return; }
+  const pt = ev.target.closest("[data-ptab]");
+  if (pt) { const [p, k] = pt.dataset.ptab.split(":"); openPalace(p, k); return; }
+  if (ev.target.closest("#auto-go")) { autoStart(); return; }
+  if (ev.target.closest("#auto-stop")) { autoStop(); return; }
   const t = ev.target.closest("[data-cmd]");
   if (t) { ev.preventDefault(); run(t.dataset.cmd); return; }
   const tb = ev.target.closest("[data-tab]");
@@ -878,7 +997,10 @@ document.addEventListener("click", async (ev) => {
   const mb = ev.target.closest("[data-menu]");
   if (mb) loadTab("m:" + (mb.dataset.menu === "via" ? "via:" + lastVia : mb.dataset.menu));
 });
-document.addEventListener("change", (ev) => { if (ev.target.matches("[data-auto]")) autoSet(ev.target); });
+document.addEventListener("change", (ev) => {
+  if (ev.target.matches("[data-auto]")) autoSet(ev.target);
+  if (ev.target.id === "diff") run(`difficolta ${ev.target.value}`);
+});
 $("#cmdform").addEventListener("submit", (ev) => {
   ev.preventDefault();
   const v = $("#cmd").value;
@@ -908,15 +1030,13 @@ function setWide(on) {
   if (tab === "mappa") loadMap();
 }
 try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
-$("#auto-go").onclick = autoStart;
-if ($("#diff")) $("#diff").onchange = (ev) => run(`difficolta ${ev.target.value}`);
 $("#sound").textContent = SOUND ? "🔊" : "🔈";
-$("#auto-stop").onclick = autoStop;
 
 (async () => {
   try {
     const s = await api("/api/stato");
     if (s.fase === "gioco") { const r = await api("/api/intro", {}); addLog(r.log); }
     await refresh();
+    openPalace(palace);
   } catch (e) { addLog("⚠ Non riesco a parlare con il gioco: " + e.message); }
 })();
