@@ -724,3 +724,6 @@ body.scene-on #altar .ring, body.scene-on .altar-auto, body.scene-on .altar-acts
   #center > #log { min-height: 110px; }
   .todo-card { padding: 6px 9px; }
 }
+/* Immortale: niente numeri, solo ciò che si sente */
+body.no-numbers .meter em, body.no-numbers #ring-pct, body.no-numbers .mbar em, body.no-numbers .hpbar span,
+body.no-numbers .person .pw span:first-child, body.no-numbers #t-pietre, body.no-numbers .lv { visibility: hidden; }

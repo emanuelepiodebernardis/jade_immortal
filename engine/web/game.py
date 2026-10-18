@@ -93,7 +93,10 @@ def death_info() -> dict:
             row = rebirth.record_death(conn, p)
             state.set(conn, key, str(rebirth.life_no(conn)))
         opts = rebirth.inheritance_options(row)
+        from engine.systems import heirs                          # chi può continuare la tua Via
+        er = heirs.stored(conn) or heirs.remember(conn, p)
         return {"epilogo": _clean(rebirth.epilogue_text(row)), "eredita": [o["label"] for o in opts],
+                "eredi": [{"id": h["id"], "label": f"{h['name']} — {h['ruolo']}, {h['regno']}"} for h in er],
                 "vita": rebirth.life_no(conn) + 1, "senza_ritorno": rebirth.hardcore(conn),
                 "frammenti": rebirth.fragments_allowed(conn, len(opts) - 1),
                 "volontaria": bool(rebirth.voluntary_pending(conn))}
@@ -113,15 +116,21 @@ def new_world() -> str:
     return f"Il vecchio mondo è conservato in database/saves/{name}. Un nuovo mondo ti attende."
 
 
-def reincarnate(origin: str, destiny: str, name: str, inherit_idx, body: bool = False) -> str:
-    from engine.systems import rebirth, character, state
+def reincarnate(origin: str, destiny: str, name: str, inherit_idx, body: bool = False, heir: int | None = None) -> str:
+    from engine.systems import rebirth, character, state, heirs
     with LOCK, transaction() as conn:
         row = conn.execute("SELECT * FROM past_lives WHERE life_no=?;", (rebirth.life_no(conn),)).fetchone()
         opts = rebirth.inheritance_options(row) if row else [{"key": "none"}]
         idxs = inherit_idx if isinstance(inherit_idx, list) else [inherit_idx]
         inherit = [opts[max(0, min(len(opts) - 1, int(i)))] for i in idxs][:rebirth.fragments_allowed(conn, len(opts) - 1)]
-        lines = rebirth.reincarnate(conn, random.Random(), origin, name or None, inherit, destiny=destiny or None,
-                                    body=body)
+        h = next((x for x in heirs.stored(conn) if heir is not None and x["id"] == int(heir)), None)
+        if h:                                                     # continui come il tuo erede: tutti i frammenti
+            old = entities.get_player(conn).name
+            inherit = [o for o in opts if o.get("key") != "none"] or inherit
+            lines = heirs.become(conn, random.Random(), h, old, origin, destiny or None, inherit, body=body)
+        else:
+            lines = rebirth.reincarnate(conn, random.Random(), origin, name or None, inherit, destiny=destiny or None,
+                                        body=body)
         state.delete(conn, "web_death_row")
         lines.append(character.describe_profile(conn))
     return _clean("\n".join(lines)) + "\n\n" + intro()
@@ -330,6 +339,7 @@ def state_snapshot() -> dict:
         snap["punti"] = attributes.free(conn, p.id)
         from engine.systems import calibration
         snap["difficolta"] = calibration.current(conn)
+        snap["nascondi_numeri"] = snap["difficolta"] in calibration.HIDE_NUMBERS
         from engine.systems import attention                    # pallini rossi e «Cosa fare ora»
         snap["todo"] = attention.items(conn, p)
         snap["badges"] = attention.badges(snap["todo"])

@@ -202,6 +202,8 @@ def events(conn, player) -> dict:
     _d = _dt.get(conn)
     _day = tick_mod.get_tick(conn) // 120
     _tries = _d["tries"] if _d["tries_day"] == _day else 0
+    from engine.systems import grand_tournament as _gt
+    secs.insert(0, _gt.menu_section(conn, player))
     secs.insert(0, section("Torre della Deificazione", [
         f"Il tuo piano questa settimana: {_d['floor'] if _d['week'] == _day // _dt.WEEK else 0} (record {_d['best']}). "
         f"Tentativi di oggi: {_tries}/{_dt.TRIES}. Ogni 5 piani un forziere; a fine settimana un premio per la classifica."],
@@ -409,6 +411,8 @@ def abode(conn, player) -> dict:
                             ok=home, why="devi essere alla dimora"))
         secs.append(section(f"{nm} — livello {lv}", [f"Ora: {A.EFFECT[k](lv)} · al prossimo: {A.EFFECT[k](lv + 1)}"],
                             acts))
+    from engine.systems import fengshui
+    secs[1:1] = fengshui.menu_sections(conn, player)          # feng shui e giardino, subito dopo la produzione
     return menu("dimora", f"⌂ {ab['name'].upper()}", [], secs)
 
 

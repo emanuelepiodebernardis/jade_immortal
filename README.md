@@ -139,6 +139,10 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
   ogni regno), discepoli con tratti e demone del cuore (Potere → Discepoli), i legami che ti seguono in
   Cielo, il mondo di sotto che ti prega (Mondo → Mondo di sotto), viaggio dell'anima e meditazioni con
   le venti Note del Tao, cavalcature, Torre della Deificazione (in Eventi).
+- **Dashboard a palazzi** (Agg. 64): otto ingressi, un tasto principale, «Cosa fare ora» e i pallini rossi.
+- **Dal meglio del genere** (Agg. 65): il dantian a incastri (`dantian`), continuare come erede alla morte,
+  feng shui della dimora e giardino spirituale (`fengshui`, `orto`), modalità Immortale, filtro ricette,
+  Gran Torneo dell'Ascesa ogni 90 giorni (`torneo`).
 - Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.

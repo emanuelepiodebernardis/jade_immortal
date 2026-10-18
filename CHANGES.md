@@ -2663,3 +2663,31 @@ Incremental): pochi ingressi grandi, un tasto principale, i pallini rossi su ci�
 - I comandi scritti continuano a funzionare e aprono il palazzo giusto (`sangue`, `cloni`, `mappa`…).
 
 Test: 2 nuovi. Suite totale: **675 passati**.
+
+---
+
+## Aggiornamento 65 — Le meccaniche migliori degli altri giochi del genere
+
+- **Il dantian** (da Destiny of Immortal; *La tua Via → Tecniche*, comando `dantian`): una griglia che
+  cresce col regno (3×3, poi 4×4 dal 3° regno, +1 ogni tre regni). Ogni tecnica è un pezzo di 1–4 caselle
+  secondo la sua potenza. Le caselle occupate e gli incastri tra pezzi dello stesso Dao (o vicini nel
+  ciclo dei cinque elementi) danno attacco (fino a +45%) e coltivazione (fino a +15%).
+  `dantian auto` li incastra da solo; `metti`, `togli` e `svuota` servono per farlo a mano.
+- **Continua come erede** (da The Scroll of Taiwu): alla morte, invece di un'anima nuova, puoi
+  rinascere come un tuo discepolo o un familiare più giovane ancora vivo. Prendi il suo nome, il suo
+  regno e il suo luogo, porti con te tutti i frammenti e ottieni il titolo «Erede di …». La scelta è
+  nella finestra della morte.
+- **Feng shui della dimora** (da Amazing Cultivation Simulator; *Setta → Dimora*, `fengshui`): ogni
+  ala ha un elemento. Se le cinque ali sono a livelli vicini, la coltivazione a casa sale fino a +20%;
+  se un elemento domina, il Qi ristagna (−5%).
+- **Giardino spirituale** (`orto`): un riquadro per livello del Campo di Erbe, fino a 12. Le piante
+  sono Erba del Qi (2 giorni), Loto di Giada (5), Radice di Drago (9) e Fiore del Vuoto (14). Si
+  ripiantano da sole, e «Cura tesori» raccoglie quando sei a casa.
+- **Modalità Immortale** (difficoltà): spietata, senza numeri a schermo e senza salvataggi manuali.
+- **Filtro ricette**: «Mostra solo quelle che posso fare ora» (`ricette filtro`).
+- **Gran Torneo dell'Ascesa** (da Tale of Immortal; *Oggi → Eventi*, `torneo`): ogni 90 giorni resta
+  aperto per 7 giorni. Quattro duelli contro prodigi sempre più forti; a ogni turno pietre e un Frutto
+  del Dao, al campione un tesoro, fama e il titolo con le corone.
+- «Cosa fare ora» segnala il torneo aperto, l'orto maturo e il dantian vuoto.
+
+**Test:** `tests/test_agg65.py` (6 test). Suite totale: **681 passati**.

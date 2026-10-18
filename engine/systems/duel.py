@@ -442,6 +442,8 @@ def _plot(conn, player, npc_id: int, outcome: str) -> list[str]:
         out += disciple_life.on_duel(conn, player, npc_id, outcome)      # il discepolo nel demone del cuore
         from engine.systems import deification_tower
         out += deification_tower.on_duel(conn, player, npc_id, outcome)  # i guardiani della Torre
+        from engine.systems import grand_tournament
+        out += grand_tournament.on_duel(conn, player, npc_id, outcome)   # il Gran Torneo
     except Exception:  # noqa: BLE001
         pass
     try:

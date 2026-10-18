@@ -98,7 +98,12 @@ def recipes_menu(conn, player) -> dict:
     if not known:
         return menu("ricette", "⚗ RICETTE", [], [section("Nessuna arte", ["Scegli un'arte per cominciare."],
                                                            [act("Apri le arti", "arti", main=True)], icon="⚗")])
-    secs = [section("Materiali", [P.materials_line(conn, player.id)], [act("Raccogli materiali", "gather")], icon="✿")]
+    from engine.systems import state as _st
+    only = _st.flag(conn, "recipes_only_ready", False)           # filtro «solo quelle che posso fare»
+    secs = [section("Materiali", [P.materials_line(conn, player.id)],
+                    [act("Raccogli materiali", "gather"),
+                     act("Mostra tutte le ricette" if only else "Mostra solo quelle che posso fare ora", "ricette filtro")],
+                    icon="✿")]
     for prof in known:
         lv = P.level(conn, player.id, prof)
         acts = []
@@ -107,6 +112,8 @@ def recipes_menu(conn, player) -> dict:
             have_all = all(P.material(conn, player.id, k) >= v for k, v in cost.items())
             c = ", ".join(f"{v} {P.MATERIALS[k]}" for k, v in cost.items())
             why = f"serve livello {need}" if lv < need else f"mancano materiali ({c})"
+            if only and not (lv >= need and have_all):
+                continue
             acts.append(act(f"{name} — {c}", f"craft {prof} {i}", lv >= need and have_all, why,
                             main=lv >= need and have_all))
         nxt = P.xp_for_level(lv + 1)

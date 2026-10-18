@@ -79,6 +79,9 @@ def care(conn, player) -> str:
     from engine.systems import inner_space, mentor_ring, professions, gu, soul_artifacts
     out = []
     out += soul_artifacts.care(conn, player)            # pagoda (se le pietre bastano) e calderone (erbe)
+    from engine.systems import fengshui, cave_abode
+    if fengshui.ready_count(conn) and cave_abode.is_home(conn, player.id, player.location_id):
+        out.append(fengshui.harvest(conn, player))         # l'orto maturo, se sei a casa
     s = inner_space.get(conn)
     if s:
         day = tick_mod.get_tick(conn) // 120

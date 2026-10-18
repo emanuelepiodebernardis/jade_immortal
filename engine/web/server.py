@@ -190,7 +190,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/rinasci":
                 return self._json({"log": game.reincarnate(b.get("origine", "mortale"), b.get("destino", ""),
                                                            b.get("nome", ""), b.get("eredita", [0]),
-                                                           bool(b.get("corpo")))})
+                                                           bool(b.get("corpo")), b.get("erede"))})
             if path == "/api/intro":
                 return self._json({"log": game.intro()})
             if path == "/api/auto/stop":

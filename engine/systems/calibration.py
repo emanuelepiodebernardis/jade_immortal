@@ -114,11 +114,18 @@ PRESETS = {
         "FAUNA_BAND": (0.6, 1.2),
     },
 }
-DIFFICULTY_LABEL = {"sereno": "Sereno", "normale": "Normale", "spietato": "Spietato"}
+# IMMORTALE (spunto: la modalità Immortale di Amazing Cultivation Simulator): le manopole di Spietato, ma
+# a schermo spariscono i numeri (resta solo ciò che un coltivatore sentirebbe) e non si salva né si carica
+# a mano: valgono solo i salvataggi automatici.
+PRESETS["immortale"] = {k: (dict(v) if isinstance(v, dict) else v) for k, v in PRESETS["spietato"].items()}
+HIDE_NUMBERS = {"immortale"}
+NO_MANUAL_SAVE = {"immortale"}
+DIFFICULTY_LABEL = {"sereno": "Sereno", "normale": "Normale", "spietato": "Spietato", "immortale": "Immortale"}
 DIFFICULTY_DESC = {
     "sereno": "Per goderti la storia: si muore di rado, gli agguati sono pochi e chi ti insegue non ti supera.",
     "normale": "Il mondo morde: nemici alla pari più spesso, agguati ogni pochi giorni, la morte è possibile.",
     "spietato": "Il genere senza sconti: agguati frequenti, inseguitori più forti di te, ogni sconfitta può essere l'ultima.",
+    "immortale": "Come Spietato, ma senza numeri a schermo e senza salvare o caricare a mano: senti il mondo, non lo misuri.",
 }
 DEFAULT = "normale"
 _APPLIED = [None]

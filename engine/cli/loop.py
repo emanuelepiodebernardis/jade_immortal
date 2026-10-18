@@ -2390,6 +2390,9 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
         return "Nessun giocatore trovato. DB non generato?"
     from engine.systems import calibration as _cal
     _cal.ensure(conn)                                 # la difficoltà della partita (sereno/normale/spietato)
+    if cmd in ("salva", "save", "carica", "load") and _cal.current(conn) in _cal.NO_MANUAL_SAVE:
+        return ("In modalità Immortale non si salva né si carica a mano: valgono solo i salvataggi automatici "
+                "(ogni 5 giorni). Ogni scelta resta.")
 
     if cmd in ("quit", "exit"):
         return None

@@ -73,6 +73,10 @@ def build(conn, player, key: str) -> dict:
                        soul_artifacts.menu_sections(conn, player))
     else:
         inner = _body(conn, player) if src is None else M._builders()[src](conn, player)
+    if tab == "tecniche":
+        from engine.systems import dantian
+        inner = dict(inner)
+        inner["sections"] = [dantian.menu_section(conn, player)] + list(inner.get("sections", []))
     if tab == "coltivazione":
         from engine.systems import breakthrough_fates
         fl = breakthrough_fates.lines_for_menu(conn)

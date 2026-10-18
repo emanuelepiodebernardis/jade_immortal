@@ -109,6 +109,16 @@ def _world(conn, player, day, out):
                   "preghiere", "mondo", "sotto", False, 4)
         if g.get("sermon_day") != day:
             _item(out, "⛩", "Predica ai mortali", "Una al giorno: fede e merito.", "predica", "mondo", "sotto", False, 8)
+    from engine.systems import grand_tournament as gt, fengshui, dantian
+    g2 = gt._cur(conn)
+    if gt.is_open(day) and not g2["out"] and g2["round"] < len(gt.RATIOS):
+        _item(out, "🏟", "Il Gran Torneo è aperto", gt.status_line(conn), "torneo combatti", "oggi", "eventi", True, 3)
+    if fengshui.ready_count(conn):
+        _item(out, "🌸", "L'orto è maturo", f"{fengshui.ready_count(conn)} riquadri da raccogliere (a casa).",
+              "orto raccogli", "setta", "dimora", False, 6)
+    if not dantian.get(conn)["pieces"]:
+        _item(out, "☯", "Il dantian è vuoto", "Incastra le tecniche: attacco e coltivazione.", "dantian auto",
+              "via", "tecniche", False, 5)
     t = tower.get(conn)
     tries = t["tries"] if t.get("tries_day") == day else 0
     if tries < tower.TRIES:

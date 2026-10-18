@@ -258,6 +258,7 @@ async function refresh() {
 function setBar(id, pct) { $(id).style.width = Math.max(0, Math.min(100, pct)) + "%"; }
 
 function renderTop(s) {
+  document.body.classList.toggle("no-numbers", !!s.nascondi_numeri);      // modalità Immortale
   $("#t-nome").textContent = s.nome;
   $("#t-regno").textContent = s.regno;
   $("#t-lv").textContent = "Lv " + (s.livello ?? "—");
@@ -453,7 +454,7 @@ function pilotHtml() {
     <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora</label>
     <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label></div>
     <div class="card sec"><b>⚖ Difficoltà</b><div class="muted small">Quanto morde il mondo: agguati, inseguitori, rischio di morte.</div>
-    <select id="diff"><option value="sereno">Sereno</option><option value="normale">Normale</option><option value="spietato">Spietato</option></select></div>`;
+    <select id="diff"><option value="sereno">Sereno</option><option value="normale">Normale</option><option value="spietato">Spietato</option><option value="immortale">Immortale (senza numeri né salvataggi manuali)</option></select></div>`;
 }
 
 function renderSugg(s) {
@@ -926,6 +927,9 @@ async function showDeath() {
     <p>Il mondo prosegue senza di te. Ma le anime, qui, non si spengono del tutto.</p>
     <fieldset><legend>Cosa porti con te (fino a ${o.frammenti} frammenti)</legend>${o.eredita.map((l, i) =>
       `<label class="opt"><input type="checkbox" name="e" value="${i}" ${i === 0 ? "checked" : ""}> ${esc(l)}</label>`).join("")}</fieldset>
+    ${o.eredi && o.eredi.length ? `<fieldset><legend>Chi continua la tua Via</legend>
+      <label class="opt"><input type="radio" name="er" value="" checked> Un'anima nuova (rinasci da capo, con i frammenti scelti)</label>
+      ${o.eredi.map((h) => `<label class="opt"><input type="radio" name="er" value="${h.id}"> ☯ Continua come <b>${esc(h.label)}</b> — tutti i frammenti, il suo regno, il suo nome</label>`).join("")}</fieldset>` : ""}
     <fieldset><legend>Origine</legend>${choiceList("o", o.origini, "key", (x) => `<b>${esc(x.name)}</b> — ${esc(x.desc)}`)}</fieldset>
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
     <p><label>Nome <input id="nm" value="" placeholder="(lo stesso di prima)" maxlength="32"></label></p>
@@ -933,7 +937,7 @@ async function showDeath() {
     <button class="primary" id="go-reb">Rinasci in questo mondo</button>`);
   $("#go-reb").onclick = async () => {
     const picks = [...document.querySelectorAll('input[name="e"]:checked')].map((x) => parseInt(x.value, 10)).slice(0, o.frammenti);
-    const r = await api("/api/rinasci", { origine: val("o"), destino: val("d"), nome: $("#nm").value, eredita: picks.length ? picks : [o.eredita.length - 1], corpo: $("#cb").checked });
+    const r = await api("/api/rinasci", { origine: val("o"), destino: val("d"), nome: $("#nm").value, eredita: picks.length ? picks : [o.eredita.length - 1], corpo: $("#cb").checked, erede: val("er") ? parseInt(val("er"), 10) : null });
     closeModal(); addLog(r.log); await refresh();
   };
 }

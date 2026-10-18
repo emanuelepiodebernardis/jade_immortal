@@ -108,6 +108,11 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
         return professions.menu_command(conn, player.id, arg)
     if cmd in ("gather", "raccolta", "harvest", "erbe"):
         return professions.gather(conn, t, rng, player)
+    if cmd in ("recipes", "ricette") and arg.strip().lower().startswith("filtro"):
+        from engine.systems import shops, menus
+        on = not state.flag(conn, "recipes_only_ready", False)
+        state.set(conn, "recipes_only_ready", "1" if on else "0")
+        return menus.render(conn, shops.recipes_menu(conn, player))
     if cmd in ("recipes", "ricette"):
         return professions.describe_recipes(conn, player.id, professions._key(arg) if arg.strip() else None)
     if cmd in ("craft", "crea", "forgia", "distilla"):
@@ -407,6 +412,15 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
                "predica", "sermone", "metti_alla_prova", "prova_mortale"):
         from engine.systems import lower_world
         return lower_world.command(conn, player, cmd, arg)
+    if cmd in ("torneo", "gran_torneo", "granTorneo"):
+        from engine.systems import grand_tournament
+        return grand_tournament.command(conn, player, arg)
+    if cmd in ("dantian", "dan_tian"):
+        from engine.systems import dantian
+        return dantian.command(conn, player, arg)
+    if cmd in ("fengshui", "feng_shui", "orto", "giardino"):
+        from engine.systems import fengshui
+        return fengshui.command(conn, player, "fengshui" if cmd.startswith("feng") else "orto", arg)
     if cmd in ("cavalca", "monta", "cavalcatura"):
         from engine.systems import mounts
         return mounts.mount(conn, player, arg) if (arg.strip() or cmd != "cavalcatura") else mounts.describe(conn, player)
