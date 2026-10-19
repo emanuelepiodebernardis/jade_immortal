@@ -145,6 +145,9 @@ con il codice nuovo: basta ricaricare la pagina (`--no-reload` lo disattiva).
   Gran Torneo dell'Ascesa ogni 90 giorni (`torneo`).
 - **Calibrazione** (Agg. 66): arene non mortali, tregua del Samsara dopo la rinascita, tetto alle tossine,
   e le pietre spirituali si possono assorbire per coltivare (`pietre`).
+- **Spunti da Immortal Celestial Fate** (Agg. 67): la saga dei compagni perduti (`compagni`), i meridiani
+  da aprire e temprare (`meridiani`), il Corpo del Dharma (`dharma`), i Sigilli ancestrali (`sigilli`), la
+  meditazione mentre sei via e le schede che si aprono poco a poco.
 - Salvataggi in slot, mappa, colori, codex e tutorial.
 - **Pilota automatico** (`auto <giorni>`): lo «stato etereo» in cui il personaggio vive da
   solo le parti monotone e si ferma davanti agli eventi importanti.

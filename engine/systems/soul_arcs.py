@@ -59,12 +59,25 @@ ARCS = {
         {"level": 6, "plot": "perla_possessione", "ok": ("divorato", "risigillato", "simbiosi"), "retry": 15},
     ],
 }
-NAMES = {"anello": "L'anello del maestro", "pagoda": "La Pagoda delle Nove Prigioni",
+# (Agg. 67) la saga dei compagni perduti: stessi capitoli, ma il «livello» è il tuo regno
+ARCS["compagni"] = [
+    {"level": 1, "plot": "compagni_varco", "ok": ("traccia",), "retry": 5},
+    {"level": 2, "plot": "compagni_amico", "ok": ("liberato_vinto", "riscattato", "fuga_insieme"), "retry": 7},
+    {"level": 4, "plot": "compagni_santa", "ok": ("giuramento_vinto", "protetta", "svelata"), "retry": 8},
+    {"level": 5, "plot": "compagni_prigioniera", "ok": ("assalto_vinto", "furtivo", "risvegliata"), "retry": 8},
+    {"level": 7, "plot": "compagni_caduto", "ok": ("fermato_vinto", "redento", "patto"), "retry": 10},
+    {"level": 8, "plot": "compagni_cacciatore", "ok": ("voce_vinto", "verita"), "retry": 8},
+    {"level": 10, "plot": "compagni_finale", "ok": ("custode_vinto", "sigillato", "preso"), "retry": 12},
+]
+NAMES = {"compagni": "I compagni perduti", "anello": "L'anello del maestro", "pagoda": "La Pagoda delle Nove Prigioni",
          "stendardo": "Lo Stendardo delle Diecimila Anime", "calderone": "Il Calderone della Fiamma Dormiente",
          "perla": "La Perla dei Nove Sigilli"}
 
 
 def _mod(vessel: str):
+    if vessel == "compagni":
+        from engine.systems import lost_companions
+        return lost_companions
     if vessel == "anello":
         from engine.systems import mentor_ring
         return mentor_ring
@@ -137,7 +150,7 @@ def on_finish(conn, vessel: str, plot: str, outcome: str) -> list[str]:
     except Exception:                                   # noqa: BLE001
         lines = []
     if not closed:
-        lines.append(f"(La storia del vaso non è finita: tra {ch.get('retry', 7)} giorni potrai ritentare.)")
+        lines.append(f"(La storia non è finita: tra {ch.get('retry', 7)} giorni potrai ritentare.)")
     return lines
 
 

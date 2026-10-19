@@ -70,8 +70,9 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = sect_menu.chamber_mult(conn, location_id)
     if m != 1.0:
         out.append((m, lbl))
-    from engine.systems import fengshui, dantian
-    for m, lbl in (fengshui.cultivation_mult(conn, pid, location_id), dantian.cultivation_mult(conn)):
+    from engine.systems import fengshui, dantian, meridians, ancestral_sigils
+    for m, lbl in (fengshui.cultivation_mult(conn, pid, location_id), dantian.cultivation_mult(conn),
+                   meridians.cultivation_mult(conn), ancestral_sigils.cultivation_mult(conn)):
         if m != 1.0:
             out.append((m, lbl))
     from engine.systems import tenacity
@@ -112,8 +113,9 @@ def dao_mult(conn: sqlite3.Connection, pid: int, dao_key: str) -> float:
 def _extra_dao(conn, dao_key: str) -> float:
     from engine.systems import celestial_elements, lost_legacy, master_plot
     from engine.systems import attributes          # Saggezza
+    from engine.systems import meridians
     return (celestial_elements.dao_mult(conn, dao_key) * lost_legacy.dao_mult(conn) * master_plot.dao_mult(conn)
-            * attributes.dao_mult(conn))
+            * attributes.dao_mult(conn) * meridians.dao_mult(conn))
 
 
 def _era(conn):

@@ -46,7 +46,7 @@ CONDUCTS = ["virtuosa", "prudente", "opportunista", "spietata"]
 _WILD = ("mountain", "ruin", "forbidden_zone")
 DEFAULT = {"attivita": {"allena": 5, "coltiva": 0, "dao": 0, "caccia": 2, "raccolta": 1, "lavoro": 1, "insegna": 1},
            "bersagli": "bestie", "rischio": 10, "assorbi": False, "loot": True, "oggetti": True, "sfonda": False,
-           "routine": True, "potenzia": False, "setta": False, "pietre": False,
+           "routine": True, "potenzia": False, "setta": False, "pietre": False, "assente": True,
            "condotta": "prudente",
            "fermate": {"reame": True, "assemblea": True, "asta": False, "invasione": True, "elemento": True}}
 _STOP_KEY = {"realm": "reame", "assembly": "assemblea", "auction": "asta", "event": "invasione",
@@ -92,7 +92,7 @@ def configure(conn, arg: str) -> str:
         c["bersagli"] = rest[0].lower()
     elif what == "condotta" and rest and rest[0].lower() in CONDUCTS:
         c["condotta"] = rest[0].lower()
-    elif what in ("assorbi", "loot", "oggetti", "sfonda", "routine", "potenzia", "setta", "pietre") and rest \
+    elif what in ("assorbi", "loot", "oggetti", "sfonda", "routine", "potenzia", "setta", "pietre", "assente") and rest \
             and _yes(rest[0]) is not None:
         c[what] = _yes(rest[0])
     elif what in ("rischio", "risk") and rest and rest[0].rstrip("%").isdigit():
@@ -119,6 +119,7 @@ def describe(conn) -> str:
             f"  Faccende (stipendio, missioni, raccolto della dimora): {'sì' if c.get('routine', True) else 'no'}   "
             f"Potenzia la dimora: {'sì' if c.get('potenzia') else 'no'}   "
             f"Assorbe le pietre in eccesso: {'sì' if c.get('pietre') else 'no'}   "
+            f"Medita mentre sei via: {'sì' if c.get('assente', True) else 'no'}   "
             f"Setta (iscriviti, accetta l'ascesa): {'sì' if c.get('setta') else 'no'}\n"
             "  Si ferma anche per: " + ", ".join(f"{k} {'sì' if v else 'no'}" for k, v in c["fermate"].items())
             + " ('auto imposta fermati asta si')\n"

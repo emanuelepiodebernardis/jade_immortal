@@ -71,6 +71,11 @@ def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
         rid, rn = race_realms.relic_item(conn, rng.choice(list(race_realms.BLOOD)), rng, 1)
         items.grant(conn, "player", player.id, rid)
         lines.append(f"🏺 {rn} (reliquia, leggendario)")
+    try:                                             # (Agg. 67) tra i tesori, a volte, un sigillo ancestrale
+        from engine.systems import ancestral_sigils
+        lines += ancestral_sigils.maybe_drop(conn, random.Random(hash(rng.getstate())), rank)   # senza toccare rng
+    except Exception:                                # noqa: BLE001
+        pass
     if rank == 1 and rng.random() < 0.04:            # rarissimo: un'arte proibita
         from engine.systems import dominion
         items.grant(conn, "player", player.id, dominion.salma_manual(conn))

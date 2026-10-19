@@ -23,13 +23,16 @@ TABS = [
     ("profondi", "🌌 Dao profondi", "profondi"),
     ("spiriti", "✺ Spiriti", "spiriti"),
     ("anime", "✧ Anime", None),
+    ("meridiani", "⚡ Meridiani", "meridiani"),
+    ("dharma", "🗿 Dharma", "dharma"),
     ("forza", "⚖ Forza", "forza"),
 ]
 KEYS = [k for k, _l, _s in TABS]
 DEFAULT = "coltivazione"
 ALIAS = {"costituzione": "corpo", "body": "corpo", "lignaggi": "sangue", "attr": "attributi",
          "fucina": "tecniche", "dao": "profondi", "bilancio": "forza", "fonti": "forza",
-         "vasi": "anime", "anello": "anime", "artefatti": "anime"}
+         "vasi": "anime", "anello": "anime", "artefatti": "anime",
+         "sigilli": "dharma", "meridiano": "meridiani"}
 
 
 def tab_of(arg: str) -> str:

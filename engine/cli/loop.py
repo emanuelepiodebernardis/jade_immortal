@@ -1949,6 +1949,9 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in _hb.daily(conn, t, random.Random(t * 127 + day), player)]
     lines += ["  " + ln for ln in _lw.daily(conn, t, random.Random(t * 131 + day), player)]
     lines += ["  " + ln for ln in soul_arcs.daily(conn, t, random.Random(t * 107 + day), player)]   # i capitoli dei vasi
+    from engine.systems import lost_companions as _lc, dharma_body as _dhb
+    lines += ["  " + ln for ln in _lc.daily(conn, t, random.Random(t * 137 + day), player)]
+    lines += ["  " + ln for ln in _dhb.daily(conn, t, random.Random(t * 139 + day), player)]
     from engine.systems import (mentor_ring, inner_space, clones, celestial_elements, family, divine_sense, gu,
                                 lost_legacy)
     _rng2 = random.Random(t * 97 + day)
@@ -2549,6 +2552,9 @@ def _intro() -> None:
     from engine.cli import story_cmds
     with transaction() as conn:
         player = entities.get_player(conn)
+        from engine.systems import idle_cultivation           # (Agg. 67) ciò che hai coltivato mentre eri via
+        for ln in idle_cultivation.on_open(conn, player):
+            _say(ln)
         banner = _day_banner(conn, player)
         if banner:
             _say(banner)
@@ -2573,6 +2579,8 @@ def run() -> None:
             return
         with transaction() as conn:
             output = dispatch(conn, raw)
+            from engine.systems import idle_cultivation
+            idle_cultivation.touch(conn)
         if output is None:
             print("A presto, coltivatore.")
             return

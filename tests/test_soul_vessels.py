@@ -41,11 +41,13 @@ def _ring(conn, lv):
 
 
 def test_arc_templates_well_formed():
-    keys = {t["key"] for t in intrigue_data3.ARCS}
+    from engine.systems import intrigue_data4
+    allt = intrigue_data3.ARCS + intrigue_data4.ARCS              # (Agg. 67) anche la saga dei compagni perduti
+    keys = {t["key"] for t in allt}
     for vessel, arc in soul_arcs.ARCS.items():
         for ch in arc:
             assert ch["plot"] in keys, ch["plot"]
-    for t in intrigue_data3.ARCS:
+    for t in allt:
         assert t.get("arc") in soul_arcs.ARCS
         for a in t["acts"]:
             if a.get("auto"):
@@ -61,7 +63,7 @@ def test_arc_templates_well_formed():
 def test_director_never_picks_arc_chapters(conn):
     d = intrigues.get(conn); d["last_start"] = -999; intrigues._save(conn, d)
     keys = [x[2].get("key") for x in intrigues.candidates(conn, _p(conn), random.Random(1)) if x[1] == "nuova"]
-    assert not any(k.startswith(("anello_", "pagoda_", "stendardo_", "calderone_", "perla_")) for k in keys)
+    assert not any(k.startswith(("anello_", "pagoda_", "stendardo_", "calderone_", "perla_", "compagni_")) for k in keys)
 
 
 @pytest.mark.parametrize("pick", [1, 2, 3])

@@ -55,6 +55,7 @@ def test_prize_generator_scales_and_records_in_the_book(conn):
     p = entities.get_player(conn)
     before = len(items.player_inventory(conn, 1))
     lines = rewards.grant(conn, random.Random(1), p, rank=1, scale=1.5)
+    lines = [ln for ln in lines if not ln.startswith("✴")]   # (Agg. 67) a volte, in più, un sigillo ancestrale
     assert len(lines) == 4                      # pietre + tre oggetti per il primo posto
     assert len(items.player_inventory(conn, 1)) == before + 3
     from engine.systems import state

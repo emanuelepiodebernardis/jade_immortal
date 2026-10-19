@@ -141,6 +141,8 @@ def intro() -> str:
     with LOCK, transaction() as conn:
         p = entities.get_player(conn)
         out = []
+        from engine.systems import idle_cultivation           # (Agg. 67) ciò che hai coltivato mentre eri via
+        out += idle_cultivation.on_open(conn, p)
         banner = loop._day_banner(conn, p)
         if banner:
             out.append(banner)
@@ -167,6 +169,11 @@ def _after(conn, player) -> list[str]:
     out += supreme_body.after_command(conn, player)
     from engine.systems import breakthrough_fates
     out += breakthrough_fates.after_command(conn, player)
+    try:
+        from engine.systems import unlocks, attention
+        out += unlocks.announce(conn, attention.badges(attention.items(conn, player)))
+    except Exception:                         # noqa: BLE001
+        pass
     ch = story_cmds.story_tick(conn, player)
     if ch:
         out.append(ch)
@@ -189,6 +196,8 @@ def turn(raw: str) -> dict:
     with LOCK:
         with transaction() as conn:
             out = loop.dispatch(conn, raw)
+            from engine.systems import idle_cultivation
+            idle_cultivation.touch(conn)
         if out is None:
             return {"log": "(Per uscire chiudi la finestra: la partita è già salvata.)"}
         parts = [out] if out else []
@@ -343,6 +352,9 @@ def state_snapshot() -> dict:
         from engine.systems import attention                    # pallini rossi e «Cosa fare ora»
         snap["todo"] = attention.items(conn, p)
         snap["badges"] = attention.badges(snap["todo"])
+        from engine.systems import unlocks                      # (Agg. 67) le schede si aprono poco a poco
+        snap["bloccati"] = unlocks.locked(conn, snap["badges"])
+        snap["schede_tutte"] = unlocks.show_all(conn)
     return snap
 
 

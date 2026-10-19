@@ -31,9 +31,10 @@ from engine.systems.calibration import (PLOT_MAX_ACTIVE as MAX_ACTIVE, PLOT_NEW_
 
 
 def _templates() -> dict:
-    from engine.systems import intrigue_data, intrigue_data3
+    from engine.systems import intrigue_data, intrigue_data3, intrigue_data4
     out = {t["key"]: t for t in intrigue_data.TEMPLATES}
     out.update({t["key"]: t for t in intrigue_data3.ARCS})      # i capitoli dei vasi d'anima (li apre il vaso)
+    out.update({t["key"]: t for t in intrigue_data4.ARCS})      # la saga dei compagni perduti (Agg. 67)
     return out
 
 
@@ -324,6 +325,10 @@ def _act_scene(conn, player, it: dict, tpl: dict) -> dict:
                 c[part] = dict(c[part])
                 if c[part].get("text"):
                     c[part]["text"] = _fmt(c[part]["text"], f)
+        if c.get("check") and c.get("command") and isinstance(c.get("failure"), dict):
+            # (Agg. 67) in una scelta con prova il duello è la strada del FALLIMENTO: se la prova riesce
+            # non si combatte (prima il duello partiva comunque, e «perdono» diventava «perdono_vinto»)
+            c["failure"].setdefault("command", c.pop("command"))
         choices.append(c)
     foc = act.get("focus")
     ctx = dict(f)

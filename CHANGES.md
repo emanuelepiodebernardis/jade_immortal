@@ -2730,3 +2730,46 @@ spostava più nulla; ora conta ancora un poco, senza tornare all'esplosione.
 sfondamento, Spietato (circa una morte ogni 80–100 giorni: è il genere senza sconti).
 
 **Test:** `tests/test_agg66.py` (8 test). Suite totale: **689 passati**.
+
+---
+
+## Aggiornamento 67 — Spunti da Immortal Celestial Fate
+
+- **I compagni perduti** (Seguaci → Compagni, `compagni`): la saga di chi è caduto con te dal Varco
+  del Cielo Spezzato. Vale per ogni origine: il Trasmigratore viene dalla Terra (una gita di fine anno, i
+  compagni di classe), le altre origini erano su una carovana di ragazzi diretti all'esame di una setta.
+  Ci sono sette capitoli legati al regno:
+  - il ricordo;
+  - l'amico ridotto a servo;
+  - la santa che non può riconoscerti;
+  - la prigioniera usata come calderone vivente;
+  - l'amico caduto nel sentiero demoniaco;
+  - il cacciatore posseduto dalla Voce;
+  - chi aprì il Varco.
+
+  Chi ritrovi diventa fratello giurato. La santa resta nella sua setta e ti manda doni. Il caduto può
+  tornare indietro, restare tuo complice o cadere per mano tua. Più compagni riunisci, più facile è il
+  finale.
+- **I meridiani** (La Via → Meridiani, `meridiani`): dodici principali e otto vasi straordinari, da
+  aprire uno a uno (alcuni a ogni regno; può fallire, e ogni fallimento rende più facile il tentativo
+  dopo). Poi si temprano senza fine: ogni livello costa il 30% in più. Ognuno rafforza una cosa sola:
+  attacco, danni subiti, vitalità, critici, schivata, coltivazione, comprensione o tossine delle
+  pillole. Il Piccolo e il Grande Circolo Celeste danno bonus in più. `meridiani tempra tutto` spende
+  le pietre sul livello più economico.
+- **Il Corpo del Dharma** (La Via → Dharma, `dharma`): dal 3° regno si risveglia nella forma del tuo
+  Dao più forte (una spada di mille fili, una fenice, un gigante di montagna…). Sale di grado senza fine,
+  da solo e nutrendolo di pietre, e combatte alle tue spalle.
+- **I Sigilli ancestrali** (La Via → Dharma, `sigilli`): ventiquattro rune di sei casate (Drago,
+  Fenice, Tigre, Tartaruga Nera, Qilin, Serpente Celeste) da trovare tra i tesori. Si incastonano in una
+  costellazione (+1 posto ogni due regni). I doppioni salgono di stella senza fine; due della stessa
+  casata danno un set minore, quattro un set maggiore.
+- **La coltivazione mentre sei via:** quando riapri la partita dopo almeno un'ora vera, il personaggio
+  ha meditato (una sessione leggera per ora, fino a 12). Il mondo resta fermo, quindi non c'è nessun
+  rischio. Si spegne nelle impostazioni del pilota.
+- **Le schede si aprono poco a poco:** chi comincia vede l'essenziale e il resto si apre con il regno,
+  annunciato una volta sola. Una scheda con un pallino rosso non è mai nascosta. Per i salvataggi
+  avanzati è tutto aperto, e dalle opzioni si può mostrare tutto sempre (`schede tutte`).
+- **Correzione:** nelle trame, una scelta con prova faceva partire il duello anche quando la prova
+  riusciva. Ora si combatte solo se la prova fallisce, e vale anche per i capitoli dei vasi d'anima.
+
+**Test:** `tests/test_agg67.py` (12 test). Suite totale: **701 passati**.

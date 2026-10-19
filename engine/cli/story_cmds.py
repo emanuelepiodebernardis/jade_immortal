@@ -415,6 +415,21 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("torneo", "gran_torneo", "granTorneo"):
         from engine.systems import grand_tournament
         return grand_tournament.command(conn, player, arg)
+    if cmd in ("schede", "sblocchi"):
+        from engine.systems import unlocks
+        return unlocks.command(conn, arg)
+    if cmd in ("compagni", "compagni_perduti", "varco"):
+        from engine.systems import lost_companions
+        return lost_companions.command(conn, player, arg)
+    if cmd in ("meridiani", "meridiano"):
+        from engine.systems import meridians
+        return meridians.command(conn, player, arg)
+    if cmd in ("dharma", "corpo_dharma"):
+        from engine.systems import dharma_body
+        return dharma_body.command(conn, player, arg)
+    if cmd in ("sigilli", "sigillo_ancestrale", "sigilli_ancestrali", "rune"):
+        from engine.systems import ancestral_sigils
+        return ancestral_sigils.command(conn, player, arg)
     if cmd in ("pietre", "pietre_spirituali", "assorbi_pietre"):
         from engine.systems import stone_qi
         return stone_qi.command(conn, player, ("assorbi " + arg) if cmd == "assorbi_pietre" else arg)

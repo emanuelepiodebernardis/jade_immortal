@@ -23,7 +23,7 @@ def _item(out, icon, title, why, cmd, palace, tab="", hot=False, prio=5):
 def items(conn, player) -> list[dict]:
     out: list[dict] = []
     day = tick_mod.get_tick(conn) // 120
-    checks = (_cultivation, _growth, _followers, _world, _story, _body)
+    checks = (_cultivation, _growth, _followers, _world, _story, _body, _agg67)
     for fn in checks:
         try:
             fn(conn, player, day, out)
@@ -77,7 +77,7 @@ def _growth(conn, player, day, out):
               "purifica", "via", "corpo", True, 2)
     if mentor_ring.get(conn) and mentor_ring.get(conn).get("gone") and mentor_ring.soul_candidate(conn):
         _item(out, "💍", "Un'anima vaga qui", "L'anello vuoto può accoglierla, solo oggi.", "anello accogli", "via", "anime", True, 3)
-    for v in ("anello", "pagoda", "stendardo", "calderone", "perla"):
+    for v in ("compagni", "anello", "pagoda", "stendardo", "calderone", "perla"):
         s = soul_arcs.get(conn).get(v) or {}
         if s.get("running"):
             _item(out, "✧", f"{soul_arcs.NAMES[v]}: un capitolo è aperto", "La sua storia continua nelle trame.",
@@ -142,3 +142,22 @@ def _body(conn, player, day, out):
     from engine.systems import mounts, beasts
     if beasts.pets(conn, player.id) and not mounts.mounted(conn, player.id):
         _item(out, "🐎", "La tua bestia può portarti", "Cavalcarla dà attacco e difesa.", "cavalca", "via", "corpo", False, 9)
+
+
+def _agg67(conn, player, day, out):
+    from engine.systems import meridians, dharma_body, ancestral_sigils, sects
+    stones = sects.get_resource(conn, "pietre_spirituali", player.id)
+    d = meridians.get(conn)
+    n = d.get("open", 0)
+    if n < len(meridians.MERIDIANS) and n < meridians.openable(conn) and stones >= meridians.open_cost(conn, n):
+        _item(out, "⚡", "Un meridiano può aprirsi", f"{meridians.MERIDIANS[n][0]}: {meridians.open_cost(conn, n)} pietre.",
+              "meridiani apri", "via", "meridiani", False, 4)
+    if not dharma_body.get(conn).get("awake") and dharma_body._tier(conn) >= dharma_body.AWAKEN_TIER \
+            and stones >= 300 * dharma_body._tier(conn):
+        _item(out, "🗿", "Il Corpo del Dharma può risvegliarsi", "Il tuo Dao è pronto a prendere forma.",
+              "dharma risveglia", "via", "dharma", True, 3)
+    sg = ancestral_sigils.get(conn)
+    spare = [k for k in sg["owned"] if int(k) not in sg["eq"]]
+    if spare and len(sg["eq"]) < ancestral_sigils.slots(conn):
+        _item(out, "✴", "Un sigillo aspetta un posto", "La costellazione ha posti liberi.", "sigilli auto",
+              "via", "dharma", False, 5)

@@ -128,10 +128,10 @@ function addCard(html) {
 
 // ---------------- comandi ----------------
 const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite",
-  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu", "cloni", "discepoli", "sotto"];
+  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu", "cloni", "discepoli", "sotto", "compagni"];
 // i comandi che mostrano una lista da cui scegliere si aprono come menu cliccabili
 // LA TUA VIA: le schede della crescita in un pannello solo (l'ultima aperta si ricorda)
-const VIA_TABS = ["coltivazione", "corpo", "sangue", "attributi", "tecniche", "profondi", "spiriti", "anime", "forza"];
+const VIA_TABS = ["coltivazione", "corpo", "sangue", "attributi", "tecniche", "profondi", "spiriti", "anime", "meridiani", "dharma", "forza"];
 let lastVia = "coltivazione";
 try { lastVia = localStorage.getItem("ji_via") || lastVia; } catch (e) { /* niente */ }
 // ---------------- I PALAZZI (Aggiornamento 64): pochi pulsanti grandi, ognuno con le sue schede ----------------
@@ -141,11 +141,12 @@ const PALACES = {
   via: { t: "☯ La tua Via", tabs: [["eroe", "🪟 Eroe", "personaggio"], ["coltivazione", "☯ Coltivazione", "m:via:coltivazione"],
     ["corpo", "✦ Corpo", "m:via:corpo"], ["sangue", "🩸 Sangue", "m:via:sangue"], ["attributi", "🪟 Attributi", "m:via:attributi"],
     ["tecniche", "⚒ Tecniche", "m:via:tecniche"], ["profondi", "🌌 Dao profondi", "m:via:profondi"], ["spiriti", "✺ Spiriti", "m:via:spiriti"],
-    ["anime", "✧ Anime", "m:via:anime"], ["forza", "⚖ Forza", "m:via:forza"]] },
+    ["anime", "✧ Anime", "m:via:anime"], ["meridiani", "⚡ Meridiani", "m:via:meridiani"], ["dharma", "🗿 Dharma", "m:via:dharma"],
+    ["forza", "⚖ Forza", "m:via:forza"]] },
   setta: { t: "⛩ Setta e potere", tabs: [["setta", "⛩ Setta", "m:setta"], ["bacheca", "📋 Bacheca", "m:bacheca"], ["arti", "⚗ Arti", "m:arti"],
     ["ricette", "📜 Ricette", "m:ricette"], ["dimora", "⌂ Dimora", "m:dimora"], ["rendite", "💰 Rendite", "m:rendite"], ["dominio", "⛓ Dominio", "m:dominio"]] },
   seguaci: { t: "👥 Seguaci", tabs: [["cloni", "☯ Cloni", "m:cloni"], ["discepoli", "🎓 Discepoli", "m:discepoli"], ["legami", "♥ Legami", "persone"],
-    ["famiglia", "🏠 Famiglia", "m:famiglia"], ["faide", "⚔ Faide", "m:faide"]] },
+    ["compagni", "🌀 Compagni", "m:compagni"], ["famiglia", "🏠 Famiglia", "m:famiglia"], ["faide", "⚔ Faide", "m:faide"]] },
   mondo: { t: "🌍 Il mondo", tabs: [["mappa", "🗺 Mappa", "mappa"], ["mercato", "🏪 Mercato", "m:mercato"], ["asta", "⚖ Aste", "m:asta"],
     ["regni", "👑 Regni", "m:regni"], ["razze", "🐉 Razze", "m:razze"], ["sotto", "🙏 Mondo di sotto", "m:sotto"]] },
   tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["libro", "📖 Libro", "tesori:libro"]] },
@@ -161,8 +162,9 @@ if (!PALACES[palace]) palace = "oggi";
 function openPalace(p, key) {
   if (!PALACES[p]) return;
   palace = p;
-  const tabs = PALACES[p].tabs;
-  const k = key || lastTab[p] || tabs[0][0];
+  const L = (S && S.bloccati) || {};
+  const tabs = PALACES[p].tabs.filter(([k]) => !L[p + ":" + k]);
+  const k = key || (L[p + ":" + lastTab[p]] ? null : lastTab[p]) || tabs[0][0];
   const t = tabs.find((x) => x[0] === k) || tabs[0];
   loadTab(t[2]);
 }
@@ -171,7 +173,8 @@ function renderPalaceHead() {
   const cur = (TARGET_OF[tab] || [palace, ""])[1];
   const B = (S && S.badges) || {};
   $("#ptitle").textContent = P.t;
-  $("#subnav").innerHTML = P.tabs.map(([k, l, dest]) => `<button class="chip ${k === cur ? "on" : ""}" data-ptab="${palace}:${k}">${esc(l)}${B[palace + ":" + k] ? `<i class="pdot"></i>` : ""}</button>`).join("");
+  const L = (S && S.bloccati) || {};
+  $("#subnav").innerHTML = P.tabs.filter(([k]) => !L[palace + ":" + k] || k === cur).map(([k, l, dest]) => `<button class="chip ${k === cur ? "on" : ""}" data-ptab="${palace}:${k}">${esc(l)}${B[palace + ":" + k] ? `<i class="pdot"></i>` : ""}</button>`).join("");
   document.querySelectorAll("#rail [data-palace]").forEach((b) => b.classList.toggle("on", b.dataset.palace === palace));
 }
 function renderBadges(s) {
@@ -184,7 +187,7 @@ function renderBadges(s) {
 }
 const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: "asta", auction: "asta", recipes: "ricette",
   invitations: "bacheca", inviti: "bacheca", missioni: "bacheca", missions: "bacheca", techniques: "tecniche", skills: "tecniche",
-  clone: "cloni", clones: "cloni" };
+  clone: "cloni", clones: "cloni", sigilli: "via:dharma", rune: "via:dharma" };
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
@@ -453,7 +456,10 @@ function pilotHtml() {
     <label><input type="checkbox" data-auto="routine"> Faccende (stipendio, missioni, cura dei tesori)</label>
     <label><input type="checkbox" data-auto="potenzia"> Potenzia la dimora</label>
     <label><input type="checkbox" data-auto="pietre"> Assorbi le pietre in eccesso</label>
-    <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label></div>
+    <label><input type="checkbox" data-auto="setta"> Setta: iscriviti e ascendi</label>
+    <label><input type="checkbox" data-auto="assente"> Medita mentre sei via (a gioco chiuso, fino a 12 ore)</label></div>
+    <div class="card sec"><b>▦ Schede</b><div class="muted small">All'inizio le schede si aprono poco a poco, con il regno.</div>
+    <label><input type="checkbox" id="showall"> Mostra sempre tutte le schede</label></div>
     <div class="card sec"><b>⚖ Difficoltà</b><div class="muted small">Quanto morde il mondo: agguati, inseguitori, rischio di morte.</div>
     <select id="diff"><option value="sereno">Sereno</option><option value="normale">Normale</option><option value="spietato">Spietato</option><option value="immortale">Immortale (senza numeri né salvataggi manuali)</option></select></div>`;
 }
@@ -873,6 +879,7 @@ function autoStart() {
 async function autoStop() { await api("/api/auto/stop", {}); }
 
 function renderAutoCfg(s) {
+  const sa = $("#showall"); if (sa) sa.checked = !!s.schede_tutte;
   const d = $("#diff");
   if (d && s.difficolta && document.activeElement !== d) d.value = s.difficolta;
   const c = s.auto || {};
@@ -1004,6 +1011,7 @@ document.addEventListener("click", async (ev) => {
 });
 document.addEventListener("change", (ev) => {
   if (ev.target.matches("[data-auto]")) autoSet(ev.target);
+  if (ev.target.id === "showall") run(ev.target.checked ? "schede tutte" : "schede graduali");
   if (ev.target.id === "diff") run(`difficolta ${ev.target.value}`);
 });
 $("#cmdform").addEventListener("submit", (ev) => {
