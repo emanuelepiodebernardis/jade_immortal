@@ -3,7 +3,11 @@
 Tutte le immagini condividono lo **stile base**: incollalo all'inizio di ogni prompt, poi aggiungi il soggetto.
 Salva ogni immagine in `immagini/<cartella>/<nome>.png` (o .jpg/.webp): il gioco la usa da sola.
 
-**Stile base (sempre):**
+**Importante (provato):** metti PRIMA il soggetto e POI lo stile. Per gli uomini scrivi sempre
+«a MAN, masculine face, strong jawline, thick eyebrows, broad shoulders» e l'età: altrimenti il generatore fa
+volti femminili. Le immagini del gioco sono state fatte così con Pollinations.ai (gratuito, un'immagine ogni 45 s).
+
+**Stile base (sempre, in coda):**
 > traditional Chinese ink wash painting (shuimo) on aged silk, xianxia cultivation fantasy, expressive brush strokes,
 > mineral pigment accents of jade green, cinnabar red and gold leaf, soft drifting mist, muted warm palette,
 > elegant, painterly, no text, no watermark, no frame

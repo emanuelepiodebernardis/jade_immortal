@@ -1,0 +1,9 @@
+CREDITI DELLE IMMAGINI
+
+luoghi/, mondi/, momenti/   dipinti dal codice del gioco (strumenti/dipingi_sfondi.py).
+ritratti/, bestie/, creature/   generati con Pollinations.ai (modello flux, servizio gratuito), con i prompt
+                                di strumenti/prompt_immagini.md: soggetto prima, poi lo stile comune
+                                «Chinese ink wash painting on aged silk, xianxia donghua style, jade green and
+                                cinnabar accents, misty background». Ritagliati a 512×512.
+Per gli uomini il prompt dice sempre «a MAN, masculine face, strong jawline, thick eyebrows…»: senza, il
+generatore tende a fare volti femminili.
