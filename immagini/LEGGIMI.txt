@@ -9,6 +9,14 @@ scarica dipinti cinesi classici da Wikimedia Commons (paesaggi Song, immortali, 
 e annota autori e licenze in CREDITI.txt. Non ti piace un'immagine? Cancellala o sostituiscila con una tua
 con lo stesso nome.
 
+GLI SFONDI DIPINTI DAL GIOCO
+    python strumenti/dipingi_sfondi.py          (o --tutto per ridipingerli)
+dipinge in stile inchiostro su seta, tutti coerenti, i luoghi (luoghi/), i mondi della mappa (mondi/) e i
+momenti (momenti/). Non sovrascrive le immagini che hai già messo tu.
+
+I RITRATTI E LE BESTIE CON UN GENERATORE (Higgsfield o altro)
+In strumenti/prompt_immagini.md c'è lo stile comune e un prompt per ogni immagine del gioco.
+
 LE CARTELLE
   (qui, senza cartella)  il nome di qualcosa o qualcuno: una bestia, un tesoro, un sangue, un nemico, un maestro
   ritratti/              <nome del personaggio>   oppure per tipo: patriarca, anziano, eremita, discepolo, guardia,
