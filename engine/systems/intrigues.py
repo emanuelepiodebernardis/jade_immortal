@@ -31,10 +31,11 @@ from engine.systems.calibration import (PLOT_MAX_ACTIVE as MAX_ACTIVE, PLOT_NEW_
 
 
 def _templates() -> dict:
-    from engine.systems import intrigue_data, intrigue_data3, intrigue_data4, intrigue_data5, intrigue_data6
+    from engine.systems import intrigue_data, intrigue_data3, intrigue_data4, intrigue_data5, intrigue_data6, intrigue_data7
     out = {t["key"]: t for t in intrigue_data.TEMPLATES}
     out.update({t["key"]: t for t in intrigue_data5.TEMPLATES})  # (Agg. 71) nuove trame scritte a mano
     out.update({t["key"]: t for t in intrigue_data6.TEMPLATES})  # (Agg. 73) saghe lunghe a capitoli
+    out.update({t["key"]: t for t in intrigue_data7.TEMPLATES})  # (Agg. 74) amore, orrore, potere
     out.update({t["key"]: t for t in intrigue_data3.ARCS})      # i capitoli dei vasi d'anima (li apre il vaso)
     out.update({t["key"]: t for t in intrigue_data4.ARCS})      # la saga dei compagni perduti (Agg. 67)
     return out
@@ -72,13 +73,30 @@ def _alive(conn, nid) -> bool:
     return bool(r and r["status"] == "alive")
 
 
+_GENDER: dict = {"g": None}                              # (Agg. 74) «genio@f»: il personaggio nasce donna
+
+
 def _spawn(conn, rng, player, archetype: str, tier: int, traits: dict | None = None) -> int:
     from engine.systems import npc_factory
     return npc_factory.spawn(conn, rng, archetype=archetype, location_id=player.location_id, tier=max(1, tier),
-                             traits=traits, tick=tick_mod.get_tick(conn))
+                             traits=traits, tick=tick_mod.get_tick(conn), gender=_GENDER["g"])
 
 
 def _cast_one(conn, rng, player, kind: str, taken: set) -> int:
+    if "@" in kind:                                      # genere imposto: si crea sempre un personaggio nuovo
+        base, g = kind.split("@", 1)
+        _GENDER["g"] = g if g in ("m", "f") else None
+        try:
+            if base in ("alleato", "rivale"):
+                base = {"alleato": "discepolo_amico", "rivale": "anziano"}[base]
+            arche = {"genio": ("discepolo", 1, {"pride": 85, "ambition": 85, "courage": 80}),
+                     "anziano": ("anziano", 1, {"ambition": 60, "honor": 40}),
+                     "spettro": ("eremita", 0, {"compassion": 10, "honor": 50}),
+                     "discepolo_amico": ("discepolo", 0, {"honor": 70, "loyalty": 60})}.get(
+                base, ("vagabondo", 0, {"greed": 85, "honor": 20, "courage": 60}))
+            return _spawn(conn, rng, player, arche[0], _ptier(conn, player.id) + arche[1], arche[2])
+        finally:
+            _GENDER["g"] = None
     from engine.systems import sects
     pt = _ptier(conn, player.id)
     mem = sects.get_membership(conn, player.id)
@@ -315,6 +333,8 @@ def _act_scene(conn, player, it: dict, tpl: dict) -> dict:
             text = _pick(act["text_branch"][br], seed)
     if it["act"] == 0 and "{atmo}" not in text and not tpl.get("no_atmo"):
         text = "{atmo} " + text                     # il mondo in cui accade: ora, tempo, stagione
+    if it["act"] == 0 and it.get("recap"):
+        text = it["recap"].replace("{", "(").replace("}", ")") + "\n\n" + text
     choices = []
     for ch in act["choices"]:
         if ch.get("need_clues") and it.get("clues", 0) < ch["need_clues"]:
@@ -401,6 +421,7 @@ def _auto_act(conn, player, it: dict, tpl: dict, act: dict) -> str:
         end = next((e for e in act["endings"] if _match(it, e)), act["endings"][-1])
         lines += _apply(conn, player, it, end.get("effects", {}), f)
         if end.get("flag"):                              # anche un finale può accendere una trama futura
+            it.setdefault("flags_set", []).append(end["flag"])
             d0 = get(conn)
             d0.setdefault("flags", [])
             if end["flag"] not in d0["flags"]:
@@ -453,6 +474,11 @@ def start(conn, player, key: str, rng: random.Random | None = None, branches: li
     it = {"id": d["seq"], "key": key, "cast": cast, "act": 0, "clues": 0,
           "branches": list(branches or []), "next_day": _day(conn), "start_day": _day(conn)}
     _log(it, f"Comincia: {tpl['acts'][0]['title']}")
+    if tpl.get("req_flag"):                              # (Agg. 74) «Nel capitolo precedente…»
+        from engine.systems import sagas
+        rc = sagas.recap(conn, key)
+        if rc:
+            it["recap"] = rc
     d["active"].append(it)
     d["last_start"] = _day(conn)
     _save(conn, d)
@@ -471,6 +497,11 @@ def _finish(conn, it: dict, outcome: str, text: str | None = None) -> str:
     d["done"].append({"key": it["key"], "kind": tpl.get("kind"), "day": _day(conn), "outcome": outcome,
                       "title": _fmt(tpl.get("title", ""), f), "text": msg, "clues": it.get("clues", 0)})
     _save(conn, d)
+    try:                                                 # (Agg. 74) il libro delle saghe e la memoria dei personaggi
+        from engine.systems import sagas
+        extra74 = sagas.on_finish(conn, it, tpl, outcome, msg, _fmt(tpl.get("title", ""), f), _day(conn))
+    except Exception:  # noqa: BLE001
+        extra74 = []
     try:
         chronicle.add(conn, "storia", f"{_fmt(tpl.get('title', ''), f)}: {msg}")
     except Exception:  # noqa: BLE001
@@ -482,6 +513,8 @@ def _finish(conn, it: dict, outcome: str, text: str | None = None) -> str:
         extra = [x for x in soul_arcs.on_finish(conn, tpl["arc"], it["key"], outcome) if x]
         if extra:
             msg = msg + "\n" + "\n".join(extra)
+    if extra74:
+        msg = msg + "\n" + "\n".join(extra74)
     return msg
 
 
@@ -749,6 +782,7 @@ def on_effect(conn, t: int, rng, player, data: dict, ctx: dict) -> list[str]:
         if data.get("flag"):
             d.setdefault("links", {})[data["flag"]] = ids
     if data.get("flag"):
+        it.setdefault("flags_set", []).append(data["flag"])   # (Agg. 74) la saga continua
         d.setdefault("flags", [])
         if data["flag"] not in d["flags"]:
             d["flags"].append(data["flag"])

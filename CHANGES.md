@@ -3244,3 +3244,77 @@ risposta (sede o famiglia minacciate), oppure per mano tua.
 col sigillo dell'anima, la scorta e le salme del Dominio (dal 2° regno), con il comando `dominio`.
 
 **Test:** 5 nuovi in `tests/test_pillars.py`; 834 in totale.
+
+---
+
+## Aggiornamento 74 — Le saghe: storie da seguire come un romanzo
+
+### Il motore delle saghe (`engine/systems/sagas.py`)
+
+Le trame legate da un segno ora si riconoscono da sole come **saghe**. Non serve un elenco da tenere
+aggiornato: basta scrivere i capitoli. Oggi sono 14: le sei grandi e otto più brevi, nate dalle trame
+di prima. Per seguirle come una storia ci sono quattro novità.
+
+- **Nel capitolo precedente.** La prima scena di un seguito si apre col riassunto di com'era finito il
+  capitolo prima, e di cosa avevi scelto.
+- **Il presagio.** A metà dell'attesa tra un capitolo e l'altro, chi tornerà si fa sentire: una lettera
+  senza firma, una voce in locanda, un sogno, un sasso del picco senza nome. Ce l'hanno tutti i seguiti
+  nuovi e quelli delle vecchie trame (il duello dei tre anni, la corte del re, il ragazzo dell'esame, il
+  sangue reale, la seconda prova del Cielo, i nemici del maestro).
+- **La memoria.** Il protagonista di una saga si ricorda com'è andata e te lo dice quando ti incontra.
+  - I ricordi possibili sono nove: fratello, tradito, rivale, salvato, amato, abbandonato, socio, maestro.
+  - Parlandogli si apre una scena sua. Col fratello giurato vi allenate fino all'alba o brindate ai morti;
+    con chi ami passate la sera insieme; chi hai tradito ti sbarra la strada; il rivale ti mette alla prova.
+- **Il libro delle saghe** (Storia → 📚 Saghe, comando `saghe`). Mostra ogni saga che hai toccato:
+  - i capitoli vissuti, ognuno con il suo esito;
+  - lo stato: in corso, il prossimo capitolo tra circa N giorni (col presagio, se è già arrivato), oppure
+    conclusa;
+  - i **finali scoperti sul totale**, per esempio 1/12. Ogni nuovo finale lo annuncia
+    («📚 Finale scoperto…»).
+
+  Il libro si conserva per sempre, anche oltre le 40 trame del diario. Nelle partite vecchie si
+  ricostruisce dal diario.
+
+### Tre nuove saghe (`engine/systems/intrigue_data7.py`), 14 capitoli
+
+**Il Filo Rosso** (dal 2° regno), 5 capitoli e 12 finali. Una spadaccina danza su un lago che non si
+scioglie mai, ed è promessa a un vecchio alleato del clan. La notte prima delle nozze ti porta un filo
+rosso. Da lì tre strade:
+- **fuggite insieme:** il cacciatore di taglie, la casa sul fiume, poi il ritorno dal padre e le nozze
+  (conquistate col cuore, con la forza o con le pietre, oppure rifiutate);
+- **smascheri il promesso:** lui si vendica col veleno freddo, e la salvi con l'antidoto, col tuo qi o
+  non del tutto;
+- **la lasci sposare:** la ritrovi pallida accanto a lui. Ti batti, le lasci una via di fuga o ti volti.
+
+**La Città che Dorme** (dal 3° regno), 4 capitoli e 10 finali. È un mistero dell'orrore. Al tramonto
+tutti si addormentano e sognano la stessa strada sotto una luna rossa. Una vecchia cieca che non dorme
+da quarant'anni ti guida fino al Loto Divoratore di Sogni. Puoi:
+- **bruciarlo:** la città si sveglia ma non sogna più, e tu le regali i tuoi sogni;
+- **combatterlo dentro il sogno:** diventi il Signore del Sogno, oppure lasci che lei lo spenga;
+- **farci un patto:** lui vuole un'altra città, e tu paghi o lo tradisci da dentro.
+
+**Il Trono di Giada** (dal 2° regno, solo in una setta), 4 capitoli e 9 finali. Il patriarca della tua
+setta muore avvelenato senza erede. Al conclave puoi:
+- **accusare il gran anziano:** torna con un esercito e c'è l'assedio;
+- **votare per lui:** ti chiede di uccidere l'erede onesto, e puoi farlo, cambiare parte o sfidarlo;
+- **prendere il trono tu:** arriva il peso della corona, e regni amato, temuto o rovesciato.
+
+### Le saghe dell'Agg. 73, arricchite
+
+La Spada Spezzata, il Mercante di Destini e il Maestro che non muore hanno ora i presagi tra un capitolo
+e l'altro e la memoria dei personaggi. Corretto «il sigillo del tesoro de …» in «della/del …».
+
+### Motore
+
+- Nel cast si può fissare il genere di un personaggio («genio@f», «anziano@m»).
+- Un atto può avere testi diversi secondo la strada presa prima (`text_branch`); le nuove saghe lo usano.
+
+### Test
+
+`tests/test_sagas.py` (43 test):
+- ogni capitolo nuovo si gioca con tutte le scelte;
+- le saghe si riconoscono, ognuna coi suoi finali;
+- riassunto, presagio, memoria e libro funzionano lungo una saga intera, fino al «Finale scoperto»;
+- la spadaccina nasce donna.
+
+875 in totale.

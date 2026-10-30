@@ -790,6 +790,13 @@ def choices_data(limit: int = 150) -> list[dict]:
                  "scelta": r["description"] or ""} for r in rows]
 
 
+def sagas_data() -> list:
+    """(Agg. 74) Il libro delle saghe: capitoli vissuti, il prossimo in arrivo, i finali scoperti."""
+    from engine.systems import sagas
+    with LOCK, transaction() as conn:
+        return sagas.book(conn)
+
+
 def album_data() -> dict:
     """(Agg. 72) L'album illustrato da completare."""
     from engine.systems import album

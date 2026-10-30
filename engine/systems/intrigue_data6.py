@@ -107,7 +107,7 @@ TEMPLATES: list[dict] = [
             {"title": "La lettera senza firma", "focus": "fratello", "gap": (1, 2),
              "text": ("Ti arriva una lettera senza firma, ma conosci quella calligrafia storta: «Non venire.» Basta "
                       "chiedere in giro per sapere il resto. {fratello} è accusato di aver rubato il sigillo del "
-                      "tesoro de {setta}; {mandante}, l'anziano che conduce il processo, chiede la sua testa. "
+                      "tesoro {della_setta}; {mandante}, l'anziano che conduce il processo, chiede la sua testa. "
                       "Tuo fratello non ha chiesto aiuto a nessuno. Neanche a te."),
              "choices": [
                  {"label": "Indaghi sul furto prima del processo",
@@ -781,3 +781,45 @@ TEMPLATES: list[dict] = [
         "outcomes": {"crepato": "Il Maestro di giada si è spezzato."},
     },
 ]
+
+
+# (Agg. 74) i presagi tra un capitolo e l'altro e come ti ricorda il protagonista (vedi sagas.py)
+_SAGA = {
+    "spada_spezzata": {"memory": {"giurati": "fratello", "rivali": "rivale", "tradito": "tradito"}},
+    "spada_fratello_accusato": {
+        "teaser": "Una lettera senza firma, con la calligrafia storta di {fratello}: «Se senti dire cose su di me, non crederci. E non venire.»",
+        "memory": {"assolto": "fratello", "duello": "fratello", "colpa": "fratello", "abbandonato": "abbandonato"}},
+    "spada_sfida_piazza": {
+        "teaser": "Nelle locande si parla di un giovane con una spada nera che batte chiunque. Si chiama {fratello}, e chiede di te.",
+        "memory": {"riconciliati": "fratello", "sfida": "rivale", "rifiutata": "rivale", "evitata": "rivale"}},
+    "spada_cicatrice": {
+        "teaser": "Ti svegli di notte con la sensazione di essere guardato. Sul davanzale, un'elsa spezzata e odore di bruciato.",
+        "memory": {"perdono": "rivale", "odio": "tradito", "vendetta": "tradito"}},
+    "spada_ricomposta": {
+        "teaser": "La tua metà della Spada che Torna formicola nel meridiano: {fratello} è nei guai, da qualche parte.",
+        "memory": {"fratelli": "fratello", "duello": "fratello"}},
+    "spada_picco": {
+        "teaser": "Un ragazzo ti consegna un sasso grigio: «Da parte di {fratello}. Viene dal picco senza nome. Ha detto che capirai.»",
+        "memory": {"rispetto": "fratello", "pace": "fratello", "duello": "rivale"}},
+    "spada_demone": {
+        "teaser": "Un villaggio a tre giorni da qui ha scritto il tuo nome sulle porte, per scongiuro. Dicono che passa la Spada Spezzata.",
+        "memory": {"redento": "fratello"}},
+    "mercante_conto": {
+        "teaser": "Ti arriva in dono una fiala di luce, con un biglietto: «Al mio socio preferito. Presto parleremo d'affari. — {mandante}»",
+        "memory": {"eterno": "socio"}},
+    "mercante_lastra": {
+        "teaser": "Sogni una tenda viola e un martelletto d'asta che batte tre volte. Al risveglio hai un capello bianco in più."},
+    "maestro_eterno": {"memory": {"patto": "maestro", "distrutto": "salvato"}},
+    "maestro_corpo": {
+        "teaser": "Ti svegli in piedi sul tetto, a piedi nudi. La giada al collo è calda. Non ricordi di esserti alzato."},
+    "maestro_occhi": {
+        "teaser": "Dicono che l'eremita {maestro} sia sceso al mercato, e che rida forte e beva vino. Non l'aveva mai fatto.",
+        "memory": {"liberato": "maestro"}},
+    "maestro_senza_tomba": {
+        "teaser": "Una setta nuova arruola discepoli in tutta la regione. Il patriarca, dicono, conosce arti perdute da diecimila anni."},
+    "maestro_giada": {
+        "teaser": "Il fantoccio di giada ti manda un biglietto scritto storto: «Ho una crepa nuova. Vieni a vederla, allievo.»",
+        "memory": {"ultima_lezione": "maestro", "maestro_di_giada": "maestro"}},
+}
+for _t in TEMPLATES:
+    _t.update(_SAGA.get(_t["key"], {}))

@@ -942,3 +942,8 @@ html[data-contrast="1"] .muted, html[data-contrast="1"] small { color: var(--ink
 button.obj.pil { display: block; width: 100%; background: none; border: 0; padding: 1px 0; text-align: left; cursor: pointer; color: inherit; }
 button.obj.pil:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 button.obj.pil.weak .l { color: var(--bad, #c55); font-weight: 600; }
+
+/* (Agg. 74) il libro delle saghe */
+.saga .saga-caps { margin: 8px 0 0; padding-left: 0; list-style: none; display: grid; gap: 8px; }
+.saga .saga-caps li b { display: block; margin: 1px 0; }
+.saga .saga-caps li div { font-size: 13px; line-height: 1.45; }

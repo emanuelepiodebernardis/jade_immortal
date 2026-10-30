@@ -334,7 +334,7 @@ const PALACES = {
   mondo: { t: "🌍 Il mondo", tabs: [["mappa", "🗺 Mappa", "mappa"], ["mercato", "🏪 Mercato", "m:mercato"], ["asta", "⚖ Aste", "m:asta"],
     ["regni", "👑 Regni", "m:regni"], ["razze", "🐉 Razze", "m:razze"], ["sotto", "🙏 Mondo di sotto", "m:sotto"]] },
   tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["album", "🖼 Album", "tesori:album"], ["libro", "📖 Libro", "tesori:libro"]] },
-  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["scelte", "⚖ Scelte", "storia:scelte"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
+  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["saghe", "📚 Saghe", "storia:saghe"], ["scelte", "⚖ Scelte", "storia:scelte"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
   opzioni: { t: "⚙ Opzioni", tabs: [["pilota", "✧ Pilota e difficoltà", "pilota"], ["partita", "💾 Partita", "aiuto"]] },
 };
 const TARGET_OF = {};                               // destinazione → [palazzo, scheda]
@@ -815,7 +815,7 @@ const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
 const SUBTABS = {
   personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
   tesori: [["zaino", "🎒 Zaino"], ["album", "🖼 Album"], ["libro", "📖 Libro"]],
-  storia: [["cronaca", "📜 Cronaca"], ["scelte", "⚖ Scelte"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
+  storia: [["cronaca", "📜 Cronaca"], ["saghe", "📚 Saghe"], ["scelte", "⚖ Scelte"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
 };
 // (Agg. 70) il CODEX: la prima volta che apri una scheda, una pagina che spiega quel sistema
 let CODEX = null, CODEX_SEEN = {};
@@ -852,6 +852,18 @@ function albumHtml(a) {
     ${claim ? `<div class="tools">${claim}</div>` : ""}<div class="al-grid">${cards}</div></div>`;
 }
 // (Agg. 70) il registro delle tue scelte
+// (Agg. 74) il libro delle saghe: ogni saga a capitoli, cosa è successo, il prossimo capitolo, i finali
+async function sagasHtml() {
+  const list = await api("/api/saghe").catch(() => []);
+  if (!list.length) return `<div class="empty">Nessuna saga ancora. Le storie a capitoli cominciano da sole: una scelta alla fine di una trama può aprirne il seguito, con gli stessi personaggi.</div>`;
+  return list.map((s) => {
+    const pct = s.finali_tot ? Math.round(100 * s.finali / s.finali_tot) : 0;
+    const caps = s.capitoli.map((c, i) => `<li><span class="muted small">cap. ${i + 1} · giorno ${c.giorno}</span><b>${esc(c.titolo)}</b><div>${esc(c.testo)}</div></li>`).join("");
+    return `<div class="card sec saga"><b>📚 ${esc(s.titolo)}</b> <span class="muted">— ${esc(s.stato)}</span>
+      <div class="mbar rare"><span>Finali scoperti</span><div class="bar"><i style="width:${pct}%"></i></div><em>${s.finali}/${s.finali_tot}</em></div>
+      ${caps ? `<ol class="saga-caps">${caps}</ol>` : `<div class="muted small">Il primo capitolo è in corso.</div>`}</div>`;
+  }).join("");
+}
 async function choicesHtml() {
   const list = await api("/api/scelte").catch(() => []);
   if (!list.length) return `<div class="empty">Ancora nessuna scelta: quando una scena ti chiede di decidere, la ritrovi qui.</div>`;
@@ -919,6 +931,7 @@ async function loadTab(name) {
       h = subChips("storia");
       if (sub.storia === "codex") h += await codexHtml();
       else if (sub.storia === "scelte") h += await choicesHtml();
+      else if (sub.storia === "saghe") h += await sagasHtml();
       else if (sub.storia === "mondo") h += await worldHtml() + await texts("mondo");
       else if (sub.storia === "trama") h += await texts("storia", "trama");
       else h += await chronicleHtml();

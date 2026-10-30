@@ -36,6 +36,20 @@ KINDS = {
                                 "Stringe i pugni: «{v} non è mai tornato a casa. Per colpa tua.»"]),
     "minacciato": ("paura", ["Indietreggia appena ti vede.", "«N-non cerco guai con te.»"]),
     "perdonato": ("rispetto", ["«Hai chiesto perdono. Non è abbastanza, ma è un inizio.»"]),
+    # (Agg. 74) i ricordi delle saghe
+    "fratello": ("grato", ["Ti batte una mano sulla spalla: «Fratello. Ancora vivo, vedo.»",
+                           "«Tu a destra, io a sinistra. Come sempre.» Ride.",
+                           "Ti versa da bere senza chiedere: «Al fiume, e alla mezza spada.»"]),
+    "tradito": ("odio", ["Non dice niente. La cicatrice sul suo viso parla per lui.",
+                         "«Millecinquecento pietre. È questo che valevo per te?»"]),
+    "rivale": ("rispetto", ["«Ti sei allenato? Bene. Anch'io.»", "Ti squadra da capo a piedi: «Non ancora. Ma presto.»"]),
+    "salvato": ("grato", ["«Se sono vivo è perché sei venuto. Non me lo dimentico.»",
+                          "Si inchina fino a terra, davanti a tutti: «Il mio salvatore.»"]),
+    "amato": ("affetto", ["Ti sfiora la mano, appena: «Sei tornato.»", "«Ho tenuto il lume acceso. Come promesso.»",
+                          "Sorride come sorride solo a te: «Raccontami tutto.»"]),
+    "abbandonato": ("rancore", ["Ti guarda passare come si guarda un estraneo.", "«Ti ho aspettato. Poi ho smesso.»"]),
+    "socio": ("complice", ["Ti fa l'occhiolino: «Socio. Gli affari vanno bene, no?»"]),
+    "maestro": ("rispetto", ["«Allievo! Hai la schiena storta. Raddrizzala.»", "«Ricordi l'ultima lezione? Ripetila.»"]),
 }
 
 
@@ -171,6 +185,42 @@ def scene(conn, player, npc) -> dict | None:
                     {"label": "Accetti un dono", "effects": {"stones": 40 * tier, "relation": 2}},
                     {"label": "Gli chiedi notizie del mondo", "effects": {"relation": 3,
                      "text": "Ti racconta chi si muove nei dintorni, chi cerca chi."}}]}
+    saga = _saga_scene(npc, kind, tier)                 # (Agg. 74) chi ha vissuto una saga con te
+    return {**base, **saga} if saga else None
+
+
+def _saga_scene(npc, kind: str, tier: int) -> dict | None:
+    n = npc.name
+    if kind == "fratello":
+        return {"title": f"{n}, fratello giurato", "text": f"{n} ti viene incontro a braccia aperte: «Una sera, "
+                "un fuoco, una brocca. Come ai vecchi tempi?»",
+                "choices": [{"label": "Vi allenate fino all'alba", "effects": {"relation": 5, "heart": 3, "qi_full": True,
+                             "text": "Le vostre spade si conoscono ancora a memoria."}},
+                            {"label": "Parlate di chi non c'è più", "effects": {"relation": 8, "heart": 5,
+                             "text": "Brindate ai morti. Poi ai vivi. Poi a voi due."}}]}
+    if kind == "amato":
+        return {"title": f"Una sera con {n}", "text": f"{n} ti aspetta dove vi siete lasciati. «Resta, stanotte.»",
+                "choices": [{"label": "Resti", "effects": {"relation": 8, "heart": 8, "qi_full": True,
+                             "text": "Per una notte il mondo dei coltivatori tace."}},
+                            {"label": "«Devo andare. Ma tornerò.»", "effects": {"relation": 2, "heart": 2,
+                             "text": "«Lo dici sempre.» Sorride lo stesso."}}]}
+    if kind == "tradito":
+        return {"title": f"{n} non ha dimenticato", "text": f"{n} ti sbarra la strada. «Hai qualcosa da dirmi?»",
+                "choices": [{"label": f"Chiedi perdono e paghi ({150 * tier} pietre)", "effects": {
+                             "stones": -150 * tier, "relation": 12, "karma": 4,
+                             "text": "Prende le pietre. Non ti perdona. Ma ti lascia passare."}},
+                            {"label": "Tiri dritto", "effects": {"relation": -5}}]}
+    if kind in ("rivale", "maestro"):
+        return {"title": f"{n} ti mette alla prova", "text": f"«Vediamo quanto sei cresciuto», dice {n}.",
+                "choices": [{"label": "Uno scambio amichevole", "check": {"stat": "potenza", "dc": 55},
+                             "success": {"relation": 6, "fame": 3, "text": "Ti fermi un attimo prima di lui. Annuisce."},
+                             "failure": {"relation": 3, "injury": 1, "text": "Ti batte, e ti spiega dove hai sbagliato."}},
+                            {"label": "«Un'altra volta.»", "effects": {"relation": -1}}]}
+    if kind == "salvato":
+        return {"title": f"Il debito di {n}", "text": f"«Ti devo la vita», dice {n}. «Lascia che ti ripaghi almeno un po'.»",
+                "choices": [{"label": "Accetti un dono", "effects": {"stones": 60 * tier, "relation": 2}},
+                            {"label": "«Viaggia con me.»", "effects": {"bond": "companion", "relation": 3,
+                             "bond_reason": "ti deve la vita"}}]}
     return None
 
 

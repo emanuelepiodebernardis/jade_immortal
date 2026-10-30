@@ -123,6 +123,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/ultimo_salvataggio":
                 return self._json({"testo": game.last_save_info()})
+            if path == "/api/saghe":
+                return self._json(game.sagas_data())
             if path == "/api/album":
                 return self._json(game.album_data())
             if path == "/api/scelte":
