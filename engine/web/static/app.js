@@ -333,7 +333,7 @@ const PALACES = {
     ["compagni", "🌀 Compagni", "m:compagni"], ["famiglia", "🏠 Famiglia", "m:famiglia"], ["faide", "⚔ Faide", "m:faide"]] },
   mondo: { t: "🌍 Il mondo", tabs: [["mappa", "🗺 Mappa", "mappa"], ["mercato", "🏪 Mercato", "m:mercato"], ["asta", "⚖ Aste", "m:asta"],
     ["regni", "👑 Regni", "m:regni"], ["razze", "🐉 Razze", "m:razze"], ["sotto", "🙏 Mondo di sotto", "m:sotto"]] },
-  tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["libro", "📖 Libro", "tesori:libro"]] },
+  tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["album", "🖼 Album", "tesori:album"], ["libro", "📖 Libro", "tesori:libro"]] },
   storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["scelte", "⚖ Scelte", "storia:scelte"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
   opzioni: { t: "⚙ Opzioni", tabs: [["pilota", "✧ Pilota e difficoltà", "pilota"], ["partita", "💾 Partita", "aiuto"]] },
 };
@@ -814,7 +814,7 @@ async function renderMete(s) {
 const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
 const SUBTABS = {
   personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
-  tesori: [["zaino", "🎒 Zaino"], ["libro", "📖 Libro"]],
+  tesori: [["zaino", "🎒 Zaino"], ["album", "🖼 Album"], ["libro", "📖 Libro"]],
   storia: [["cronaca", "📜 Cronaca"], ["scelte", "⚖ Scelte"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
 };
 // (Agg. 70) il CODEX: la prima volta che apri una scheda, una pagina che spiega quel sistema
@@ -837,6 +837,20 @@ async function codexHint(key, where) {
     <button class="primary" data-codex-ok="${esc(key)}">Ho capito</button> <span class="muted small">Lo ritrovi in Storia → Codex.</span></div>`);
 }
 function saveCodexSeen() { try { localStorage.setItem("ji_codex_seen", JSON.stringify(CODEX_SEEN)); } catch (e) { /* niente */ } }
+// (Agg. 72) l'ALBUM: sei pagine da completare; chi hai trovato è a colori, chi manca è un'ombra
+let albumPage = "bestie";
+function albumHtml(a) {
+  const pg = a.pagine.find((p) => p.key === albumPage) || a.pagine[0];
+  const tabs = a.pagine.map((p) => `<button class="chip ${p.key === pg.key ? "on" : ""}" data-album="${p.key}">${esc(p.titolo)} <small>${p.pct}%</small>${p.premi.length ? `<i class="pdot"></i>` : ""}</button>`).join("");
+  const cards = pg.voci.map((v) => { const u = imgOf(v.img);
+    return `<div class="al-card ${v.visto ? "seen" : "unseen"}" title="${v.visto ? esc(v.nome) : "ancora da scoprire"}">${u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="eq-ph">?</span>`}
+      <b>${v.visto ? esc(v.nome) : "???"}</b>${v.visto && v.sub ? `<small>${esc(v.sub)}</small>` : ""}</div>`; }).join("");
+  const claim = a.pagine.some((p) => p.premi.length) ? `<button class="primary" data-cmd="album premi">📖 Ritira i premi dell'album</button>` : "";
+  return `<div class="card sec album"><b>🖼 Album del coltivatore</b> <span class="muted small">completo al ${a.totale}% · premi al 25, 50, 75 e 100% di ogni pagina</span>
+    <div class="subtabs">${tabs}</div>
+    <div class="mbar"><span>${esc(pg.titolo)}</span><div class="bar"><i style="width:${pg.pct}%"></i></div><em>${pg.visti}/${pg.totale}</em></div>
+    ${claim ? `<div class="tools">${claim}</div>` : ""}<div class="al-grid">${cards}</div></div>`;
+}
 // (Agg. 70) il registro delle tue scelte
 async function choicesHtml() {
   const list = await api("/api/scelte").catch(() => []);
@@ -899,6 +913,7 @@ async function loadTab(name) {
     } else if (name === "tesori") {
       h = subChips("tesori");
       if (sub.tesori === "libro") { BOOK = await api("/api/libro"); h += V.book(BOOK, bookCat); }
+      else if (sub.tesori === "album") h += albumHtml(await api("/api/album"));
       else h += `<div class="tools"><button class="primary" data-cmd="tesori cura">✧ Cura tutti i tesori</button></div>` + await bagHtml() + await texts("tesori");
     } else if (name === "storia") {
       h = subChips("storia");
@@ -1086,8 +1101,12 @@ async function worldHtml() {
 async function gameHtml() {
   const m = await api("/api/merito");
   const sv = await api("/api/salvataggi");
+  const last = await api("/api/ultimo_salvataggio").catch(() => ({}));
   let h = `<div class="card"><b>Salvataggi</b> <span class="muted">— automatici ogni 5 giorni (auto_1, auto_2, auto_3 a rotazione)</span>
-    <div class="tools" style="margin-top:6px"><button class="primary" data-cmd="salva">💾 Salva ora</button></div>` +
+    ${last.testo ? `<div class="muted small">Ultimo salvataggio: ${esc(last.testo)}</div>` : ""}
+    <div class="tools" style="margin-top:6px"><button class="primary" data-cmd="salva">💾 Salva ora</button>
+      <a class="btn" href="/api/esporta" download title="Scarica la partita in un file .jiw: per conservarla o portarla su un altro computer">⬇ Esporta in un file</a>
+      <label class="btn" title="Carica una partita esportata (.jiw): quella attuale viene messa al sicuro">⬆ Importa da file<input type="file" id="imp-file" accept=".jiw,.db" hidden></label></div>` +
     (sv.length ? sv.map((x) => `<div class="dest"><div class="t">${esc(x.name)}</div><div class="w">${esc(x.when)}</div>
       <div class="b"><button data-cmd="carica ${esc(x.name)}">Carica</button></div></div>`).join("") : `<div class="empty">Nessun salvataggio.</div>`) + `</div>`;
   h += `<div class="card"><b>Rinascita e nuova partita</b>`;
@@ -1414,6 +1433,8 @@ document.addEventListener("click", async (ev) => {
   }
   if (ev.target.id === "dao-all") { daoAll = !daoAll; return loadTab("personaggio"); }
   if (ev.target.closest("#widen")) { setWide(!document.body.classList.contains("wide")); return; }
+  const alb = ev.target.closest("[data-album]");
+  if (alb) { albumPage = alb.dataset.album; return loadTab("tesori:album"); }
   const cx = ev.target.closest("[data-codex-ok]");
   if (cx) { CODEX_SEEN[cx.dataset.codexOk] = 1; saveCodexSeen(); const card = cx.closest(".codex-card"); if (card) card.remove(); return; }
   if (ev.target.closest("#adv")) { advance(); return; }
@@ -1484,7 +1505,16 @@ document.addEventListener("click", async (ev) => {
   const mb = ev.target.closest("[data-menu]");
   if (mb) loadTab("m:" + (mb.dataset.menu === "via" ? "via:" + lastVia : mb.dataset.menu));
 });
-document.addEventListener("change", (ev) => {
+document.addEventListener("change", async (ev) => {
+  if (ev.target.id === "imp-file" && ev.target.files && ev.target.files[0]) {       // (Agg. 72) importa una partita
+    const f = ev.target.files[0];
+    const buf = new Uint8Array(await f.arrayBuffer());
+    let bin = ""; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+    const r = await api("/api/importa", { dati: btoa(bin) });
+    addLog(r.log, null, true);
+    if (r.ok) { setTimeout(() => location.reload(), 900); }
+    return;
+  }
   if (ev.target.matches("[data-auto]")) autoSet(ev.target);
   if (ev.target.id === "showall") run(ev.target.checked ? "schede tutte" : "schede graduali");
   if (ev.target.id === "diff") run(`difficolta ${ev.target.value}`);

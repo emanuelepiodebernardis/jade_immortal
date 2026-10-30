@@ -113,3 +113,17 @@ def test_every_menu_tab_exists():
 def test_js_syntax(f):
     r = subprocess.run(["node", "--check", str(STATIC / f)], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
+
+
+def test_export_import_round_trip(base):
+    import base64
+    with urllib.request.urlopen(base + "/api/esporta", timeout=30) as r:
+        data = r.read()
+        assert r.status == 200 and data.startswith(b"SQLite format 3")
+        assert "attachment" in r.headers.get("Content-Disposition", "")
+    res = _post(base + "/api/importa", {"dati": base64.b64encode(data).decode()})
+    assert res["ok"], res
+    bad = _post(base + "/api/importa", {"dati": base64.b64encode(b"ciao").decode()})
+    assert not bad["ok"]
+    assert "testo" in _get(base + "/api/ultimo_salvataggio")
+    assert _get(base + "/api/album")["pagine"]

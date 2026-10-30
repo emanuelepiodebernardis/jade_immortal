@@ -427,6 +427,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("dharma", "corpo_dharma"):
         from engine.systems import dharma_body
         return dharma_body.command(conn, player, arg)
+    if cmd in ("album", "collezione", "enciclopedia_illustrata"):
+        from engine.systems import album
+        return album.command(conn, player, arg)
     if cmd in ("squadra", "bestie", "team"):
         from engine.systems import beast_team
         return beast_team.command(conn, player, arg)

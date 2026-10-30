@@ -925,3 +925,15 @@ html[data-contrast="1"] .muted, html[data-contrast="1"] small { color: var(--ink
 #phead #settings-pop button { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; text-align: left;
   padding: 7px 8px; border-radius: 8px; width: 100%; font-size: 13px; }
 #settings-pop .si { text-align: center; } #settings-pop em { font-style: normal; color: var(--accent); font-size: 12px; }
+/* album */
+.al-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+.al-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--chip); text-align: center; font-size: 12px; }
+.al-card img, .al-card .eq-ph { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: grid; place-items: center; }
+.al-card.unseen img { filter: grayscale(1) brightness(.25) blur(1px); }
+.al-card.unseen b { color: var(--muted); }
+.al-card small { color: var(--muted); font-size: 10.5px; }
+/* esporta / importa */
+.tools .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--chip); color: var(--ink); font-size: 13px; cursor: pointer; text-decoration: none; }
+.tools .btn:hover { border-color: var(--accent); }

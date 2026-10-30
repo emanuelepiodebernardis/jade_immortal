@@ -624,6 +624,68 @@ def dao_data() -> list[dict]:
     return out
 
 
+def export_save() -> tuple[bytes, str]:
+    """(Agg. 72) La partita intera in un file da conservare o portare su un altro computer."""
+    import sqlite3, tempfile, datetime
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        day = tick_mod.get_tick(conn) // 120 + 1
+        name = re.sub(r"[^A-Za-z0-9]+", "_", (p.name if p else "partita"))[:24] or "partita"
+        fd, tmp = tempfile.mkstemp(suffix=".jiw")
+        os.close(fd)
+        dst = sqlite3.connect(tmp)
+        try:
+            conn.commit()
+            conn.backup(dst)
+        finally:
+            dst.close()
+    data = open(tmp, "rb").read()
+    os.unlink(tmp)
+    return data, f"jade_immortal_{name}_giorno{day}_{datetime.date.today().isoformat()}.jiw"
+
+
+def import_save(b64: str) -> dict:
+    """(Agg. 72) Carica una partita esportata. Prima mette al sicuro quella attuale nello slot «prima_dell_import»."""
+    import base64, sqlite3, tempfile
+    try:
+        raw = base64.b64decode(b64 or "", validate=False)
+    except Exception:                                  # noqa: BLE001
+        return {"ok": False, "log": "Il file non è leggibile."}
+    if not raw.startswith(b"SQLite format 3"):
+        return {"ok": False, "log": "Questo non è un salvataggio di Jade Immortal (.jiw)."}
+    fd, tmp = tempfile.mkstemp(suffix=".jiw")
+    os.close(fd)
+    open(tmp, "wb").write(raw)
+    try:
+        src = sqlite3.connect(tmp)
+        ok = src.execute("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('players','npcs','locations');").fetchone()[0] == 3
+        if not ok:
+            src.close()
+            return {"ok": False, "log": "Il file non contiene una partita (mancano giocatore, personaggi o luoghi)."}
+        from engine.systems import qol
+        with LOCK, transaction() as conn:
+            qol.save(conn, "prima_dell_import")
+            conn.commit()
+            src.backup(conn)
+        src.close()
+    finally:
+        os.unlink(tmp)
+    return {"ok": True, "log": "Partita importata. Quella di prima è al sicuro nello slot «prima_dell_import»."}
+
+
+def last_save_info() -> str:
+    """Quando è stato fatto l'ultimo salvataggio (automatico o a mano)."""
+    import datetime
+    from engine.systems import qol
+    files = sorted(qol._saves_dir().glob("*.db"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not files:
+        return ""
+    t = datetime.datetime.fromtimestamp(files[0].stat().st_mtime)
+    mins = int((datetime.datetime.now() - t).total_seconds() // 60)
+    when = "adesso" if mins < 1 else f"{mins} min fa" if mins < 60 else t.strftime("%d/%m alle %H:%M")
+    return f"{files[0].stem} · {when}"
+
+
 def saves() -> list[dict]:
     import datetime
     from engine.systems import qol
@@ -714,6 +776,13 @@ def choices_data(limit: int = 150) -> list[dict]:
             "ORDER BY e.tick DESC, e.id DESC LIMIT ?;", (p.id, limit)).fetchall()
         return [{"giorno": r["tick"] // 120 + 1, "titolo": r["title"], "tipo": r["event_type"] or "",
                  "scelta": r["description"] or ""} for r in rows]
+
+
+def album_data() -> dict:
+    """(Agg. 72) L'album illustrato da completare."""
+    from engine.systems import album
+    with LOCK, transaction() as conn:
+        return album.view(conn, entities.get_player(conn))
 
 
 def gear_data() -> dict:

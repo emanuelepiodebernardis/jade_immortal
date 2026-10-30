@@ -23,7 +23,7 @@ def _item(out, icon, title, why, cmd, palace, tab="", hot=False, prio=5):
 def items(conn, player) -> list[dict]:
     out: list[dict] = []
     day = tick_mod.get_tick(conn) // 120
-    checks = (_guide, _cave, _cultivation, _growth, _followers, _world, _story, _body, _agg67)
+    checks = (_guide, _cave, _album, _cultivation, _growth, _followers, _world, _story, _body, _agg67)
     for fn in checks:
         try:
             fn(conn, player, day, out)
@@ -45,6 +45,14 @@ def badges(lst: list[dict]) -> dict:
 
 
 # ---------------------------------------------------------------- le voci
+
+def _album(conn, player, day, out):
+    from engine.systems import album
+    n = sum(len(p["premi"]) for p in album.view(conn, player)["pagine"])
+    if n:
+        _item(out, "📖", "Premi dell'album da ritirare", f"{n} traguardi raggiunti nell'album.", "album premi", "tesori",
+              "album", False, 6)
+
 
 def _cave(conn, player, day, out):
     from engine.systems import caves, state as _st

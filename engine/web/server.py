@@ -111,6 +111,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.equip_data())
             if path == "/api/gear":
                 return self._json(game.gear_data())
+            if path == "/api/esporta":                  # (Agg. 72) la partita in un file
+                data, fname = game.export_save()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            if path == "/api/ultimo_salvataggio":
+                return self._json({"testo": game.last_save_info()})
+            if path == "/api/album":
+                return self._json(game.album_data())
             if path == "/api/scelte":
                 return self._json(game.choices_data())
             if path == "/api/codex":
@@ -202,6 +216,8 @@ class Handler(BaseHTTPRequestHandler):
                                                            bool(b.get("corpo")), b.get("erede"))})
             if path == "/api/intro":
                 return self._json({"log": game.intro()})
+            if path == "/api/importa":
+                return self._json(game.import_save(str(b.get("dati", ""))))
             if path == "/api/auto/stop":
                 game.STOP.set()
                 return self._json({"ok": True})

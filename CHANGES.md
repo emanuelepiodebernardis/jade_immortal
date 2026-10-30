@@ -3102,3 +3102,31 @@ quasi ogni palazzo, 18 schede nella Via.
   - Il riepilogo d'apertura (dove sei, chi c'è, cosa è successo mentre eri via) si legge subito, senza
     passare da Avanti.
   - Le partite già avviate prima della guida, dopo il 15° giorno e dal 2° regno, saltano i primi passi.
+
+### Agg. 72, seconda parte — L'album illustrato e i salvataggi esportabili
+
+**Album del coltivatore** (Tesori → 🖼 Album, comando `album`). È un'enciclopedia illustrata da completare
+come un album di figurine: quello che hai scoperto è a colori, il resto è un'ombra con «???». Le pagine
+sono sei:
+- **🐾 Bestiario:** 39 specie, comuni e rare;
+- **☸ Dao:** 31;
+- **🗺 Luoghi:** tutti quelli del mondo;
+- **🎒 Tesori:** 11 tipi;
+- **🐉 Trasformazioni:** 7 forme di sangue;
+- **🧥 Equipaggiamento:** 5 set.
+
+Ogni pagina dà un premio al 25, 50, 75 e 100%: pietre, e al 100% il titolo «Custode dell'Album». Si
+ritirano con `album premi`, e «Cosa fare ora» ti avvisa quando ce ne sono.
+
+L'album legge solo quello che il gioco già ricorda (codex dei luoghi e delle bestie, libro dei tesori, Dao,
+sangue, equipaggiamento), quindi anche una partita vecchia parte già avanti: la tua è al 30%.
+
+**Salvataggi esportabili** (Opzioni → Partita).
+- **⬇ Esporta in un file:** scarica la partita intera in un file `.jiw`, per conservarla o portarla su un
+  altro computer.
+- **⬆ Importa da file:** carica una partita esportata. Prima mette al sicuro quella attuale nello slot
+  «prima_dell_import» e rifiuta i file che non sono partite di Jade Immortal.
+- **Ultimo salvataggio:** la stessa scheda mostra quando è stato fatto (per esempio «auto_2 · 3 min fa»).
+
+**Test:** `tests/test_album.py`, più il giro completo esporta → importa in `tests/test_web_ui.py`. 772 in
+totale.
