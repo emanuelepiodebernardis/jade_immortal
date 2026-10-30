@@ -753,7 +753,7 @@ body.no-numbers .person .pw span:first-child, body.no-numbers #t-pietre, body.no
   -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
 body.scene-on .scene-img { height: 120px; }
 .arena { position: relative; }
-.cutin { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; pointer-events: auto; cursor: pointer;
+.cutin { position: absolute; inset: 0; z-index: 50; border-radius: 12px; display: grid; place-items: center; pointer-events: auto; cursor: pointer;
   background: rgba(6, 10, 9, .45); animation: cut-bg 1.2s ease; }
 .cut { position: relative; width: min(92%, 640px); aspect-ratio: 16 / 7; animation: cut-in .35s cubic-bezier(.2,.9,.3,1.2); }
 .cut.foe { animation-name: cut-in-foe; }

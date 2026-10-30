@@ -410,13 +410,17 @@ function cutIn(box, L, ar) {
   const foe = L.subito ? imgOf(L.img_nemico) : null;
   if (foe) steps.push({ u: foe, t: ar.nome, sub: `−${Number(L.subito).toLocaleString("it-IT")}${L.critico_lui ? " · CRITICO" : ""}`, cls: "foe" });
   if (!steps.length) return;
-  const el = document.createElement("div"); el.className = "cutin"; arena.appendChild(el);
+  document.querySelectorAll(".cutin").forEach((x) => x.remove());
+  const r = box.getBoundingClientRect();
+  const el = document.createElement("div"); el.className = "cutin";
+  Object.assign(el.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: Math.min(r.height, 360) + "px" });
+  document.body.appendChild(el);
   let i = 0;
   const show = () => {
     if (i >= steps.length) { el.remove(); return; }
     const s = steps[i++];
     el.innerHTML = `<div class="cut ${s.cls}"><div class="cut-img" style="background-image:url('${s.u}')"></div><div class="cut-t"><b>${esc(s.t)}</b>${s.sub ? `<span>${esc(s.sub)}</span>` : ""}</div></div>`;
-    const f = arena.querySelector(s.cls === "me" ? ".fighter.foe" : ".fighter.me"); if (f) { f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); }
+    const f = document.querySelector(s.cls === "me" ? "#scene .fighter.foe" : "#scene .fighter.me"); if (f) { f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); }
     setTimeout(show, s.cls === "me" ? 1250 : 1000);
   };
   el.addEventListener("click", () => el.remove());
@@ -432,10 +436,13 @@ function renderScene(s) {
   const ar = s.duello && s.duello.arena;
   box.classList.toggle("in-duel", !!ar);
   let cut = null;
-  if (ar && ar.ultimo && ar.turno !== lastArenaTurn) { lastArenaTurn = ar.turno; if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); cut = ar.ultimo; }
+  const sig = ar && ar.ultimo ? ar.turno + "|" + JSON.stringify(ar.ultimo) : null;    // ogni scambio nuovo, anche l'ultimo
+  if (sig && sig !== lastArenaTurn) { const first = lastArenaTurn === null || !ar.ultimo.mossa; lastArenaTurn = sig;
+    if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); if (!first) cut = ar.ultimo; }
   if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); if (cut) cutIn(box, cut, ar); return; }
   if (ar && ar.finito) {
     box.innerHTML = arenaHtml(ar, s) + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
+    if (cut) cutIn(box, cut, ar);
     return;
   }
   const du = s.duello ? `<div class="duel"><div><span>Tu</span><div class="bar hp"><i style="width:${s.duello.tu.pct}%"></i></div><em>${s.duello.tu.cur}/${s.duello.tu.max}</em></div>
