@@ -2996,3 +2996,51 @@ sconfitto o aiutato se lo segna. Chi ha perso una persona cara per mano tua se l
   - la sintassi del JavaScript.
 
 **Test:** 744 in totale.
+
+---
+
+## Aggiornamento 71 — Partita di prova, grotte, squadra di bestie, minigiochi di mano
+
+**Partita di prova.** Un giocatore automatico ha fatto tre partite (mortale, clan, genio), 900 mosse in tutto,
+usando la dashboard come una persona: seguiva «Cosa fare ora», sceglieva nelle scene, duellava leggendo
+l'intento. Non sono emersi errori né pagine lente: sul salvataggio grande (oltre 5.000 personaggi) lo stato
+si calcola in 0,07 s, una giornata in 0,2-0,35 s e la mappa in 0,2 s. Ha però trovato tre cose:
+- **Il primo sfondamento:** la guida proponeva «sfonda» anche quando non eri pronto, e il giocatore ci ha
+  cliccato 69 volte a vuoto. Ora propone di allenarsi finché la barra non è piena.
+- **Missione quotidiana:** il pulsante apriva solo il riepilogo. Ora porta al prossimo obiettivo da fare:
+  allenarsi, andare a caccia o temprare lo spirito.
+- **Verbi naturali:** «medita», «esplora», «dormi», «sfonda», «zaino»… non erano capiti. Ora, quando un
+  verbo non esiste, il gioco riprova con il comando vero.
+
+**Le grotte** (`engine/systems/caves.py`, comando `grotta`). Si trovano in montagna, tra le rovine, nelle
+foreste e nelle zone proibite.
+- Ogni grotta ha da 5 a 7 stanze. A ogni bivio scegli tra due passaggi, e ognuno ha un indizio:
+  - ⚔ guardiano, da battere in duello;
+  - ⚠ trappola, una prova di agilità o di intelletto;
+  - ❓ enigma della tradizione dei coltivatori;
+  - ✦ tesoro;
+  - 💧 sorgente, che ridà vigore, qi e spirito;
+  - ☯ altare: offri metà del qi per una benedizione, oppure rischi.
+- In fondo c'è il **♛ custode**, un boss con tre fasi, che lascia un tesoro e un pezzo d'equipaggiamento.
+- Il **vigore** (100) è la tua tenuta: se arriva a zero svieni e ti ritrovi all'ingresso. Puoi uscire quando
+  vuoi tenendo ciò che hai trovato.
+- Si esplora una grotta al giorno per luogo.
+
+**La squadra di bestie** (`engine/systems/beast_team.py`, comando `squadra`).
+- Puoi avere una bestia, due dal 3° regno e tre dal 5°.
+- Ogni bestia sale di livello con i duelli, le lotte e i nuclei, e si **evolve** al livello 10 («Maggiore»)
+  e al 25 («Re»).
+- Ogni bestia ha due mosse del suo elemento. Nel duello sono carte: «Lupo: Lame di Vento», con tipi, stati e
+  ricarica.
+- **Lotta tra bestie** (`squadra lotta <creatura>`): la tua bestia capofila combatte una creatura del luogo,
+  con i tipi. Se vinci, la tua bestia guadagna esperienza e la creatura sconfitta si doma più facilmente.
+
+**Minigiochi di mano.** Forgia e alchimia (`equip forgia…`, `craft…`, `distilla…`) aprono un gioco di
+tempismo: un ago corre su una barra e si colpisce nella zona giusta tre volte. A ogni colpo la zona si
+stringe e l'ago accelera.
+- La qualità media sposta la rarità del pezzo forgiato e la riuscita dell'alchimia: da −12% a +18%.
+- «lascia al caso» vale come prima.
+- `minigiochi` li spegne e li riaccende.
+- Da riga di comando non cambia nulla.
+
+**Test:** `tests/test_caves.py` e `tests/test_beast_team.py`.

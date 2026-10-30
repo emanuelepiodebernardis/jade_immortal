@@ -144,7 +144,7 @@ def menu_build(conn, player) -> dict:
         bars.append(bar(f"{'✔ ' if k in d['done'] else ''}{desc} {c}/{goal}", 100 * c / goal, "", tone="rare" if k in d["done"] else ""))
     secs.append(section(f"Stagione {d['n'] + 1} — {duel_types.EL_ICON.get(el, '')} {_el_it(el).split(' ', 1)[-1]}", [
         f"Legge del Cielo: le tecniche di {duel_types.EL_IT.get(el, el)} colpiscono ×{EL_BONUS:.2f}. "
-        f"Mancano {days_left(conn)} giorni.",
+        + ("Manca 1 giorno." if days_left(conn) == 1 else f"Mancano {days_left(conn)} giorni."),
         f"Ogni prova: {300 * _tier(conn)} pietre. Tutte e tre: un pezzo DIVINO del set "
         f"{gear_set_name(el)} e il titolo di Campione."], [], bars, icon="🏆"))
     # le grandi vie del finale

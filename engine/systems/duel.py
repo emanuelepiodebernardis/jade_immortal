@@ -211,6 +211,11 @@ def arena(conn, player) -> dict | None:
                       "desc": ", ".join(bits) or m.get("desc", ""),
                       "cost": cost, "ok": cd <= 0 and m["ok"], "why": why, "cmd": f"duello_azione tecnica {m['key']}",
                       "kind": m.get("source", "tecnica"), "cd": max(0, cd), **info})
+    try:                                              # (Agg. 71) le carte delle tue bestie
+        from engine.systems import beast_team
+        cards += beast_team.duel_cards(conn, player, d)
+    except Exception:                                 # noqa: BLE001
+        pass
     cards.append({"key": "difendi", "name": "Difendi", "icon": "🛡", "cost": "",
                   "desc": "para quasi tutto il colpo pesante" if d["charge_e"] else "subisci meno, recuperi Qi",
                   "ok": True, "why": "", "cmd": "duello_azione difendi", "kind": "base", "hot": d["charge_e"]})
@@ -433,6 +438,13 @@ def act(conn, player, arg: str) -> str:
     elif what == "concentrati":
         d["focus"] = True
         lines.append("Respiri, raccogli tutto il tuo qi in un solo punto…")
+    elif what == "bestia" and len(parts) > 1 and parts[1].isdigit():
+        from engine.systems import beast_team
+        bd, bl = beast_team.duel_strike(conn, player, d, int(parts[1]), pd, rng)
+        d["hp_e"] -= bd
+        lines += bl
+        lines.append("  " + loop._hit_desc(bd, d["emax"], d["name"], False, rng))
+        name = bl[0].split(" usa ")[-1].rstrip("!") if bl else None
     elif what == "pillola":
         from engine.systems import items
         pills = _pills(conn, player.id)
@@ -643,7 +655,8 @@ def finish(conn, player, kill: bool, seal: bool = False) -> str:
     from engine.systems import guide, npc_memory
     guide.flag(conn, "duello")
     extra: list[str] = list(npc_memory.on_duel_end(conn, player, npc, how))   # chi ricorda, chi commenta
-    from engine.systems import seasons                 # le prove della stagione
+    from engine.systems import seasons, beast_team     # le prove della stagione; le bestie crescono
+    extra += beast_team.after_duel(conn, player, True)
     extra += seasons.count(conn, "duelli")
     if how == "risparmiato":
         extra += seasons.count(conn, "risparmia")
@@ -667,6 +680,8 @@ def _plot(conn, player, npc_id: int, outcome: str) -> list[str]:
         out += deification_tower.on_duel(conn, player, npc_id, outcome)  # i guardiani della Torre
         from engine.systems import grand_tournament
         out += grand_tournament.on_duel(conn, player, npc_id, outcome)   # il Gran Torneo
+        from engine.systems import caves
+        out += caves.on_duel(conn, player, npc_id, outcome)              # (Agg. 71) i guardiani delle grotte
     except Exception:  # noqa: BLE001
         pass
     try:

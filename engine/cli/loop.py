@@ -2383,6 +2383,12 @@ def cmd_rating(conn: sqlite3.Connection, player: entities.Player) -> str:
     return "\n".join(out)
 
 
+# (Agg. 71) dalla partita di prova: parole che un giocatore scrive e che il gioco non capiva
+VERB_ALIAS = {"medita": "meditazione", "meditare": "meditazione", "allenati": "train", "allenarsi": "train",
+              "dormi": "sleep", "riposa": "sleep", "esplora": "caccia", "combatti": "attack", "sfonda": "breakthrough",
+              "zaino": "inventory", "equipaggiamento": "equip", "viaggia": "mappa"}
+
+
 def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str | None:
     parts = raw.strip().split(maxsplit=1)
     if not parts:
@@ -2528,6 +2534,8 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
             if result is None:
                 return None
             return f"(interpreto: {translated})\n" + (result or "")
+    if cmd in VERB_ALIAS and allow_nl is not None:      # (Agg. 71) un verbo naturale: riprova col comando vero
+        return dispatch(conn, (VERB_ALIAS[cmd] + " " + arg).strip(), allow_nl=False)
     return f"Comando sconosciuto: '{cmd}'. Scrivi 'help'."
 
 

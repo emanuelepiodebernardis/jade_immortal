@@ -901,3 +901,14 @@ html[data-contrast="1"] body { filter: contrast(1.18); }
 html[data-contrast="1"] .muted, html[data-contrast="1"] small { color: var(--ink) !important; opacity: .92; }
 .choices-log .cl-day { margin: 10px 0 4px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
 .choices-log .cl-row { display: flex; flex-direction: column; padding: 4px 0 6px; border-bottom: 1px dashed var(--line); font-size: 13px; }
+
+/* ===== Aggiornamento 71: minigioco di forgia e alchimia ===== */
+#minigame { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(0,0,0,.55); }
+#minigame .mg { width: min(520px, calc(100vw - 32px)); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+#minigame .mg-bar { position: relative; height: 34px; margin: 16px 0 10px; border-radius: 17px; overflow: hidden;
+  background: linear-gradient(90deg, #2b1a12, #5a2a14 40%, #2b1a12); border: 1px solid var(--line); }
+#minigame .mg-zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, #f2a33c, #ffe08a, #f2a33c); opacity: .85; box-shadow: 0 0 14px #f2a33c; }
+#minigame .mg-needle { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: #fff; box-shadow: 0 0 8px #fff; border-radius: 2px; }
+#minigame .mg-score { font-family: var(--mono); font-size: 13px; min-height: 1.4em; }
+#minigame .mg-btns { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+.card-act.k-bestia { border-color: color-mix(in srgb, #c28a3a 60%, var(--line)); }

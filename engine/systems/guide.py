@@ -117,11 +117,26 @@ def check(conn, player) -> list[str]:
     return out
 
 
+def _live_cmd(conn, player, key: str, cmd: str, why: str) -> tuple[str, str]:
+    """(Agg. 71) Il comando giusto ADESSO: lo sfondamento solo quando la barra è piena, altrimenti allenati."""
+    if key == "sfonda":
+        try:
+            from engine.simulation import cultivation
+            rec = cultivation.get_record(conn, "player", player.id)
+            ready = rec and (rec["stage"] or 1) >= cultivation.STAGES_PER_REALM and (rec["progress"] or 0) >= 1.0
+        except Exception:                              # noqa: BLE001
+            ready = False
+        if not ready:
+            return "train", "Allenati finché il regno non è al decimo strato con la barra piena: poi sfonda."
+    return cmd, why
+
+
 def attention_item(conn, player) -> dict | None:
     cur = current(conn, player)
     if not cur:
         return None
     i, (key, title, why, cmd, prize) = cur
+    cmd, why = _live_cmd(conn, player, key, cmd, why)
     return {"icon": "🧭", "title": f"Primi passi {i + 1}/{len(STEPS)}: {title}", "why": f"{why} (+{prize} pietre)",
             "cmd": cmd, "palace": "oggi", "tab": "", "hot": True, "prio": -1}
 

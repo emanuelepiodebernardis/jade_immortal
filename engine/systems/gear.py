@@ -307,8 +307,13 @@ def forge(conn, player, slot: str, rng: random.Random | None = None) -> str:
         return f"Forgiare {SLOTS[slot][0].lower()} del regno {tier} costa {cost} pietre: ne hai {have}."
     sects.grant_resource(conn, "pietre_spirituali", -cost, player.id)
     rng = rng or random.Random(tick_mod.get_tick(conn) * 7919 + get(conn)["n"])
-    rar = rng.choices(RARITY, weights=R_WEIGHTS_FORGE)[0]
-    out = f"🔥 Alla forgia, {cost} pietre: " + add(conn, make(rng, tier, slot, rar))
+    from engine.systems import minigame               # (Agg. 71) il ritmo del martello sposta la rarità
+    b = minigame.bonus(conn)
+    w = [max(1.0, R_WEIGHTS_FORGE[0] * (1 - 2.5 * b)), R_WEIGHTS_FORGE[1], R_WEIGHTS_FORGE[2] * (1 + 4 * b),
+         R_WEIGHTS_FORGE[3] * (1 + 8 * b)]
+    rar = rng.choices(RARITY, weights=[max(0.5, x) for x in w])[0]
+    v = minigame.verdict(conn)
+    out = (v + " " if v else "") + f"🔥 Alla forgia, {cost} pietre: " + add(conn, make(rng, tier, slot, rar))
     from engine.systems import seasons
     extra = seasons.count(conn, "forgia")
     return "\n".join([out] + extra)

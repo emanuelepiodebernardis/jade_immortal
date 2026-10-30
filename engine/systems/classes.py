@@ -157,10 +157,14 @@ def tamer_mult(conn, pid: int, beast_elements: str | None) -> float:
 
 
 def max_beasts(conn, pid: int) -> int:
+    """(Agg. 71) Una bestia, due dal 3° regno, tre dal 5°; il Domatore ne guida di più."""
     from engine.systems import professions
+    from engine.simulation import cultivation
+    tier = cultivation.realm_tier(conn, "player", pid) or 1
+    base = 1 + (tier >= 3) + (tier >= 5)
     if not professions.has(conn, "domatore"):
-        return 1
-    return 1 + professions.level(conn, pid, "domatore") // 4
+        return base
+    return base + professions.level(conn, pid, "domatore") // 4
 
 
 def tame_bonus(conn, pid: int) -> float:

@@ -373,6 +373,48 @@ function renderBadges(s) {
 const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: "asta", auction: "asta", recipes: "ricette",
   invitations: "bacheca", inviti: "bacheca", missioni: "bacheca", missions: "bacheca", techniques: "tecniche", skills: "tecniche",
   clone: "cloni", clones: "cloni", sigilli: "via:dharma", rune: "via:dharma" };
+// ---------------- (Agg. 71) IL MINIGIOCO DI MANO ----------------
+// Tre colpi: un ago corre sulla barra, premi Spazio (o il pulsante) quando è nella zona verde.
+// La zona si stringe e l'ago accelera. Il punteggio medio (0-100) diventa la qualità del lavoro.
+let MINIGAME = true;
+try { MINIGAME = localStorage.getItem("ji_minigame") !== "0"; } catch (e) { /* niente */ }
+function playMinigame(kind) {
+  return new Promise((done) => {
+    const T = kind === "martello" ? { t: "🔨 Il ritmo del martello", s: "Colpisci quando l'ago è nella zona incandescente.", hit: "Colpisci!" }
+      : { t: "⚗ Il fuoco del calderone", s: "Ravviva la fiamma quando l'ago è nella zona giusta.", hit: "Ravviva!" };
+    const box = document.createElement("div"); box.id = "minigame";
+    box.innerHTML = `<div class="mg"><b>${T.t}</b><div class="muted small">${T.s} Tre volte. Spazio o il pulsante.</div>
+      <div class="mg-bar"><i class="mg-zone"></i><i class="mg-needle"></i></div>
+      <div class="mg-score">colpo 1/3</div>
+      <div class="mg-btns"><button class="primary" data-mg="hit">${T.hit}</button><button class="link" data-mg="skip">lascia al caso</button>
+      <button class="link" data-mg="off" title="Si riattiva scrivendo 'minigiochi'">non chiederlo più</button></div></div>`;
+    document.body.appendChild(box);
+    const zone = box.querySelector(".mg-zone"), needle = box.querySelector(".mg-needle"), sc = box.querySelector(".mg-score");
+    let round = 0, scores = [], t0 = performance.now(), raf = 0, zc = 0, zw = 0, speed = 0;
+    const setZone = () => { zw = [18, 13, 9][round]; zc = 15 + Math.random() * 70; speed = [1.1, 1.5, 2.0][round];
+      zone.style.left = (zc - zw / 2) + "%"; zone.style.width = zw + "%"; t0 = performance.now(); };
+    const pos = () => 50 + 48 * Math.sin((performance.now() - t0) / 1000 * speed * Math.PI);
+    const tick = () => { needle.style.left = pos() + "%"; raf = requestAnimationFrame(tick); };
+    const end = (q) => { cancelAnimationFrame(raf); document.removeEventListener("keydown", key, true); box.remove(); done(q); };
+    const hit = () => {
+      const d = Math.abs(pos() - zc);
+      const s = Math.max(0, Math.round(100 - Math.max(0, d - zw / 2) * 4));
+      scores.push(s); round++;
+      sc.textContent = `colpo ${Math.min(3, round + 1)}/3 · ultimo: ${s}` + (s >= 90 ? " — perfetto!" : s >= 60 ? " — buono" : s >= 30 ? " — così così" : " — mancato");
+      sfx(s >= 60 ? "good" : "bad");
+      if (round >= 3) { const q = Math.round(scores.reduce((a, b) => a + b, 0) / 3); sc.textContent = `Qualità del lavoro: ${q}/100`; setTimeout(() => end(q), 700); }
+      else setZone();
+    };
+    const key = (ev) => { if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); if (round < 3) hit(); }
+      else if (ev.key === "Escape") { ev.preventDefault(); end(50); } };
+    box.addEventListener("click", (ev) => { const b = ev.target.closest("[data-mg]"); if (!b) return; ev.stopPropagation();
+      if (b.dataset.mg === "hit" && round < 3) hit();
+      else if (b.dataset.mg === "skip") end(50);
+      else if (b.dataset.mg === "off") { MINIGAME = false; try { localStorage.setItem("ji_minigame", "0"); } catch (e) { /* niente */ } end(50); } });
+    document.addEventListener("keydown", key, true);
+    setZone(); tick();
+  });
+}
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
@@ -382,6 +424,14 @@ async function run(cmd) {
   if (lc === "mappa" || lc === "map") return loadTab("mappa");
   if (lc === "equip" || lc === "equipaggiamento") return loadTab("tesori:zaino");
   if (lc === "traguardi") return loadTab("m:stagione");
+  if (lc === "minigiochi") { MINIGAME = !MINIGAME; try { localStorage.setItem("ji_minigame", MINIGAME ? "1" : "0"); } catch (e) { /* niente */ }
+    toast("Minigiochi", MINIGAME ? "attivi: forgia e calderone chiedono il tuo tempismo" : "spenti: decide il caso", "info"); return; }
+  // (Agg. 71) forgia e alchimia: prima il minigioco di tempismo, poi il comando con la qualità
+  if (MINIGAME && /^(equip forgia|forgia|craft|crea|distilla)\s+\S/.test(lc) && !/~q\d+$/.test(cmd)) {
+    const q = await playMinigame(/forgia/.test(lc) ? "martello" : "calderone");
+    if (q === null) return;
+    cmd = cmd + " ~q" + q;
+  }
   if (VIA_TABS.includes(lc)) return loadTab("m:via:" + lc);                              // la crescita: schede della Via
   if (lc === "via" || lc.startsWith("via ")) return loadTab("m:via:" + (lc.split(" ")[1] || lastVia));
   if (MENUS.includes(lc)) return loadTab("m:" + lc);   // i menu si aprono nel pannello

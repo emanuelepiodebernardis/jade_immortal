@@ -201,6 +201,8 @@ def turn(raw: str) -> dict:
         return {"log": ""}
     with LOCK:
         with transaction() as conn:
+            from engine.systems import minigame          # (Agg. 71) la qualità del minigioco di forgia/alchimia
+            raw = minigame.strip(conn, raw)
             out = loop.dispatch(conn, raw)
             from engine.systems import idle_cultivation
             idle_cultivation.touch(conn)

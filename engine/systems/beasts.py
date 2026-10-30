@@ -281,7 +281,9 @@ def feed(conn, player) -> str:
     tr = traits(conn, pt["npc_id"])
     stages = max(1, round(2 * TALENT_MULT.get(tr["talent"], 1.0)))
     npc_factory.raise_npc(conn, pt["npc_id"], stages)
-    return f"{pt['name']} divora il nucleo con avidità e si fa più forte (+{stages} strati)."
+    from engine.systems import beast_team
+    more = beast_team.gain(conn, pt["npc_id"], 15)
+    return "\n".join([f"{pt['name']} divora il nucleo con avidità e si fa più forte (+{stages} strati)."] + more)
 
 
 def describe(conn, player) -> str:

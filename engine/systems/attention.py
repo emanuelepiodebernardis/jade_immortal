@@ -23,7 +23,7 @@ def _item(out, icon, title, why, cmd, palace, tab="", hot=False, prio=5):
 def items(conn, player) -> list[dict]:
     out: list[dict] = []
     day = tick_mod.get_tick(conn) // 120
-    checks = (_guide, _cultivation, _growth, _followers, _world, _story, _body, _agg67)
+    checks = (_guide, _cave, _cultivation, _growth, _followers, _world, _story, _body, _agg67)
     for fn in checks:
         try:
             fn(conn, player, day, out)
@@ -43,6 +43,19 @@ def badges(lst: list[dict]) -> dict:
 
 
 # ---------------------------------------------------------------- le voci
+
+def _cave(conn, player, day, out):
+    from engine.systems import caves, state as _st
+    from engine.core import entities as _en
+    if caves.get(conn):
+        _item(out, "🕳", "Sei in una grotta", "Scegli il passaggio, o esci con ciò che hai trovato.", "grotta", "mondo", "", True, 1)
+        return
+    loc = _en.get_location(conn, player.location_id)
+    done = _st.get_json(conn, caves.KEY + "_done") or {}
+    if loc and (loc.location_type or "") in caves.WILD and done.get(str(player.location_id)) != day:
+        _item(out, "🕳", "Una grotta da esplorare", "Stanze, trappole, enigmi, guardiani e un custode in fondo.",
+              "grotta", "mondo", "", False, 7)
+
 
 def _guide(conn, player, day, out):
     from engine.systems import guide                       # (Agg. 70) i primi passi, in cima
@@ -142,7 +155,12 @@ def _story(conn, player, day, out):
     sd = system_daily.data(conn, player.id)
     if not sd["fatta"]:
         miss = [f"{g['icon']} {g['have']}/{g['need']}" for g in sd["obiettivi"] if not g["ok"]]
-        _item(out, "☸", "Missione quotidiana", " · ".join(miss) or "quasi fatta", "missione", "oggi", "mete", False, 5)
+        # (Agg. 71) il pulsante porta al prossimo obiettivo da fare, non al riepilogo
+        todo = next((g for g in sd["obiettivi"] if not g["ok"]), None)
+        go = {"dao": ("train", "allenati: la comprensione dei Dao sale"), "kills": ("caccia", "vai a caccia"),
+              "soul": ("tempra", "tempra lo spirito")}.get(todo["k"] if todo and "k" in todo else "", ("missione", ""))
+        _item(out, "☸", "Missione quotidiana", " · ".join(miss) + (f" — {go[1]}" if go[1] else "") or "quasi fatta",
+              go[0], "oggi", "mete", False, 5)
 
 
 def _body(conn, player, day, out):
