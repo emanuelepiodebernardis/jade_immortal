@@ -402,7 +402,7 @@ def mystery_scene(conn, player, m: dict) -> dict:
 
 def resolve(conn, player, arg: str) -> str:
     """Il premio dell'incontro misterioso: esplorare rende di più, ma può svegliare un guardiano."""
-    from engine.systems import ascension, items, sects, encounters
+    from engine.systems import ascension, items, sects
     layer = ascension.layer_of_location(conn, player.location_id)
     w = world(conn, layer)
     m = w["mysteries"].get(str(player.location_id))

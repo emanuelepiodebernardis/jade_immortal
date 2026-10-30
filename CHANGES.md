@@ -3044,3 +3044,29 @@ stringe e l'ago accelera.
 - Da riga di comando non cambia nulla.
 
 **Test:** `tests/test_caves.py` e `tests/test_beast_team.py`.
+
+### Agg. 71, seconda parte — Nuove trame scritte a mano, ordine nel codice, immagini da generare
+
+**Cinque nuove trame** (`engine/systems/intrigue_data5.py`). Le sceglie il regista delle trame, con il cast
+preso dal mondo vivo, e ognuna ha più finali:
+- **Il Mercante di Destini.** Un vecchio indovino vende letture del destino e intanto beve la fortuna dei
+  clienti. Si indaga con gli indizi, poi lo si smaschera, lo si sfida o ci si mette in affari con lui.
+- **La Pagoda che mangia i discepoli.** I geni della setta salgono al settimo piano e non tornano. Il custode
+  della pagoda ne beve il qi a ogni luna nuova.
+- **Il debito del Fiume Nero.** Un traghettatore senza ombra ti chiede di pagare un debito di una vita
+  passata: anni della tua vita, oppure l'anima di chi ami.
+- **L'erede nella cucina.** Lo sguattero della locanda è l'ultimo erede di un clan sterminato, e i mantelli
+  grigi lo cercano ancora.
+- **Il Torneo delle Lanterne.** Chi perde dimentica il proprio nome. In finale ti aspetta chi l'ha già perso.
+
+**Ordine nel codice.**
+- Controllo automatico con ruff (`ruff.toml`): tolti 67 import inutili e 12 f-string senza segnaposto. Non
+  ci sono nomi non definiti. `tests/test_lint.py` tiene il codice pulito.
+- Nuova `docs/MAPPA_DEL_CODICE.md`: cosa fa ogni modulo (oltre 250) e come è organizzato il gioco. Si
+  rigenera con `python strumenti/mappa_codice.py`.
+
+**Immagini da generare** (`immagini/DA_GENERARE.md`). È l'elenco delle 41 immagini che mancano, con
+cartella, nome del file, formato e prompt, pronte da fare a mano con un generatore gratuito come raphael.app.
+Il gioco le usa appena le metti nella cartella.
+
+**Test:** `tests/test_intrigue5.py` gioca tutte le nuove trame con tre strade diverse. 770 test in totale.

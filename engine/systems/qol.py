@@ -216,7 +216,7 @@ def codex(conn, player, arg: str = "") -> str:
 # ============================================================
 
 def tutorial(conn, player) -> str:
-    from engine.systems import sects, cave_abode, bonds
+    from engine.systems import sects, cave_abode
     cult, dao = conn.execute("SELECT COALESCE(cult_sessions,0) c, COALESCE(dao_sessions,0) d FROM character_profiles "
                              "WHERE character_type='player' AND character_id=?;", (player.id,)).fetchone()
     steps = [

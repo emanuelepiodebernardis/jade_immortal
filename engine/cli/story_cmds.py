@@ -705,7 +705,7 @@ _MOVE_CMDS = {"vai", "raggiungi", "goto", "vola", "fly", "volo", "move", "go", "
 def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     """Testo da mostrare dopo ogni comando: capitolo della storia pronto, HUD e
     azioni suggerite (o le scelte dell'incontro aperto)."""
-    from engine.systems import encounters, storyline, suggestions, menus
+    from engine.systems import encounters, suggestions, menus
     from engine.cli import hud
     out = []
     if player.status != "alive":

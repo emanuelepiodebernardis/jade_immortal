@@ -1,0 +1,7 @@
+# (Agg. 71) Controlli del codice: errori veri (nomi non definiti, import inutili, f-string vuote).
+# Lancia: ruff check engine
+line-length = 125
+
+[lint]
+select = ["F", "E9"]
+ignore = ["F841"]   # variabili assegnate e non usate: innocue, alcune restano come documentazione

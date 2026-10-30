@@ -255,7 +255,6 @@ def cultivation_mult(conn, location_id: int | None) -> tuple[float, str]:
 def _generate_layer(conn, rng: random.Random, layer: int, ptier: int) -> int:
     """Crea il nuovo continente: luoghi, sette, abitanti. Ritorna l'id della città d'arrivo."""
     from engine.generators import world_gen
-    from engine.systems import npc_factory
     cur = conn.execute("INSERT INTO regions (world_id, name, region_type) VALUES (1, ?, 'continent');",
                        (layer_name(layer),))
     region = cur.lastrowid
@@ -341,7 +340,7 @@ def ascend(conn, player, arg: str = "") -> str:
     plane = arrive(conn, entities.get_player(conn, player.id), target)
     from engine.systems import heaven_bonds                     # chi ti è legato ti seguirà
     plane += heaven_bonds.on_ascend(conn, entities.get_player(conn, player.id), target)
-    return (f"✦ Il cielo si squarcia. Una scala di luce ti solleva oltre le nuvole, oltre le stelle… ✦\n"
+    return ("✦ Il cielo si squarcia. Una scala di luce ti solleva oltre le nuvole, oltre le stelle… ✦\n"
             + "\n".join(lost + rise) + ("\n" if lost or rise else "") +
             f"Sei giunto nel {layer_name(target)}. Il Qi qui è così denso che respirarlo è già coltivare "
             f"(coltivazione ×{1 + 0.3 * target:.1f}). Qui, però, sei di nuovo uno tra tanti: questo mondo "

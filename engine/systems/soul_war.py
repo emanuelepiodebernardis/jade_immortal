@@ -15,9 +15,7 @@ BATTAGLIE DELL'ANIMA e la BANDIERA DELLE ANIME.
 from __future__ import annotations
 
 import math
-import random
 
-from engine.core import tick as tick_mod
 from engine.systems import state
 
 

@@ -31,8 +31,9 @@ from engine.systems.calibration import (PLOT_MAX_ACTIVE as MAX_ACTIVE, PLOT_NEW_
 
 
 def _templates() -> dict:
-    from engine.systems import intrigue_data, intrigue_data3, intrigue_data4
+    from engine.systems import intrigue_data, intrigue_data3, intrigue_data4, intrigue_data5
     out = {t["key"]: t for t in intrigue_data.TEMPLATES}
+    out.update({t["key"]: t for t in intrigue_data5.TEMPLATES})  # (Agg. 71) nuove trame scritte a mano
     out.update({t["key"]: t for t in intrigue_data3.ARCS})      # i capitoli dei vasi d'anima (li apre il vaso)
     out.update({t["key"]: t for t in intrigue_data4.ARCS})      # la saga dei compagni perduti (Agg. 67)
     return out

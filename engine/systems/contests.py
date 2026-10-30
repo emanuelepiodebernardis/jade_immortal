@@ -59,7 +59,6 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
 
 def _score(conn, pid: int, rng) -> float:
     from engine.systems import professions, cave_abode, mentor_ring, celestial_elements
-    from engine.core import entities
     c = current(conn)
     lv = professions.level(conn, pid, c["art"] if c else None)
     bonus = 1.0 + 0.05 * cave_abode.level(conn, pid, "alchimia") + mentor_ring.craft_bonus(conn) * 2 \

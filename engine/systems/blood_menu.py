@@ -276,7 +276,7 @@ def menu_build(conn, player) -> dict:
                  + (f" · dono: {', '.join(gifts)}" if gifts and g >= B.PURE else "")
                  + (" · lignaggio fuso" if ln.get("fused_from") else ""),
                  ("Manifestazioni: " + ", ".join(n for _k, n in mf)) if mf else "Nessuna manifestazione ancora.",
-                 ("Tecnica innata attiva" if g >= B.PURE else f"Tecnica innata dal grado Puro")
+                 ("Tecnica innata attiva" if g >= B.PURE else "Tecnica innata dal grado Puro")
                  + (" · TRASFORMAZIONE" if g >= B.SACRED else "")
                  + (f" · razza affine: {race_realms._name(rk)}" if rk else "")]
         acts = []

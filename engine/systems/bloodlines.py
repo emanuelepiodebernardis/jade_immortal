@@ -46,7 +46,6 @@ from __future__ import annotations
 
 import math
 import random
-import sqlite3
 
 from engine.core import tick as tick_mod
 from engine.systems import state
@@ -432,7 +431,7 @@ def _on_grade_up(conn, ln: dict, before: int, after: int) -> list[str]:
     if before < PURE <= after:
         out.append("  Il sangue ti rivela la sua TECNICA INNATA.")
     if before < SACRED <= after:
-        out.append(f"  Ora puoi ASSUMERE LA FORMA della bestia sacra: 'trasformati'.")
+        out.append("  Ora puoi ASSUMERE LA FORMA della bestia sacra: 'trasformati'.")
     if any(_fam(f)[3] for f in ln["families"]):
         yrs = 15 * (after - before)
         lifespan.add_bonus_years(conn, yrs)

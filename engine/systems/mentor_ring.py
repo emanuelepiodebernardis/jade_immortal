@@ -100,7 +100,7 @@ def awaken(conn, rng) -> list[str]:
 
 
 def feed(conn, player, arg: str) -> str:
-    from engine.systems import professions, sects
+    from engine.systems import professions
     d = get(conn)
     if not d:
         return "Non porti nessun anello."
@@ -330,7 +330,7 @@ def on_chapter(conn, player, plot: str, outcome: str, closed: bool) -> list[str]
         if outcome == "abbandonato":
             d["captive"] = False
             d["gone"] = "perduto"
-            out.append(f"L'anello resta vuoto. Da qualche parte, sulla montagna, una lanterna si spegne.")
+            out.append("L'anello resta vuoto. Da qualche parte, sulla montagna, una lanterna si spegne.")
         elif closed:
             d["captive"] = False
             d["level"] += 2

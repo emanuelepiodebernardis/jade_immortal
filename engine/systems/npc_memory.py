@@ -166,7 +166,7 @@ def scene(conn, player, npc) -> dict | None:
                     {"label": "Lo minacci: «Vuoi raggiungerlo?»", "effects": {"relation": -10, "infamy": 2,
                      "text": "Indietreggia, ma nei suoi occhi l'odio diventa giuramento."}}]}
     if kind == "aiutato":
-        return {**base, "title": f"La gratitudine di {npc.name}", "text": f"«Non ti ho mai ringraziato davvero.»",
+        return {**base, "title": f"La gratitudine di {npc.name}", "text": "«Non ti ho mai ringraziato davvero.»",
                 "choices": [
                     {"label": "Accetti un dono", "effects": {"stones": 40 * tier, "relation": 2}},
                     {"label": "Gli chiedi notizie del mondo", "effects": {"relation": 3,
@@ -211,7 +211,7 @@ def companion_comments(conn, player, how: str, victim: str) -> list[str]:
         if max(pro, con) < 68:
             continue
         if con >= pro:
-            line = {"ucciso": f"«Era a terra. Non c'era bisogno di finirlo.»",
+            line = {"ucciso": "«Era a terra. Non c'era bisogno di finirlo.»",
                     "risparmiato": "«Lo lasci andare? Tornerà a morderti.»",
                     "sigillato": "«Un'anima non è una catena da mettere al collo di qualcuno.»"}.get(how, "")
             relations.adjust(conn, n.id, -2, t, player.id)

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import random
 
-from engine.core import tick as tick_mod
 from engine.systems import state
 
 KEY = "prodigies"

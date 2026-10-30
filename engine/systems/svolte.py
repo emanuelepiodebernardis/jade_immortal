@@ -258,7 +258,7 @@ def milestones(conn, player) -> list[tuple[str, str, bool, str]]:
     pid = player.id
     tier = _tier(conn, pid)
     out = []
-    out.append(("volo", "Volo", tier >= FLY_TIER, f"2° regno → 'vola <luogo>'"))
+    out.append(("volo", "Volo", tier >= FLY_TIER, "2° regno → 'vola <luogo>'"))
     out.append(("cloni", "Corpi Esterni (cloni)", tier >= 4 or bool(clones.clones(conn)), "4° regno → 'clone crea'"))
     out.append(("vuoto", "Passo nel Vuoto", tier >= VOID_TIER, f"{VOID_TIER}° regno → 'vola' istantaneo"))
     isl = inner_space.level(conn)

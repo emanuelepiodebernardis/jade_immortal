@@ -245,7 +245,7 @@ def _target_name(to: str) -> str:
 # ============================================================
 
 def evolve(conn, player, arg: str, rng: random.Random | None = None) -> str:
-    from engine.systems import bloodlines as B, items, lifespan, heart_demon
+    from engine.systems import bloodlines as B, lifespan, heart_demon
     from engine.simulation import world_tick
     rng = rng or random.Random(tick_mod.get_tick(conn) * 7919 + player.id)
     o = B.ordered(conn)

@@ -479,7 +479,7 @@ def offer_relic(conn, player, key: str) -> str:
 # ============================================================ quotidiano, alleati, guerra
 
 def daily(conn, t: int, rng: random.Random, player) -> list[str]:
-    from engine.systems import items, races, sects, master_plot
+    from engine.systems import items, races, master_plot
     if not master_plot.flag(conn, "razze"):
         return []
     out: list[str] = []
@@ -540,7 +540,7 @@ def on_arrive(conn, player, layer: int) -> list[str]:
     g = get(conn, layer)
     _save(conn, g, layer)
     kin = [_name(k) for k, r in g.items() if r["standing"] >= 1]
-    out = [f"Anche le razze antiche hanno i loro regni nel nuovo mondo, con campioni più forti: lì ricominci da capo."]
+    out = ["Anche le razze antiche hanno i loro regni nel nuovo mondo, con campioni più forti: lì ricominci da capo."]
     if kin:
         out.append("Porti il sangue dei " + ", ".join(kin) + ": per loro sei già Discepolo. ('razze')")
     return out

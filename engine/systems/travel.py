@@ -28,7 +28,7 @@ def _loc_name(conn, lid: int) -> str:
 def destinations(conn, player) -> list[dict]:
     """[{key, title, loc, join}] di ciò che sta accadendo nel mondo e ti riguarda."""
     from engine.systems import (secret_realms, assembly, auction, contests, world_events, celestial_elements,
-                                family, sects, professions, eras)
+                                family, sects, professions)
     out = []
     rr = secret_realms.current(conn)
     if rr and not secret_realms.run(conn):

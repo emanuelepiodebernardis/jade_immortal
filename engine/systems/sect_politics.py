@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import random
 
-from engine.core import entities, tick as tick_mod
+from engine.core import tick as tick_mod
 from engine.systems import state
 
 
@@ -139,7 +139,7 @@ def _board(conn, player) -> list[dict]:
 
 
 def missions(conn, player, arg: str) -> str:
-    from engine.systems import dao_superiori, professions, guild, sects
+    from engine.systems import professions, guild, sects
     if not _fid(conn, player.id):
         return "La bacheca delle missioni è solo per i membri di una setta."
     p = arg.split()

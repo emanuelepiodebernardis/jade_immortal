@@ -112,8 +112,7 @@ def intro(conn, player) -> list[str]:
 
 
 def embassy(conn, player, arg: str) -> str:
-    from engine.systems import sects, encounters, npc_factory, reputation
-    from engine.simulation import cultivation
+    from engine.systems import sects, encounters, npc_factory
     parts = arg.split()
     key = _find(parts[0]) if parts else None
     if not key:

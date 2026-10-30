@@ -133,7 +133,7 @@ def _scene(conn, player, reason: str) -> dict:
 
 def open_offer(conn, t: int, rng: random.Random, player, reason: str) -> str | None:
     """Le sette superiori si fanno avanti: crea le offerte e, se si può, apre la scena."""
-    from engine.systems import sects, encounters
+    from engine.systems import sects
     if not _m(conn, player.id):
         return None
     sects.generate_invitations(conn, t, rng, player.id, count=3, bonus=state.get_int(conn, REFUSE_KEY, 0))
@@ -208,7 +208,7 @@ def postpone(conn, player) -> str:
 
 
 def refuse(conn, player) -> str:
-    from engine.systems import sects, guild, chronicle, sect_politics
+    from engine.systems import sects, chronicle, sect_politics
     _clear_scene(conn)
     m = _m(conn, player.id)
     if not m or not offers(conn, player.id):
@@ -384,7 +384,7 @@ def stipend(conn, player) -> str:
 
 def _not_member(conn, player) -> dict:
     from engine.systems import sects, own_sect
-    from engine.systems.travel import _distance, _loc_name
+    from engine.systems.travel import _distance
     from engine.systems import ascension
     rows = sects.joinable_sects(conn, ascension.player_layer(conn, player.id))
     here = sects.sect_at_location(conn, player.location_id)
@@ -560,7 +560,7 @@ def build(conn, player) -> dict:
 # ================================================================ comando
 
 def command(conn, player, arg: str) -> str:
-    from engine.systems import own_sect, sect_politics, guild, menus
+    from engine.systems import own_sect, sect_politics, menus
     from engine.cli import loop
     p = arg.strip().split()
     sub = p[0].lower() if p else ""

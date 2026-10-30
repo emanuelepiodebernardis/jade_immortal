@@ -5,7 +5,6 @@ I menu del mondo: ARTI, REGNI, EVENTI e l'indice di tutti i menu (vedi menus.py)
 from __future__ import annotations
 
 from engine.core import tick as tick_mod
-from engine.systems import state
 from engine.systems.menus import act, bar, menu, section
 
 
@@ -65,7 +64,6 @@ def arts(conn, player) -> dict:
 
 def realms(conn, player) -> dict:
     from engine.systems import kingdoms as K, races as R, perception
-    from engine.simulation import cultivation
     d = K.all_k(conn) or K.ensure(conn)
     stones = _stones(conn, player.id)
     secs = []
@@ -126,7 +124,7 @@ def realms(conn, player) -> dict:
 
 def events(conn, player) -> dict:
     from engine.systems import (travel, assembly, auction, contests, secret_realms, eras, world_events,
-                                sect_war, sects, sect_life, celestial_elements, family)
+                                sect_war, sects, sect_life)
     from engine.systems.travel import _distance
     secs = []
     stones = _stones(conn, player.id)
@@ -242,7 +240,7 @@ def hub(conn, player) -> dict:
 
 def growth(conn, player) -> dict:
     from engine.simulation import cultivation
-    from engine.systems import dao_training, dao_powers, gongfa, cave_abode, training, qi as qimod, train_all
+    from engine.systems import dao_training, dao_powers, gongfa, cave_abode, training
     t = tick_mod.get_tick(conn)
     rec = cultivation.get_record(conn, "player", player.id)
     stage = (rec["stage"] or 1) if rec else 1
@@ -308,7 +306,6 @@ _BOND = {"companion": "compagno di viaggio", "master": "maestro", "sworn": "frat
 
 def family_menu(conn, player) -> dict:
     from engine.systems import family, dialogues, bonds
-    from engine.simulation import cultivation
     secs = []
     d = family.get(conn)
     if d:

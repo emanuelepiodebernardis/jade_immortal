@@ -32,7 +32,6 @@ _BEATS = {"dao": "qi", "qi": "corpo", "corpo": "anima", "anima": "dao"}
 def power_profile(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     """I quattro assi di potenza del personaggio."""
     from engine.simulation import cultivation
-    from engine.systems import dao_training as dt
     rec = cultivation.get_record(conn, ctype, cid)
     tier = cultivation.realm_tier(conn, ctype, cid) or 1
     stage = (rec["stage"] if rec and rec["stage"] else 1)

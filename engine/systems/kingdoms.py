@@ -177,7 +177,7 @@ def describe(conn, player) -> str:
 
 
 def daily(conn, t: int, rng: random.Random, player) -> list[str]:
-    from engine.systems import sects, npc_factory
+    from engine.systems import sects
     from engine.simulation import cultivation
     if (cultivation.realm_tier(conn, "player", player.id) or 1) < 2:
         return []
@@ -221,7 +221,7 @@ def _succession(conn, rng, player, rk, d) -> list[str]:
                                                                        location_id=k["capital"], tier=2)]
     out = [f"👑 Il sovrano del {k['name']} è morto. Dopo la lotta per la successione, sale al trono {_name(conn, win)}."]
     if win == k["backed"]:
-        out += [f"Il principe che sostenevi è re: si ricorda di te."] + add_favor(conn, rk, 200)
+        out += ["Il principe che sostenevi è re: si ricorda di te."] + add_favor(conn, rk, 200)
     elif k["backed"]:
         k["favor"] = k["favor"] // 2
         out.append("Hai sostenuto il principe sbagliato: a corte il tuo nome ora pesa la metà.")

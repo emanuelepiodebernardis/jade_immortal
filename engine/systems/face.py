@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import random
 
-from engine.core import tick as tick_mod
 from engine.systems import state
 
 _CLANS = ["Clan Mu", "Clan Long", "Clan Ye", "Famiglia Bai", "Clan Xiao", "Famiglia Tang", "Clan Lei"]

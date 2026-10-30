@@ -17,7 +17,6 @@ che lasciano quando vengono assorbiti.
 from __future__ import annotations
 
 import json
-import random
 import sqlite3
 
 KARMA_CAP = 1000

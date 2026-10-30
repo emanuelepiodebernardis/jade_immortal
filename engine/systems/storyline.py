@@ -544,7 +544,7 @@ def goals(conn: sqlite3.Connection, player: entities.Player) -> str:
     ab = bounties.active_bounties(conn)
     if ab:
         lines.append(f"  · {len(ab)} ricercati con una taglia: 'bounties'.")
-    from engine.systems import secret_masters, beasts, lifespan, dao_superiori
+    from engine.systems import secret_masters, beasts, lifespan
     for m in secret_masters.available(conn, player.id):
         lines.append(f"  · Un maestro segreto è pronto a riceverti: {m['name']} ('masters').")
     for r in beasts.active_rare(conn):
@@ -560,7 +560,7 @@ def goals(conn: sqlite3.Connection, player: entities.Player) -> str:
         lines.append("  · Il Padiglione di Giada tiene un'asta: 'asta'.")
     s = own_sect.get(conn)
     if s and s.get("threat"):
-        lines.append(f"  · ⚠ La tua setta è sotto attacco: 'setta difendi' nella sede.")
+        lines.append("  · ⚠ La tua setta è sotto attacco: 'setta difendi' nella sede.")
     tl = state.titles(conn)
     if tl:
         lines.append(f"Titoli: {', '.join(tl)}")

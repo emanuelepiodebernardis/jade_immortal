@@ -33,7 +33,6 @@ setta, sfondamento pronto, ferite gravi, vecchiaia vicina, morte.
 from __future__ import annotations
 
 import random
-import sqlite3
 
 from engine.core import entities, tick as tick_mod
 from engine.systems import state
@@ -411,7 +410,7 @@ def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | Non
 # ============================================================
 
 def _snapshot(conn, pid: int) -> dict:
-    from engine.systems import secret_realms, assembly, auction, own_sect, world_events, sect_war
+    from engine.systems import secret_realms, assembly, own_sect, sect_war
     from engine.systems import sects
     m = sects.get_membership(conn, pid)
     war = sect_war.active_war(conn)

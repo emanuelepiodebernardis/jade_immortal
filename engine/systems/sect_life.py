@@ -68,7 +68,7 @@ def _clear_class(conn, player_id) -> None:
 
 
 def _spawn_classmates(conn, rng, faction_id, location_id, tier, n) -> list[int]:
-    from engine.generators import npc_gen, dao_gen
+    from engine.generators import npc_gen
     used = {r["name"] for r in conn.execute("SELECT name FROM npcs;")}
     by_tier = {r["tier"]: r["id"] for r in conn.execute("SELECT id, tier FROM cultivation_realms;")}
     realm_id = cultivation.ensure_realm(conn, max(1, tier))

@@ -83,7 +83,7 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
             _add(out, f"Raggiungi: {d['title']}", f"iscriviti {d['key']}" if d["join"] else f"vai {d['key']}")
 
     # 1b) occasioni a tempo: reame segreto, Assemblea, setta assaltata, Sistema
-    from engine.systems import secret_realms, assembly, own_sect, system_quest, cave_abode
+    from engine.systems import secret_realms, assembly, own_sect, cave_abode
     rr = secret_realms.current(conn)
     if rr:
         if secret_realms.run(conn):

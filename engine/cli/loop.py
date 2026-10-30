@@ -32,7 +32,7 @@ DIRECTIONS = {
     "down": "down", "giu": "down", "giù": "down",
 }
 
-from engine.cli.help_text import HELP, help_for  # noqa: E402  (testo d'aiuto per categorie)
+from engine.cli.help_text import help_for  # noqa: E402  (testo d'aiuto per categorie)
 
 
 def _npc_tag(conn: sqlite3.Connection, npc: entities.NPC) -> str:
@@ -1706,7 +1706,7 @@ def _move_effect_label(mods: dict) -> str:
 
 
 def cmd_moves(conn: sqlite3.Connection, player: entities.Player) -> str:
-    from engine.systems import moves, qi as qimod, spirit as spmod, dao_techniques
+    from engine.systems import moves, qi as qimod, spirit as spmod
     ms = moves.available_moves(conn, player.id)
     qline = f"Qi: {qimod.qi_label(conn, player.id)} (mosse dei coltivatori; recuperi riposando)"
     has_dao = any(m.get("fuel") == "spirit" for m in ms)

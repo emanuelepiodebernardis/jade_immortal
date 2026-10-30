@@ -13,7 +13,6 @@ Accanto a ogni nome c'è dove è stato visto l'ultima volta: chi vuole salire, s
 
 from __future__ import annotations
 
-import sqlite3
 
 from engine.systems import state
 

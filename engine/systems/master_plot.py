@@ -471,7 +471,7 @@ def _resolve_duel(conn, rng, player) -> list[str]:
         set_flag(conn, "duello_vinto")
         return [f"✦ Dopo un duello che la città racconterà per generazioni, {nm} è a terra. Ti guarda, e per la prima "
                 "volta non c'è disprezzo nei suoi occhi. ✧ Nuovo titolo: «Colui che Mantenne il Patto» ✧",
-                f"(Il vostro rapporto è cambiato: un giorno, chissà, potrebbe perfino diventare la tua compagna del Dao.)"]
+                "(Il vostro rapporto è cambiato: un giorno, chissà, potrebbe perfino diventare la tua compagna del Dao.)"]
     from engine.systems import dao_heart
     d = get(conn)
     d["done"].remove("duello")

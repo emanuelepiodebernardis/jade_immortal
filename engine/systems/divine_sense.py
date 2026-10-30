@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import random
 
-from engine.core import entities, tick as tick_mod
+from engine.core import entities
 from engine.systems import state
 
 

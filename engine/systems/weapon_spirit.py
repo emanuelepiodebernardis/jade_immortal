@@ -21,7 +21,6 @@ L'arma che impugni cresce con te, con il TEMPO e con l'USO:
 
 from __future__ import annotations
 
-import math
 import random
 
 from engine.systems import state

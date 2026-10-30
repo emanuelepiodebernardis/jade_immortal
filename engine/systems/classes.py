@@ -121,7 +121,7 @@ def combat(conn, pid: int, npc_id: int, fx) -> list[str]:
         if placed and placed["kind"] == "uccisione":
             boost = 1.8 + 0.05 * placed["level"]
             fx.p.atk_mult *= 1.0 + 0.04 * placed["level"]
-            out.append(f"✦ Combatti dentro la tua Formazione d'Uccisione: il terreno stesso ti obbedisce.")
+            out.append("✦ Combatti dentro la tua Formazione d'Uccisione: il terreno stesso ti obbedisce.")
         else:
             out.append(f"◎ Spieghi la tua formazione mobile ({class_name(conn, pid)}).")
         if placed and placed["kind"] == "difesa":

@@ -23,10 +23,9 @@ alla prova la tua sede. Se non la difendi, perdi influenza e tesoro.
 
 from __future__ import annotations
 
-import random
 import sqlite3
 
-from engine.core import entities, tick as tick_mod
+from engine.core import tick as tick_mod
 from engine.systems import state
 
 DISCIPLE_MIN_TIER = 3

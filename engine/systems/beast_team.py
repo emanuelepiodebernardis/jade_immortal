@@ -170,7 +170,6 @@ def after_duel(conn, player, won: bool) -> list[str]:
 # ---------------- lotta tra bestie ----------------
 def battle(conn, player, target: str) -> str:
     """La tua bestia capofila contro una creatura del luogo: a turni, con i tipi. Niente morti: chi cade, sviene."""
-    from engine.systems import beasts
     me = lead(conn, player.id)
     if not me:
         return "Non hai bestie. Domane una con 'tame <nome>'."

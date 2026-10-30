@@ -66,7 +66,7 @@ def menu(key: str, title: str, sub: list[str] | None = None, sections: list[dict
 # ---------------------------------------------------------------- registro
 
 def _builders() -> dict:
-    from engine.systems import sect_menu, world_menus, professions, dominion, race_realms, technique_forge, blood_menu, income
+    from engine.systems import sect_menu, world_menus, dominion, race_realms, technique_forge, blood_menu, income
     from engine.systems import deep_dao, dao_spirits, attributes, shops
     return {"setta": sect_menu.build, "arti": world_menus.arts, "regni": world_menus.realms,
             "eventi": world_menus.events, "menu": world_menus.hub, "coltivazione": world_menus.growth,

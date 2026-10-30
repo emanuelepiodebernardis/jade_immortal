@@ -16,7 +16,6 @@ import os
 import random
 import re
 import threading
-from collections import deque
 
 from engine.core import entities, tick as tick_mod
 from engine.db import transaction
@@ -137,7 +136,7 @@ def reincarnate(origin: str, destiny: str, name: str, inherit_idx, body: bool = 
 
 
 def intro() -> str:
-    from engine.cli import loop, story_cmds
+    from engine.cli import loop
     with LOCK, transaction() as conn:
         p = entities.get_player(conn)
         out = []
@@ -556,7 +555,6 @@ STOP = threading.Event()
 def auto_day() -> dict:
     """Un giorno di pilota automatico. Ritorna il resoconto e se il pilota si è fermato."""
     from engine.systems import autopilot, encounters, captivity
-    from engine.cli import loop
     with LOCK:
         with transaction() as conn:
             p = entities.get_player(conn)
@@ -990,7 +988,6 @@ def graph_data() -> dict:
 
 def book_data() -> dict:
     """Il Libro: tesori, bestie, sangue, reliquie, nemici e maestri — tutto ciò che hai incontrato."""
-    import os
     from engine.systems import (items, bloodlines, beasts, celestial_elements, archrival, bonds, feuds,
                                 secret_masters, state as st)
     with LOCK, transaction() as conn:

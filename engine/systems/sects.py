@@ -193,7 +193,6 @@ def join_sect(conn: sqlite3.Connection, tick: int, player_id: int = 1) -> dict:
     grant_resource(conn, "pietre_spirituali", stones, player_id)
 
     # la setta ora ti vede di buon occhio
-    from engine.systems import relations
     from engine.simulation import event_system as ev
     # registra l'evento (vincolo 26)
     ev.log_event(

@@ -408,7 +408,6 @@ def _repay(conn, rng, player, d) -> list[str]:
         items.grant(conn, "player", player.id, iid)
         return [f"🤝 Un messaggero ti consegna un pacco: {n} pietre e una Pillola della Gratitudine. "
                 f"«Da parte di {d['name']}, che non ha dimenticato.» Il debito è saldato."]
-    from engine.systems import secret_realms
     return [f"🤝 {d['name']} ti fa arrivare una mappa e una frase: «Dove la terra trema, c'è qualcosa che "
             f"aspetta te.» Il debito è saldato. (la prossima eredità nei reami segreti ti sarà più vicina)"]
 
@@ -458,7 +457,6 @@ def command(conn, player, arg: str) -> str:
         return (f"Posi {cost} pietre davanti a {f['name']} e chini il capo. Un lungo silenzio. Poi: «Non è "
                 f"abbastanza. Non lo sarà mai. Ma basta.» La faida per {f['victim_name']} è chiusa.")
     if sub in ("verita", "verità", "spiega") and f:
-        from engine.systems import encounters
         bad = conn.execute("SELECT 1 FROM outlaws WHERE npc_id=?;", (f["victim_id"] or -1,)).fetchone()
         rng = random.Random(tick_mod.get_tick(conn) + f["id"])
         tr = entities.get_npc_traits(conn, f["npc_id"]) or {}

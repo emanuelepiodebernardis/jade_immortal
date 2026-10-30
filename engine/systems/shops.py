@@ -126,7 +126,7 @@ def recipes_menu(conn, player) -> dict:
 # ---------------------------------------------------------------- bacheca
 
 def board_menu(conn, player) -> dict:
-    from engine.systems import sects, sect_politics, guild, state
+    from engine.systems import sects, sect_politics, state
     secs = []
     m = sects.get_membership(conn, player.id)
     if m:

@@ -1007,7 +1007,7 @@ def menu_build(conn, player) -> dict:
             "Marchia un PATRIARCA e la sua setta diventa tua vassalla.",
             "L'Arte del Ritorno della Salma (rara) ti permette di rianimare i caduti."], icon="📜"))
     # tutto ciò che combatte per te, in un posto solo (Aggiornamento 47)
-    from engine.systems import puppets, soul_war, dao_spirits, beasts as _bst
+    from engine.systems import puppets, soul_war, dao_spirits
     fl = soul_war.flag(conn)
     sp = dao_spirits.spirits(conn, player.id)
     army = [f"⛓ Servi sigillati: {sum(1 for s in sv if s['kind'] != 'salma')} · 💀 salme: {sum(1 for s in sv if s['kind'] == 'salma')}",
