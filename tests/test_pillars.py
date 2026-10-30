@@ -110,3 +110,48 @@ def test_pillar_commands_are_understood(conn, k):
         assert "non capisco" not in out.lower() and "comando sconosciuto" not in out.lower(), (cmd, out[:80])
     out = loop.dispatch(conn, pillars.CMD[k], allow_nl=False) or ""
     assert "non capisco" not in out.lower(), (pillars.CMD[k], out[:80])
+
+
+# ---------------------------------------------------------------- (Agg. 73) chi è legato a te
+def _bonded_npc(conn, kind="companion"):
+    from engine.systems import bonds
+    nid = conn.execute("SELECT id FROM npcs WHERE status='alive' AND kind='human' ORDER BY id LIMIT 1").fetchone()["id"]
+    bonds.ensure_table(conn)
+    conn.execute("INSERT INTO bonds (player_id,npc_id,kind,status,since_tick) VALUES (1,?,?,'active',0)", (nid, kind))
+    return nid
+
+
+@pytest.mark.parametrize("kind", ["companion", "servo", "sworn", "disciple"])
+def test_bonded_people_survive_world_deaths(conn, kind):
+    from engine.simulation import cultivation, event_generator
+    from engine.systems import bonds
+    nid = _bonded_npc(conn, kind)
+    assert bonds.is_shielded(conn, nid)
+    # deviazione del qi: mai mortale per chi è legato a te
+    import engine.simulation.cultivation as cv
+    orig = cv._bt_death
+    cv._bt_death = lambda *a, **k: 1.0
+    try:
+        for i in range(20):
+            cultivation.attempt_breakthrough(conn, "npc", nid, i, random.Random(i))
+    finally:
+        cv._bt_death = orig
+    assert conn.execute("SELECT status FROM npcs WHERE id=?", (nid,)).fetchone()["status"] == "alive"
+    # le ferite non si infettano fino alla morte
+    conn.execute("INSERT INTO consequences (event_id,target_type,target_id,consequence_type,visibility,description,"
+                 "resolved,resolve_tick) VALUES (NULL,'npc',?,'death_check','hidden','x',0,0)", (nid,))
+    event_generator.resolve_due_consequences(conn, 10, random.Random(1), None, [], death_prob=1.0)
+    assert conn.execute("SELECT status FROM npcs WHERE id=?", (nid,)).fetchone()["status"] == "alive"
+
+
+def test_servants_count_in_legami(conn):
+    from engine.simulation import cultivation
+    rid = cultivation.ensure_realm(conn, 3)
+    conn.execute("UPDATE cultivation_records SET realm_id=? WHERE character_type='player' AND character_id=1;", (rid,))
+    conn.execute("UPDATE players SET realm_id=? WHERE id=1;", (rid,))
+    names = [n for n, _v, _c in pillars.compute(conn)["parts"]["legami"]]
+    assert "Servi e schiavi" in names
+    before = dict((n, v) for n, v, _c in pillars.compute(conn)["parts"]["legami"])["Servi e schiavi"]
+    _bonded_npc(conn, "servo")
+    after = dict((n, v) for n, v, _c in pillars.compute(conn)["parts"]["legami"])["Servi e schiavi"]
+    assert after > before

@@ -104,6 +104,26 @@ def protected_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
         return set()
 
 
+# (Agg. 73) chi è legato a te non muore per i capricci del mondo (deviazioni del qi altrui, ondate,
+# scaramucce lontane, ferite che si infettano, risse tra sconosciuti): resta ferito e sopravvive.
+# Può ancora cadere nelle storie, nei duelli che sceglie con te, o per mano tua.
+SHIELDED_KINDS = ("companion", "sworn", "dao_partner", "master", "disciple", "servo", "scorta", "family",
+                  "lover", "friend", "beast")
+
+
+def shielded_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
+    try:
+        return {r["npc_id"] for r in conn.execute(
+            f"SELECT npc_id FROM bonds WHERE player_id=? AND status='active' AND npc_id IS NOT NULL AND kind IN "
+            f"({','.join('?' * len(SHIELDED_KINDS))});", (player_id, *SHIELDED_KINDS))}
+    except sqlite3.OperationalError:
+        return set()
+
+
+def is_shielded(conn: sqlite3.Connection, npc_id: int, player_id: int = 1) -> bool:
+    return npc_id in shielded_ids(conn, player_id)
+
+
 def pinned_ids(conn: sqlite3.Connection, player_id: int = 1) -> set[int]:
     """NPC che non vagano a caso: il compagno (ti segue) e le nemesi in caccia."""
     try:
@@ -568,13 +588,17 @@ def daily(conn, t, rng, player) -> list[str]:
             out.append(f"{comp['name']} si è allenato con costanza: è più forte di ieri.")
         traits = entities.get_npc_traits(conn, comp["npc_id"])
         align = reputation.alignment_of(conn, player.id)
-        dark = align in ("Eretico", "Mostro", "Temuto")
-        if traits and traits.get("honor", 50) >= 60 and dark:
-            d = relations.adjust(conn, comp["npc_id"], -10, t, player.id)
-            if d.score < 20:
+        # (Agg. 73) più lento e più giusto: essere TEMUTO non basta, serve una via davvero oscura; e prima
+        # di andarsene ti avverte, così hai il tempo di cambiare strada (o di lasciarlo andare tu)
+        dark = align in ("Eretico", "Mostro")
+        if traits and traits.get("honor", 50) >= 70 and dark:
+            d = relations.adjust(conn, comp["npc_id"], -4, t, player.id)
+            if d.score < 5:
                 end_bond(conn, player.id, comp["npc_id"], "companion", "se n'è andato")
                 out.append(f"{comp['name']} non sopporta più ciò che sei diventato: se ne va "
                            f"senza voltarsi.")
+            elif d.score < 25:
+                out.append(f"⚠ {comp['name']} non ti guarda più negli occhi: se continui su questa via, ti lascerà.")
             else:
                 out.append(f"{comp['name']} ti guarda in silenzio. La tua fama lo turba.")
         else:

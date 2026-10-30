@@ -175,10 +175,15 @@ def resolve_due_consequences(conn: sqlite3.Connection, tick: int, rng: random.Ra
             "SELECT id, name, location_id, status, faction_id FROM npcs WHERE id=?;",
             (npc_id,),
         ).fetchone()
-        if npc and npc["status"] == "alive" and rng.random() < death_prob:
+        if npc and npc["status"] == "alive" and rng.random() < death_prob and not _shielded(conn, npc["id"]):
             events += _kill_npc(conn, tick, rng, npc, observer, observations)
         conn.execute("UPDATE consequences SET resolved=1 WHERE id=?;", (row["id"],))
     return events
+
+
+def _shielded(conn, npc_id: int) -> bool:
+    from engine.systems import bonds                    # (Agg. 73) i tuoi guariscono dalle ferite
+    return bonds.is_shielded(conn, npc_id)
 
 
 def _kill_npc(conn, tick, rng, npc, observer, observations) -> int:

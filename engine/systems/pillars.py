@@ -11,7 +11,7 @@ crescere:
   🌌 Dao            ciò che capisci: amplificatore dei Dao, spiriti del Dao, tecniche
   ✧ Anima          ciò che sei dentro: tempra dell'anima, vasi d'anima, Dharma, sigilli ancestrali
   ⚔ Ciò che porti  equipaggiamento, arma, cavalcatura
-  ♥ Legami         compagni e fratelli, bestie, discepoli e cloni
+  ♥ Legami         compagni e fratelli, bestie, servi e schiavi, discepoli e cloni
 
 Ogni pilastro ha un punteggio 0-100 RISPETTO AL TUO REGNO (quanto di ciò che il regno permette hai
 già costruito). Nessun sistema cambia: i pilastri li leggono e basta. In più:
@@ -37,7 +37,7 @@ ROLE = {"regno": "la scala di tutto: ogni sfondamento moltiplica il resto",
         "dao": "capire: i Dao amplificano ogni colpo, le tecniche li mettono in pratica",
         "anima": "ciò che sei dentro: crescita più rapida, vasi e sigilli che combattono con te",
         "porti": "ciò che indossi e impugni: la via più rapida, ma la prima a restare indietro",
-        "legami": "chi cammina con te: compagni, bestie e discepoli che combattono e lavorano per te"}
+        "legami": "chi cammina con te o ti obbedisce: compagni, bestie, servi, schiavi e discepoli"}
 CMD = {"regno": "via coltivazione", "corpo": "via corpo", "dao": "via profondi", "anima": "via anime",
        "porti": "equip", "legami": "legami"}
 HARMONY_ATK = 0.12
@@ -121,8 +121,16 @@ def _metrics(conn, t: int) -> dict[str, list[tuple[str, float, float, str]]]:
         from engine.systems import own_sect
         n = len(_safe(lambda: own_sect.disciples(conn, 1), [])) + len(_safe(lambda: clones.clones(conn), []))
         n += conn.execute("SELECT COUNT(*) n FROM bonds b JOIN npcs x ON x.id=b.npc_id WHERE b.player_id=1 AND "
-                          "b.status='active' AND x.status='alive' AND b.kind IN ('disciple','scorta');").fetchone()["n"]
+                          "b.status='active' AND x.status='alive' AND b.kind='disciple';").fetchone()["n"]
         return n / max(1, t // 2)
+
+    def servants():
+        from engine.systems import dominion                # servi col sigillo dell'anima, scorta, salme: gente che comandi
+        ids = {r["npc_id"] for r in dominion.servants(conn)}
+        ids |= {r["npc_id"] for r in conn.execute(
+            "SELECT b.npc_id FROM bonds b JOIN npcs x ON x.id=b.npc_id WHERE b.player_id=1 AND b.status='active' "
+            "AND x.status='alive' AND b.kind IN ('servo','scorta');")}
+        return len(ids) / max(2, t)
 
     def beasts_f():
         n = conn.execute("SELECT COUNT(*) n FROM bonds b JOIN npcs x ON x.id=b.npc_id WHERE b.player_id=1 AND "
@@ -150,6 +158,7 @@ def _metrics(conn, t: int) -> dict[str, list[tuple[str, float, float, str]]]:
                   ("Cavalcatura", 0.5 if t >= 2 else 0.0, _safe(lambda: 1.0 if mounts.mounted(conn) else 0.0), "cavalca")],
         "legami": [("Compagni e fratelli", 1.5, _safe(friends), "legami"),
                    ("Bestie", 1.0, _safe(beasts_f), "bestie"),
+                   ("Servi e schiavi", 1.0 if t >= 2 else 0.0, _safe(servants), "dominio"),
                    ("Discepoli e cloni", 1.0 if t >= 3 else 0.0, _safe(followers), "discepoli")],
     }
 

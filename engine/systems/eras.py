@@ -93,6 +93,9 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
 def _wave_damage(conn, rng) -> None:
     rows = conn.execute("SELECT id FROM npcs WHERE status='alive' AND COALESCE(kind,'human')='human' "
                         "ORDER BY RANDOM() LIMIT 2;").fetchall()
+    from engine.systems import bonds as _bonds                 # (Agg. 73) i tuoi scampano
+    _sh = _bonds.shielded_ids(conn)
+    rows = [r for r in rows if r["id"] not in _sh]
     for r in rows:
         conn.execute("UPDATE npcs SET status='dead' WHERE id=?;", (r["id"],))
     conn.execute("UPDATE factions SET influence=MAX(0, influence-5) WHERE status='active';")

@@ -253,6 +253,10 @@ def attempt_breakthrough(conn, ctype, cid, tick: int, rng: random.Random,
     # fallimento: contraccolpo o morte (le origini "hard_tribulation" rischiano di più)
     # (i fallimenti accumulati temprano il corpo; karma e Destino spostano il rischio)
     p_death = _bt_death(conn, ctype, cid, tier, fails, fate_death)
+    if ctype == "npc":
+        from engine.systems import bonds as _bonds          # (Agg. 73) i tuoi non muoiono di deviazione: contraccolpo
+        if _bonds.is_shielded(conn, cid):
+            p_death = 0.0
     if rng.random() < p_death:
         return _breakthrough_death(conn, ctype, cid, tier, tick, rng, name, loc, observer, observations)
     return _breakthrough_setback(conn, ctype, cid, rec, tier, tick, name, loc, observer, observations)

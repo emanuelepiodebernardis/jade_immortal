@@ -161,7 +161,9 @@ def on_enemy_defeated(conn, tick, player, npc_id, mode) -> str | None:
 def _background_skirmish(conn, tick, rng, war, observations) -> None:
     """Mentre la guerra infuria, ogni tanto cade un combattente da una parte o dall'altra."""
     if rng.random() < 0.5:
-        allies = ally_disciples(conn, war)
+        from engine.systems import bonds as _bonds          # (Agg. 73) non i tuoi compagni, discepoli o servi
+        _sh = _bonds.shielded_ids(conn)
+        allies = [a for a in ally_disciples(conn, war) if a["id"] not in _sh]
         if allies and rng.random() < 0.5:
             victim = rng.choice(allies)
             conn.execute("UPDATE npcs SET status='dead', death_tick=? WHERE id=?;",

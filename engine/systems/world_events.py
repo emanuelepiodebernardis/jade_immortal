@@ -190,6 +190,9 @@ def resolve_overdue(conn: sqlite3.Connection, tick: int, rng, observations) -> i
         "WHERE n.location_id=? AND n.status='alive' AND n.kind='human' "
         "ORDER BY COALESCE(re.tier,1) ASC, n.id ASC;", (loc,)).fetchall()
         if r["id"] not in leaders]
+    from engine.systems import bonds as _bonds                 # (Agg. 73) i tuoi fuggono feriti
+    _sh = _bonds.shielded_ids(conn)
+    victims = [v for v in victims if v not in _sh]
     n_dead = min(len(victims), max(1, (ev["wave_remaining"] or 1)))
     dead = victims[:n_dead]
     for vid in dead:

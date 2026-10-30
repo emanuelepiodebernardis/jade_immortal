@@ -280,6 +280,10 @@ def resolve_combat(conn: sqlite3.Connection, tick: int, rng: random.Random,
         if _cal.in_grace(conn):
             death_prob = 0.0                   # l'anima appena rinata: il Samsara la protegge ancora
     died = rng.random() < death_prob
+    if died and loser[0] == "npc" and winner[0] != "player":
+        from engine.systems import bonds as _bonds   # (Agg. 73) chi è legato a te resta ferito, non muore
+        if _bonds.is_shielded(conn, loser[1]):
+            died = False
 
     _apply_outcome(conn, tick, rng, winner, loser, rounds, died, killing_crit,
                    loc, observer, observations)

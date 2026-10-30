@@ -3210,3 +3210,37 @@ in un pendente di giada.
   socio del Mercante torna nel seguito.
 - `tests/test_pillars.py`: punteggi, armonia, moltiplicatori, schede e comandi.
 - 829 in totale.
+
+### Agg. 73, seconda parte — I tuoi non muoiono per caso, e i servi contano nei Legami
+
+**Il problema.** Con una partita di prova ho seguito 12 persone legate al giocatore per 250 turni. Due
+compagni su tre se ne sono andati o sono morti, ma nessuno per una scelta del giocatore:
+- uno è morto in una **deviazione del qi**: i compagni crescono ogni giorno, quindi tentano molti
+  sfondamenti;
+- uno è morto in un'**ondata spettrale** che ha travolto il villaggio dove si trovava;
+- gli altri se ne sono andati perché il giocatore era «Temuto»: perdevano 10 di rapporto al giorno e
+  partivano dopo appena 2-3 giorni.
+
+**La protezione dei legami** (`bonds.shielded_ids`). Le persone legate a te non muoiono più per i capricci
+del mondo. Vale per compagni, fratelli giurati, compagni del Dao, maestro, discepoli, servi col sigillo,
+scorta, famiglia, amici, amanti e bestie. Sopravvivono, feriti, a:
+- deviazioni del qi (al loro posto c'è un contraccolpo);
+- scontri con altri personaggi del mondo;
+- ferite che non guariscono;
+- ondate di calamità perse;
+- scaramucce lontane di una guerra di setta;
+- calamità delle ere.
+
+Possono ancora cadere nelle storie scritte (la Spada Spezzata), nei duelli e nelle difese che lasci senza
+risposta (sede o famiglia minacciate), oppure per mano tua.
+
+**Compagni che se ne vanno.**
+- Se ne vanno solo per una via davvero oscura («Eretico» o «Mostro»; «Temuto» non basta) e se il loro onore
+  è alto (70 o più).
+- Il rapporto cala di 4 al giorno, non più di 10, e partono solo quando arriva sotto 5.
+- Prima di partire ti avvertono: «⚠ … se continui su questa via, ti lascerà».
+
+**Servi e schiavi nei Legami.** Il pilastro ♥ Legami ha una fonte in più, «Servi e schiavi». Conta i servi
+col sigillo dell'anima, la scorta e le salme del Dominio (dal 2° regno), con il comando `dominio`.
+
+**Test:** 5 nuovi in `tests/test_pillars.py`; 834 in totale.
