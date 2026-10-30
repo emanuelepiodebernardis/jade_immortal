@@ -427,6 +427,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("dharma", "corpo_dharma"):
         from engine.systems import dharma_body
         return dharma_body.command(conn, player, arg)
+    if cmd in ("stagione", "prove", "traguardi_stagione"):
+        from engine.systems import seasons
+        return seasons.command(conn, player, arg)
     if cmd in ("guida", "primi_passi", "tutorial"):
         from engine.systems import guide
         return guide.command(conn, player, arg)
@@ -662,6 +665,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if action == "talk":
         from engine.systems import dialogues
         dlg = dialogues.talk(conn, t, rng, player, npc)
+        if not dlg:
+            from engine.systems import npc_memory          # (Agg. 70) chi ti ricorda ha qualcosa da dirti
+            dlg = npc_memory.talk(conn, t, rng, player, npc)
         return dlg if dlg else bonds.talk(conn, t, rng, player, npc)
     if action == "spar":
         return bonds.spar(conn, t, rng, player, npc)
@@ -705,8 +711,9 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import supreme_body, breakthrough_fates
     out += supreme_body.after_command(conn, player)
     out += breakthrough_fates.after_command(conn, player)
-    from engine.systems import guide
+    from engine.systems import guide, npc_memory
     out += guide.check(conn, player)
+    out += npc_memory.greetings(conn, player)
     ch = story_tick(conn, player)
     if ch:
         out.append(ch)

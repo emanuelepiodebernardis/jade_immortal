@@ -2955,3 +2955,44 @@ Ogni tappa dà da 50 a 300 pietre. `guida salta` la chiude.
 spiega quel sistema. Tutte le pagine restano in Storia → 📖 Codex, oppure con `codex <voce>`.
 
 **Test:** `tests/test_agg70.py`, 8 test. 723 in totale.
+
+### Agg. 70, seconda parte — Personaggi che ricordano, stagioni e traguardi, comodità
+
+**I personaggi ricordano** (`engine/systems/npc_memory.py`, senza modello linguistico). Chi hai risparmiato,
+sconfitto o aiutato se lo segna. Chi ha perso una persona cara per mano tua se lo segna pure.
+- **Saluto:** quando lo incontri ti riconosce, una volta al giorno: «Mi hai risparmiato a Borgo Bruma. Non
+  l'ho dimenticato.»
+- **Dialogo:** `parla <nome>` apre un dialogo con scelte che dipendono dal ricordo:
+  - chi hai risparmiato ti ripaga in pietre o viaggia con te;
+  - chi hai sconfitto chiede la rivincita;
+  - chi ha perso un caro accetta il prezzo del sangue oppure giura vendetta.
+- **Compagni:** i compagni, i fratelli giurati, la compagna del Dao e i discepoli commentano come chiudi un
+  duello. Il compassionevole disapprova chi finisce un vinto, l'ambizioso approva, e il rapporto sale o
+  scende.
+
+**Stagioni e traguardi** (`engine/systems/seasons.py`, Oggi → 🏆 Traguardi, comando `stagione`).
+- Ogni 30 giorni di gioco cambia la legge del Cielo: le tecniche dell'elemento della stagione colpiscono
+  ×1,15.
+- Ogni stagione propone **tre prove** a rotazione: élite e boss sconfitti, colpi superefficaci, stati
+  lasciati sui nemici, pezzi forgiati, avversari risparmiati, colpi dell'elemento della stagione.
+- Ogni prova dà 300 pietre per regno. Completarle tutte dà un pezzo **divino** del set della stagione e il
+  titolo di Campione.
+- Le stagioni passate restano nell'albo.
+- La scheda raccoglie anche le grandi vie del finale, ognuna con il suo pulsante: l'ascensione al mondo
+  superiore, la tua setta e la Torre della Deificazione.
+
+**Comodità.**
+- **Testo e contrasto:** A± cambia la grandezza del testo (90, 100, 112 o 125%), ◑ attiva l'alto
+  contrasto. Il browser se li ricorda.
+- **Telefono:** su uno schermo stretto le schede «Cosa fare ora» vanno in colonna e le notifiche non escono
+  più dallo schermo, quindi non c'è più lo scorrimento orizzontale.
+- **Registro delle scelte:** Storia → ⚖ Scelte elenca ogni decisione presa nelle scene, giorno per giorno.
+- **Test dell'interfaccia:** `tests/test_web_ui.py` avvia il server su un mondo di prova e verifica senza
+  browser:
+  - le API della dashboard;
+  - i menu principali;
+  - alcuni comandi;
+  - che ogni scheda «m:…» abbia un menu dietro;
+  - la sintassi del JavaScript.
+
+**Test:** 744 in totale.

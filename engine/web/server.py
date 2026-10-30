@@ -111,6 +111,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.equip_data())
             if path == "/api/gear":
                 return self._json(game.gear_data())
+            if path == "/api/scelte":
+                return self._json(game.choices_data())
             if path == "/api/codex":
                 from engine.systems import guide
                 return self._json(guide.codex())

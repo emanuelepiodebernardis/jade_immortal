@@ -471,6 +471,8 @@ def act(conn, player, arg: str) -> str:
         move_el = duel_types.move_element(name, what)
         eff, eff_tag = duel_types.effectiveness(move_el, d.get("el_e"), d.get("el_p"))
         mult *= (eff if move_el else d.get("adv", 1.0)) * st[4]   # e lo stile (l'impetuoso si scopre, il prudente no)
+        from engine.systems import seasons                # (Agg. 70) la legge della stagione
+        mult *= seasons.duel_bonus(conn, move_el)
         mult *= duel_types.mod(d.get("st_p"), "dmg") * duel_types.mod(d.get("st_e"), "taken")
         if d.get("guard_e"):
             mult *= 0.6
@@ -492,6 +494,12 @@ def act(conn, player, arg: str) -> str:
             s_line = duel_types.maybe_on_hit(d, move_el, eff_tag, rng)
             if s_line:
                 lines.append(s_line)
+            if eff_tag == "super":
+                lines += seasons.count(conn, "super")
+            if move_el and move_el == seasons.element(conn):
+                lines += seasons.count(conn, "elemento")
+            if s_line and d.get("_stato") and duel_types.ON_HIT.get(move_el or "", ("", ""))[1] == "e":
+                lines += seasons.count(conn, "stati")
         d["crit"] = crit_any
         d["_eff"], d["_el"] = eff_tag, move_el or ""
 
@@ -632,11 +640,16 @@ def finish(conn, player, kill: bool, seal: bool = False) -> str:
     out = loop._auto_end_enemy(conn, t, rng, player, npc, d["round"], max(1.0, d["hp_p"]), d["pmax"],
                                d.get("crit", False), {}, None, [], force_died=kill, seal=seal)
     how = "sigillato" if seal else "ucciso" if kill else "risparmiato"
-    from engine.systems import guide
+    from engine.systems import guide, npc_memory
     guide.flag(conn, "duello")
-    extra: list[str] = []
-    from engine.systems import elites                 # (Agg. 70) battere un élite o un boss paga
-    rr = elites.reward_rank(conn, npc.id)
+    extra: list[str] = list(npc_memory.on_duel_end(conn, player, npc, how))   # chi ricorda, chi commenta
+    from engine.systems import seasons                 # le prove della stagione
+    extra += seasons.count(conn, "duelli")
+    if how == "risparmiato":
+        extra += seasons.count(conn, "risparmia")
+    if elites.rank(conn, npc.id):
+        extra += seasons.count(conn, "elite")
+    rr = elites.reward_rank(conn, npc.id)              # (Agg. 70) battere un élite o un boss paga
     if rr:
         from engine.systems import rewards
         extra = [f"{'♛ Hai piegato un BOSS' if rr == 1 else '★ Hai battuto un élite'}: il suo tesoro è tuo."]

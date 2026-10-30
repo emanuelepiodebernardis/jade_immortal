@@ -233,6 +233,8 @@ def fulfil(conn, player, arg: str) -> str:
                f"(intimità {lv})."]
         out += dao_heart.adjust(conn, 3)
         chronicle.add(conn, "legame", f"Esaudisci il favore di {r['name']} (intimità {lv}).")
+        from engine.systems import npc_memory
+        npc_memory.on_help(conn, int(nid), player)
         if lv == 2:
             out.append(f"Da ora {r['name']} potrà accorrere al tuo fianco quando sarai in pericolo.")
         if lv in (3, 7, 15):

@@ -82,7 +82,8 @@ def _builders() -> dict:
             "sotto": __import__("engine.systems.lower_world", fromlist=["x"]).menu_build,
             "meridiani": __import__("engine.systems.meridians", fromlist=["x"]).menu_build,
             "dharma": __import__("engine.systems.dharma_body", fromlist=["x"]).menu_build,
-            "compagni": __import__("engine.systems.lost_companions", fromlist=["x"]).menu_build}
+            "compagni": __import__("engine.systems.lost_companions", fromlist=["x"]).menu_build,
+            "stagione": __import__("engine.systems.seasons", fromlist=["x"]).menu_build}
 
 
 NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi", "menu": "Menu",
@@ -92,7 +93,8 @@ NAMES = {"setta": "Setta", "arti": "Arti", "regni": "Regni", "eventi": "Eventi",
          "profondi": "Dao profondi", "spiriti": "Spiriti del Dao", "attributi": "Attributi",
          "mercato": "Mercato", "asta": "Casa d'aste", "ricette": "Ricette", "bacheca": "Bacheca",
          "forza": "La tua forza", "via": "La tua Via", "cloni": "Cloni", "discepoli": "Discepoli", "sotto": "Il mondo di sotto",
-         "meridiani": "Meridiani", "dharma": "Dharma e sigilli", "compagni": "I compagni perduti"}
+         "meridiani": "Meridiani", "dharma": "Dharma e sigilli", "compagni": "I compagni perduti",
+         "stagione": "Traguardi"}
 
 
 def build(conn, player, key: str) -> dict:

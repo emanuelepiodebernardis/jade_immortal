@@ -313,7 +313,7 @@ function addCard(html) {
 
 // ---------------- comandi ----------------
 const MENUS = ["setta", "arti", "coltivazione", "eventi", "regni", "famiglia", "dimora", "faide", "tecniche", "sangue", "rendite",
-  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu", "cloni", "discepoli", "sotto", "compagni"];
+  "dominio", "razze", "profondi", "spiriti", "attributi", "mercato", "asta", "ricette", "bacheca", "menu", "cloni", "discepoli", "sotto", "compagni", "stagione"];
 // i comandi che mostrano una lista da cui scegliere si aprono come menu cliccabili
 // LA TUA VIA: le schede della crescita in un pannello solo (l'ultima aperta si ricorda)
 const VIA_TABS = ["coltivazione", "corpo", "sangue", "attributi", "tecniche", "profondi", "spiriti", "anime", "meridiani", "dharma", "forza"];
@@ -322,7 +322,7 @@ try { lastVia = localStorage.getItem("ji_via") || lastVia; } catch (e) { /* nien
 // ---------------- I PALAZZI (Aggiornamento 64): pochi pulsanti grandi, ognuno con le sue schede ----------------
 // [chiave, etichetta, destinazione] — la destinazione è ciò che loadTab sa aprire
 const PALACES = {
-  oggi: { t: "🏯 Oggi", tabs: [["sintesi", "✦ Cosa fare", "oggi"], ["mete", "🎯 Mete", "mete"], ["eventi", "📅 Eventi", "m:eventi"]] },
+  oggi: { t: "🏯 Oggi", tabs: [["sintesi", "✦ Cosa fare", "oggi"], ["mete", "🎯 Mete", "mete"], ["eventi", "📅 Eventi", "m:eventi"], ["traguardi", "🏆 Traguardi", "m:stagione"]] },
   via: { t: "☯ La tua Via", tabs: [["eroe", "🪟 Eroe", "personaggio"], ["coltivazione", "☯ Coltivazione", "m:via:coltivazione"],
     ["corpo", "✦ Corpo", "m:via:corpo"], ["sangue", "🩸 Sangue", "m:via:sangue"], ["attributi", "🪟 Attributi", "m:via:attributi"],
     ["tecniche", "⚒ Tecniche", "m:via:tecniche"], ["profondi", "🌌 Dao profondi", "m:via:profondi"], ["spiriti", "✺ Spiriti", "m:via:spiriti"],
@@ -335,7 +335,7 @@ const PALACES = {
   mondo: { t: "🌍 Il mondo", tabs: [["mappa", "🗺 Mappa", "mappa"], ["mercato", "🏪 Mercato", "m:mercato"], ["asta", "⚖ Aste", "m:asta"],
     ["regni", "👑 Regni", "m:regni"], ["razze", "🐉 Razze", "m:razze"], ["sotto", "🙏 Mondo di sotto", "m:sotto"]] },
   tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["libro", "📖 Libro", "tesori:libro"]] },
-  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
+  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["scelte", "⚖ Scelte", "storia:scelte"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
   opzioni: { t: "⚙ Opzioni", tabs: [["pilota", "✧ Pilota e difficoltà", "pilota"], ["partita", "💾 Partita", "aiuto"]] },
 };
 const TARGET_OF = {};                               // destinazione → [palazzo, scheda]
@@ -381,6 +381,7 @@ async function run(cmd) {
   const lc = cmd.toLowerCase();
   if (lc === "mappa" || lc === "map") return loadTab("mappa");
   if (lc === "equip" || lc === "equipaggiamento") return loadTab("tesori:zaino");
+  if (lc === "traguardi") return loadTab("m:stagione");
   if (VIA_TABS.includes(lc)) return loadTab("m:via:" + lc);                              // la crescita: schede della Via
   if (lc === "via" || lc.startsWith("via ")) return loadTab("m:via:" + (lc.split(" ")[1] || lastVia));
   if (MENUS.includes(lc)) return loadTab("m:" + lc);   // i menu si aprono nel pannello
@@ -759,7 +760,7 @@ const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
 const SUBTABS = {
   personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici e talento"], ["corpo", "🩸 Corpo e sangue"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
   tesori: [["zaino", "🎒 Zaino"], ["libro", "📖 Libro"]],
-  storia: [["cronaca", "📜 Cronaca"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
+  storia: [["cronaca", "📜 Cronaca"], ["scelte", "⚖ Scelte"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
 };
 // (Agg. 70) il CODEX: la prima volta che apri una scheda, una pagina che spiega quel sistema
 let CODEX = null, CODEX_SEEN = {};
@@ -781,6 +782,17 @@ async function codexHint(key, where) {
     <button class="primary" data-codex-ok="${esc(key)}">Ho capito</button> <span class="muted small">Lo ritrovi in Storia → Codex.</span></div>`);
 }
 function saveCodexSeen() { try { localStorage.setItem("ji_codex_seen", JSON.stringify(CODEX_SEEN)); } catch (e) { /* niente */ } }
+// (Agg. 70) il registro delle tue scelte
+async function choicesHtml() {
+  const list = await api("/api/scelte").catch(() => []);
+  if (!list.length) return `<div class="empty">Ancora nessuna scelta: quando una scena ti chiede di decidere, la ritrovi qui.</div>`;
+  let day = null, h = `<div class="card sec choices-log"><b>⚖ Le tue scelte</b><div class="muted small">Ogni decisione presa nelle scene, dalla più recente.</div>`;
+  for (const c of list) {
+    if (c.giorno !== day) { day = c.giorno; h += `<div class="cl-day">Giorno ${day}</div>`; }
+    h += `<div class="cl-row"><span class="muted">${esc(c.titolo)}</span><b>${esc(c.scelta)}</b></div>`;
+  }
+  return h + `</div>`;
+}
 async function codexHtml() {
   const list = await codexData();
   return `<div class="codex">` + list.map((c) => `<details class="card sec"><summary><b>${esc(c.titolo)}</b></summary><p>${esc(c.testo)}</p></details>`).join("") + `</div>`;
@@ -836,6 +848,7 @@ async function loadTab(name) {
     } else if (name === "storia") {
       h = subChips("storia");
       if (sub.storia === "codex") h += await codexHtml();
+      else if (sub.storia === "scelte") h += await choicesHtml();
       else if (sub.storia === "mondo") h += await worldHtml() + await texts("mondo");
       else if (sub.storia === "trama") h += await texts("storia", "trama");
       else h += await chronicleHtml();
@@ -1348,6 +1361,18 @@ document.addEventListener("click", async (ev) => {
   if (cx) { CODEX_SEEN[cx.dataset.codexOk] = 1; saveCodexSeen(); const card = cx.closest(".codex-card"); if (card) card.remove(); return; }
   if (ev.target.closest("#adv")) { advance(); return; }
   if (ev.target.closest("#adv-all")) { flushAll(); return; }
+  if (ev.target.closest("#fontsz")) {
+    const order = [100, 112, 125, 90], cur = Number(document.documentElement.dataset.fs || 100);
+    const nx = order[(order.indexOf(cur) + 1) % order.length]; applyFs(nx);
+    try { localStorage.setItem("ji_fs", String(nx)); } catch (e) { /* niente */ }
+    toast("Testo", nx + "%", "info"); return;
+  }
+  if (ev.target.closest("#contrast")) {
+    const on = document.documentElement.dataset.contrast !== "1";
+    if (on) document.documentElement.dataset.contrast = "1"; else delete document.documentElement.dataset.contrast;
+    try { localStorage.setItem("ji_contrast", on ? "1" : "0"); } catch (e) { /* niente */ }
+    toast("Contrasto", on ? "alto" : "normale", "info"); return;
+  }
   if (ev.target.closest("#readmode")) {
     READ = manual() ? "auto" : "manuale"; try { localStorage.setItem("ji_read", READ); } catch (e) { /* niente */ }
     if (!manual()) { flushAll(); while ($("#toasts") && $("#toasts").firstElementChild) $("#toasts").firstElementChild.remove(); TOAST_Q.length = 0; }
@@ -1440,6 +1465,9 @@ function setWide(on) {
 try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
 $("#sound").textContent = SOUND ? "🔊" : "🔈";
 if ($("#music")) $("#music").style.opacity = MUSIC ? "1" : ".45";
+// (Agg. 70) grandezza del testo e alto contrasto, ricordati nel browser
+function applyFs(v) { document.documentElement.dataset.fs = String(v); document.body.style.zoom = v === 100 ? "" : String(v / 100); }
+try { const fs = Number(localStorage.getItem("ji_fs") || 100); if (fs !== 100) applyFs(fs); if (localStorage.getItem("ji_contrast") === "1") document.documentElement.dataset.contrast = "1"; } catch (e) { /* niente */ }
 function readBtn() { const b = $("#readmode"); if (b) { b.textContent = manual() ? "📖" : "⏩"; b.title = manual() ? "Lettura al tuo ritmo (Avanti) — clic per automatica" : "Lettura automatica — clic per leggere al tuo ritmo"; } advUi(); }
 readBtn();
 

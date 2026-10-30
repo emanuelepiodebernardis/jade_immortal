@@ -125,3 +125,51 @@ def test_codex_entries():
     from engine.systems import guide
     keys = {c["key"] for c in guide.codex()}
     assert {"coltivazione", "duello", "zaino", "mappa", "meridiani"} <= keys
+
+
+def test_npc_memory_greet_and_talk(conn):
+    from engine.systems import npc_memory, encounters, state as st
+    p = entities.get_player(conn)
+    n = _npc_here(conn, p)
+    npc_memory.on_duel_end(conn, p, n, "risparmiato")
+    assert npc_memory.last(conn, n.id)[1] == "risparmiato"
+    g = npc_memory.greetings(conn, p)
+    assert g and n.name in g[0]
+    assert npc_memory.greetings(conn, p) == []                 # una volta al giorno
+    sc = npc_memory.scene(conn, p, n)
+    assert sc and len(sc["choices"]) == 3
+    out = npc_memory.talk(conn, 0, random.Random(1), p, n)
+    assert out and encounters.pending(conn)
+
+
+def test_companions_comment(conn):
+    from engine.systems import npc_memory, bonds
+    p = entities.get_player(conn)
+    n = _npc_here(conn, p)
+    other = conn.execute("SELECT id FROM npcs WHERE status='alive' AND kind='human' AND id<>? LIMIT 1;", (n.id,)).fetchone()["id"]
+    bonds.add_bond(conn, p.id, other, "companion", 0)
+    conn.execute("UPDATE npc_traits SET compassion=95, ambition=10, pride=10, honor=80 WHERE npc_id=?;", (other,))
+    lines = npc_memory.companion_comments(conn, p, "ucciso", n.name)
+    assert lines and "disapprova" in lines[0]
+
+
+def test_seasons_trials_and_champion(conn, monkeypatch):
+    from engine.systems import seasons, gear
+    p = entities.get_player(conn)
+    d = seasons.get(conn)
+    assert len(d["trials"]) == 3 and seasons.element(conn) in seasons.ELEMENTS
+    out = []
+    for k in d["trials"]:
+        for _ in range(seasons.TRIALS[k][1]):
+            out += seasons.count(conn, k)
+    assert sum("Prova della stagione" in x for x in out) == 3
+    assert any("tutte le prove" in x for x in out)
+    eq = list(gear.get(conn)["eq"].values()) + gear.get(conn)["bag"]
+    assert any(x["rar"] == "divina" and x["set"] for x in eq)
+    assert seasons.duel_bonus(conn, seasons.element(conn)) == seasons.EL_BONUS
+    m = seasons.menu_build(conn, p)
+    assert m["sections"] and "TRAGUARDI" in m["title"]
+    # la stagione dopo: albo
+    monkeypatch.setattr(seasons, "season_no", lambda c: d["n"] + 1)
+    d2 = seasons.get(conn)
+    assert d2["albo"] and d2["albo"][-1]["campione"]

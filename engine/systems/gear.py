@@ -308,7 +308,10 @@ def forge(conn, player, slot: str, rng: random.Random | None = None) -> str:
     sects.grant_resource(conn, "pietre_spirituali", -cost, player.id)
     rng = rng or random.Random(tick_mod.get_tick(conn) * 7919 + get(conn)["n"])
     rar = rng.choices(RARITY, weights=R_WEIGHTS_FORGE)[0]
-    return f"🔥 Alla forgia, {cost} pietre: " + add(conn, make(rng, tier, slot, rar))
+    out = f"🔥 Alla forgia, {cost} pietre: " + add(conn, make(rng, tier, slot, rar))
+    from engine.systems import seasons
+    extra = seasons.count(conn, "forgia")
+    return "\n".join([out] + extra)
 
 
 # ---------- dashboard e menu ----------

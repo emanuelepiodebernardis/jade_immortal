@@ -888,3 +888,16 @@ body.scene-on .scene-img { height: 120px; }
 .codex-card { border-left: 3px solid var(--info); margin-bottom: 10px; }
 .codex-card p, .codex p { margin: 6px 0 8px; line-height: 1.5; font-size: 13.5px; }
 .codex details summary { cursor: pointer; }
+
+/* ===== Aggiornamento 70: comodità ===== */
+.todo-card { min-width: 0; max-width: 100%; }
+#toasts { width: min(360px, calc(100vw - 32px)); }
+@media (max-width: 700px) {
+  .todo-row { grid-template-columns: 1fr; }
+  #toasts { right: 16px; left: 16px; width: auto; }
+}
+html[data-contrast="1"] { --muted: #d8d8d8; --line: #9a9a9a; }
+html[data-contrast="1"] body { filter: contrast(1.18); }
+html[data-contrast="1"] .muted, html[data-contrast="1"] small { color: var(--ink) !important; opacity: .92; }
+.choices-log .cl-day { margin: 10px 0 4px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.choices-log .cl-row { display: flex; flex-direction: column; padding: 4px 0 6px; border-bottom: 1px dashed var(--line); font-size: 13px; }

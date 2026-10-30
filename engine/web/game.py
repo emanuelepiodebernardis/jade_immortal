@@ -170,8 +170,9 @@ def _after(conn, player) -> list[str]:
     from engine.systems import breakthrough_fates
     out += breakthrough_fates.after_command(conn, player)
     try:
-        from engine.systems import guide                    # (Agg. 70) primi passi completati
+        from engine.systems import guide, npc_memory        # (Agg. 70) primi passi; chi ti ricorda ti saluta
         out += guide.check(conn, player)
+        out += npc_memory.greetings(conn, player)
     except Exception:                         # noqa: BLE001
         pass
     try:
@@ -699,6 +700,20 @@ def equip_data() -> list[dict]:
     with LOCK, transaction() as conn:
         p = entities.get_player(conn)
         return art.equipment(conn, p) if p else []
+
+
+def choices_data(limit: int = 150) -> list[dict]:
+    """(Agg. 70) Il registro delle tue scelte: ogni scelta fatta in una scena, dalla più recente."""
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        if not p:
+            return []
+        rows = conn.execute(
+            "SELECT e.tick, e.title, e.event_type, c.description FROM consequences c JOIN events e ON e.id=c.event_id "
+            "WHERE c.consequence_type='choice' AND c.target_type='player' AND c.target_id=? "
+            "ORDER BY e.tick DESC, e.id DESC LIMIT ?;", (p.id, limit)).fetchall()
+        return [{"giorno": r["tick"] // 120 + 1, "titolo": r["title"], "tipo": r["event_type"] or "",
+                 "scelta": r["description"] or ""} for r in rows]
 
 
 def gear_data() -> dict:
