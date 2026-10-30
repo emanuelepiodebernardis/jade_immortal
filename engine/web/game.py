@@ -242,7 +242,21 @@ def _scene(conn, player) -> dict | None:
             hint = (hint + " · " if hint else "") + "scontro: ti sembra " + \
                 perception.relative_strength(conn, player.id, sc["ctx"]["npc_id"])
         choices.append({"n": i, "label": ch["label"], "hint": hint})
-    return {"title": sc.get("title", "Incontro"), "text": sc.get("text", ""), "choices": choices}
+    from engine.systems import art                       # (Agg. 68) un quadro per far capire cosa succede
+    kind = None
+    iid = (sc.get("ctx") or {}).get("intrigue_id")
+    if iid:
+        try:
+            from engine.systems import intrigues
+            it = next((x for x in intrigues.get(conn)["active"] if x["id"] == iid), None)
+            kind = (intrigues._templates().get(it["key"], {}) if it else {}).get("kind")
+            key = it["key"] if it else sc.get("key")
+        except Exception:                                # noqa: BLE001
+            key = sc.get("key")
+    else:
+        key = sc.get("key")
+    return {"title": sc.get("title", "Incontro"), "text": sc.get("text", ""), "choices": choices,
+            "imgs": art.scene_keys(key, sc.get("event_type"), kind)}
 
 
 def _duel(conn) -> dict | None:
@@ -594,7 +608,7 @@ def dao_data() -> list[dict]:
                 goal, label = max(2000, 1 << (c.bit_length())), "incarnazione"
                 prev = goal // 2 if goal > 2000 else 1000
             pct = round(100 * (c - prev) / max(1, goal - prev))
-            out.append({"name": r["name"], "short": train_all.short(r["name"]), "comp": c,
+            out.append({"name": r["name"], "short": train_all.short(r["name"]), "comp": c, "key": r["dao_key"],
                         "label": dt.comprehension_label(c), "next": label, "goal": goal,
                         "pct": max(0, min(100, pct)), "rarity": r["level"]})
     return out
@@ -664,8 +678,18 @@ def items_data() -> list[dict]:
                             "JOIN items i ON i.id=inv.item_id WHERE inv.owner_type='player' AND inv.owner_id=1 "
                             "AND inv.quantity>0 ORDER BY CASE i.rarity WHEN 'leggendario' THEN 0 WHEN 'prezioso' THEN 1 "
                             "WHEN 'raro' THEN 2 WHEN 'non_comune' THEN 3 ELSE 4 END, i.name;").fetchall()
+        from engine.systems import art
         return [{"nome": r["name"], "tipo": r["item_type"], "rarita": r["rarity"] or "comune",
-                 "desc": r["description"] or "", "n": r["quantity"]} for r in rows]
+                 "desc": r["description"] or "", "n": r["quantity"],
+                 "img": art.item_keys(r["name"], r["item_type"], r["rarity"] or "")} for r in rows]
+
+
+def equip_data() -> list[dict]:
+    """Ciò che il personaggio porta addosso (Agg. 68): arma, vasi d'anima, sigilli, Dharma, cavalcatura."""
+    from engine.systems import art
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        return art.equipment(conn, p) if p else []
 
 
 def chronicle_data(all_lives: bool = False) -> list[dict]:

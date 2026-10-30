@@ -230,7 +230,10 @@ def menu_build(conn, player) -> dict:
     if not o:
         head.append("Nel tuo sangue non scorre ancora nulla. Le bestie d'alto livello e rare lasciano essenze; i "
                     "campioni delle razze antiche lasciano il sangue più alto.")
-    secs.append(section("Il tuo sangue", head, acts, icon="🩸"))
+    from engine.systems import art as _art
+    _fam = next((f for _k, ln in o for f in (ln.get("families") or []) if f in _art.FAMILY_IMG), None)
+    secs.append(section("Il tuo sangue", head, acts, icon="🩸",
+                        img=[f"trasformazioni/{_art.FAMILY_IMG[_fam]}"] if _fam else ["oggetti/essenza_sangue"]))
     if not o:
         return menu("sangue", "🩸 IL SANGUE E I LIGNAGGI", [], secs)
     # trasformazione
@@ -244,7 +247,9 @@ def menu_build(conn, player) -> dict:
                      f"trasformati {i}", ok=not ready_now and wait <= 0, why=why) for i, ln in sacred[:6]]
         secs.append(section("Trasformazione (grado Sacro)", [
             "Nel prossimo scontro assumi la forma della bestia sacra: attacco moltiplicato, stati più frequenti, pelle "
-            "durissima. Costa 20 di spirito, poi il sangue riposa 3 giorni."], tacts, icon="🐉"))
+            "durissima. Costa 20 di spirito, poi il sangue riposa 3 giorni."], tacts, icon="🐉",
+            img=[f"trasformazioni/{f}" for _i, ln in sacred[:1] for f in (ln.get("families") or []) if f in _art.FAMILY_IMG]
+            + ["trasformazioni/drago"]))
     # fusioni
     fs = fusion_suggestions(conn)
     if fs:

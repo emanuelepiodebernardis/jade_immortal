@@ -47,9 +47,13 @@ def bar(label: str, pct: float, text: str = "", tone: str = "") -> dict:
 
 
 def section(title: str, lines: list[str] | None = None, actions: list[dict] | None = None,
-            bars: list[dict] | None = None, icon: str = "") -> dict:
-    return {"title": title, "icon": icon, "lines": [ln for ln in (lines or []) if ln],
-            "actions": actions or [], "bars": bars or []}
+            bars: list[dict] | None = None, icon: str = "", img: list[str] | str | None = None) -> dict:
+    """img: un'immagine (o candidati, dal più preciso) della cartella «immagini», es. "oggetti/anello"."""
+    d = {"title": title, "icon": icon, "lines": [ln for ln in (lines or []) if ln],
+         "actions": actions or [], "bars": bars or []}
+    if img:
+        d["img"] = [img] if isinstance(img, str) else list(img)
+    return d
 
 
 def menu(key: str, title: str, sub: list[str] | None = None, sections: list[dict] | None = None,

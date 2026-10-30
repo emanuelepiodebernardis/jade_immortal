@@ -377,6 +377,12 @@ function loadImages() {
 loadImages();
 const imgUrl = (f) => "/immagini/" + f.split("/").map(encodeURIComponent).join("/");
 function slotImg(dir, key) { const f = IMGMAP[(dir ? dir + "/" : "") + V.slug(key)]; return f ? imgUrl(f) : null; }
+window.daoImg = (k) => imgOf(["dao/" + k]);
+// (Agg. 68) il primo quadro che esiste tra i candidati ("oggetti/arma_spada", "oggetti/tesoro"…)
+function imgOf(list) {
+  for (const p of [].concat(list || [])) { const i = p.lastIndexOf("/"); const u = slotImg(i >= 0 ? p.slice(0, i) : "", p.slice(i + 1)); if (u) return u; }
+  return null;
+}
 const BEAST_WORDS = ["drago", "fenice", "tigre", "tartaruga", "qilin", "gru", "volpe", "serpente", "kun"];
 function faceSrc(name, o = {}) {
   let u = slotImg("", name) || slotImg("ritratti", name);
@@ -394,6 +400,28 @@ function face(name, size, aura, kind = "", o = {}) {
   return u ? `<img class="portrait" src="${u}" width="${size}" height="${size}" alt="" loading="lazy">` : V.portrait(name, kind, size, aura);
 }
 let lastArenaTurn = null;
+// (Agg. 68) il CUT-IN delle mosse, come nei giochi di lotta: il quadro della tua mossa, poi quello del colpo nemico
+function cutIn(box, L, ar) {
+  const arena = box.querySelector(".arena"); if (!arena) return;
+  const steps = [];
+  const mine = imgOf(L.img);
+  if (mine) steps.push({ u: mine, t: L.nome || ({ colpisci: "Colpo", difendi: "Difesa", concentrati: "Concentrazione", pillola: "Pillola", fuggi: "Fuga" }[L.mossa] || "Colpo"),
+    sub: L.inflitto ? `−${Number(L.inflitto).toLocaleString("it-IT")}${L.critico ? " · CRITICO" : ""}` : "", cls: "me" });
+  const foe = L.subito ? imgOf(L.img_nemico) : null;
+  if (foe) steps.push({ u: foe, t: ar.nome, sub: `−${Number(L.subito).toLocaleString("it-IT")}${L.critico_lui ? " · CRITICO" : ""}`, cls: "foe" });
+  if (!steps.length) return;
+  const el = document.createElement("div"); el.className = "cutin"; arena.appendChild(el);
+  let i = 0;
+  const show = () => {
+    if (i >= steps.length) { el.remove(); return; }
+    const s = steps[i++];
+    el.innerHTML = `<div class="cut ${s.cls}"><div class="cut-img" style="background-image:url('${s.u}')"></div><div class="cut-t"><b>${esc(s.t)}</b>${s.sub ? `<span>${esc(s.sub)}</span>` : ""}</div></div>`;
+    const f = arena.querySelector(s.cls === "me" ? ".fighter.foe" : ".fighter.me"); if (f) { f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); }
+    setTimeout(show, s.cls === "me" ? 1250 : 1000);
+  };
+  el.addEventListener("click", () => el.remove());
+  show();
+}
 function renderScene(s) {
   const box = $("#scene");
   // con una scena aperta la colonna centrale fa spazio: luogo e diario si stringono, la scena si allarga
@@ -403,8 +431,9 @@ function renderScene(s) {
   box.hidden = false;
   const ar = s.duello && s.duello.arena;
   box.classList.toggle("in-duel", !!ar);
-  if (ar && ar.ultimo && ar.turno !== lastArenaTurn) { lastArenaTurn = ar.turno; if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); }
-  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); return; }
+  let cut = null;
+  if (ar && ar.ultimo && ar.turno !== lastArenaTurn) { lastArenaTurn = ar.turno; if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); cut = ar.ultimo; }
+  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); if (cut) cutIn(box, cut, ar); return; }
   if (ar && ar.finito) {
     box.innerHTML = arenaHtml(ar, s) + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
     return;
@@ -415,7 +444,8 @@ function renderScene(s) {
     ${s.duello.carica ? `<div class="l-warn">⚠ Sta raccogliendo il qi: difenditi! (attento alle finte dei subdoli)</div>` : ""}</div>` : "";
   // nel duello le barre grafiche sostituiscono quelle di testo del terminale
   const txt = s.duello ? s.scena.text.split("\n").filter((l) => !l.includes("█") && !l.includes("·····") && !l.startsWith("⚠")).join("\n") : s.scena.text;
-  box.innerHTML = `<h3>✦ ${esc(s.scena.title)}</h3>${du}<p>${actionize(esc(txt))}</p><div class="choices">` +
+  const sci = imgOf(s.scena.imgs);
+  box.innerHTML = `${sci ? `<div class="scene-img" style="background-image:url('${sci}')"></div>` : ""}<h3>✦ ${esc(s.scena.title)}</h3>${du}<p>${actionize(esc(txt))}</p><div class="choices">` +
     s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}${c.hint ? `<small>[${esc(c.hint)}]</small>` : ""}</button>`).join("") +
     `</div>`;
 }
@@ -566,7 +596,8 @@ function heroHtml(h, sb, daos) {
 // IL TESTO ESSENZIALE: a schermo solo le voci più alte; il resto è a un clic (▸ altri…)
 const MENU_FULL = 6, LINES_FULL = 3;
 function msecHtml(s, full) {
-  let h = `<div class="card sec msec${full ? "" : " mini"}"><b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
+  const si = full && s.img ? imgOf(s.img) : null;
+  let h = `<div class="card sec msec${full ? "" : " mini"}${si ? " has-img" : ""}">${si ? `<img class="msec-img" src="${si}" alt="" loading="lazy">` : ""}<b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
   for (const b of s.bars) h += `<div class="mbar ${b.tone || ""}"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
   const lines = full ? s.lines : s.lines.slice(0, 1);
   lines.slice(0, LINES_FULL).forEach((l) => { h += `<div class="mline">${actionize(esc(l))}</div>`; });
@@ -653,13 +684,19 @@ async function peopleHtml() {
 }
 
 async function bagHtml() {
-  const it = await api("/api/zaino");
-  if (!it.length) return `<div class="card"><b>Zaino</b><div class="empty">Vuoto.</div></div>`;
-  return `<div class="card"><b>Zaino</b>` + it.map((x) =>
-    `<div class="item r-${esc(x.rarita)}" title="${esc(x.desc)}"><span>${esc(x.nome)}${x.n > 1 ? ` ×${x.n}` : ""}</span>
-     <span class="muted">${esc(x.tipo)} · ${esc(x.rarita.replace("_", " "))}</span>
-     ${x.tipo === "essenza" ? `<button data-cmd="use tutte ${esc(x.nome)}">Assorbi${x.n > 1 ? " tutte" : ""}</button>`
-       : `<button data-cmd="use ${esc(x.nome)}">Usa</button>${x.n > 1 ? `<button data-cmd="use tutte ${esc(x.nome)}">Tutte</button>` : ""}`}</div>`).join("") +
+  const [it, eq] = await Promise.all([api("/api/zaino"), api("/api/equip").catch(() => [])]);
+  // (Agg. 68) ciò che porti addosso, con il suo quadro
+  const eqh = eq.length ? `<div class="card sec"><b>⚔ Equipaggiamento</b><div class="equip">` + eq.map((e) => {
+    const u = imgOf(e.img);
+    return `<button class="eq-slot" data-cmd="${esc(e.cmd)}" title="${esc(e.nota || e.nome)}">${u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="eq-ph">✦</span>`}
+      <small>${esc(e.slot)}</small><b>${esc(e.nome)}</b>${e.nota ? `<em>${esc(e.nota)}</em>` : ""}</button>`; }).join("") + `</div></div>` : "";
+  if (!it.length) return eqh + `<div class="card"><b>Zaino</b><div class="empty">Vuoto.</div></div>`;
+  return eqh + `<div class="card"><b>🎒 Zaino</b><div class="bag">` + it.map((x) => {
+    const u = imgOf(x.img);
+    return `<div class="bag-it r-${esc(x.rarita)}" title="${esc(x.desc)}">${u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="eq-ph">✦</span>`}
+     ${x.n > 1 ? `<span class="qty">×${x.n}</span>` : ""}<b>${esc(x.nome)}</b><small>${esc(x.tipo)} · ${esc(x.rarita.replace("_", " "))}</small>
+     <div class="bag-act">${x.tipo === "essenza" ? `<button data-cmd="use tutte ${esc(x.nome)}">Assorbi${x.n > 1 ? " tutte" : ""}</button>`
+       : `<button data-cmd="use ${esc(x.nome)}">Usa</button>${x.n > 1 ? `<button data-cmd="use tutte ${esc(x.nome)}">Tutte</button>` : ""}`}</div></div>`; }).join("") + `</div>` +
     `<div class="tools"><button class="primary" data-cmd="raccogli">Raccogli e assorbi tutto</button>` +
     `<button data-cmd="use all">Usa anche le pillole</button>` +
     `<button data-cmd="autoraccolta">Raccolta automatica on/off</button>` +

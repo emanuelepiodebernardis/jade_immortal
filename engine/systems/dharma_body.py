@@ -147,7 +147,8 @@ def menu_section(conn, player):
             "fine e combatte alle tue spalle."],
             [act(f"Risveglia il Corpo del Dharma ({cost} pietre)", "dharma risveglia",
                  ok and sects.get_resource(conn, "pietre_spirituali", player.id) >= cost,
-                 f"dal {AWAKEN_TIER}° regno" if not ok else f"servono {cost} pietre", main=ok)], icon="🗿")
+                 f"dal {AWAKEN_TIER}° regno" if not ok else f"servono {cost} pietre", main=ok)], icon="🗿",
+            img="oggetti/dharma")
     pct = 100 * d.get("exp", 0) / need(d["grade"])
     return section(f"Il Corpo del Dharma — grado {d['grade']}", [
         f"Forma: {form(conn)}.",
@@ -155,7 +156,8 @@ def menu_section(conn, player):
         "Cresce da solo ogni giorno; nutrirlo di pietre lo fa crescere molto più in fretta."],
         [act("Nutrilo con tutte le pietre", "dharma nutri", main=True),
          act("Nutrilo con 1000 pietre", "dharma nutri 1000")],
-        [bar("Verso il grado successivo", pct, f"{int(d.get('exp', 0))}/{need(d['grade'])}", tone="rare")], icon="🗿")
+        [bar("Verso il grado successivo", pct, f"{int(d.get('exp', 0))}/{need(d['grade'])}", tone="rare")], icon="🗿",
+        img="oggetti/dharma")
 
 
 def command(conn, player, arg: str) -> str:

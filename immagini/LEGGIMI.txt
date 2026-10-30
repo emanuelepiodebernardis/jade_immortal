@@ -26,6 +26,15 @@ LE CARTELLE
   bestie/                drago, fenice, tigre, tartaruga, qilin, gru, volpe, serpente, kun   (per nome della bestia)
   creature/              beast, demon, spirit   (le creature senza un'immagine propria)
   momenti/               tribolazione, duello
+  oggetti/               gli oggetti dello zaino per categoria (pillola, essenza_sangue, arma_spada, nucleo_demone…),
+                         i vasi d'anima (anello, pagoda, stendardo, calderone, perla), sigillo_<casata>, dharma
+  azioni/                le mosse del duello: colpo, spada, fuoco, acqua, fulmine, vento, terra, metallo, legno, luce,
+                         oscurita, anima, pugno, corpo, sangue, abisso, difesa, concentrazione, pillola, fuga,
+                         nemico, carica, tribolazione_colpo, tribolazione_superata
+  trasformazioni/        i lignaggi: drago, fenice, qilin, demone, silvano, gigante, leviatano, corpo_supremo
+  reliquie/              le reliquie delle razze: draghi, demoni, spiriti, giganti, maree
+  scene/                 il quadro in cima alle scene: per chiave (vendetta, dimora, torre…), per tipo di trama
+                         (mistero, eredita, torneo, reame…) o per tipo di scena (combat, story, fortune, bond…)
 
 Chi conta di più vince: un ritratto col nome del personaggio batte quello del suo tipo, che batte il ritratto
 disegnato dal gioco.

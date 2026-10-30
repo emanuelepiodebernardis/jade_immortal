@@ -328,15 +328,18 @@ const V = (() => {
     const sorted = ds.slice().sort((a, b) => b.comp - a.comp);
     const list = all ? sorted : sorted.slice(0, 14);
     const mx = Math.log10(Math.max(10, sorted[0].comp + 1));
+    const di = (k) => (window.daoImg && k ? window.daoImg(k) : null);
+    const top = sorted.slice(0, 4).map((d) => ({ d, u: di(d.key) })).filter((x) => x.u);
+    const gal = top.length ? `<div class="daogal">` + top.map((x) => `<figure><img src="${x.u}" alt="" loading="lazy"><figcaption>${esc(x.d.short)}<small>${esc(x.d.label)}</small></figcaption></figure>`).join("") + `</div>` : "";
     const rows = list.map((d) => `<div class="dbar" title="${esc(d.name)} — ${d.comp}; prossima soglia: ${esc(d.next)} a ${d.goal}">
-        <span class="n">${esc(d.short)}</span>
+        <span class="n">${di(d.key) ? `<img class="dicon" src="${di(d.key)}" alt="">` : ""}${esc(d.short)}</span>
         <div class="track"><i style="width:${(100 * Math.log10(d.comp + 1) / mx).toFixed(1)}%;background:${css(RAR_COL[d.rarity] || "--accent")}"></i>
           <em style="width:${d.pct}%"></em></div>
         <span class="v">${fmt(d.comp)} <small>${esc(d.label)}</small></span></div>`).join("");
     const kinds = Object.entries({ narrative: "arma", elemental: "elemento", systemic: "sistemico", superior: "superiore", deep: "profondo" })
       .map(([k, l]) => `<span><i style="background:${css(RAR_COL[k])}"></i>${l}</span>`).join("");
     return `<div class="card"><b>☸ I tuoi Dao</b> <span class="muted">— ${ds.length} Dao · scala logaritmica; la linea sottile è il cammino verso la prossima soglia</span>
-      <div class="dchart">${rows}</div><div class="glegend">${kinds}</div>
+      ${gal}<div class="dchart">${rows}</div><div class="glegend">${kinds}</div>
       ${ds.length > 14 ? `<button id="dao-all">${all ? "Mostra i primi 14" : `Mostra tutti (${ds.length})`}</button>` : ""}</div>`;
   }
   function talentRadar(t) {

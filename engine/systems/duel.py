@@ -300,6 +300,7 @@ def act(conn, player, arg: str) -> str:
     lines: list[str] = []
     taken = 1.0
     mods: dict = {}
+    name = None
 
     if what == "fuggi":
         ratio = perception.strength_ratio(conn, player.id, npc.id)
@@ -375,7 +376,10 @@ def act(conn, player, arg: str) -> str:
         lines.append(f"  I tuoi alleati infieriscono: −{round(ally_dmg)} a {d['name']}.")
     hp_e_before = d.get("_hp_e_turn", d["emax"])
     d["last"] = {"inflitto": round(max(0, hp_e_before - d["hp_e"])), "alleati": round(ally_dmg), "subito": 0,
-                 "critico": bool(d.get("crit")), "mossa": what}
+                 "critico": bool(d.get("crit")), "mossa": what, "nome": name}
+    from engine.systems import art                    # (Agg. 68) l'immagine della mossa, come nei giochi di lotta
+    d["last"]["img"] = art.action_key(what, name)
+    d["last"]["img_nemico"] = "azioni/carica" if d.get("charge_e") else "azioni/nemico"
     if d["hp_e"] <= 0:
         _save(conn, d)
         return _won(conn, player, lines)

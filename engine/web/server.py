@@ -107,6 +107,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.world_data())
             if path == "/api/zaino":
                 return self._json(game.items_data())
+            if path == "/api/equip":
+                return self._json(game.equip_data())
             if path == "/api/cronaca":
                 return self._json(game.chronicle_data("tutte" in url.query))
             if path == "/api/salvataggi":

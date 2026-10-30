@@ -175,7 +175,8 @@ def menu_sections(conn, player) -> list:
     acts += [act(f"Togli {sigil_name(k)}", f"sigilli togli {i + 1}") for i, k in enumerate(eq)][:4]
     out = [section("I Sigilli ancestrali", lines + (["Si trovano tra i tesori: tombe, reami segreti, torre, torneo, "
                                                     "premi delle trame. Un doppione si fonde e sale di stella."]
-                                                   if not d["owned"] else []), acts, icon="✴")]
+                                                   if not d["owned"] else []), acts, icon="✴",
+                   img=[f"oggetti/sigillo_{HOUSES[eq[0] // 4][0]}"] if eq else ["oggetti/sigillo_drago"])]
     if spare:
         out.append(section("Sigilli non incastonati",
                            [f"{i + 1}. {sigil_name(k)} ★{d['owned'][str(k)]}" for i, k in enumerate(spare)][:12],

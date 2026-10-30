@@ -134,7 +134,7 @@ def menu_section(conn, player):
     return section("Gran Torneo dell'Ascesa", [status_line(conn), "Ogni 90 giorni, per 7 giorni: quattro duelli, "
                                                f"frutti del Dao a ogni turno. Corone vinte: {d.get('crowns', 0)}."],
                    [act(f"Combatti: {ROUND_NAME[min(d['round'], 3)]}", "torneo combatti", ok,
-                        "il torneo non è aperto" if not is_open(day) else "non sei più in gara", main=ok)], icon="🏟")
+                        "il torneo non è aperto" if not is_open(day) else "non sei più in gara", main=ok)], icon="🏟", img="scene/torneo")
 
 
 def command(conn, player, arg: str) -> str:

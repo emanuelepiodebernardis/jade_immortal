@@ -208,7 +208,7 @@ def events(conn, player) -> dict:
         f"Il tuo piano questa settimana: {_d['floor'] if _d['week'] == _day // _dt.WEEK else 0} (record {_d['best']}). "
         f"Tentativi di oggi: {_tries}/{_dt.TRIES}. Ogni 5 piani un forziere; a fine settimana un premio per la classifica."],
         [act("Sfida il guardiano del piano successivo", "torre sfida", _tries < _dt.TRIES, "tentativi finiti per oggi",
-             main=True), act("La lavagna della torre", "torre")], icon="🗼"))
+             main=True), act("La lavagna della torre", "torre")], icon="🗼", img="scene/torre"))
     return menu("eventi", "✦ EVENTI DEL MONDO", ["Tutto ciò a cui puoi partecipare, con i comandi pronti."], secs)
 
 
@@ -392,7 +392,7 @@ def abode(conn, player) -> dict:
     lines = [("Sei a casa." if home else f"La dimora è a {_loc_name(conn, ab['loc'])}.") + f" Pietre: {stones}."]
     if steps:
         lines.append("Il potenziamento massimo farebbe: " + ", ".join(f"{A.WINGS[k][0]} {a}→{b}" for k, a, b in steps) + ".")
-    secs = [section("Potenzia", lines, top, icon="⇑")]
+    secs = [section("Potenzia", lines, top, icon="⇑", img="scene/dimora")]
     st = {k: v for k, v in ab.get("stock", {}).items() if v}
     secs.append(section("Produzione", ["Da raccogliere: " + ", ".join(f"{v} {professions.MATERIALS.get(k, k)}"
                                                                     for k, v in st.items()) if st else

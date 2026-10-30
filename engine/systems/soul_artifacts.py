@@ -558,7 +558,7 @@ def menu_sections(conn, player) -> list[dict]:
             acts += [act("Nutri il maestro", f"anello nutri {max(1, need - r.get('fed', 0))}", have > 0, "nessun nucleo"),
                      act("Il maestro combatte con te (prossimo scontro)", "anello forza"),
                      act("Chiedi consiglio", "anello")]
-        secs.append(section("L'anello del maestro", lines, acts, bars, icon="💍"))
+        secs.append(section("L'anello del maestro", lines, acts, bars, icon="💍", img="oggetti/anello"))
     for k in ORDER:
         d = get(conn, k)
         if not d:
@@ -582,7 +582,7 @@ def menu_sections(conn, player) -> list[dict]:
                          act("Patto: vita (−karma)", "perla patto vita", ok, "nessun patto possibile"),
                          act("Patto: segreto (−cuore)", "perla patto segreto", ok, "nessun patto possibile")]
         secs.append(section(V[k]["name"] + (f" — {d.get('spirit')}" if d.get("active") else ""), lines, acts,
-                            icon=V[k]["icon"]))
+                            icon=V[k]["icon"], img=f"oggetti/{k}"))
     if not secs:
         secs.append(section("Nessun vaso d'anima", [
             "Esplorando rovine, montagne e zone proibite puoi trovare oggetti con un'anima dentro: un anello, una "

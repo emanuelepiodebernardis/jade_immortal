@@ -727,3 +727,52 @@ body.scene-on #altar .ring, body.scene-on .altar-auto, body.scene-on .altar-acts
 /* Immortale: niente numeri, solo ciò che si sente */
 body.no-numbers .meter em, body.no-numbers #ring-pct, body.no-numbers .mbar em, body.no-numbers .hpbar span,
 body.no-numbers .person .pw span:first-child, body.no-numbers #t-pietre, body.no-numbers .lv { visibility: hidden; }
+
+/* ===== Aggiornamento 68: le immagini ===== */
+.msec.has-img { overflow: hidden; }
+.msec-img { float: right; width: 92px; height: 92px; object-fit: cover; border-radius: 10px; margin: 0 0 6px 10px;
+  border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.equip { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; margin-top: 8px; }
+.eq-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; text-align: center; border-radius: 10px; }
+.eq-slot img, .bag-it img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+.eq-slot small, .bag-it small { color: var(--muted); font-size: 11px; }
+.eq-slot b, .bag-it b { font-size: 12px; line-height: 1.2; }
+.eq-slot em { font-size: 11px; color: var(--accent); font-style: normal; }
+.eq-ph { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 8px; background: var(--panel2); font-size: 28px; color: var(--muted); }
+.bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-top: 8px; }
+.bag-it { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 6px; border-radius: 10px;
+  background: var(--panel2); border: 1px solid var(--line); }
+.bag-it .qty { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.65); color: #fff; border-radius: 8px; padding: 0 6px; font-size: 12px; }
+.bag-act { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; }
+.bag-act button { padding: 2px 8px; font-size: 12px; }
+.bag-it.r-leggendario { border-color: #d6a446; box-shadow: 0 0 0 1px #d6a44655 inset; }
+.bag-it.r-prezioso { border-color: #b06ad6; }
+.bag-it.r-raro { border-color: #4f8fd6; }
+.bag-it.r-non_comune { border-color: #4fb37a; }
+.scene-img { height: 150px; margin: -10px -14px 10px; border-radius: 12px 12px 0 0; background-size: cover; background-position: center;
+  -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+body.scene-on .scene-img { height: 120px; }
+.arena { position: relative; }
+.cutin { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; pointer-events: auto; cursor: pointer;
+  background: rgba(6, 10, 9, .45); animation: cut-bg 1.2s ease; }
+.cut { position: relative; width: min(92%, 640px); aspect-ratio: 16 / 7; animation: cut-in .35s cubic-bezier(.2,.9,.3,1.2); }
+.cut.foe { animation-name: cut-in-foe; }
+.cut-img { position: absolute; inset: 0; background-size: cover; background-position: center; border-radius: 6px;
+  clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.cut.foe .cut-img { clip-path: polygon(0 0, 94% 0, 100% 100%, 6% 100%); filter: saturate(1.1) hue-rotate(-12deg); }
+.cut-t { position: absolute; left: 8%; bottom: 8%; display: flex; flex-direction: column; gap: 2px; text-shadow: 0 2px 8px #000; }
+.cut.foe .cut-t { left: auto; right: 8%; text-align: right; }
+.cut-t b { font-family: var(--serif); font-size: 22px; color: #fff; }
+.cut-t span { font-size: 18px; font-weight: 700; color: #ffd27a; }
+.cut.foe .cut-t span { color: #ff8a7a; }
+@keyframes cut-in { from { transform: translateX(-40%) skewX(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cut-in-foe { from { transform: translateX(40%) skewX(12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cut-bg { from { background: rgba(255,255,255,.35); } }
+.fighter.shake { animation: shake .45s; }
+@keyframes shake { 0%,100% { transform: none; } 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { .cut, .cutin, .fighter.shake { animation: none; } }
+.daogal { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin: 8px 0; }
+.daogal figure { margin: 0; text-align: center; }
+.daogal img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 2px solid var(--line); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 30%, transparent); }
+.daogal figcaption { font-size: 12px; display: flex; flex-direction: column; } .daogal small { color: var(--muted); }
+.dicon { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; vertical-align: -4px; margin-right: 5px; }

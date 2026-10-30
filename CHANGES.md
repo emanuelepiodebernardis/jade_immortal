@@ -2773,3 +2773,28 @@ sfondamento, Spietato (circa una morte ogni 80–100 giorni: è il genere senza 
   riusciva. Ora si combatte solo se la prova fallisce, e vale anche per i capitoli dei vasi d'anima.
 
 **Test:** `tests/test_agg67.py` (12 test). Suite totale: **701 passati**.
+
+---
+
+## Aggiornamento 68 — Le immagini del gioco
+
+Tutte nello stesso stile: inchiostro su seta, verde giada e cinabro.
+- **Sfondi dipinti dal codice** (`strumenti/dipingi_sfondi.py`): i luoghi, i mondi della mappa, la
+  tribolazione e il duello.
+- **Generati con Pollinations.ai** (gratuito): 11 ritratti per tipo, i 5 compagni perduti, 9 bestie e
+  3 creature. Poi oggetti, mosse, trasformazioni, reliquie e scene. I prompt e la regola che funziona sono
+  in `strumenti/prompt_immagini.md`: prima il soggetto, e per gli uomini «a MAN, masculine face…».
+- **Lo zaino a griglia:** ogni oggetto ha il suo quadro per categoria (pillole, essenze del Dao e di
+  sangue, nuclei, armi per tipo, reliquie per razza…) e la cornice del colore della rarità.
+- **L'equipaggiamento:** in cima allo zaino c'è ciò che porti addosso (arma, anello e vasi d'anima,
+  sigilli, Corpo del Dharma, cavalcatura), ognuno col suo quadro. Toccarlo apre la sua scheda.
+- **Il duello come nei giochi di lotta:** a ogni mossa entra di taglio il quadro della mossa (colpo,
+  spada, fuoco, ghiaccio, fulmine, vento, terra, metallo, legno, luce, ombra, anima, pugno, corpo,
+  sangue, abisso, difesa, concentrazione, pillola, fuga) con il danno. Poi entra il colpo del nemico, o
+  la sua carica, e il bersaglio trema. Un clic lo salta.
+- **Le scene hanno un quadro in cima:** per chiave (vendetta, dimora, torre…), per tipo di trama
+  (mistero, eredità, torneo, reame segreto, possessione, assedio…) e per tipo di scena.
+- **Le schede mostrano il loro quadro:** il sangue mostra la trasformazione del tuo lignaggio; ci sono
+  anche i vasi d'anima, il Dharma, i sigilli, la dimora, la Torre e il Gran Torneo.
+
+**Test:** `tests/test_agg68.py` (5 test).
