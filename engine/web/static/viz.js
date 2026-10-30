@@ -389,6 +389,7 @@ const V = (() => {
   }
 
   function dailyQuest(q) {
+    if (q.fatta) return `<div class="dq-done">✔ Missione quotidiana completata · serie ${q.serie} ${q.serie >= 1 ? "🔥" : ""} · rango ${esc(q.rango)}</div>`;
     const rows = q.obiettivi.map((g) => `<div class="dq ${g.ok ? "ok" : ""}"><span>${g.ok ? "✔" : "·"} ${g.icon} ${esc(g.label)}</span>
       <div class="bar"><i style="width:${Math.min(100, Math.round(100 * g.have / Math.max(1, g.need)))}%"></i></div><b>${Math.min(g.have, g.need)}/${g.need}</b>${g.ok ? "<span></span>" : `<button data-cmd="${{ dao: "train", kills: "attack creatures", soul: "tempra" }[g.k]}">▶ ${{ dao: "allenati", kills: "caccia", soul: "tempra" }[g.k]}</button>`}</div>`).join("");
     return `<div class="syswin quest"><div class="sw-head"><span>MISSIONE QUOTIDIANA</span><span>Rango ${esc(q.rango)}</span></div>

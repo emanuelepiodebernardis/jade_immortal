@@ -99,8 +99,39 @@ def _with_images(conn, player, tab: str, inner: dict) -> dict:
     return out
 
 
+# (Agg. 72) le schede accorpate: dodici sistemi in sei schede (più l'Eroe nella dashboard)
+GROUPS = {"coltivazione": ["coltivazione", "meridiani"], "corpo": ["corpo", "sangue"],
+          "tecniche": ["tecniche", "attributi"], "profondi": ["profondi", "spiriti"],
+          "anime": ["anime", "dharma"], "forza": ["forza"]}
+GROUP_LABEL = {"coltivazione": "☯ Coltivazione", "corpo": "🩸 Corpo e sangue", "tecniche": "⚒ Tecniche e attributi",
+               "profondi": "🌌 Dao e spiriti", "anime": "✧ Anime e Dharma", "forza": "⚖ Forza"}
+GROUP_OF = {m: g for g, ms in GROUPS.items() for m in ms}
+
+
 def build(conn, player, key: str) -> dict:
+    """La scheda di un gruppo: le sezioni dei suoi sistemi una dopo l'altra (la prima è quella chiesta)."""
     tab = tab_of(key.split(":", 1)[1] if ":" in key else "")
+    group = GROUP_OF.get(tab, tab)
+    members = GROUPS.get(group, [tab])
+    order = [tab] + [m for m in members if m != tab]
+    secs, sub, title, foot = [], None, "", ""
+    for i, m in enumerate(order):
+        one = _build_one(conn, player, m)
+        s = list(one.get("sections") or [])
+        if i > 0 and s:
+            s[0] = dict(s[0], divider=GROUP_LABEL.get(m, dict((k, lab) for k, lab, _x in TABS).get(m, m)))
+        secs += s
+        if i == 0:
+            sub, title, foot = one.get("sub"), one.get("inner_title", ""), one.get("foot", "")
+    out = M.menu("via", "La tua Via", sub=sub, sections=secs, foot=foot)
+    out["key"] = "via:" + tab
+    out["tab"] = group
+    out["tabs"] = [{"key": "via:" + g, "label": GROUP_LABEL[g], "on": g == group} for g in GROUPS]
+    out["inner_title"] = title
+    return out
+
+
+def _build_one(conn, player, tab: str) -> dict:
     src = dict((k, s) for k, _l, s in TABS)[tab]
     if tab == "anime":
         from engine.systems import soul_artifacts
@@ -125,9 +156,6 @@ def build(conn, player, key: str) -> dict:
                                               "per tutta la vita."], icon="✧")]
     inner = _with_images(conn, player, tab, inner)
     m = M.menu("via", "La tua Via", sub=inner.get("sub"), sections=inner.get("sections"), foot=inner.get("foot", ""))
-    m["key"] = "via:" + tab
-    m["tab"] = tab
-    m["tabs"] = [{"key": "via:" + k, "label": lab, "on": k == tab} for k, lab, _s in TABS]
     m["inner_title"] = inner.get("title", "")
     return m
 

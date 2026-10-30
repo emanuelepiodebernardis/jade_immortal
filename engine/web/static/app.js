@@ -91,7 +91,7 @@ function flushAll() {
   const box = $("#log"); if (box) box.scrollTop = box.scrollHeight;
   advUi();
 }
-function addLog(text, cmd) {
+function addLog(text, cmd, instant) {
   if (!text && !cmd) return;
   const box = $("#log");
   const div = document.createElement("div");
@@ -107,7 +107,7 @@ function addLog(text, cmd) {
   div.innerHTML = html;
   box.appendChild(div);
   while (box.children.length > 300) box.removeChild(box.firstChild);
-  if (manual() && !document.body.classList.contains("duel-on")) {   // nel duello si legge l'arena
+  if (manual() && !instant && !document.body.classList.contains("duel-on")) {   // nel duello si legge l'arena; l'ingresso si legge subito
     const chunks = chunkLines([...div.querySelectorAll(".ln")]);
     const keepFirst = !PENDING.length;                // il primo pezzo si vede subito, se non c'è altro da leggere
     chunks.forEach((c, i) => { if (i === 0 && keepFirst) return; c.forEach((el) => el.classList.add("wait")); PENDING.push(c); });
@@ -323,11 +323,10 @@ try { lastVia = localStorage.getItem("ji_via") || lastVia; } catch (e) { /* nien
 // [chiave, etichetta, destinazione] — la destinazione è ciò che loadTab sa aprire
 const PALACES = {
   oggi: { t: "🏯 Oggi", tabs: [["sintesi", "✦ Cosa fare", "oggi"], ["mete", "🎯 Mete", "mete"], ["eventi", "📅 Eventi", "m:eventi"], ["traguardi", "🏆 Traguardi", "m:stagione"]] },
+  // (Agg. 72) sette schede invece di dodici: ognuna raccoglie due sistemi vicini
   via: { t: "☯ La tua Via", tabs: [["eroe", "🪟 Eroe", "personaggio"], ["coltivazione", "☯ Coltivazione", "m:via:coltivazione"],
-    ["corpo", "✦ Corpo", "m:via:corpo"], ["sangue", "🩸 Sangue", "m:via:sangue"], ["attributi", "🪟 Attributi", "m:via:attributi"],
-    ["tecniche", "⚒ Tecniche", "m:via:tecniche"], ["profondi", "🌌 Dao profondi", "m:via:profondi"], ["spiriti", "✺ Spiriti", "m:via:spiriti"],
-    ["anime", "✧ Anime", "m:via:anime"], ["meridiani", "⚡ Meridiani", "m:via:meridiani"], ["dharma", "🗿 Dharma", "m:via:dharma"],
-    ["forza", "⚖ Forza", "m:via:forza"]] },
+    ["corpo", "🩸 Corpo e sangue", "m:via:corpo"], ["tecniche", "⚒ Tecniche e attributi", "m:via:tecniche"],
+    ["profondi", "🌌 Dao e spiriti", "m:via:profondi"], ["anime", "✧ Anime e Dharma", "m:via:anime"], ["forza", "⚖ Forza", "m:via:forza"]] },
   setta: { t: "⛩ Setta e potere", tabs: [["setta", "⛩ Setta", "m:setta"], ["bacheca", "📋 Bacheca", "m:bacheca"], ["arti", "⚗ Arti", "m:arti"],
     ["ricette", "📜 Ricette", "m:ricette"], ["dimora", "⌂ Dimora", "m:dimora"], ["rendite", "💰 Rendite", "m:rendite"], ["dominio", "⛓ Dominio", "m:dominio"]] },
   seguaci: { t: "👥 Seguaci", tabs: [["cloni", "☯ Cloni", "m:cloni"], ["discepoli", "🎓 Discepoli", "m:discepoli"], ["legami", "♥ Legami", "persone"],
@@ -340,6 +339,9 @@ const PALACES = {
 };
 const TARGET_OF = {};                               // destinazione → [palazzo, scheda]
 for (const [p, d] of Object.entries(PALACES)) for (const [k, , dest] of d.tabs) TARGET_OF[dest] = [p, k];
+// le schede della Via accorpate: il vecchio indirizzo porta alla scheda che ora le contiene
+const VIA_GROUP = { meridiani: "coltivazione", sangue: "corpo", attributi: "tecniche", spiriti: "profondi", dharma: "anime" };
+for (const [k, g] of Object.entries(VIA_GROUP)) TARGET_OF["m:via:" + k] = ["via", g];
 let palace = "oggi";
 const lastTab = {};
 try { palace = localStorage.getItem("ji_palace") || palace; Object.assign(lastTab, JSON.parse(localStorage.getItem("ji_ptab") || "{}")); } catch (e) { /* niente */ }
@@ -359,7 +361,8 @@ function renderPalaceHead() {
   const B = (S && S.badges) || {};
   $("#ptitle").textContent = P.t;
   const L = (S && S.bloccati) || {};
-  $("#subnav").innerHTML = P.tabs.filter(([k]) => !L[palace + ":" + k] || k === cur).map(([k, l, dest]) => `<button class="chip ${k === cur ? "on" : ""}" data-ptab="${palace}:${k}">${esc(l)}${B[palace + ":" + k] ? `<i class="pdot"></i>` : ""}</button>`).join("");
+  const dot = (k) => B[palace + ":" + k] || (palace === "via" && Object.entries(VIA_GROUP).some(([m, g]) => g === k && B["via:" + m]));
+  $("#subnav").innerHTML = P.tabs.filter(([k]) => !L[palace + ":" + k] || k === cur).map(([k, l, dest]) => `<button class="chip ${k === cur ? "on" : ""}" data-ptab="${palace}:${k}">${esc(l)}${dot(k) ? `<i class="pdot"></i>` : ""}</button>`).join("");
   document.querySelectorAll("#rail [data-palace]").forEach((b) => b.classList.toggle("on", b.dataset.palace === palace));
 }
 function renderBadges(s) {
@@ -525,7 +528,9 @@ function renderTop(s) {
   const P = q.tribulation ? ["tribulation", "⚡ Affronta la tribolazione"] : q.breakthrough ? ["breakthrough", "⇑ Sfonda!"]
           : q.sonno ? ["sleep", "☾ Dormi fino all'alba"] : ["train", "☯ Allenati"];
   pr.dataset.cmd = P[0]; pr.textContent = P[1];
-  $("#q-sfonda").hidden = P[0] === "breakthrough"; $("#q-trib").hidden = !q.tribulation || P[0] === "tribulation";
+  $("#q-sfonda").hidden = true;            // (Agg. 72) «Sfonda» compare solo quando sei pronto: è il tasto principale
+  pr.title = P[0] === "train" && mst ? `Allenati: lo sfondamento si apre al ${mst[2]}° strato con la barra piena (ora ${mst[1]}/${mst[2]}, ${s.esperienza}%).` : "";
+  $("#q-trib").hidden = !q.tribulation || P[0] === "tribulation";
   $("#q-sonno").hidden = P[0] === "sleep";
   setBar("#b-esp", s.esperienza); $("#v-esp").textContent = s.esperienza + "%";
   setBar("#b-qi", s.qi.pct); $("#v-qi").textContent = `${s.qi.cur}/${s.qi.max}`;
@@ -808,7 +813,7 @@ async function renderMete(s) {
 // ---------------- pannelli ----------------
 const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
 const SUBTABS = {
-  personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici e talento"], ["corpo", "🩸 Corpo e sangue"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
+  personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
   tesori: [["zaino", "🎒 Zaino"], ["libro", "📖 Libro"]],
   storia: [["cronaca", "📜 Cronaca"], ["scelte", "⚖ Scelte"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
 };
@@ -924,7 +929,7 @@ function heroHtml(h, sb, daos) {
 const MENU_FULL = 6, LINES_FULL = 3;
 function msecHtml(s, full) {
   const si = full && s.img ? imgOf(s.img) : null;
-  let h = `<div class="card sec msec${full ? "" : " mini"}${si ? " has-img" : ""}">${si ? `<img class="msec-img" src="${si}" alt="" loading="lazy">` : ""}<b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
+  let h = (s.divider ? `<h4 class="mdiv">${esc(s.divider)}</h4>` : "") + `<div class="card sec msec${full ? "" : " mini"}${si ? " has-img" : ""}">${si ? `<img class="msec-img" src="${si}" alt="" loading="lazy">` : ""}<b>${s.icon ? esc(s.icon) + " " : ""}${esc(s.title)}</b>`;
   for (const b of s.bars) h += `<div class="mbar ${b.tone || ""}"><span>${esc(b.label)}</span><div class="bar"><i style="width:${b.pct}%"></i></div><em>${b.text ? esc(b.text) : b.pct + "%"}</em></div>`;
   const lines = full ? s.lines : s.lines.slice(0, 1);
   lines.slice(0, LINES_FULL).forEach((l) => { h += `<div class="mline">${actionize(esc(l))}</div>`; });
@@ -942,8 +947,10 @@ function menuHtml(m) {
   if (m.errore) return `<div class="empty">${esc(m.errore)}</div>`;
   const tabs = m.tabs && palace !== "via" ? `<div class="subtabs viatabs">` + m.tabs.map((t) => `<button class="chip ${t.on ? "on" : ""}" data-menu="${esc(t.key)}">${esc(t.label)}</button>`).join("") + `</div>` : "";
   let h = tabs + `<div class="card menuhead"><h3>${esc(m.inner_title || m.title)}</h3>${m.sub.map((s) => `<div class="muted">${esc(s)}</div>`).join("")}</div>`;
-  m.sections.slice(0, MENU_FULL).forEach((s) => { h += msecHtml(s, true); });
-  const rest = m.sections.slice(MENU_FULL);
+  // nelle schede accorpate della Via ogni sistema ha le sue prime sezioni aperte
+  const cut = m.sections.some((s) => s.divider) ? m.sections.length : MENU_FULL;
+  m.sections.slice(0, cut).forEach((s) => { h += msecHtml(s, true); });
+  const rest = m.sections.slice(cut);
   if (rest.length) h += `<details class="card more mrest"><summary>Altre ${rest.length} voci</summary>` + rest.map((s) => msecHtml(s, false)).join("") + `</details>`;
   return h + (m.foot ? `<div class="muted">${esc(m.foot)}</div>` : "");
 }
@@ -1411,39 +1418,44 @@ document.addEventListener("click", async (ev) => {
   if (cx) { CODEX_SEEN[cx.dataset.codexOk] = 1; saveCodexSeen(); const card = cx.closest(".codex-card"); if (card) card.remove(); return; }
   if (ev.target.closest("#adv")) { advance(); return; }
   if (ev.target.closest("#adv-all")) { flushAll(); return; }
+  if (ev.target.closest("#settings-btn")) { const pp = $("#settings-pop"); pp.hidden = !pp.hidden; settingsUi(); return; }
+  if (!ev.target.closest("#settings-pop") && $("#settings-pop") && !$("#settings-pop").hidden) $("#settings-pop").hidden = true;
+  if (ev.target.closest("#mgtoggle")) {
+    MINIGAME = !MINIGAME; try { localStorage.setItem("ji_minigame", MINIGAME ? "1" : "0"); } catch (e) { /* niente */ }
+    settingsUi(); return;
+  }
   if (ev.target.closest("#fontsz")) {
     const order = [100, 112, 125, 90], cur = Number(document.documentElement.dataset.fs || 100);
     const nx = order[(order.indexOf(cur) + 1) % order.length]; applyFs(nx);
     try { localStorage.setItem("ji_fs", String(nx)); } catch (e) { /* niente */ }
-    toast("Testo", nx + "%", "info"); return;
+    settingsUi(); return;
   }
   if (ev.target.closest("#contrast")) {
     const on = document.documentElement.dataset.contrast !== "1";
     if (on) document.documentElement.dataset.contrast = "1"; else delete document.documentElement.dataset.contrast;
     try { localStorage.setItem("ji_contrast", on ? "1" : "0"); } catch (e) { /* niente */ }
-    toast("Contrasto", on ? "alto" : "normale", "info"); return;
+    settingsUi(); return;
   }
   if (ev.target.closest("#readmode")) {
     READ = manual() ? "auto" : "manuale"; try { localStorage.setItem("ji_read", READ); } catch (e) { /* niente */ }
     if (!manual()) { flushAll(); while ($("#toasts") && $("#toasts").firstElementChild) $("#toasts").firstElementChild.remove(); TOAST_Q.length = 0; }
-    readBtn(); toast("Lettura", manual() ? "al tuo ritmo: premi Avanti (Spazio) per continuare" : "automatica: il testo scorre da solo", "info");
+    readBtn();
     return;
   }
   if (ev.target.closest("#music")) {
     MUSIC = !MUSIC; try { localStorage.setItem("ji_music", MUSIC ? "1" : "0"); } catch (e) { /* niente */ }
-    $("#music").style.opacity = MUSIC ? "1" : ".45"; musicFor(S); return;
+    settingsUi(); musicFor(S); return;
   }
   if (ev.target.closest("#sound")) {
     SOUND = !SOUND; try { localStorage.setItem("ji_sound", SOUND ? "1" : "0"); } catch (e) { /* niente */ }
-    musicFor(S);
-    $("#sound").textContent = SOUND ? "🔊" : "🔈"; if (SOUND) sfx("info"); return;
+    musicFor(S); settingsUi(); if (SOUND) sfx("info"); return;
   }
   if (ev.target.closest("#theme")) {
     const order = ["", "light", "dark"], cur = document.documentElement.dataset.theme || "";
     const nx = order[(order.indexOf(cur) + 1) % order.length];
     if (nx) document.documentElement.dataset.theme = nx; else delete document.documentElement.dataset.theme;
     try { localStorage.setItem("ji_theme", nx); } catch (e) { /* niente */ }
-    toast("Tema", nx === "dark" ? "scuro" : nx === "light" ? "chiaro" : "automatico (come il sistema)", "info");
+    settingsUi();
     return loadTab(tab);
   }
   const mt = ev.target.closest("[data-maptool]");
@@ -1509,22 +1521,33 @@ document.addEventListener("keydown", (ev) => {
 });
 function setWide(on) {
   document.body.classList.toggle("wide", on);
+  settingsUi();
   try { localStorage.setItem("ji_wide", on ? "1" : "0"); } catch (e) { /* niente */ }
   if (tab === "mappa") loadMap();
 }
 try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
-$("#sound").textContent = SOUND ? "🔊" : "🔈";
-if ($("#music")) $("#music").style.opacity = MUSIC ? "1" : ".45";
+// (Agg. 72) il menu ⚙ Impostazioni: ogni voce dice cosa fa e com'è impostata adesso
+function settingsUi() {
+  const set = (id, v) => { const e = $("#" + id + " em"); if (e) e.textContent = v; };
+  const th = document.documentElement.dataset.theme || "";
+  set("fontsz", (document.documentElement.dataset.fs || "100") + "%");
+  set("contrast", document.documentElement.dataset.contrast === "1" ? "sì" : "no");
+  set("readmode", manual() ? "al tuo ritmo" : "automatica");
+  set("music", MUSIC ? "sì" : "no"); set("sound", SOUND ? "sì" : "no"); set("mgtoggle", MINIGAME ? "sì" : "no");
+  set("theme", th === "dark" ? "scuro" : th === "light" ? "chiaro" : "automatico");
+  set("widen", document.body.classList.contains("wide") ? "sì" : "no");
+}
+settingsUi();
 // (Agg. 70) grandezza del testo e alto contrasto, ricordati nel browser
 function applyFs(v) { document.documentElement.dataset.fs = String(v); document.body.style.zoom = v === 100 ? "" : String(v / 100); }
 try { const fs = Number(localStorage.getItem("ji_fs") || 100); if (fs !== 100) applyFs(fs); if (localStorage.getItem("ji_contrast") === "1") document.documentElement.dataset.contrast = "1"; } catch (e) { /* niente */ }
-function readBtn() { const b = $("#readmode"); if (b) { b.textContent = manual() ? "📖" : "⏩"; b.title = manual() ? "Lettura al tuo ritmo (Avanti) — clic per automatica" : "Lettura automatica — clic per leggere al tuo ritmo"; } advUi(); }
+function readBtn() { settingsUi(); advUi(); }
 readBtn();
 
 (async () => {
   try {
     const s = await api("/api/stato");
-    if (s.fase === "gioco") { const r = await api("/api/intro", {}); addLog(r.log); }
+    if (s.fase === "gioco") { const r = await api("/api/intro", {}); addLog(r.log, null, true); }
     await refresh();
     openPalace(palace);
   } catch (e) { addLog("⚠ Non riesco a parlare con il gioco: " + e.message); }

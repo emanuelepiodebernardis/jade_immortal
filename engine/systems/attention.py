@@ -34,9 +34,11 @@ def items(conn, player) -> list[dict]:
 
 
 def badges(lst: list[dict]) -> dict:
+    """(Agg. 72) Il numero rosso sul palazzo conta solo le cose URGENTI; il puntino sulla scheda, tutte."""
     b: dict = {}
     for it in lst:
-        b[it["palace"]] = b.get(it["palace"], 0) + 1
+        if it.get("hot"):
+            b[it["palace"]] = b.get(it["palace"], 0) + 1
         if it["tab"]:
             b[f"{it['palace']}:{it['tab']}"] = b.get(f"{it['palace']}:{it['tab']}", 0) + 1
     return b

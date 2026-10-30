@@ -3070,3 +3070,35 @@ cartella, nome del file, formato e prompt, pronte da fare a mano con un generato
 Il gioco le usa appena le metti nella cartella.
 
 **Test:** `tests/test_intrigue5.py` gioca tutte le nuove trame con tre strade diverse. 770 test in totale.
+
+---
+
+## Aggiornamento 72 — Ordine nell'interfaccia, impostazioni, ingresso pulito
+
+Dal controllo della schermata principale: 88 pulsanti, 12 voci in «Cosa fare ora», un pallino rosso su
+quasi ogni palazzo, 18 schede nella Via.
+
+- **Pallini rossi solo per le urgenze.** Il numero sul palazzo conta solo le cose urgenti; il puntino
+  sulla scheda le segnala tutte. Sul tuo salvataggio si passa da 7+2+2+1 numeri a uno solo, «La Via 3».
+- **La Via in sette schede invece di diciotto:**
+  - Eroe;
+  - Coltivazione e meridiani;
+  - Corpo e sangue;
+  - Tecniche e attributi;
+  - Dao e spiriti;
+  - Anime e Dharma;
+  - Forza.
+
+  Ogni scheda mostra i suoi due sistemi uno dopo l'altro, con un titolo che li separa. I vecchi comandi
+  (`via meridiani`, `sangue`…) portano alla scheda giusta. L'Eroe perde la sottoscheda «Corpo e sangue»,
+  che ora è una scheda della Via.
+- **«Sfonda» compare solo quando sei pronto.** Prima era sempre lì e rispondeva «non sei ancora pronto».
+  Ora il tasto principale è Allenati, e passandoci sopra il mouse vedi quanto manca.
+- **Missione quotidiana completata:** diventa una riga sola invece del riquadro grande.
+- **Un solo menu ⚙ Impostazioni** al posto delle sette iconcine. Ogni voce ha il suo nome e mostra
+  com'è impostata: grandezza del testo, alto contrasto, lettura, musica, suoni, minigiochi, tema, pannello
+  largo.
+- **Ingresso pulito.**
+  - Il riepilogo d'apertura (dove sei, chi c'è, cosa è successo mentre eri via) si legge subito, senza
+    passare da Avanti.
+  - Le partite già avviate prima della guida, dopo il 15° giorno e dal 2° regno, saltano i primi passi.

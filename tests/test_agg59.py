@@ -68,12 +68,12 @@ def test_via_tabs(conn):
     p = entities.get_player(conn)
     for k in via_menu.KEYS:
         m = menus.build(conn, p, "via:" + k)
-        assert m["tab"] == k and m["key"] == "via:" + k
+        assert m["tab"] == via_menu.GROUP_OF.get(k, k) and m["key"] == "via:" + k   # (Agg. 72) schede accorpate
         assert sum(t["on"] for t in m["tabs"]) == 1
     assert via_menu.tab_of("lignaggi") == "sangue" and via_menu.tab_of("boh") == via_menu.DEFAULT
     from engine.cli import loop
     out = loop.dispatch(conn, "via sangue", allow_nl=False)
-    assert "Schede:" in out and "[🩸 Sangue]" in out
+    assert "Schede:" in out and "[🩸 Corpo e sangue]" in out
 
 
 def test_variants_point_to_real_acts():

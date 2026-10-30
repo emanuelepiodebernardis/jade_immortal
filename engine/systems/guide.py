@@ -81,10 +81,24 @@ def current(conn, player) -> tuple[int, tuple] | None:
     d = get(conn)
     if d["off"]:
         return None
+    if not d.get("v72"):                               # (Agg. 72) le partite già avviate prima della guida la saltano
+        from engine.core import tick as _tk
+        from engine.simulation import cultivation as _cv
+        d["v72"] = True
+        if _tk.get_tick(conn) // 120 >= 15 and (_cv.realm_tier(conn, "player", player.id) or 1) >= 2:
+            d["off"] = True
+        _save(conn, d)
+        if d["off"]:
+            return None
     if "tier0" not in d:
         from engine.simulation import cultivation
         d["tier0"] = cultivation.realm_tier(conn, "player", player.id) or 1
+        from engine.core import tick as _tk               # (Agg. 72) una partita già avviata non ha bisogno dei primi passi
+        if d["tier0"] >= 2 and _tk.get_tick(conn) // 120 >= 15 and not d["done"]:
+            d["off"] = True
         _save(conn, d)
+        if d["off"]:
+            return None
     for i, st in enumerate(STEPS):
         if st[0] not in d["done"]:
             return i, st
@@ -97,9 +111,11 @@ def check(conn, player) -> list[str]:
     if d["off"]:
         return []
     out = []
-    if "tier0" not in d:
+    if "tier0" not in d or not d.get("v72"):
         current(conn, player)
         d = get(conn)
+        if d["off"]:
+            return []
     for key, title, _why, _cmd, prize in STEPS:
         if key in d["done"]:
             continue

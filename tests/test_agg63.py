@@ -179,7 +179,7 @@ def test_attention_items_and_badges(conn):
     assert its and all({"icon", "title", "why", "cmd", "palace", "tab", "hot"} <= set(x) for x in its)
     assert any(x["cmd"] == "meditazione mente" for x in its)
     b = attention.badges(its)
-    assert sum(v for k, v in b.items() if ":" not in k) == len(its)
+    assert sum(v for k, v in b.items() if ":" not in k) == sum(1 for x in its if x["hot"])   # (Agg. 72) solo le urgenti
     hot = [x["hot"] for x in its]
     assert hot == sorted(hot, reverse=True)                      # le urgenti prima
 

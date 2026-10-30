@@ -912,3 +912,16 @@ html[data-contrast="1"] .muted, html[data-contrast="1"] small { color: var(--ink
 #minigame .mg-score { font-family: var(--mono); font-size: 13px; min-height: 1.4em; }
 #minigame .mg-btns { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
 .card-act.k-bestia { border-color: color-mix(in srgb, #c28a3a 60%, var(--line)); }
+
+/* ===== Aggiornamento 72: ordine ===== */
+.mdiv { margin: 18px 0 6px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--accent); }
+.dq-done { padding: 6px 10px; margin-bottom: 8px; border-radius: 8px; font-size: 12.5px; background: var(--chip); border: 1px solid var(--line); color: var(--good); }
+.ptools { position: relative; }
+#settings-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; width: 270px; padding: 10px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.35); display: flex; flex-direction: column; gap: 4px; }
+#settings-pop[hidden] { display: none; }
+#settings-pop > b { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 2px 4px 6px; }
+#phead #settings-pop button { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; text-align: left;
+  padding: 7px 8px; border-radius: 8px; width: 100%; font-size: 13px; }
+#settings-pop .si { text-align: center; } #settings-pop em { font-style: normal; color: var(--accent); font-size: 12px; }
