@@ -350,6 +350,9 @@ def apply_effects(conn: sqlite3.Connection, t: int, rng: random.Random,
         lines += feuds.on_kill(conn, t, rng, player, npc)
         conn.execute("UPDATE npcs SET status='dead' WHERE id=?;", (npc.id,))
         dao_superiori.on_kill(conn, "human")
+    if npc and eff.get("npc_falls"):              # muore nella storia, non per mano tua (niente faide)
+        conn.execute("UPDATE npcs SET status='dead' WHERE id=?;", (npc.id,))
+        lines.append(f"✝ {npc.name} è caduto.")
     if npc and eff.get("spared"):
         from engine.systems import feuds
         lines += feuds.on_spare(conn, t, rng, player, npc, chosen=True)

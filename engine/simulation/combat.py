@@ -190,8 +190,11 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int, trace: dict | N
             result = {k: max(1.0, v * f) for k, v in result.items()}
     else:
         sm = deep_dao.seal_mult(conn)       # Sigilli della Sfida
+        from engine.systems import pillars  # (Agg. 73) armonia dei sei pilastri (valore salvato: una query)
+        sm *= pillars.combat_mult(conn)
         if trace is not None:
-            trace["sigilli_sfida"] = sm
+            trace["sigilli_sfida"] = deep_dao.seal_mult(conn)
+            trace["armonia"] = pillars.combat_mult(conn)
         if sm != 1.0:
             result = {k: v * sm for k, v in result.items()}
     return result

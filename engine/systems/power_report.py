@@ -45,6 +45,13 @@ def peers(conn, player) -> dict:
 def advice(conn, player) -> list[tuple[str, str]]:
     """(testo, comando) — al massimo 5, i più utili per primi."""
     out: list[tuple[str, str]] = []
+    try:                                               # (Agg. 73) il pilastro più debole viene prima di tutto
+        from engine.systems import pillars
+        a = pillars.advice(conn)
+        if a:
+            out.append(a)
+    except Exception:                                  # noqa: BLE001
+        pass
     try:
         from engine.systems import attributes
         pts = attributes.free(conn, player.id)

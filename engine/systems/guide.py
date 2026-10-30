@@ -200,8 +200,11 @@ CODEX = {
                   "attacco, difesa, vitalità e coltivazione."),
     "dharma": ("Dharma e sigilli", "Dal terzo regno il tuo Dao può prendere forma alle tue spalle: il Corpo del Dharma. "
                "I sigilli ancestrali (sei casate) si incastonano nel petto e danno bonus, con set da 2 e 4."),
-    "forza": ("La forza", "Da dove viene la tua potenza: regno, crescita personale (compressa), Dao. Qui vedi anche quanto "
-              "vali rispetto al tuo regno e cosa conviene potenziare."),
+    "forza": ("I sei pilastri", "Tutta la tua forza sta in sei pilastri: ☯ Regno (la scala di tutto), 🩸 Corpo (corpo, "
+              "sangue, meridiani), 🌌 Dao (Dao, spiriti, tecniche), ✧ Anima (tempra, vasi, Dharma, sigilli), ⚔ Ciò che "
+              "porti (equipaggiamento, arma, cavalcatura) e ♥ Legami (compagni, bestie, discepoli). Ognuno si misura "
+              "rispetto al tuo regno. Quando il più debole raggiunge la media degli altri arriva l'ARMONIA: fino a +12% "
+              "di potenza e +10% di coltivazione. Qui vedi anche da dove viene ogni moltiplicatore."),
     "zaino": ("Tesori ed equipaggiamento", "Pillole, essenze, nuclei e manuali si usano dallo zaino. L'equipaggiamento ha "
               "sei posti (veste, corona, amuleto, anello, stivali, talismano): regno, rarità e set. "
               "Si trova tra i tesori o si forgia con le pietre."),

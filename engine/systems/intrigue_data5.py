@@ -63,13 +63,13 @@ TEMPLATES: list[dict] = [
              "text_low": "La tenda viola è più grande, ora. Il vecchio ti sorride come a un cliente affezionato.",
              "choices": [
                  {"label": "Lo smascheri davanti al mercato: le fiale, l'ago, i clienti", "need_clues": 2,
-                  "effects": {"fame": 15, "karma": 20, "prize": _ARGENTO, "intrigue": {"end": "smascherato"},
+                  "effects": {"fame": 15, "karma": 20, "prize": _ARGENTO, "intrigue": {"end": "smascherato", "flag": "mercante_ritorno"},
                               "text": ("Uno a uno, i clienti capiscono. La folla rovescia la tenda: dentro, mille fiale di "
                                        "luce rubata tornano ai loro padroni.")}},
-                 {"label": "Lo sfidi: «Ridammi ciò che hai preso»", "effects": {"intrigue": {"end": "duello"}},
+                 {"label": "Lo sfidi: «Ridammi ciò che hai preso»", "effects": {"intrigue": {"end": "duello", "flag": "mercante_ritorno"}},
                   "command": "duello {mandante}"},
                  {"label": "Accetti l'affare", "effects": {"stones": 1200, "karma": -25, "infamy": 6,
-                                                         "intrigue": {"end": "socio"},
+                                                         "intrigue": {"end": "socio", "flag": "mercante_socio"},
                                                          "text": "Ogni notte, una fiala in più. Ogni mattina, un viso spento in più."}},
              ]},
         ],

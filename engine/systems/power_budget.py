@@ -179,5 +179,10 @@ def menu_build(conn, player) -> dict:
         secs[1:1] = power_report.sections(conn, player)
     except Exception:                                 # noqa: BLE001
         pass
-    return menu("forza", "⚖ DA DOVE VIENE LA TUA FORZA",
-                ["Tante fonti, una forza sola: cosa conta davvero, e quanto."], secs)
+    try:                                              # (Agg. 73) prima di tutto: i sei pilastri
+        from engine.systems import pillars
+        secs[0:0] = pillars.sections(conn, player)
+    except Exception:                                 # noqa: BLE001
+        pass
+    return menu("forza", "⚖ I PILASTRI DELLA TUA FORZA",
+                ["Sei pilastri, una forza sola: quanto è alto ciascuno, quale alzare, e da dove viene ogni moltiplicatore."], secs)

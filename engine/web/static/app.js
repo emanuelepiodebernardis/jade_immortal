@@ -324,9 +324,9 @@ try { lastVia = localStorage.getItem("ji_via") || lastVia; } catch (e) { /* nien
 const PALACES = {
   oggi: { t: "🏯 Oggi", tabs: [["sintesi", "✦ Cosa fare", "oggi"], ["mete", "🎯 Mete", "mete"], ["eventi", "📅 Eventi", "m:eventi"], ["traguardi", "🏆 Traguardi", "m:stagione"]] },
   // (Agg. 72) sette schede invece di dodici: ognuna raccoglie due sistemi vicini
-  via: { t: "☯ La tua Via", tabs: [["eroe", "🪟 Eroe", "personaggio"], ["coltivazione", "☯ Coltivazione", "m:via:coltivazione"],
-    ["corpo", "🩸 Corpo e sangue", "m:via:corpo"], ["tecniche", "⚒ Tecniche e attributi", "m:via:tecniche"],
-    ["profondi", "🌌 Dao e spiriti", "m:via:profondi"], ["anime", "✧ Anime e Dharma", "m:via:anime"], ["forza", "⚖ Forza", "m:via:forza"]] },
+  via: { t: "☯ La tua Via", tabs: [["eroe", "🪟 Eroe", "personaggio"], ["coltivazione", "☯ Regno", "m:via:coltivazione"],
+    ["corpo", "🩸 Corpo", "m:via:corpo"], ["profondi", "🌌 Dao", "m:via:profondi"], ["anime", "✧ Anima", "m:via:anime"],
+    ["forza", "⚖ Pilastri", "m:via:forza"]] },
   setta: { t: "⛩ Setta e potere", tabs: [["setta", "⛩ Setta", "m:setta"], ["bacheca", "📋 Bacheca", "m:bacheca"], ["arti", "⚗ Arti", "m:arti"],
     ["ricette", "📜 Ricette", "m:ricette"], ["dimora", "⌂ Dimora", "m:dimora"], ["rendite", "💰 Rendite", "m:rendite"], ["dominio", "⛓ Dominio", "m:dominio"]] },
   seguaci: { t: "👥 Seguaci", tabs: [["cloni", "☯ Cloni", "m:cloni"], ["discepoli", "🎓 Discepoli", "m:discepoli"], ["legami", "♥ Legami", "persone"],
@@ -340,7 +340,7 @@ const PALACES = {
 const TARGET_OF = {};                               // destinazione → [palazzo, scheda]
 for (const [p, d] of Object.entries(PALACES)) for (const [k, , dest] of d.tabs) TARGET_OF[dest] = [p, k];
 // le schede della Via accorpate: il vecchio indirizzo porta alla scheda che ora le contiene
-const VIA_GROUP = { meridiani: "coltivazione", sangue: "corpo", attributi: "tecniche", spiriti: "profondi", dharma: "anime" };
+const VIA_GROUP = { meridiani: "corpo", sangue: "corpo", tecniche: "profondi", attributi: "forza", spiriti: "profondi", dharma: "anime" };
 for (const [k, g] of Object.entries(VIA_GROUP)) TARGET_OF["m:via:" + k] = ["via", g];
 let palace = "oggi";
 const lastTab = {};
@@ -933,7 +933,7 @@ async function loadTab(name) {
 let HERO = null, daoAll = false;
 function heroHtml(h, sb, daos) {
   if (!h || !h.finestra) return `<div class="empty">Nessun personaggio.</div>`;
-  if (sb === "stato") return V.statusWindow(h) + V.deepTriad(h.profondi) + V.spiritCards(h.spiriti, h.spiriti_slot);
+  if (sb === "stato") return V.statusWindow(h) + V.pillarsCard(h.pilastri) + V.deepTriad(h.profondi) + V.spiritCards(h.spiriti, h.spiriti_slot);
   if (sb === "dao") return V.daoChart(daos || [], daoAll) + V.deepTriad(h.profondi);
   if (sb === "radici") return V.talentRadar(h.talento) + V.rootsChart(h.radici, h.combinazioni, h.talenti);
   if (sb === "corpo") return V.bodyCard(h.corpo, h.anima, h.cuore) + V.bloodChart(h.sangue);

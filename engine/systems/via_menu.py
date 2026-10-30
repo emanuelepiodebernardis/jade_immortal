@@ -99,12 +99,16 @@ def _with_images(conn, player, tab: str, inner: dict) -> dict:
     return out
 
 
-# (Agg. 72) le schede accorpate: dodici sistemi in sei schede (più l'Eroe nella dashboard)
-GROUPS = {"coltivazione": ["coltivazione", "meridiani"], "corpo": ["corpo", "sangue"],
-          "tecniche": ["tecniche", "attributi"], "profondi": ["profondi", "spiriti"],
-          "anime": ["anime", "dharma"], "forza": ["forza"]}
-GROUP_LABEL = {"coltivazione": "☯ Coltivazione", "corpo": "🩸 Corpo e sangue", "tecniche": "⚒ Tecniche e attributi",
-               "profondi": "🌌 Dao e spiriti", "anime": "✧ Anime e Dharma", "forza": "⚖ Forza"}
+# (Agg. 73) le schede sono i PILASTRI (vedi pillars.py): Regno, Corpo, Dao, Anima — più «⚖ Pilastri», il
+# quadro d'insieme con gli attributi. «Ciò che porti» sta nei Tesori, i «Legami» nei Seguaci.
+GROUPS = {"coltivazione": ["coltivazione"], "corpo": ["corpo", "sangue", "meridiani"],
+          "profondi": ["profondi", "spiriti", "tecniche"], "anime": ["anime", "dharma"],
+          "forza": ["forza", "attributi"]}
+GROUP_LABEL = {"coltivazione": "☯ Regno", "corpo": "🩸 Corpo", "profondi": "🌌 Dao", "anime": "✧ Anima",
+               "forza": "⚖ Pilastri"}
+# l'etichetta di ogni sistema quando compare come sezione dentro un pilastro
+MEMBER_LABEL = {"sangue": "🩸 Sangue", "meridiani": "⚡ Meridiani", "spiriti": "✺ Spiriti del Dao",
+                "tecniche": "⚒ Tecniche e dantian", "dharma": "🗿 Dharma e sigilli", "attributi": "🪟 Attributi"}
 GROUP_OF = {m: g for g, ms in GROUPS.items() for m in ms}
 
 
@@ -119,7 +123,7 @@ def build(conn, player, key: str) -> dict:
         one = _build_one(conn, player, m)
         s = list(one.get("sections") or [])
         if i > 0 and s:
-            s[0] = dict(s[0], divider=GROUP_LABEL.get(m, dict((k, lab) for k, lab, _x in TABS).get(m, m)))
+            s[0] = dict(s[0], divider=MEMBER_LABEL.get(m) or dict((k, lab) for k, lab, _x in TABS).get(m, m))
         secs += s
         if i == 0:
             sub, title, foot = one.get("sub"), one.get("inner_title", ""), one.get("foot", "")

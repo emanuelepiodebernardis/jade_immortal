@@ -573,8 +573,8 @@ def reincarnate(conn: sqlite3.Connection, rng: random.Random, origin_key: str,
     state.set(conn, "life_start_tick", str(t))
     lines = [f"Rinasci come {origin['name']}."]
     lines += bloodlines.inherit(conn, _blood)
-    if destiny:
-        from engine.systems import destinies
+    from engine.systems import destinies
+    if destiny and destiny in destinies.DESTINIES:       # un destino sconosciuto («nessuno») si ignora
         d = destinies.apply(conn, destiny, player_id)
         lines.append(f"Il tuo destino: {d['name']}.")
     from engine.systems import constitutions

@@ -3130,3 +3130,83 @@ sangue, equipaggiamento), quindi anche una partita vecchia parte già avanti: la
 
 **Test:** `tests/test_album.py`, più il giro completo esporta → importa in `tests/test_web_ui.py`. 772 in
 totale.
+
+---
+
+## Aggiornamento 73 — I sei pilastri e le saghe lunghe
+
+### I sei pilastri: quindici fonti di forza raccolte in sei
+
+Prima la forza veniva da una quindicina di sistemi separati. Ora stanno in **sei pilastri**, ognuno con un
+ruolo chiaro e un modo diverso di crescere (`engine/systems/pillars.py`):
+- **☯ Regno:** la scala di tutto. Doni della tribolazione, destini dello sfondamento, cuore del Dao.
+- **🩸 Corpo:** corpo leggendario, sangue, meridiani.
+- **🌌 Dao:** amplificatore dei Dao, spiriti del Dao, tecniche.
+- **✧ Anima:** tempra dell'anima, vasi d'anima, Corpo del Dharma, sigilli ancestrali.
+- **⚔ Ciò che porti:** equipaggiamento, arma, cavalcatura.
+- **♥ Legami:** compagni e fratelli giurati, bestie, discepoli, cloni e scorta.
+
+**Il punteggio.** Ogni pilastro vale da 0 a 100 rispetto a ciò che il tuo regno permette. I sistemi non
+cambiano: i pilastri li leggono e basta. Le fonti che il regno non ha ancora sbloccato non contano (per
+esempio il Dharma prima del 3° regno).
+
+**L'armonia dei pilastri.** Quando il pilastro più debole raggiunge la media dei sei, arriva l'armonia:
+fino a **+12% di potenza** e **+10% di coltivazione**.
+- Non toglie mai niente: premia chi cresce in modo completo.
+- Si ricalcola una volta al giorno e ogni volta che apri la scheda. Il combattimento legge il valore
+  salvato, che costa una sola query.
+- Quando sale di un gradino (25, 50, 75 o 100%) il riepilogo del giorno te lo dice.
+
+**Dove si vede:**
+- **La Via:** le schede ora sono i pilastri: 🪟 Eroe · ☯ Regno · 🩸 Corpo (corpo, sangue, meridiani) ·
+  🌌 Dao (Dao, spiriti, tecniche e dantian) · ✧ Anima (vasi, Dharma e sigilli) · ⚖ Pilastri.
+- **⚖ Pilastri:** si apre con le sei barre, l'armonia e un pulsante «Alza…» per ogni pilastro. Sotto c'è il
+  dettaglio del pilastro più debole, fonte per fonte, con i comandi; poi il vecchio rapporto sulla forza
+  e gli attributi.
+- **Eroe → Stato:** un radar a sei punte; il pilastro debole è in rosso e ogni riga si clicca.
+- **I consigli:** «Cosa potenziare adesso» parte sempre dalla fonte più bassa del pilastro più debole.
+- **Il codex:** la voce della scheda Forza spiega i pilastri.
+
+### Saghe lunghe scritte a mano (`engine/systems/intrigue_data6.py`)
+
+Sono trame a capitoli. La scelta che fai alla fine di un capitolo accende il successivo, con **gli stessi
+personaggi** e dopo il tempo giusto (da 15 a 40 giorni). Ogni saga ha più finali.
+
+**La Spada Spezzata** (dal 1° regno), 7 capitoli. Un ragazzo con mezza spada, e un manuale che si può
+imparare una volta sola.
+- Se lo **condividi** diventate fratelli giurati. Poi lo accusano di un furto: lo salvi con la verità,
+  con un duello o prendendoti la colpa. Nel finale, nella Gola delle Mille Lame, combattete schiena contro
+  schiena: diventate fratelli per sempre, oppure lui muore al posto tuo.
+- Se lo **tieni** diventate rivali. Ti sfida in piazza, e poi c'è il duello sul picco senza nome. Lì puoi
+  vincere, perdere, fermarti al primo sangue (rispetto) o gettare la spada (pace).
+- Se lo **vendi** torna con una cicatrice e un'aura demoniaca: lo puoi portare al perdono, oppure diventa
+  la tua nemesi. Nel finale, sul ponte di ferro, lo uccidi o lo riporti indietro con il tuo sangue.
+- Ci sono titoli diversi per ogni finale.
+
+**Il Mercante di Destini**, due seguiti della trama dell'Agg. 71. Le sue scelte finali ora accendono dei
+seguiti:
+- **Il conto del socio:** se sei diventato suo socio, vuole il destino di un tuo amico. Puoi tradire
+  l'amico, spezzare la coppa d'osso o brindare a cent'anni insieme.
+- **La lastra spezzata:** se l'hai smascherato o sfidato, torna e mette all'asta il tuo destino. Con tre
+  indizi lo riscrivi; con meno lo spezzi soltanto, o il Mercante ne tiene una metà e tornerà.
+
+**Il Maestro che non muore** (regni 2 → 4 → 6), 5 capitoli. Un frammento d'anima vecchio di diecimila anni
+in un pendente di giada.
+- Lo porti tu, lo lasci all'eremita o lo distruggi.
+- Poi vuole un corpo: puoi sigillarlo, dargli quello dell'eremita, forgiargli un fantoccio di giada, oppure
+  liberare l'eremita già posseduto.
+- Nei finali diventi suo erede, gli dai la tomba che non ha mai avuto pronunciando il suo vero nome, o
+  passi un ultimo anno con il Maestro di giada.
+
+**Motore:**
+- Nuovo effetto `npc_falls`: un personaggio muore nella storia, non per mano tua, quindi senza faide.
+- I legami di un segno ora si aggiornano a ogni nuova scelta: prima restavano quelli di una partita
+  vecchia.
+- La rinascita ignora un destino sconosciuto invece di fermarsi.
+
+**Test:**
+- `tests/test_intrigue6.py`: ogni capitolo si gioca con tutte le scelte; ogni capitolo ha chi lo accende e
+  ritrova lo stesso personaggio; il fratello giurato torna nei capitoli dopo e può cadere nel finale; il
+  socio del Mercante torna nel seguito.
+- `tests/test_pillars.py`: punteggi, armonia, moltiplicatori, schede e comandi.
+- 829 in totale.

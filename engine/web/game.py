@@ -494,7 +494,19 @@ def hero_data() -> dict:
                 "sfida": dfy, "capitolo": deep_dao.CHAPTERS[deep_dao.chapter_of(dfy)][1], "sigilli": d["seals"],
                 "risonanze": [n for n, _e, _f in deep_dao.resonances(conn, p.id)]}
         heart = dao_heart.heart(conn)
-        return {"finestra": w, "talento": talent, "radici": rlist, "combinazioni": combos,
+        pil = None
+        try:                                            # (Agg. 73) i sei pilastri
+            from engine.systems import pillars as pl
+            pd = pl.refresh(conn)
+            adv = pl.advice(conn)
+            pil = {"pilastri": [{"k": k, "label": pl.LABEL[k], "corto": pl.LABEL[k].split(" ", 1)[1].replace("Ciò che porti", "Porti"),
+                                 "v": pd["scores"][k], "parola": pl.word(pd["scores"][k]), "ruolo": pl.ROLE[k],
+                                 "cmd": pl.CMD[k], "debole": k == pd["weakest"]} for k in pl.ORDER],
+                   "armonia": int(100 * pd["harmony"]), "bonus_atk": round(100 * pl.HARMONY_ATK * pd["harmony"]),
+                   "consiglio": adv[0] if adv else ""}
+        except Exception:                               # noqa: BLE001
+            pil = None
+        return {"pilastri": pil, "finestra": w, "talento": talent, "radici": rlist, "combinazioni": combos,
                 "talenti": sr.talents_of(roots), "corpo": corpo, "sangue": lines, "anima": anima,
                 "spiriti": spirits, "spiriti_slot": dao_spirits.slots(conn, p.id), "profondi": deep,
                 "titoli": state.titles(conn)[-12:], "cuore": {"val": heart, "label": dao_heart.heart_label(heart)}}

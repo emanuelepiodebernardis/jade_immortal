@@ -31,9 +31,10 @@ from engine.systems.calibration import (PLOT_MAX_ACTIVE as MAX_ACTIVE, PLOT_NEW_
 
 
 def _templates() -> dict:
-    from engine.systems import intrigue_data, intrigue_data3, intrigue_data4, intrigue_data5
+    from engine.systems import intrigue_data, intrigue_data3, intrigue_data4, intrigue_data5, intrigue_data6
     out = {t["key"]: t for t in intrigue_data.TEMPLATES}
     out.update({t["key"]: t for t in intrigue_data5.TEMPLATES})  # (Agg. 71) nuove trame scritte a mano
+    out.update({t["key"]: t for t in intrigue_data6.TEMPLATES})  # (Agg. 73) saghe lunghe a capitoli
     out.update({t["key"]: t for t in intrigue_data3.ARCS})      # i capitoli dei vasi d'anima (li apre il vaso)
     out.update({t["key"]: t for t in intrigue_data4.ARCS})      # la saga dei compagni perduti (Agg. 67)
     return out
@@ -751,7 +752,8 @@ def on_effect(conn, t: int, rng, player, data: dict, ctx: dict) -> list[str]:
         d.setdefault("flags", [])
         if data["flag"] not in d["flags"]:
             d["flags"].append(data["flag"])
-        d.setdefault("links", {}).setdefault(data["flag"], [n for n in it["cast"].values() if _alive(conn, n)])
+        if data.get("enemies") is None:                 # i legami di questa scelta (non quelli di una vecchia partita)
+            d.setdefault("links", {})[data["flag"]] = [n for n in it["cast"].values() if _alive(conn, n)]
         d.setdefault("flag_days", {})[data["flag"]] = _day(conn)
     cmd = ctx.get("_command") or ""
     if cmd.startswith("duello"):                        # chi affronti in duello: l'esito conterà

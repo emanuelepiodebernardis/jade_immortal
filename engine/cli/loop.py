@@ -1927,6 +1927,8 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in pursuers.daily(conn, t, None, player)]
     from engine.systems import elites                     # (Agg. 70) élite e boss restano al tuo passo
     lines += ["  " + ln for ln in elites.daily(conn, t, None, player)]
+    from engine.systems import pillars                    # (Agg. 73) i sei pilastri e la loro armonia
+    lines += ["  " + ln for ln in pillars.daily(conn, t, None, player)]
     lines += ["  " + ln for ln in deep_dao.daily(conn, t, random.Random(t * 97 + day), player)]
     from engine.systems import dao_spirits, attributes
     lines += ["  " + ln for ln in dao_spirits.daily(conn, t, None, player)]

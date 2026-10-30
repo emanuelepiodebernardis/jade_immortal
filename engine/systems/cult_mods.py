@@ -75,6 +75,10 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
                    meridians.cultivation_mult(conn), ancestral_sigils.cultivation_mult(conn), gear.cultivation_mult(conn)):
         if m != 1.0:
             out.append((m, lbl))
+    from engine.systems import pillars                      # (Agg. 73) armonia dei sei pilastri
+    m, lbl = pillars.cultivation_mult(conn)
+    if m != 1.0:
+        out.append((m, lbl))
     from engine.systems import tenacity
     m, lbl = tenacity.cultivation_mult(conn, pid)
     if m != 1.0:

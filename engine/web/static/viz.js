@@ -347,6 +347,16 @@ const V = (() => {
     return `<div class="card"><b>🧬 Talento</b> <span class="muted">— le tue affinità innate</span>
       <div class="radar2">${radarSvg(vals, 100, "--warn")}<div>${t.map((x) => hbar(esc(x.k), x.v, esc(x.q), x.v >= 70 ? "good" : x.v < 40 ? "bad" : "")).join("")}</div></div></div>`;
   }
+  // (Agg. 73) i sei pilastri: radar, barre, armonia e il pilastro da alzare (cliccabile)
+  function pillarsCard(p) {
+    if (!p || !p.pilastri) return "";
+    const vals = Object.fromEntries(p.pilastri.map((x) => [x.corto, x.v]));
+    const rows = p.pilastri.map((x) => `<button class="obj pil${x.debole ? " weak" : ""}" data-cmd="${esc(x.cmd)}" title="${esc(x.ruolo)}">` +
+      hbar(esc(x.label.split(" ")[0] + " " + x.corto), x.v, x.v + " · " + esc(x.parola), x.debole ? "bad" : x.v >= 70 ? "good" : "", x.ruolo) + `</button>`).join("");
+    return `<div class="card"><b>☯ I sei pilastri</b> <span class="muted">— rispetto al tuo regno · armonia ${p.armonia}% (+${p.bonus_atk}% potenza)</span>
+      <div class="radar2">${radarSvg(vals, 100, "--accent")}<div>${rows}</div></div>
+      ${p.consiglio ? `<div class="muted small">➤ ${esc(p.consiglio)}</div>` : ""}</div>`;
+  }
   function radarSvg(values, max, color) {
     const keys = Object.keys(values), n = keys.length, R = 66, c = 92;
     const pt = (i, f) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return [c + R * f * Math.cos(a), c + R * f * Math.sin(a)]; };
@@ -398,5 +408,5 @@ const V = (() => {
   }
 
   return { slug, dailyQuest, emblem, picture, portrait, landscape, charts, graph, nodeInfo, book, legend, summary, category, esc,
-    statusWindow, deepTriad, spiritCards, daoChart, talentRadar, rootsChart, bodyCard, bloodChart };
+    statusWindow, deepTriad, spiritCards, daoChart, talentRadar, rootsChart, bodyCard, bloodChart, pillarsCard };
 })();

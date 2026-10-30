@@ -73,7 +73,7 @@ def test_via_tabs(conn):
     assert via_menu.tab_of("lignaggi") == "sangue" and via_menu.tab_of("boh") == via_menu.DEFAULT
     from engine.cli import loop
     out = loop.dispatch(conn, "via sangue", allow_nl=False)
-    assert "Schede:" in out and "[🩸 Corpo e sangue]" in out
+    assert "Schede:" in out and "[🩸 Corpo]" in out   # (Agg. 73) le schede sono i pilastri
 
 
 def test_variants_point_to_real_acts():
