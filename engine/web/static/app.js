@@ -42,6 +42,55 @@ function actionize(html) {
     return `${pre}<button class="act" ${fill ? `data-fill="${esc(clean)}"` : `data-cmd="${esc(clean)}"`} title="${fill ? "scrivi e completa" : "esegui"}: ${esc(raw)}">▶ ${cmd}</button>`;
   });
 }
+// ---------------- (Agg. 69) LETTURA AL TUO RITMO ----------------
+// In modalità manuale il testo nuovo arriva a pezzi: il primo subito, gli altri quando premi «Avanti» (Spazio,
+// oppure Invio con la casella vuota). Anche le notifiche restano finché non le chiudi, e i cut-in del duello
+// aspettano il tuo clic. In modalità automatica tutto scorre come prima.
+let READ = "manuale", READ_STEP = 3;
+try { READ = localStorage.getItem("ji_read") || "manuale"; READ_STEP = Number(localStorage.getItem("ji_read_step")) || 3; } catch (e) { /* niente */ }
+const PENDING = [];                                   // pezzi di testo in attesa: liste di righe del registro
+let CUT_NEXT = null;                                  // il cut-in aspetta il clic
+const TOAST_Q = [];
+const manual = () => READ === "manuale";
+function chunkLines(els) {
+  const out = []; let cur = [];
+  for (const el of els) {
+    const blank = !el.textContent.trim();
+    if (blank) { if (cur.length) { out.push(cur); cur = []; } out.length ? out[out.length - 1].push(el) : cur.push(el); continue; }
+    const head = /^\s*(✦|⚔|═|—|\[|☯|✧|🗼)/.test(el.textContent);
+    if (cur.length && (cur.length >= READ_STEP || (head && cur.length >= 1 && READ_STEP > 1))) { out.push(cur); cur = []; }
+    cur.push(el);
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+function advUi() {
+  const bar = $("#advbar"); if (!bar) return;
+  const n = PENDING.reduce((a, c) => a + c.filter((x) => x.textContent.trim()).length, 0);
+  const more = n || CUT_NEXT || (manual() && $("#toasts") && $("#toasts").children.length);
+  bar.hidden = !more;
+  document.body.classList.toggle("reading", !!n);
+  const sm = bar.querySelector("small");
+  if (sm) sm.textContent = n ? `${n} rig${n === 1 ? "a" : "he"} in attesa` : CUT_NEXT ? "continua lo scambio" : "chiudi la notifica";
+}
+function advance() {
+  if (CUT_NEXT) { const f = CUT_NEXT; CUT_NEXT = null; f(); advUi(); return true; }
+  if (PENDING.length) {
+    const chunk = PENDING.shift();
+    chunk.forEach((el) => { el.classList.remove("wait"); el.classList.add("fresh"); });
+    const first = chunk[0]; if (first) first.scrollIntoView({ block: "nearest" });
+    const box = $("#log"); if (!PENDING.length && box) box.scrollTop = box.scrollHeight;
+    advUi(); return true;
+  }
+  const t = $("#toasts") && $("#toasts").firstElementChild;
+  if (t && manual()) { closeToast(t); advUi(); return true; }
+  advUi(); return false;
+}
+function flushAll() {
+  while (PENDING.length) PENDING.shift().forEach((el) => el.classList.remove("wait"));
+  const box = $("#log"); if (box) box.scrollTop = box.scrollHeight;
+  advUi();
+}
 function addLog(text, cmd) {
   if (!text && !cmd) return;
   const box = $("#log");
@@ -58,7 +107,15 @@ function addLog(text, cmd) {
   div.innerHTML = html;
   box.appendChild(div);
   while (box.children.length > 300) box.removeChild(box.firstChild);
-  box.scrollTop = box.scrollHeight;
+  if (manual() && !document.body.classList.contains("duel-on")) {   // nel duello si legge l'arena
+    const chunks = chunkLines([...div.querySelectorAll(".ln")]);
+    const keepFirst = !PENDING.length;                // il primo pezzo si vede subito, se non c'è altro da leggere
+    chunks.forEach((c, i) => { if (i === 0 && keepFirst) return; c.forEach((el) => el.classList.add("wait")); PENDING.push(c); });
+    const y = div.offsetTop - box.offsetTop - 8;
+    box.scrollTop = keepFirst ? Math.max(y, box.scrollHeight - box.clientHeight - 2000) : box.scrollTop;
+    if (keepFirst) div.scrollIntoView({ block: "nearest" });
+    advUi();
+  } else box.scrollTop = box.scrollHeight;
   systemToasts(text || "");
 }
 
@@ -85,12 +142,48 @@ function systemToasts(text) {
 let SOUND = true;
 try { SOUND = localStorage.getItem("ji_sound") !== "0"; } catch (e) { /* niente */ }
 let AC = null;
+// (Agg. 69) un suono per elemento, fatto col codice: rumore filtrato per fuoco/vento/acqua, toni per metallo e luce
+const EL_SFX = {
+  fuoco: { noise: 0.5, f: 900, q: 0.7, tone: [110], dur: 0.6 }, vento: { noise: 0.7, f: 1400, q: 0.4, dur: 0.7, sweep: 400 },
+  acqua: { noise: 0.4, f: 500, q: 3, tone: [392, 330], dur: 0.6 }, fulmine: { noise: 0.9, f: 3000, q: 0.5, tone: [55], dur: 0.35, crack: 1 },
+  terra: { noise: 0.5, f: 180, q: 1, tone: [65, 55], dur: 0.7 }, metallo: { tone: [1568, 2093, 1175], dur: 0.8, type: "square" },
+  legno: { tone: [330, 392, 494], dur: 0.5, type: "triangle" }, luce: { tone: [880, 1109, 1319, 1760], dur: 0.9 },
+  oscurita: { tone: [98, 92], dur: 0.9, type: "sawtooth", lp: 600 }, abisso: { noise: 0.4, f: 120, q: 2, tone: [49], dur: 1, type: "sawtooth", lp: 300 },
+  anima: { tone: [523, 554, 523, 587], dur: 0.9, type: "sine" }, sangue: { tone: [147, 139], dur: 0.6, type: "sawtooth", lp: 900 },
+  pugno: { noise: 0.6, f: 250, q: 1, tone: [82], dur: 0.25 }, corpo: { noise: 0.5, f: 200, q: 1, tone: [73], dur: 0.3 },
+  spada: { noise: 0.6, f: 4000, q: 2, dur: 0.3, sweep: 2500, tone: [2637], type: "sine" },
+};
+function elSfx(e) {
+  const cfg = EL_SFX[e]; if (!cfg) return false;
+  const t0 = AC.currentTime, dur = cfg.dur || 0.5;
+  if (cfg.noise) {
+    const len = Math.floor(AC.sampleRate * dur), buf = AC.createBuffer(1, len, AC.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (cfg.crack && Math.random() < 0.02 ? 3 : 1);
+    const src = AC.createBufferSource(), flt = AC.createBiquadFilter(), g = AC.createGain();
+    src.buffer = buf; flt.type = "bandpass"; flt.frequency.setValueAtTime(cfg.f, t0); flt.Q.value = cfg.q || 1;
+    if (cfg.sweep) flt.frequency.exponentialRampToValueAtTime(cfg.sweep, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.08 * cfg.noise, t0 + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(flt).connect(g).connect(AC.destination); src.start(t0); src.stop(t0 + dur);
+  }
+  (cfg.tone || []).forEach((f, i) => {
+    const o = AC.createOscillator(), g = AC.createGain(); let out = g;
+    o.type = cfg.type || "triangle"; o.frequency.value = f;
+    const st = t0 + i * 0.07;
+    g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(0.05, st + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + dur);
+    if (cfg.lp) { const lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = cfg.lp; g.connect(lp); out = lp; }
+    o.connect(g); out.connect(AC.destination); o.start(st); o.stop(st + dur + 0.05);
+  });
+  return true;
+}
 function sfx(kind) {
   if (!SOUND) return;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (kind.startsWith("el_")) { if (elSfx(kind.slice(3))) return; kind = "hit"; }
     const notes = { good: [523, 659, 784], rare: [659, 784, 988, 1319], bad: [220, 185], warn: [440, 392], info: [587, 740],
-      hit: [196], crit: [147, 294], coin: [988, 1319] }[kind] || [440];
+      hit: [196], crit: [147, 294], coin: [988, 1319], swing: [330, 247] }[kind] || [440];
     const t0 = AC.currentTime;
     notes.forEach((f, i) => {
       const o = AC.createOscillator(), g = AC.createGain();
@@ -110,11 +203,21 @@ function toast(head, body, tone) {
   if (!box) return;
   const d = document.createElement("div");
   d.className = "toast " + (tone || "");
+  if (manual()) {                                     // resta finché non la chiudi (clic o Avanti); le altre aspettano in fila
+    d.innerHTML = `<b>[ ${esc(head)} ]</b><div>${esc(body)}</div><i class="tclose" title="chiudi">×</i>`;
+    d.addEventListener("click", () => { closeToast(d); advUi(); });
+    if (box.children.length >= 3) { TOAST_Q.push(d); advUi(); return; }
+    box.appendChild(d); advUi(); return;
+  }
   d.innerHTML = `<b>[ ${esc(head)} ]</b><div>${esc(body.length > 180 ? body.slice(0, 177) + "…" : body)}</div>`;
   box.appendChild(d);
   setTimeout(() => d.classList.add("out"), 5200);
   setTimeout(() => d.remove(), 5800);
   while (box.children.length > 4) box.removeChild(box.firstChild);
+}
+function closeToast(d) {
+  d.classList.add("out");
+  setTimeout(() => { d.remove(); const nx = TOAST_Q.shift(); if (nx && $("#toasts")) $("#toasts").appendChild(nx); advUi(); }, 250);
 }
 
 function addCard(html) {
@@ -191,6 +294,8 @@ const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: 
 async function run(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd || busy) return;
+  if (PENDING.length) flushAll();                     // agisci: il testo che stavi leggendo si mostra tutto
+  if (CUT_NEXT) { document.querySelectorAll(".cutin").forEach((x) => x.remove()); CUT_NEXT = null; }
   const lc = cmd.toLowerCase();
   if (lc === "mappa" || lc === "map") return loadTab("mappa");
   if (VIA_TABS.includes(lc)) return loadTab("m:via:" + lc);                              // la crescita: schede della Via
@@ -333,6 +438,23 @@ function renderPlace(s) {
 }
 
 // ---------------- arena del duello: ritratti, barre, carte delle tecniche, alleati ----------------
+// (Agg. 69) barre della vita animate: si disegnano alla larghezza di prima e scendono, con la scia del danno
+const HP_PREV = { me: null, foe: null };
+function hpBar(side, cur, max, foe) {
+  const p = Math.max(0, Math.min(100, Math.round(100 * cur / Math.max(1, max))));
+  const prev = HP_PREV[side] == null ? p : HP_PREV[side];
+  const tone = p <= 20 ? " low" : p <= 50 ? " mid" : "";
+  return `<div class="hpbar${foe ? " foe" : ""}${tone}" data-side="${side}" data-to="${p}"><b class="ghost" style="width:${prev}%"></b><i style="width:${prev}%"></i><span>${cur.toLocaleString("it-IT")} / ${max.toLocaleString("it-IT")}</span></div>`;
+}
+function animateHp(root) {
+  requestAnimationFrame(() => requestAnimationFrame(() => root.querySelectorAll(".hpbar[data-to]").forEach((b) => {
+    const to = b.dataset.to + "%"; b.querySelector("i").style.width = to;
+    setTimeout(() => { const g = b.querySelector(".ghost"); if (g) g.style.width = to; }, 450);
+    HP_PREV[b.dataset.side] = Number(b.dataset.to);
+  })));
+}
+const stBadges = (list) => (list || []).map((x) => `<span class="stb st-${esc(x.k)}" title="${esc(x.nome)}: ancora ${x.turni} turn${x.turni === 1 ? "o" : "i"}">${esc(x.icon)}<sub>${x.turni}</sub></span>`).join("");
+const elTag = (e) => e && e[0] ? `<span class="eltag el-${esc(e[0])}" title="Elemento: ${esc(e[2])}">${esc(e[1])} ${esc(e[2])}</span>` : "";
 function arenaHtml(a, s) {
   const pct = (c, m) => Math.max(0, Math.min(100, Math.round(100 * c / Math.max(1, m))));
   const L = a.ultimo || {};
@@ -340,20 +462,22 @@ function arenaHtml(a, s) {
   const txt = s.scena.text.split("\n").filter((l) => l.trim() && !l.includes("█") && !l.includes("·····") && !/^Turno \d/.test(l) && !/^Qi \d/.test(l));
   const me = `<div class="fighter me">${face(a.tu.nome, 72, "--accent", "io")}
       <div class="fi"><b>${esc(a.tu.nome)}</b><div class="muted small">${esc(a.tu.regno)}</div>
-      <div class="hpbar"><i style="width:${pct(a.tu.hp, a.tu.max)}%"></i><span>${a.tu.hp.toLocaleString("it-IT")} / ${a.tu.max.toLocaleString("it-IT")}</span></div>
+      ${hpBar("me", a.tu.hp, a.tu.max, false)}<div class="stati">${elTag((a.elementi || {}).tu)}${stBadges(a.stati_tu)}</div>
       <div class="mini"><div class="bar qi"><i style="width:${pct(a.tu.qi[0], a.tu.qi[1])}%"></i></div><small>Qi ${a.tu.qi[0]}</small>
         <div class="bar sp"><i style="width:${pct(a.tu.spirito[0], a.tu.spirito[1])}%"></i></div><small>Spirito ${a.tu.spirito[0]}</small></div>
       ${a.concentrato ? `<span class="tag rare">☯ concentrato</span>` : ""}</div>${pop(L.subito, "bad" + (L.critico_lui ? " crit" : ""))}</div>`;
   const foe = `<div class="fighter foe">${face(a.nome, 72, "--bad", "", { arch: a.lui.arch, kind: a.lui.kind, f: a.lui.f })}
       <div class="fi"><b>${esc(a.nome)}</b><div class="muted small">${esc(a.lui.regno)} · ${esc(a.lui.forza)}</div>
-      <div class="hpbar foe"><i style="width:${pct(a.lui.hp, a.lui.max)}%"></i><span>${a.lui.hp.toLocaleString("it-IT")} / ${a.lui.max.toLocaleString("it-IT")}</span></div>
+      ${hpBar("foe", a.lui.hp, a.lui.max, true)}<div class="stati">${elTag((a.elementi || {}).lui)}${stBadges(a.stati_lui)}</div>
       <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>
       ${a.vantaggio > 1 ? `<span class="tag good">☸ elemento a tuo favore</span>` : a.vantaggio < 1 ? `<span class="tag bad">☸ elemento a suo favore</span>` : ""}
-      ${a.carica ? `<span class="tag bad blink">⚠ carica un colpo pesante</span>` : ""}</div>${pop(L.inflitto, "good" + (L.critico ? " crit" : ""))}</div>`;
+      ${a.intento && !a.finito ? `<div class="intent it-${esc(a.intento.tipo)}" title="Cosa farà al prossimo scambio"><b>${esc(a.intento.icon)} Prossima mossa:</b> ${esc(a.intento.testo)}${a.intento.danno[1] ? `<small>fino a −${a.intento.danno[1].toLocaleString("it-IT")} (${a.intento.pct[0]}–${a.intento.pct[1]}% della tua vita)</small>` : ""}</div>` : a.carica ? `<span class="tag bad blink">⚠ carica un colpo pesante</span>` : ""}</div>${pop(L.inflitto, "good" + (L.critico ? " crit" : ""))}</div>`;
   const allies = a.alleati.length ? `<details class="allies-box"><summary>${a.alleati.length} alleat${a.alleati.length === 1 ? "o" : "i"} in campo</summary><div class="allies">${a.alleati.map((x) => `<span>${esc(x)}</span>`).join("")}</div></details>` : "";
-  const cards = a.carte.map((c, i) => `<button class="card-act k-${esc(c.kind)} ${c.hot ? "hot" : ""}" ${c.ok ? `data-cmd="${esc(c.cmd)}"` : "disabled"} title="${esc(c.desc)}${c.why ? " — " + esc(c.why) : ""}">
+  const EFF = { super: ["superefficace", "eff-super"], poco: ["poco efficace", "eff-poco"] };
+  const cards = a.carte.map((c, i) => `<button class="card-act k-${esc(c.kind)} ${c.hot ? "hot" : ""} ${c.el ? "el-" + esc(c.el) : ""}" ${c.ok ? `data-cmd="${esc(c.cmd)}"` : "disabled"} title="${esc(c.desc)}${c.el_nome ? " — elemento " + esc(c.el_nome) : ""}${c.stato ? " — può lasciare " + esc(c.stato) : ""}${c.why ? " — " + esc(c.why) : ""}">
       <span class="ci">${esc(c.icon)}${i < 9 ? `<kbd>${i + 1}</kbd>` : ""}</span><b>${esc(c.name)}</b><small>${esc(c.desc)}</small>
-      <em>${c.ok ? esc(c.cost) : esc(c.why)}</em></button>`).join("");
+      ${c.eff ? `<span class="eff ${EFF[c.eff][1]}">${EFF[c.eff][0]}</span>` : ""}${c.stato ? `<span class="cst">${esc(c.stato)}</span>` : ""}
+      <em>${c.ok ? esc(c.cost) : esc(c.why)}</em>${c.cd ? `<span class="cdn">${c.cd}</span>` : ""}</button>`).join("");
   const ab = S && slotImg("luoghi", S.luogo.type);
   return `<div class="arena"${ab ? ` style="background-image:linear-gradient(color-mix(in srgb, var(--panel) 80%, transparent), var(--panel) 70%), url('${ab}')"` : ""}><div class="arena-head">⚔ Duello — turno ${a.turno}</div>
     <div class="ring-fight">${me}<div class="vs">VS</div>${foe}</div>
@@ -406,7 +530,8 @@ function cutIn(box, L, ar) {
   const steps = [];
   const mine = imgOf(L.img);
   if (mine) steps.push({ u: mine, t: L.nome || ({ colpisci: "Colpo", difendi: "Difesa", concentrati: "Concentrazione", pillola: "Pillola", fuggi: "Fuga" }[L.mossa] || "Colpo"),
-    sub: L.inflitto ? `−${Number(L.inflitto).toLocaleString("it-IT")}${L.critico ? " · CRITICO" : ""}` : "", cls: "me" });
+    sub: (L.inflitto ? `−${Number(L.inflitto).toLocaleString("it-IT")}${L.critico ? " · CRITICO" : ""}` : "") +
+      (L.eff === "super" ? " · SUPEREFFICACE!" : L.eff === "poco" ? " · poco efficace…" : ""), cls: "me" + (L.eff ? " eff-" + L.eff : ""), el: L.el });
   const foe = L.subito ? imgOf(L.img_nemico) : null;
   if (foe) steps.push({ u: foe, t: ar.nome, sub: `−${Number(L.subito).toLocaleString("it-IT")}${L.critico_lui ? " · CRITICO" : ""}`, cls: "foe" });
   if (!steps.length) return;
@@ -417,13 +542,15 @@ function cutIn(box, L, ar) {
   document.body.appendChild(el);
   let i = 0;
   const show = () => {
-    if (i >= steps.length) { el.remove(); return; }
+    if (i >= steps.length) { el.remove(); CUT_NEXT = null; advUi(); return; }
     const s = steps[i++];
+    if (s.el) sfx("el_" + s.el); else sfx(s.cls === "foe" ? "hit" : "swing");
     el.innerHTML = `<div class="cut ${s.cls}"><div class="cut-img" style="background-image:url('${s.u}')"></div><div class="cut-t"><b>${esc(s.t)}</b>${s.sub ? `<span>${esc(s.sub)}</span>` : ""}</div></div>`;
     const f = document.querySelector(s.cls === "me" ? "#scene .fighter.foe" : "#scene .fighter.me"); if (f) { f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); }
-    setTimeout(show, s.cls === "me" ? 1250 : 1000);
+    if (manual()) { el.firstElementChild.insertAdjacentHTML("beforeend", `<em class="cut-next">▸ clic o Spazio</em>`); CUT_NEXT = show; advUi(); }
+    else setTimeout(show, s.cls === "me" ? 1250 : 1000);
   };
-  el.addEventListener("click", () => el.remove());
+  el.addEventListener("click", () => { if (manual() && CUT_NEXT) { advance(); return; } el.remove(); });
   show();
 }
 function renderScene(s) {
@@ -439,9 +566,11 @@ function renderScene(s) {
   const sig = ar && ar.ultimo ? ar.turno + "|" + JSON.stringify(ar.ultimo) : null;    // ogni scambio nuovo, anche l'ultimo
   if (sig && sig !== lastArenaTurn) { const first = lastArenaTurn === null || !ar.ultimo.mossa; lastArenaTurn = sig;
     if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); if (!first) cut = ar.ultimo; }
-  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); if (cut) cutIn(box, cut, ar); return; }
+  if (!ar) { HP_PREV.me = HP_PREV.foe = null; }
+  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); animateHp(box); if (cut) cutIn(box, cut, ar); return; }
   if (ar && ar.finito) {
     box.innerHTML = arenaHtml(ar, s) + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
+    animateHp(box);
     if (cut) cutIn(box, cut, ar);
     return;
   }
@@ -1015,6 +1144,14 @@ document.addEventListener("click", async (ev) => {
   }
   if (ev.target.id === "dao-all") { daoAll = !daoAll; return loadTab("personaggio"); }
   if (ev.target.closest("#widen")) { setWide(!document.body.classList.contains("wide")); return; }
+  if (ev.target.closest("#adv")) { advance(); return; }
+  if (ev.target.closest("#adv-all")) { flushAll(); return; }
+  if (ev.target.closest("#readmode")) {
+    READ = manual() ? "auto" : "manuale"; try { localStorage.setItem("ji_read", READ); } catch (e) { /* niente */ }
+    if (!manual()) { flushAll(); while ($("#toasts") && $("#toasts").firstElementChild) $("#toasts").firstElementChild.remove(); TOAST_Q.length = 0; }
+    readBtn(); toast("Lettura", manual() ? "al tuo ritmo: premi Avanti (Spazio) per continuare" : "automatica: il testo scorre da solo", "info");
+    return;
+  }
   if (ev.target.closest("#sound")) {
     SOUND = !SOUND; try { localStorage.setItem("ji_sound", SOUND ? "1" : "0"); } catch (e) { /* niente */ }
     $("#sound").textContent = SOUND ? "🔊" : "🔈"; if (SOUND) sfx("info"); return;
@@ -1061,6 +1198,7 @@ document.addEventListener("change", (ev) => {
 $("#cmdform").addEventListener("submit", (ev) => {
   ev.preventDefault();
   const v = $("#cmd").value;
+  if (!v.trim()) { advance(); return; }               // Invio a casella vuota = Avanti
   if (v.trim()) { history.push(v); hpos = history.length; }
   $("#cmd").value = "";
   run(v);
@@ -1070,6 +1208,12 @@ $("#cmd").addEventListener("keydown", (ev) => {
   if (ev.key === "ArrowDown") { hpos = Math.min(history.length, hpos + 1); $("#cmd").value = history[hpos] || ""; ev.preventDefault(); }
 });
 document.addEventListener("keydown", (ev) => {
+  // Spazio (fuori dalla casella dei comandi) o freccia destra: Avanti
+  const typing = document.activeElement && ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName);
+  if ((ev.key === " " && !typing) || (ev.key === "ArrowRight" && (!typing || !$("#cmd").value))) {
+    if (advance()) { ev.preventDefault(); return; }
+  }
+  if (ev.key === "Escape" && (PENDING.length || CUT_NEXT)) { flushAll(); if (CUT_NEXT) { CUT_NEXT = null; document.querySelectorAll(".cutin").forEach((x) => x.remove()); } return; }
   // numeri 1-9 con la casella vuota: scelta della scena o azione suggerita
   if (document.activeElement === $("#cmd") && $("#cmd").value) return;
   if (document.activeElement && ["INPUT", "SELECT"].includes(document.activeElement.tagName) && document.activeElement !== $("#cmd")) return;
@@ -1088,6 +1232,8 @@ function setWide(on) {
 }
 try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
 $("#sound").textContent = SOUND ? "🔊" : "🔈";
+function readBtn() { const b = $("#readmode"); if (b) { b.textContent = manual() ? "📖" : "⏩"; b.title = manual() ? "Lettura al tuo ritmo (Avanti) — clic per automatica" : "Lettura automatica — clic per leggere al tuo ritmo"; } advUi(); }
+readBtn();
 
 (async () => {
   try {

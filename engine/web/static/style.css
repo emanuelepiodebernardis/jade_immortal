@@ -776,3 +776,53 @@ body.scene-on .scene-img { height: 120px; }
 .daogal img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 2px solid var(--line); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 30%, transparent); }
 .daogal figcaption { font-size: 12px; display: flex; flex-direction: column; } .daogal small { color: var(--muted); }
 .dicon { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; vertical-align: -4px; margin-right: 5px; }
+
+/* ===== Aggiornamento 69: il duello alla Pokémon — tipi, stati, intento, barre animate ===== */
+.hpbar i { transition: width .6s cubic-bezier(.3,.7,.4,1); z-index: 1; }
+.hpbar .ghost { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--warn, #e0a030) 75%, #fff); transition: width .8s ease .1s; }
+.fighter.foe .hpbar .ghost { left: auto; right: 0; }
+.hpbar span { z-index: 2; }
+.hpbar.mid:not(.foe) i { background: linear-gradient(90deg, #d8a32a, #f0d070); }
+.hpbar.low:not(.foe) i { background: linear-gradient(90deg, var(--bad), #f07a6a); animation: hpblink 1s infinite; }
+@keyframes hpblink { 50% { filter: brightness(1.35); } }
+.fighter .stati { display: flex; flex-wrap: wrap; gap: 4px; min-height: 20px; margin: 2px 0; }
+.stb { display: inline-flex; align-items: flex-start; font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 6px;
+  background: var(--chip); border: 1px solid var(--line); animation: stpop .35s ease; }
+.stb sub { font-size: 10px; font-family: var(--mono); margin-left: 1px; color: var(--muted); }
+@keyframes stpop { from { transform: scale(.4); opacity: 0; } }
+.eltag { font-size: 11px; padding: 2px 6px; border-radius: 999px; background: var(--chip); border: 1px solid var(--line); }
+.intent { margin-top: 6px; padding: 6px 8px; border-radius: 8px; font-size: 12px; background: var(--chip); border-left: 3px solid var(--info); }
+.intent small { display: block; color: var(--muted); font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+.intent.it-carica { border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--chip)); animation: hpblink 1.2s infinite; }
+.intent.it-guardia { border-left-color: var(--good); }
+.card-act { position: relative; }
+.card-act .eff { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.card-act .eff-super { color: var(--good); } .card-act .eff-poco { color: var(--bad); opacity: .85; }
+.card-act .cst { font-size: 10.5px; color: var(--muted); }
+.card-act .cdn { position: absolute; top: 6px; right: 6px; min-width: 18px; height: 18px; border-radius: 9px; font-size: 11px; display: grid;
+  place-items: center; background: var(--bad); color: #fff; font-family: var(--mono); }
+.card-act:has(.eff-super) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--good) 60%, transparent), 0 0 12px color-mix(in srgb, var(--good) 25%, transparent); }
+.card-act.el-fuoco { border-top: 3px solid #e2572b; } .card-act.el-acqua { border-top: 3px solid #3a8fd8; }
+.card-act.el-fulmine { border-top: 3px solid #c8b8ff; } .card-act.el-legno { border-top: 3px solid #4caf50; }
+.card-act.el-terra { border-top: 3px solid #a0753c; } .card-act.el-metallo { border-top: 3px solid #b8c0c8; }
+.card-act.el-luce { border-top: 3px solid #f2d36b; } .card-act.el-oscurita, .card-act.el-abisso { border-top: 3px solid #6a3fa0; }
+.card-act.el-vento { border-top: 3px solid #8fd3c8; } .card-act.el-sangue { border-top: 3px solid #a3202a; }
+.card-act.el-anima { border-top: 3px solid #d08fd8; } .card-act.el-spada { border-top: 3px solid #9fb8c8; }
+.cut.eff-super .cut-t b::after { content: " ✦"; color: var(--good); }
+.cut.eff-super .cut-img { filter: saturate(1.4) brightness(1.1); }
+
+/* ===== Aggiornamento 69: lettura al tuo ritmo ===== */
+#log .ln.wait { display: none; }
+#log .ln.fresh { animation: lnin .35s ease; }
+@keyframes lnin { from { opacity: 0; transform: translateY(4px); } }
+#advbar { display: flex; align-items: center; gap: 10px; margin: -4px 0 0; }
+#advbar[hidden] { display: none; }
+#adv { flex: 1; display: flex; align-items: center; gap: 8px; justify-content: center; padding: 8px 12px; border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  font-weight: 600; animation: advpulse 1.6s ease-in-out infinite; }
+#adv small { font-weight: 400; color: var(--muted); }
+#adv kbd { font-size: 11px; }
+@keyframes advpulse { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); } }
+.toast { position: relative; cursor: pointer; }
+.toast .tclose { position: absolute; top: 4px; right: 8px; font-style: normal; opacity: .6; }
+.cut-next { position: absolute; right: 12px; bottom: 10px; font-style: normal; font-size: 12px; opacity: .85; animation: advpulse 1.6s infinite; }

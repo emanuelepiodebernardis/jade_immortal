@@ -34,7 +34,7 @@ from __future__ import annotations
 import random
 
 from engine.core import entities, tick as tick_mod
-from engine.systems import state
+from engine.systems import duel_types, state
 
 KEY = "duel"
 
@@ -78,7 +78,8 @@ def start(conn, player, arg: str, arena: bool = False) -> str:
          "hp_e": pd["vitality"] * sc, "emax": pd["vitality"] * sc, "round": 0, "charge_e": False,
          "focus": False, "cd": {}, "crit": False, "style": style, "adv": adv, "feint": False,
          "log": [f"⚔ DUELLO: tu contro {npc.name}."], "allies": _allies(conn, player, npc, pa, pd, sc),
-         "last": {}, "arena": bool(arena)}
+         "last": {}, "arena": bool(arena), "el_p": _top_element(conn, "player", player.id),
+         "el_e": _top_element(conn, "npc", npc.id), "st_e": {}, "st_p": {}, "guard_e": False}
     _save(conn, d)
     intro = [f"Stile di {npc.name}: {STYLES[style][0]} — {STYLES[style][1]}"]
     if adv_txt:
@@ -180,6 +181,10 @@ def arena(conn, player) -> dict | None:
     if not d:
         return None
     st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
+    if "el_e" not in d:                               # duelli iniziati prima dell'Agg. 69
+        d["el_p"], d["el_e"] = _top_element(conn, "player", player.id), _top_element(conn, "npc", d["npc"])
+        _save(conn, d)
+    el_p, el_e = d.get("el_p"), d.get("el_e")
     cards = [{"key": "colpisci", "name": "Colpisci", "icon": "⚔", "desc": "un colpo normale", "cost": "",
               "ok": True, "why": "", "cmd": "duello_azione colpisci", "kind": "base"}]
     for m in _moves(conn, player, 8):
@@ -196,9 +201,11 @@ def arena(conn, player) -> dict | None:
         if mods.get("taken_mult", 1) < 1:
             bits.append(f"subisci −{int((1 - mods['taken_mult']) * 100)}%")
         why = f"si ricarica tra {cd} turni" if cd > 0 else ("" if m["ok"] else f"serve {cost}")
-        cards.append({"key": m["key"], "name": m["name"], "icon": "✦", "desc": ", ".join(bits) or m.get("desc", ""),
+        info = duel_types.card_info(m["name"], el_e, el_p)
+        cards.append({"key": m["key"], "name": m["name"], "icon": info["el_icon"] or "✦",
+                      "desc": ", ".join(bits) or m.get("desc", ""),
                       "cost": cost, "ok": cd <= 0 and m["ok"], "why": why, "cmd": f"duello_azione tecnica {m['key']}",
-                      "kind": m.get("source", "tecnica")})
+                      "kind": m.get("source", "tecnica"), "cd": max(0, cd), **info})
     cards.append({"key": "difendi", "name": "Difendi", "icon": "🛡", "cost": "",
                   "desc": "para quasi tutto il colpo pesante" if d["charge_e"] else "subisci meno, recuperi Qi",
                   "ok": True, "why": "", "cmd": "duello_azione difendi", "kind": "base", "hot": d["charge_e"]})
@@ -211,7 +218,10 @@ def arena(conn, player) -> dict | None:
     cards.append({"key": "fuggi", "name": "Fuggi", "icon": "↩", "cost": "", "desc": "più facile se sei più forte",
                   "ok": True, "why": "", "cmd": "duello_azione fuggi", "kind": "base"})
     finished = d["hp_e"] <= 0
-    return {
+    return {"intento": _intent(conn, player, d, st), "elementi": {
+                "tu": [el_p or "", duel_types.EL_ICON.get(el_p or "", ""), duel_types.EL_IT.get(el_p or "", "")],
+                "lui": [el_e or "", duel_types.EL_ICON.get(el_e or "", ""), duel_types.EL_IT.get(el_e or "", "")]},
+            "stati_tu": duel_types.badges(d.get("st_p")), "stati_lui": duel_types.badges(d.get("st_e")),
         "nome": d["name"], "turno": d["round"], "finito": finished,
         "tu": {"hp": max(0, round(d["hp_p"])), "max": round(d["pmax"]), "qi": [qimod.get_qi(conn, player.id), qimod.max_qi(conn, player.id)],
                "spirito": [spmod.get_spirit(conn, player.id), spmod.max_spirit(conn, player.id)],
@@ -226,6 +236,28 @@ def arena(conn, player) -> dict | None:
         "alleati": [a["intro"] for a in d.get("allies", [])], "ultimo": d.get("last", {}),
         "carte": [] if finished else cards,
     }
+
+
+def _intent(conn, player, d: dict, st) -> dict:
+    """(Agg. 69) Cosa farà il nemico al prossimo scambio, e quanto può far male: si legge prima di scegliere."""
+    from engine.simulation import combat
+    try:
+        pa = combat.combat_power(conn, "player", player.id)
+        pd = combat.combat_power(conn, "npc", d["npc"])
+        base = max(1.0, pd["attack"] - pa["defense"] * 0.5) * st[3] * duel_types.mod(d.get("st_e"), "dmg")
+    except Exception:                                 # noqa: BLE001
+        base = 0.0
+    if d.get("charge_e"):
+        kind, icon, txt, m = "carica", "⚠", "colpo PESANTE — difenditi!", 1.7
+    elif d.get("guard_e"):
+        kind, icon, txt, m = "guardia", "🛡", "in guardia — buon momento per concentrarti", 0.6
+    else:
+        kind, icon, txt, m = "attacco", "⚔", "attacco normale", 1.0
+    lo, hi = base * m * 0.6, base * m * 1.4
+    if (d.get("st_e") or {}).get("paralisi") or (d.get("st_e") or {}).get("stordito"):
+        txt += " (forse non riesce a muoversi)"
+    return {"tipo": kind, "icon": icon, "testo": txt, "danno": [round(lo), round(hi)],
+            "pct": [round(100 * lo / max(1, d["pmax"])), round(100 * hi / max(1, d["pmax"]))]}
 
 
 def _scene_text(conn, player) -> str:
@@ -244,6 +276,8 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
     st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
     d["charge_e"] = rng.random() < st[2] and d["round"] > 1
     d["feint"] = d["charge_e"] and d.get("style") == "subdolo" and rng.random() < 0.5
+    # (Agg. 69) il prudente a volte si mette in guardia: colpirlo ora rende poco, è il turno per prepararsi
+    d["guard_e"] = (not d["charge_e"]) and d["round"] > 1 and rng.random() < (0.3 if d.get("style") == "prudente" else 0.08)
     _save(conn, d)
     lines = list(extra or [])
     lines.append(f"Turno {d['round']}.  Tu  {_bar(d['hp_p'], d['pmax'])}  "
@@ -252,6 +286,8 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
                  f"Spirito {spmod.get_spirit(conn, player.id)}/{spmod.max_spirit(conn, player.id)}")
     if d["charge_e"]:
         lines.append(f"⚠ {d['name']} raccoglie il qi: il prossimo colpo sarà PESANTE.")
+    elif d.get("guard_e"):
+        lines.append(f"🛡 {d['name']} si chiude in guardia: i tuoi colpi renderanno poco, ma anche i suoi.")
     if d["focus"]:
         lines.append("Sei concentrato: il tuo prossimo colpo sarà devastante.")
     choices = [{"label": "Colpisci", "effects": {}, "command": "duello_azione colpisci"}]
@@ -354,15 +390,33 @@ def act(conn, player, arg: str) -> str:
             d["focus"] = False
         lines.append(f"⚔ Scateni {name}!" if name else loop._player_normal_line(None, rng))
         st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
-        mult *= d.get("adv", 1.0) * st[4]            # elementi e stile (l'impetuoso si scopre, il prudente no)
+        # (Agg. 69) l'elemento della MOSSA contro quello del nemico; senza elemento vale il tuo Dao contro il suo
+        move_el = duel_types.move_element(name, what)
+        eff, eff_tag = duel_types.effectiveness(move_el, d.get("el_e"), d.get("el_p"))
+        mult *= (eff if move_el else d.get("adv", 1.0)) * st[4]   # e lo stile (l'impetuoso si scopre, il prudente no)
+        mult *= duel_types.mod(d.get("st_p"), "dmg") * duel_types.mod(d.get("st_e"), "taken")
+        if d.get("guard_e"):
+            mult *= 0.6
         dealt, crit_any = 0.0, False
-        for _ in range(strikes):
-            dmg, crit = combat._strike(pa["attack"] * mult, pd["defense"] * (1 - mods.get("pierce", 0.0)), rng)
-            d["hp_e"] -= dmg
-            dealt += dmg
-            crit_any = crit_any or crit
+        if rng.random() < duel_types.mod(d.get("st_p"), "miss"):
+            lines.append("  Accecato, colpisci il vuoto!")
+            eff_tag = ""
+        else:
+            for _ in range(strikes):
+                dmg, crit = combat._strike(pa["attack"] * mult, pd["defense"] * (1 - mods.get("pierce", 0.0)), rng)
+                d["hp_e"] -= dmg
+                dealt += dmg
+                crit_any = crit_any or crit
+            lines.append("  " + loop._hit_desc(dealt, d["emax"], d["name"], crit_any, rng))
+            if duel_types.eff_line(eff_tag):
+                lines.append(duel_types.eff_line(eff_tag))
+            if d.get("guard_e"):
+                lines.append(f"  La guardia di {d['name']} assorbe gran parte del colpo.")
+            s_line = duel_types.maybe_on_hit(d, move_el, eff_tag, rng)
+            if s_line:
+                lines.append(s_line)
         d["crit"] = crit_any
-        lines.append("  " + loop._hit_desc(dealt, d["emax"], d["name"], crit_any, rng))
+        d["_eff"], d["_el"] = eff_tag, move_el or ""
 
     # gli alleati colpiscono a ogni turno (Spiriti del Dao, bestia, servi…)
     ally_dmg = 0.0
@@ -376,7 +430,8 @@ def act(conn, player, arg: str) -> str:
         lines.append(f"  I tuoi alleati infieriscono: −{round(ally_dmg)} a {d['name']}.")
     hp_e_before = d.get("_hp_e_turn", d["emax"])
     d["last"] = {"inflitto": round(max(0, hp_e_before - d["hp_e"])), "alleati": round(ally_dmg), "subito": 0,
-                 "critico": bool(d.get("crit")), "mossa": what, "nome": name}
+                 "critico": bool(d.get("crit")), "mossa": what, "nome": name, "eff": d.pop("_eff", ""),
+                 "el": d.pop("_el", ""), "stato": d.pop("_stato", "")}
     from engine.systems import art                    # (Agg. 68) l'immagine della mossa, come nei giochi di lotta
     d["last"]["img"] = art.action_key(what, name)
     d["last"]["img_nemico"] = "azioni/carica" if d.get("charge_e") else "azioni/nemico"
@@ -391,12 +446,37 @@ def act(conn, player, arg: str) -> str:
         lines.append(f"  Era una finta! {d['name']} non carica affatto: colpisce normale, e ride della tua guardia.")
         if what == "difendi":
             taken = 0.7                               # ti eri preparato al colpo sbagliato
-    edmg, ecrit = combat._strike(pd["attack"] * emult, pa["defense"], rng)
-    edmg *= taken
+    emult *= duel_types.mod(d.get("st_e"), "dmg") * (0.6 if d.get("guard_e") else 1.0)
+    taken *= duel_types.mod(d.get("st_p"), "taken")
+    sts_e = d.get("st_e") or {}
+    if rng.random() < duel_types.mod(sts_e, "skip"):
+        lines.append(f"  {'⚡' if 'paralisi' in sts_e else '💫'} {d['name']} non riesce a muoversi: perde il turno!")
+        edmg, ecrit = 0.0, False
+        d["last"]["salta"] = True
+    elif rng.random() < duel_types.mod(sts_e, "self"):
+        x = d["emax"] * 0.05
+        d["hp_e"] -= x
+        lines.append(f"  🌀 Confuso, {d['name']} si colpisce da solo (−{round(x)})!")
+        edmg, ecrit = 0.0, False
+    elif rng.random() < duel_types.mod(sts_e, "miss"):
+        lines.append(f"  ✺ Accecato, {d['name']} ti manca!")
+        edmg, ecrit = 0.0, False
+    else:
+        edmg, ecrit = combat._strike(pd["attack"] * emult, pa["defense"], rng)
+        edmg *= taken
+        lines.append("  " + loop._enemy_line(d["name"], edmg, d["pmax"], ecrit, rng))
+        if d["charge_e"] and not feint:
+            e_line = duel_types.enemy_on_hit(d, d.get("el_e"), rng)
+            if e_line:
+                lines.append(e_line)
     d["hp_p"] -= edmg
     d["last"]["subito"] = round(edmg)
     d["last"]["critico_lui"] = bool(ecrit)
-    lines.append("  " + loop._enemy_line(d["name"], edmg, d["pmax"], ecrit, rng))
+    if d["hp_p"] > 0:
+        lines += duel_types.tick(d)
+    if d["hp_e"] <= 0:
+        _save(conn, d)
+        return _won(conn, player, lines)
     if d["hp_p"] <= 0:
         state.delete(conn, KEY)
         if d.get("arena"):

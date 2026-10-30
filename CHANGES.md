@@ -2798,3 +2798,43 @@ Tutte nello stesso stile: inchiostro su seta, verde giada e cinabro.
   anche i vasi d'anima, il Dharma, i sigilli, la dimora, la Torre e il Gran Torneo.
 
 **Test:** `tests/test_agg68.py` (5 test).
+
+---
+
+## Aggiornamento 69 — Il duello alla Pokémon e la lettura al tuo ritmo
+
+**Tipi ed efficacia** (`engine/systems/duel_types.py`). Ogni tecnica ha un elemento, ricavato dal nome
+(«Folgore…» è fulmine, «Sole Caduto» è fuoco). Contro l'elemento del nemico, cioè il suo Dao elementale
+migliore, una mossa può essere:
+- **superefficace** (×1,35): il fuoco fonde il metallo, l'acqua spegne il fuoco…
+- **poco efficace** (×0,75).
+
+Una mossa del tuo stesso elemento colpisce ×1,1. Le carte delle mosse mostrano l'icona dell'elemento, la
+scritta «superefficace» o «poco efficace», lo stato che possono lasciare e i turni di ricarica.
+
+**Stati con i turni.** Le mosse elementali possono lasciare:
+- sul nemico: 🔥 ustione, 🩸 emorragia, ☠ corrosione, ❄ gelo, ⚡ paralisi, ✺ accecato, 🌀 confusione, 💫 stordito;
+- su di te: 🌿 rigenerazione, ⛰ guscio, 🌪 slancio.
+
+Il colpo pesante del nemico può lasciarti il suo elemento. Le icone stanno sotto le barre, con i turni che
+restano. Gli stati non ti uccidono mai: resti a 1.
+
+**Intento del nemico.** Sotto il suo ritratto vedi la sua prossima mossa: attacco, colpo pesante o guardia.
+Vedi anche quanto può toglierti, in numeri e in % della tua vita. Il prudente a volte si mette in guardia: i
+colpi rendono poco ed è il turno per concentrarti. La finta del subdolo resta nascosta.
+
+**Barre animate e suoni.** La vita scende con una scia del danno. La barra diventa gialla a metà e rossa
+lampeggiante sotto il 20%. Ogni elemento ha il suo suono, sintetizzato dal codice (nessun file). Nel
+cut-in compare «SUPEREFFICACE!».
+
+**Lettura al tuo ritmo** (pulsante 📖/⏩ in alto). In modalità manuale, che è quella predefinita:
+- il testo nuovo arriva a pezzi di 3 righe;
+- **Avanti** mostra il pezzo successivo. Si attiva con il pulsante sotto il registro, con Spazio, con →
+  o con Invio a casella vuota. «mostra tutto» o Esc mostrano subito tutto;
+- le notifiche restano, intere, finché non le chiudi; le altre aspettano in fila;
+- i cut-in del duello aspettano il tuo clic;
+- appena dai un comando, il testo in attesa si mostra tutto.
+
+In modalità automatica tutto scorre come prima.
+
+**Test:** `tests/test_agg69.py`, 4 test.
