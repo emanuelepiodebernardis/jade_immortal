@@ -692,6 +692,13 @@ def equip_data() -> list[dict]:
         return art.equipment(conn, p) if p else []
 
 
+def gear_data() -> dict:
+    """(Agg. 69) I sei posti sul corpo e i pezzi nello zaino."""
+    from engine.systems import gear
+    with LOCK, transaction() as conn:
+        return gear.view(conn)
+
+
 def chronicle_data(all_lives: bool = False) -> list[dict]:
     from engine.systems import chronicle
     with LOCK, transaction() as conn:

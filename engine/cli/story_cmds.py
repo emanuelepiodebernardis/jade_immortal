@@ -427,6 +427,11 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("dharma", "corpo_dharma"):
         from engine.systems import dharma_body
         return dharma_body.command(conn, player, arg)
+    if cmd in ("equip", "equipaggiamento", "equipaggia", "indossa", "vesti"):
+        from engine.systems import gear
+        if cmd in ("indossa", "equipaggia") and arg.strip():
+            return gear.command(conn, player, "metti " + arg)
+        return gear.command(conn, player, arg)
     if cmd in ("sigilli", "sigillo_ancestrale", "sigilli_ancestrali", "rune"):
         from engine.systems import ancestral_sigils
         return ancestral_sigils.command(conn, player, arg)

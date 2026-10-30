@@ -146,8 +146,10 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
         mult["attack"] *= evb.get("attack_mult", 1.0) * bb["attack_mult"]
         mult["defense"] *= evb.get("defense_mult", 1.0) * bb["defense_mult"]
         mult["vitality"] *= evb.get("vitality_mult", 1.0) * bb["vitality_mult"]
-        from engine.systems import attributes      # finestra di stato: FOR, VIT, AGI
+        from engine.systems import attributes, gear   # finestra di stato: FOR, VIT, AGI; e ciò che indossi
         for _k, _m in attributes.combat_mults(conn).items():
+            mult[_k] *= _m
+        for _k, _m in gear.combat_mults(conn).items():
             mult[_k] *= _m
     from engine.simulation import cultivation as _cv
     amp = dao_amplifier(dao_training.dao_power(conn, ctype, cid) * keep, _cv.realm_tier(conn, ctype, cid) or 1)

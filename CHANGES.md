@@ -2838,3 +2838,45 @@ cut-in compare «SUPEREFFICACE!».
 In modalità automatica tutto scorre come prima.
 
 **Test:** `tests/test_agg69.py`, 4 test.
+
+### Agg. 69, seconda parte — Equipaggiamento vero e volti diversi
+
+**Equipaggiamento** (`engine/systems/gear.py`, comando `equip`). Ci sono sei posti sul corpo, ognuno con la
+sua statistica:
+
+| Posto | Statistica |
+|---|---|
+| Veste | vitalità |
+| Corona | coltivazione |
+| Amuleto | difesa |
+| Anello | attacco |
+| Stivali | schivata |
+| Talismano | critici |
+
+- Ogni pezzo ha un **regno**, che dà +12% per regno, e una **rarità**: comune, raffinata, pregiata o
+  divina. La rarità va da ×1 a ×2,8 e aggiunge da 0 a 3 statistiche secondarie.
+- **Set:** i pezzi dai pregiati in su appartengono a uno dei 5 set (Fenice Cremisi, Tartaruga Nera,
+  Drago Azzurro, Tigre Bianca, Qilin d'Oro). Indossarne 2, 4 o 6 dà un bonus.
+- **Dove si trova:**
+  - tra i tesori, con la stessa via dei sigilli (rewards.grant): premi, tombe, torre, torneo;
+  - alla forgia, `equip forgia <posto>`, al costo di 150·regno^1,4 pietre.
+- **Comandi:**
+  - `equip auto` indossa i pezzi migliori e completa i set quando conviene;
+  - `equip scomponi tutto` trasforma in pietre i pezzi superati;
+  - lo zaino tiene 40 pezzi; oltre, il pezzo peggiore si scompone da solo.
+- **Effetti:**
+  - attacco, difesa e vitalità entrano in `combat.combat_power`, quindi valgono anche nel duello, con la
+    stessa compressione logaritmica degli altri bonus;
+  - critici e schivata entrano negli stati di combattimento;
+  - la coltivazione entra nei moltiplicatori di coltivazione.
+- **Dashboard (Tesori → Zaino):** una bambola di carta con la figura dell'eroe e i sei posti. Ogni posto
+  mostra la sua immagine e i pulsanti «togli» e «forgia». Sotto ci sono i pezzi dello zaino, e quelli
+  migliori di ciò che porti sono segnati ▲.
+
+**Volti diversi.** La stessa persona ha sempre lo stesso volto, scelto con un hash del nome tra le varianti
+del suo tipo (guardia, guardia_2, guardia_3…). Chi non ha un tipo con ritratto pesca tra tutti i volti
+maschili. Le persone importanti possono avere un ritratto tutto loro, `immagini/ritratti/<nome>.jpg`:
+`strumenti/ritratti_importanti.py` elenca i prompt per nemesi, rivali, compagni, fratelli giurati e
+famiglia della tua partita.
+
+**Test:** `tests/test_gear.py`, 5 test. 715 in totale.

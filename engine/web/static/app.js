@@ -298,6 +298,7 @@ async function run(cmd) {
   if (CUT_NEXT) { document.querySelectorAll(".cutin").forEach((x) => x.remove()); CUT_NEXT = null; }
   const lc = cmd.toLowerCase();
   if (lc === "mappa" || lc === "map") return loadTab("mappa");
+  if (lc === "equip" || lc === "equipaggiamento") return loadTab("tesori:zaino");
   if (VIA_TABS.includes(lc)) return loadTab("m:via:" + lc);                              // la crescita: schede della Via
   if (lc === "via" || lc.startsWith("via ")) return loadTab("m:via:" + (lc.split(" ")[1] || lastVia));
   if (MENUS.includes(lc)) return loadTab("m:" + lc);   // i menu si aprono nel pannello
@@ -516,8 +517,24 @@ function faceSrc(name, o = {}) {
     const low = String(name).toLowerCase(), w = BEAST_WORDS.find((x) => low.includes(x));
     return (w && slotImg("bestie", w)) || slotImg("creature", o.kind);
   }
-  if (o.f) return slotImg("ritratti", o.arch === "anziano" || o.arch === "patriarca" ? "f_anziana" : "f") || slotImg("ritratti", o.arch);
-  return o.arch ? slotImg("ritratti", o.arch) : null;
+  // (Agg. 69) volti diversi: tra le varianti di un tipo (guardia, guardia_2, guardia_3…) sceglie sempre la stessa
+  // per la stessa persona, in base al nome. Chi non ha un tipo con ritratto pesca da tutti i volti maschili.
+  if (o.f) return pickVariant(o.arch === "anziano" || o.arch === "patriarca" ? ["f_anziana"] : ["f"], name) || slotImg("ritratti", o.arch);
+  return pickVariant(o.arch && variants(o.arch).length ? [o.arch] : MALE_TYPES, name);
+}
+const MALE_TYPES = ["anziano", "patriarca", "eremita", "discepolo", "guardia", "mercante", "vagabondo", "cacciatore"];
+const VAR_CACHE = {};
+function variants(base) {
+  if (VAR_CACHE[base] && VAR_CACHE[base].n === IMAGES.length) return VAR_CACHE[base].v;
+  const re = new RegExp("^ritratti/" + V.slug(base) + "\\d*$");             // lo slug toglie «_»: guardia_2 → guardia2
+  const v = Object.keys(IMGMAP).filter((k) => re.test(k)).sort();
+  VAR_CACHE[base] = { n: IMAGES.length, v };
+  return v;
+}
+function nameHash(n) { let h = 2166136261; for (const c of String(n)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function pickVariant(bases, name) {
+  const all = [].concat(...bases.map(variants));
+  return all.length ? imgUrl(IMGMAP[all[nameHash(name) % all.length]]) : null;
 }
 function face(name, size, aura, kind = "", o = {}) {
   const u = faceSrc(name, Object.assign({ io: kind === "io" }, o));
@@ -820,14 +837,15 @@ async function peopleHtml() {
 }
 
 async function bagHtml() {
-  const [it, eq] = await Promise.all([api("/api/zaino"), api("/api/equip").catch(() => [])]);
+  const [it, eq, gr] = await Promise.all([api("/api/zaino"), api("/api/equip").catch(() => []), api("/api/gear").catch(() => null)]);
   // (Agg. 68) ciò che porti addosso, con il suo quadro
-  const eqh = eq.length ? `<div class="card sec"><b>⚔ Equipaggiamento</b><div class="equip">` + eq.map((e) => {
+  const eqh = eq.length ? `<div class="card sec"><b>⚔ Arma, vasi d'anima e sigilli</b><div class="equip">` + eq.map((e) => {
     const u = imgOf(e.img);
     return `<button class="eq-slot" data-cmd="${esc(e.cmd)}" title="${esc(e.nota || e.nome)}">${u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="eq-ph">✦</span>`}
       <small>${esc(e.slot)}</small><b>${esc(e.nome)}</b>${e.nota ? `<em>${esc(e.nota)}</em>` : ""}</button>`; }).join("") + `</div></div>` : "";
-  if (!it.length) return eqh + `<div class="card"><b>Zaino</b><div class="empty">Vuoto.</div></div>`;
-  return eqh + `<div class="card"><b>🎒 Zaino</b><div class="bag">` + it.map((x) => {
+  const gh = gr ? gearHtml(gr) : "";
+  if (!it.length) return gh + eqh + `<div class="card"><b>Zaino</b><div class="empty">Vuoto.</div></div>`;
+  return gh + eqh + `<div class="card"><b>🎒 Zaino</b><div class="bag">` + it.map((x) => {
     const u = imgOf(x.img);
     return `<div class="bag-it r-${esc(x.rarita)}" title="${esc(x.desc)}">${u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="eq-ph">✦</span>`}
      ${x.n > 1 ? `<span class="qty">×${x.n}</span>` : ""}<b>${esc(x.nome)}</b><small>${esc(x.tipo)} · ${esc(x.rarita.replace("_", " "))}</small>
@@ -837,6 +855,30 @@ async function bagHtml() {
     `<button data-cmd="use all">Usa anche le pillole</button>` +
     `<button data-cmd="autoraccolta">Raccolta automatica on/off</button>` +
     `<button data-cmd="autoassorbi">Assorbimento automatico on/off</button></div></div>`;
+}
+
+// (Agg. 69) l'EQUIPAGGIAMENTO come una bambola di carta: sei posti attorno alla figura, lo zaino dei pezzi sotto
+const RAR_IT = { comune: "comune", raffinata: "raffinata", pregiata: "pregiata", divina: "divina" };
+function gearPiece(p, slot) {
+  const u = imgOf((p && p.img) || slot.img);
+  return `<div class="gd-slot gd-${esc(slot.slot)} ${p ? "r-" + esc(p.rar) : "empty"}" title="${p ? esc(p.nome + " — " + p.stats.join(", ") + (p.set ? " — set " + p.set : "")) : "posto libero"}">
+    ${u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="eq-ph">✦</span>`}<small>${esc(slot.posto)}</small>
+    ${p ? `<b>${esc(p.nome)}</b><em>${esc(p.stats[0] || "")}</em>${p.id ? `<button class="mini" data-cmd="equip togli ${esc(slot.slot)}">togli</button>` : ""}`
+      : `<em>vuoto</em><button class="mini" data-cmd="equip forgia ${esc(slot.slot)}">forgia</button>`}</div>`;
+}
+function gearHtml(g) {
+  const hero = imgOf(["ritratti/eroe"]);
+  const doll = `<div class="gdoll">${g.posti.map((s) => gearPiece(s.pezzo, s)).join("")}
+    <div class="gd-hero">${hero ? `<img src="${hero}" alt="">` : V.portrait("io", "io", 120, "--accent")}</div></div>`;
+  const bag = g.zaino.length ? `<div class="gbag">${g.zaino.map((x) => {
+    const u = imgOf(x.img);
+    return `<div class="bag-it r-${esc(x.rar)} ${x.meglio ? "better" : ""}" title="${esc(x.stats.join(", "))}${x.set ? " — set " + esc(x.set) : ""}">
+      ${u ? `<img src="${u}" alt="" loading="lazy">` : `<span class="eq-ph">✦</span>`}${x.meglio ? `<span class="qty">▲ meglio</span>` : ""}
+      <b>${esc(x.nome)}</b><small>${esc(x.posto)} · ${esc(RAR_IT[x.rar] || x.rar)} · regno ${x.tier}</small><small>${esc(x.stats.join(" · "))}</small>
+      <div class="bag-act"><button data-cmd="equip metti ${x.id}">Indossa</button><button data-cmd="equip scomponi ${x.id}" title="+${x.valore} pietre">Scomponi</button></div></div>`; }).join("")}</div>` : "";
+  return `<div class="card sec gear"><b>🧥 Equipaggiamento</b> <span class="muted small">${esc(g.riepilogo)}</span>${doll}
+    <div class="tools"><button class="primary" data-cmd="equip auto">Indossa il meglio</button>${g.zaino.length ? `<button data-cmd="equip scomponi tutto">Scomponi i superati</button>` : ""}
+    <span class="muted small">Forgia: ${g.costo_forgia.toLocaleString("it-IT")} pietre a pezzo (regno ${g.regno})</span></div>${bag}</div>`;
 }
 
 let allLives = false;

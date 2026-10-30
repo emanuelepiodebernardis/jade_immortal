@@ -76,6 +76,11 @@ def grant(conn, rng: random.Random, player, rank: int = 1, scale: float = 1.0,
         lines += ancestral_sigils.maybe_drop(conn, random.Random(hash(rng.getstate())), rank)   # senza toccare rng
     except Exception:                                # noqa: BLE001
         pass
+    try:                                             # (Agg. 69) e un pezzo d'equipaggiamento
+        from engine.systems import gear
+        lines += gear.maybe_drop(conn, random.Random(hash(rng.getstate()) ^ 0x9E37), rank)
+    except Exception:                                # noqa: BLE001
+        pass
     if rank == 1 and rng.random() < 0.04:            # rarissimo: un'arte proibita
         from engine.systems import dominion
         items.grant(conn, "player", player.id, dominion.salma_manual(conn))

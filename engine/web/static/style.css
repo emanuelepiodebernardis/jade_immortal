@@ -826,3 +826,20 @@ body.scene-on .scene-img { height: 120px; }
 .toast { position: relative; cursor: pointer; }
 .toast .tclose { position: absolute; top: 4px; right: 8px; font-style: normal; opacity: .6; }
 .cut-next { position: absolute; right: 12px; bottom: 10px; font-style: normal; font-size: 12px; opacity: .85; animation: advpulse 1.6s infinite; }
+
+/* ===== Aggiornamento 69: equipaggiamento (bambola di carta) ===== */
+.gear .gdoll { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 8px; margin: 10px 0; }
+.gd-hero { grid-column: 1 / -1; order: -1; height: 150px; display: grid; place-items: center; border-radius: 12px; overflow: hidden;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%); }
+.gd-hero img { height: 150px; width: auto; object-fit: cover; mask-image: radial-gradient(ellipse, #000 50%, transparent 75%); }
+.gd-slot { display: grid; grid-template-columns: 46px 1fr; grid-template-rows: auto auto auto auto; column-gap: 8px; row-gap: 1px;
+  padding: 7px; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); font-size: 12px; }
+.gd-slot img, .gd-slot .eq-ph { grid-row: 1 / span 4; width: 46px; height: 46px; border-radius: 8px; object-fit: cover; display: grid; place-items: center; }
+.gd-slot small { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; }
+.gd-slot b { font-size: 12px; line-height: 1.25; } .gd-slot em { font-style: normal; color: var(--info); font-size: 11px; }
+.gd-slot.empty { opacity: .75; border-style: dashed; }
+.gd-slot .mini { justify-self: start; font-size: 11px; padding: 1px 8px; border-radius: 8px; margin-top: 2px; }
+.gd-slot.r-raffinata, .bag-it.r-raffinata { border-color: #4caf50; } .gd-slot.r-pregiata, .bag-it.r-pregiata { border-color: #3a8fd8; }
+.gd-slot.r-divina, .bag-it.r-divina { border-color: #d4a72c; box-shadow: 0 0 10px color-mix(in srgb, #d4a72c 35%, transparent); }
+.gbag { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+.bag-it.better { outline: 2px solid color-mix(in srgb, var(--good) 60%, transparent); }
