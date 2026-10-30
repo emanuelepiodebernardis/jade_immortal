@@ -174,5 +174,10 @@ def menu_build(conn, player) -> dict:
     else:
         secs.append(section("I doni in combattimento", ["Combatti una volta: qui vedrai quanto pesa ogni dono "
                                                          "(sangue, corpo, radici, elementi…)."], icon="⚔"))
+    try:                                              # (Agg. 70) fonte per fonte, tu e il tuo regno, cosa fare
+        from engine.systems import power_report
+        secs[1:1] = power_report.sections(conn, player)
+    except Exception:                                 # noqa: BLE001
+        pass
     return menu("forza", "⚖ DA DOVE VIENE LA TUA FORZA",
                 ["Tante fonti, una forza sola: cosa conta davvero, e quanto."], secs)

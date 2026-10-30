@@ -23,7 +23,7 @@ def _item(out, icon, title, why, cmd, palace, tab="", hot=False, prio=5):
 def items(conn, player) -> list[dict]:
     out: list[dict] = []
     day = tick_mod.get_tick(conn) // 120
-    checks = (_cultivation, _growth, _followers, _world, _story, _body, _agg67)
+    checks = (_guide, _cultivation, _growth, _followers, _world, _story, _body, _agg67)
     for fn in checks:
         try:
             fn(conn, player, day, out)
@@ -43,6 +43,13 @@ def badges(lst: list[dict]) -> dict:
 
 
 # ---------------------------------------------------------------- le voci
+
+def _guide(conn, player, day, out):
+    from engine.systems import guide                       # (Agg. 70) i primi passi, in cima
+    it = guide.attention_item(conn, player)
+    if it:
+        out.append(it)
+
 
 def _cultivation(conn, player, day, out):
     from engine.systems import dao_powers, deep_dao

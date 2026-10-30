@@ -34,7 +34,7 @@ from __future__ import annotations
 import random
 
 from engine.core import entities, tick as tick_mod
-from engine.systems import duel_types, state
+from engine.systems import duel_types, elites, state
 
 KEY = "duel"
 
@@ -69,6 +69,8 @@ def start(conn, player, arg: str, arena: bool = False) -> str:
         return why
     if npc is None:
         return f"Non vedi nessuno di nome '{target}' qui. (duello <nome>)"
+    from engine.systems import elites                 # (Agg. 70) un élite o un boss si porta al tuo passo
+    elites.touch(conn, player, [npc.id])
     pa = combat.combat_power(conn, "player", player.id)
     pd = combat.combat_power(conn, "npc", npc.id)
     sc = combat.duel_scale(pa, pd) * _length(conn, player, npc)
@@ -79,7 +81,8 @@ def start(conn, player, arg: str, arena: bool = False) -> str:
          "focus": False, "cd": {}, "crit": False, "style": style, "adv": adv, "feint": False,
          "log": [f"⚔ DUELLO: tu contro {npc.name}."], "allies": _allies(conn, player, npc, pa, pd, sc),
          "last": {}, "arena": bool(arena), "el_p": _top_element(conn, "player", player.id),
-         "el_e": _top_element(conn, "npc", npc.id), "st_e": {}, "st_p": {}, "guard_e": False}
+         "el_e": _top_element(conn, "npc", npc.id), "st_e": {}, "st_p": {}, "guard_e": False,
+         "boss": elites.rank(conn, npc.id) == "boss", "phase": 1, "heals": 0, "ecd": 0, "intent_e": "attacco"}
     _save(conn, d)
     intro = [f"Stile di {npc.name}: {STYLES[style][0]} — {STYLES[style][1]}"]
     if adv_txt:
@@ -148,6 +151,7 @@ def _pills(conn, pid: int) -> list:
     return [r for r in items.player_inventory(conn, pid) if r["item_type"] == "pillola"]
 
 
+TECH_CAP = 3.5
 # Durata: un duello tra pari dura 5-8 scambi; con l'arcinemico o una nemesi 10-12.
 DUEL_HP = 0.3
 GRUDGE_HP = 0.5
@@ -193,7 +197,8 @@ def arena(conn, player) -> dict | None:
         mods = m.get("mods", {})
         bits = []
         if mods.get("attack_mult", 1) != 1:
-            bits.append(f"×{mods['attack_mult']:.1f} danno")
+            from engine.systems import power_budget
+            bits.append(f"×{power_budget.soft(mods['attack_mult'], TECH_CAP):.1f} danno")
         if mods.get("extra_strikes"):
             bits.append(f"+{int(mods['extra_strikes'])} colpi")
         if mods.get("pierce"):
@@ -222,6 +227,7 @@ def arena(conn, player) -> dict | None:
                 "tu": [el_p or "", duel_types.EL_ICON.get(el_p or "", ""), duel_types.EL_IT.get(el_p or "", "")],
                 "lui": [el_e or "", duel_types.EL_ICON.get(el_e or "", ""), duel_types.EL_IT.get(el_e or "", "")]},
             "stati_tu": duel_types.badges(d.get("st_p")), "stati_lui": duel_types.badges(d.get("st_e")),
+            "rango": elites.rank(conn, d["npc"]), "fase": d.get("phase", 1),
         "nome": d["name"], "turno": d["round"], "finito": finished,
         "tu": {"hp": max(0, round(d["hp_p"])), "max": round(d["pmax"]), "qi": [qimod.get_qi(conn, player.id), qimod.max_qi(conn, player.id)],
                "spirito": [spmod.get_spirit(conn, player.id), spmod.max_spirit(conn, player.id)],
@@ -238,6 +244,56 @@ def arena(conn, player) -> dict | None:
     }
 
 
+# (Agg. 70) IL NEMICO PENSA: tecniche del suo elemento, pillole, fuga; i boss hanno tre fasi
+ENEMY_TECH_MULT = 1.45
+BOSS_MULT = {1: 1.0, 2: 1.3, 3: 1.5}
+ENEMY_TECH = {"fuoco": "Palmo della Fiamma Ardente", "acqua": "Lame della Marea Gelida", "metallo": "Pioggia di Spade d'Oro",
+              "legno": "Rovi del Bosco Antico", "terra": "Pugno della Montagna", "luce": "Raggio del Sole Nascente",
+              "oscurita": "Artigli dell'Ombra", "fulmine": "Saetta dei Nove Cieli"}
+
+
+def _enemy_tech(d: dict) -> tuple[str, str | None]:
+    el = d.get("el_e") or ""
+    return ENEMY_TECH.get(el, "Arte Segreta della Setta"), duel_types.ENEMY_ON_HIT.get(el)
+
+
+def _decide_enemy(d: dict, rng) -> str:
+    """Cosa fa il nemico al prossimo scambio (la carica e la guardia sono già decise)."""
+    if d.get("boss") and d.get("phase", 1) >= 3:              # in furia il boss carica sempre
+        d["charge_e"], d["feint"], d["guard_e"] = True, False, False
+        return "carica"
+    if d.get("charge_e"):
+        return "carica"
+    if d.get("guard_e"):
+        return "guardia"
+    hpf = d["hp_e"] / max(1.0, d["emax"])
+    style = d.get("style", "equilibrato")
+    if hpf < 0.35 and d.get("heals", 0) < (1 if d.get("boss") else 2) and rng.random() < 0.45:
+        return "cura"
+    if (hpf < 0.15 and not d.get("arena") and not d.get("boss") and style in ("prudente", "subdolo")
+            and rng.random() < 0.4):
+        return "fuga"
+    if d["round"] > 1 and d.get("ecd", 0) <= d["round"] and rng.random() < (0.45 if d.get("boss") else 0.3):
+        return "tecnica"
+    return "attacco"
+
+
+def _boss_phase(d: dict, lines: list[str]) -> None:
+    """Sotto metà vita il boss si trasforma; sotto un quinto entra in furia."""
+    if not d.get("boss") or d["hp_e"] <= 0:
+        return
+    hpf = d["hp_e"] / max(1.0, d["emax"])
+    if d.get("phase", 1) == 1 and hpf < 0.5:
+        d["phase"] = 2
+        d["hp_e"] = min(d["emax"], d["hp_e"] + 0.15 * d["emax"])
+        d["st_e"] = {}
+        lines.append(f"♛ {d['name']} urla: il suo qi esplode e si trasforma! Si libera dei suoi stati e "
+                     f"recupera vita. (seconda fase: colpisce ×{BOSS_MULT[2]:.1f})")
+    elif d.get("phase", 1) == 2 and hpf < 0.2:
+        d["phase"] = 3
+        lines.append(f"♛ {d['name']} brucia la sua stessa essenza: FURIA! Ora carica ogni colpo (×{BOSS_MULT[3]:.1f}).")
+
+
 def _intent(conn, player, d: dict, st) -> dict:
     """(Agg. 69) Cosa farà il nemico al prossimo scambio, e quanto può far male: si legge prima di scegliere."""
     from engine.simulation import combat
@@ -247,8 +303,19 @@ def _intent(conn, player, d: dict, st) -> dict:
         base = max(1.0, pd["attack"] - pa["defense"] * 0.5) * st[3] * duel_types.mod(d.get("st_e"), "dmg")
     except Exception:                                 # noqa: BLE001
         base = 0.0
+    ie = d.get("intent_e", "attacco")
+    bm = BOSS_MULT.get(d.get("phase", 1), 1.0) if d.get("boss") else 1.0
+    base *= bm
     if d.get("charge_e"):
         kind, icon, txt, m = "carica", "⚠", "colpo PESANTE — difenditi!", 1.7
+    elif ie == "tecnica":
+        nm, st_k = _enemy_tech(d)
+        kind, icon, txt, m = "tecnica", duel_types.EL_ICON.get(d.get("el_e") or "", "✦"), \
+            f"{nm}" + (f" — può lasciarti {duel_types.STATUS[st_k][1]}" if st_k else ""), ENEMY_TECH_MULT
+    elif ie == "cura":
+        kind, icon, txt, m = "cura", "💊", "si cura invece di attaccare — colpisci forte adesso", 0.0
+    elif ie == "fuga":
+        kind, icon, txt, m = "fuga", "↩", "cerca di fuggire — fermalo (colpisci) o lascialo andare", 0.0
     elif d.get("guard_e"):
         kind, icon, txt, m = "guardia", "🛡", "in guardia — buon momento per concentrarti", 0.6
     else:
@@ -256,6 +323,8 @@ def _intent(conn, player, d: dict, st) -> dict:
     lo, hi = base * m * 0.6, base * m * 1.4
     if (d.get("st_e") or {}).get("paralisi") or (d.get("st_e") or {}).get("stordito"):
         txt += " (forse non riesce a muoversi)"
+    if d.get("boss"):
+        txt = ["", "", "♛ seconda fase — ", "♛ FURIA — "][d.get("phase", 1)] + txt
     return {"tipo": kind, "icon": icon, "testo": txt, "danno": [round(lo), round(hi)],
             "pct": [round(100 * lo / max(1, d["pmax"])), round(100 * hi / max(1, d["pmax"]))]}
 
@@ -278,6 +347,7 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
     d["feint"] = d["charge_e"] and d.get("style") == "subdolo" and rng.random() < 0.5
     # (Agg. 69) il prudente a volte si mette in guardia: colpirlo ora rende poco, è il turno per prepararsi
     d["guard_e"] = (not d["charge_e"]) and d["round"] > 1 and rng.random() < (0.3 if d.get("style") == "prudente" else 0.08)
+    d["intent_e"] = _decide_enemy(d, rng)
     _save(conn, d)
     lines = list(extra or [])
     lines.append(f"Turno {d['round']}.  Tu  {_bar(d['hp_p'], d['pmax'])}  "
@@ -288,6 +358,12 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
         lines.append(f"⚠ {d['name']} raccoglie il qi: il prossimo colpo sarà PESANTE.")
     elif d.get("guard_e"):
         lines.append(f"🛡 {d['name']} si chiude in guardia: i tuoi colpi renderanno poco, ma anche i suoi.")
+    elif d.get("intent_e") == "tecnica":
+        lines.append(f"✦ {d['name']} intreccia i sigilli: prepara {_enemy_tech(d)[0]}.")
+    elif d.get("intent_e") == "cura":
+        lines.append(f"💊 {d['name']} porta la mano alla cintura: sta per ingoiare una pillola.")
+    elif d.get("intent_e") == "fuga":
+        lines.append(f"↩ {d['name']} arretra e cerca una via di fuga!")
     if d["focus"]:
         lines.append("Sei concentrato: il tuo prossimo colpo sarà devastante.")
     choices = [{"label": "Colpisci", "effects": {}, "command": "duello_azione colpisci"}]
@@ -378,7 +454,8 @@ def act(conn, player, arg: str) -> str:
                 else:
                     qimod.spend(conn, m["qi_cost"], player.id)
                 mods = m["mods"]
-                mult *= mods.get("attack_mult", 1.0)
+                from engine.systems import power_budget   # (Agg. 70) nel duello una tecnica vale fino a ~×3,5:
+                mult *= power_budget.soft(mods.get("attack_mult", 1.0), TECH_CAP)   # le altre scelte contano ancora
                 strikes += int(mods.get("extra_strikes", 0))
                 d["cd"][m["key"]] = d["round"] + 3
                 name = m["name"]
@@ -434,14 +511,45 @@ def act(conn, player, arg: str) -> str:
                  "el": d.pop("_el", ""), "stato": d.pop("_stato", "")}
     from engine.systems import art                    # (Agg. 68) l'immagine della mossa, come nei giochi di lotta
     d["last"]["img"] = art.action_key(what, name)
-    d["last"]["img_nemico"] = "azioni/carica" if d.get("charge_e") else "azioni/nemico"
+    d["last"]["img_nemico"] = ("azioni/carica" if d.get("charge_e") else
+                               ["azioni/" + d["el_e"], "azioni/nemico"] if d.get("intent_e") == "tecnica" and d.get("el_e")
+                               else "azioni/nemico")
     if d["hp_e"] <= 0:
         _save(conn, d)
         return _won(conn, player, lines)
+    _boss_phase(d, lines)
     # il nemico risponde
     st = STYLES.get(d.get("style", "equilibrato"), STYLES["equilibrato"])
     feint = d.get("feint")
+    ie = d.get("intent_e", "attacco")
+    if ie == "cura":
+        d["heals"] = d.get("heals", 0) + 1
+        x = 0.22 * d["emax"]
+        d["hp_e"] = min(d["emax"], d["hp_e"] + x)
+        lines.append(f"  💊 {d['name']} ingoia una pillola: recupera {round(x)} di vita.")
+        d["last"]["subito"] = 0
+        lines += duel_types.tick(d)
+        _save(conn, d)
+        return _next_turn(conn, player, lines)
+    if ie == "fuga":
+        hit = what not in ("difendi", "concentrati", "pillola", "fuggi")
+        if not hit and rng.random() < 0.6:
+            state.delete(conn, KEY)
+            lines.append(f"  ↩ {d['name']} si dilegua tra la folla. Il duello finisce senza vincitori.")
+            return "\n".join(lines)
+        lines.append(f"  {d['name']} prova a fuggire, ma lo inchiodi lì: non ha scampo." if hit
+                     else f"  {d['name']} prova a fuggire, ma inciampa: il duello continua.")
+        d["last"]["subito"] = 0
+        lines += duel_types.tick(d)
+        _save(conn, d)
+        return _next_turn(conn, player, lines)
     emult = (1.0 if feint else 1.7 if d["charge_e"] else 1.0) * st[3]
+    if d.get("boss"):
+        emult *= BOSS_MULT.get(d.get("phase", 1), 1.0)
+    if ie == "tecnica":
+        emult *= ENEMY_TECH_MULT
+        d["ecd"] = d["round"] + 3
+        lines.append(f"  ✦ {d['name']} scaglia {_enemy_tech(d)[0]}!")
     if feint:
         lines.append(f"  Era una finta! {d['name']} non carica affatto: colpisce normale, e ride della tua guardia.")
         if what == "difendi":
@@ -465,8 +573,9 @@ def act(conn, player, arg: str) -> str:
         edmg, ecrit = combat._strike(pd["attack"] * emult, pa["defense"], rng)
         edmg *= taken
         lines.append("  " + loop._enemy_line(d["name"], edmg, d["pmax"], ecrit, rng))
-        if d["charge_e"] and not feint:
-            e_line = duel_types.enemy_on_hit(d, d.get("el_e"), rng)
+        if (d["charge_e"] and not feint) or ie == "tecnica":
+            e_line = duel_types.enemy_on_hit(d, d.get("el_e"), rng) if ie != "tecnica" else (
+                duel_types.apply(d, "p", _enemy_tech(d)[1]) if _enemy_tech(d)[1] and rng.random() < 0.6 else "")
             if e_line:
                 lines.append(e_line)
     d["hp_p"] -= edmg
@@ -523,7 +632,16 @@ def finish(conn, player, kill: bool, seal: bool = False) -> str:
     out = loop._auto_end_enemy(conn, t, rng, player, npc, d["round"], max(1.0, d["hp_p"]), d["pmax"],
                                d.get("crit", False), {}, None, [], force_died=kill, seal=seal)
     how = "sigillato" if seal else "ucciso" if kill else "risparmiato"
-    return "\n".join([out] + _plot(conn, player, npc.id, how))
+    from engine.systems import guide
+    guide.flag(conn, "duello")
+    extra: list[str] = []
+    from engine.systems import elites                 # (Agg. 70) battere un élite o un boss paga
+    rr = elites.reward_rank(conn, npc.id)
+    if rr:
+        from engine.systems import rewards
+        extra = [f"{'♛ Hai piegato un BOSS' if rr == 1 else '★ Hai battuto un élite'}: il suo tesoro è tuo."]
+        extra += ["  " + x for x in rewards.grant(conn, random.Random(t * 29 + npc.id), player, rank=rr)]
+    return "\n".join([out] + extra + _plot(conn, player, npc.id, how))
 
 
 def _plot(conn, player, npc_id: int, outcome: str) -> list[str]:

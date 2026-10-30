@@ -2904,3 +2904,54 @@ pizzicata su scala pentatonica, con il bordone e il vento. Cambia con il luogo:
 - duello: incalzante, col tamburo.
 
 Parte al primo clic, come vogliono i browser, e si spegne insieme ai suoni.
+
+---
+
+## Aggiornamento 70 — Forza, élite e boss, il nemico che pensa, primi passi e codex
+
+**Da dove viene la forza** (Via → ⚖ Forza). La scheda ha tre sezioni nuove:
+- **Fonte per fonte:** ogni moltiplicatore della crescita personale (tecniche, doni della tribolazione,
+  Dao da combattimento, attributi, arma, equipaggiamento…). I valori sono letti direttamente dal calcolo del
+  combattimento (`combat_power(…, trace=…)`), quindi coincidono con quelli usati in battaglia.
+- **Tu e il tuo regno:** il tuo attacco confrontato con la persona media del tuo regno e con la più forte.
+- **Cosa potenziare adesso:** fino a 5 consigli con il comando da cliccare (punti attributo, pezzi
+  migliori nello zaino, posti vuoti da forgiare, meridiani, Corpo del Dharma, ferite, Dao poveri).
+
+**Élite e boss** (`engine/systems/elites.py`). Nel tardo gioco eri ×8,5 la persona media del tuo regno e
+ogni duello finiva al primo colpo. Tu non vieni indebolito: è il mondo che risponde.
+- Una persona su otto è un **★ élite**, scelta una volta sola e sempre la stessa. Vale tra il 55% e il 90%
+  della tua forza.
+- I patriarchi sono **♛ boss** e valgono tra il 90% e il 130% della tua forza.
+- Questo succede solo quando sei davvero avanti, cioè quando la persona media del tuo regno vale meno del
+  35% di te. A inizio partita non cambia nulla.
+- Il motore è lo stesso degli inseguitori e il loro fattore di forza sale soltanto, mai giù.
+- Battere un élite o un boss dà un tesoro in più. Nel luogo li riconosci da ★ e ♛.
+- Nel duello il moltiplicatore di una tecnica ha un tetto morbido intorno a ×3,5. Prima arrivava a ×5,3 e
+  le altre scelte non contavano più.
+
+**Il nemico pensa.** Oltre ad attaccare, caricare e mettersi in guardia:
+- **lancia la tecnica del suo elemento** (Palmo della Fiamma Ardente, Saetta dei Nove Cieli…), che colpisce
+  ×1,45 e può lasciarti il suo stato;
+- **si cura** con una pillola quando è sotto il 35% di vita: è il momento di colpire forte;
+- **fugge** quando è quasi sconfitto e prudente o subdolo: colpiscilo per inchiodarlo;
+- **i boss hanno tre fasi.** Sotto metà vita si trasformano: si liberano degli stati, recuperano vita e
+  colpiscono ×1,3. Sotto un quinto entrano in furia e caricano ogni colpo (×1,5).
+
+L'intento del nemico mostra tutte queste mosse prima che avvengano.
+
+**Primi passi** (`engine/systems/guide.py`, comando `guida`). Sono sette tappe, mostrate in cima a «Cosa
+fare ora»:
+1. assegnare i punti attributo;
+2. allenarsi;
+3. visitare un altro luogo;
+4. entrare in una setta;
+5. indossare un pezzo d'equipaggiamento;
+6. vincere un duello;
+7. il primo sfondamento.
+
+Ogni tappa dà da 50 a 300 pietre. `guida salta` la chiude.
+
+**Codex.** La prima volta che apri una scheda (Via, Zaino, Mappa, Setta) o entri in un duello, una pagina
+spiega quel sistema. Tutte le pagine restano in Storia → 📖 Codex, oppure con `codex <voce>`.
+
+**Test:** `tests/test_agg70.py`, 8 test. 723 in totale.

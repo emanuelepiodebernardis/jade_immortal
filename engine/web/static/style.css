@@ -878,3 +878,13 @@ body.scene-on .scene-img { height: 120px; }
 @keyframes inkflow { to { stroke-dashoffset: -14; } }
 #map .herering { fill: none; stroke: var(--accent); stroke-width: 2.5; }
 #map .node image { filter: saturate(.9); }
+
+/* ===== Aggiornamento 70: boss ===== */
+.tag.boss { background: color-mix(in srgb, #d4a72c 25%, var(--chip)); color: #f2d36b; border: 1px solid #d4a72c; font-weight: 700; }
+.intent.it-tecnica { border-left-color: var(--rare); }
+.intent.it-cura { border-left-color: var(--good); }
+.intent.it-fuga { border-left-color: var(--warn); }
+/* codex */
+.codex-card { border-left: 3px solid var(--info); margin-bottom: 10px; }
+.codex-card p, .codex p { margin: 6px 0 8px; line-height: 1.5; font-size: 13.5px; }
+.codex details summary { cursor: pointer; }

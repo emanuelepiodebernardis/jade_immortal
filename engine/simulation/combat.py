@@ -80,7 +80,8 @@ def dao_amplifier(dao_power: float, tier: int) -> float:
     return power_budget.dao_amp(dao_power, dao_vessel(tier))
 
 
-def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
+def combat_power(conn: sqlite3.Connection, ctype: str, cid: int, trace: dict | None = None) -> dict:
+    """Attacco, difesa, vitalità. Con `trace` (un dict) annota ogni fattore: la usa power_report (Agg. 70)."""
     if ctype == "player":
         base = dict(PLAYER_BASE)
         # crescita fisica da assorbimento (bestie/demoni): corpo più forte
@@ -102,7 +103,10 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
             base["defense"] += (_rec["body_level"] or 0) * 0.2 + (_rec["soul_level"] or 0) * 0.05
         # qualità dell'arma equipaggiata (regno×rarità): amplifica l'attacco
         from engine.systems import weapons as _wp
-        base["attack"] *= (1.0 + _wp.equipped_bonus(conn, cid))
+        _wb = _wp.equipped_bonus(conn, cid)
+        base["attack"] *= (1.0 + _wb)
+        if trace is not None:
+            trace["arma"] = 1.0 + _wb
     else:
         t = entities.get_npc_traits(conn, cid)
         cour, pride, amb = t.get("courage", 50), t.get("pride", 50), t.get("ambition", 50)
@@ -138,6 +142,11 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
     # base, poi viene compresso in modo logaritmico: cresce sempre, ma il regno resta la
     # scala principale (Aggiornamento 23)
     mult = {k: caf * daf * tf for k in base}
+    fac: list = []
+    if trace is not None:
+        trace["base"] = dict(base)
+        fac += [("affinità di combattimento", {k: caf for k in base}), ("Dao da combattimento", {k: daf for k in base}),
+                ("tecniche segrete", {k: tf for k in base})]
     bb = None
     if ctype == "player":
         from engine.systems import absorption, tribulation
@@ -151,6 +160,11 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
             mult[_k] *= _m
         for _k, _m in gear.combat_mults(conn).items():
             mult[_k] *= _m
+        if trace is not None:
+            fac += [("evoluzione del corpo", {k: evb.get(k + "_mult", 1.0) for k in base}),
+                    ("doni della tribolazione", {k: bb[k + "_mult"] for k in base}),
+                    ("attributi", {k: attributes.combat_mults(conn).get(k, 1.0) for k in base}),
+                    ("equipaggiamento", gear.combat_mults(conn))]
     from engine.simulation import cultivation as _cv
     amp = dao_amplifier(dao_training.dao_power(conn, ctype, cid) * keep, _cv.realm_tier(conn, ctype, cid) or 1)
     amp_k = {"attack": amp, "defense": amp ** 0.5, "vitality": amp ** 0.5}   # i Dao colpiscono più che proteggere
@@ -161,6 +175,11 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
         result[k] = max(1.0, eff * rf * keep * amp_k[k]) + flat.get(k, 0.0)
     if bb:
         result["attack"] += bb["attack_flat"]
+    if trace is not None:
+        trace.update({"fattori": fac, "rapporto": {k: base[k] * mult[k] / PLAYER_BASE[k] for k in base},
+                      "compresso": {k: compress(base[k] * mult[k] / PLAYER_BASE[k]) for k in base},
+                      "regno": rf, "ferite": keep, "dao": amp_k, "punti": dict(flat),
+                      "punti_tribolazione": (bb or {}).get("attack_flat", 0.0)})
     from engine.systems import deep_dao
     if ctype == "npc":                      # chi ti insegue resta al tuo passo (Aggiornamento 44)
         from engine.systems import pursuers
@@ -171,6 +190,8 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int) -> dict:
             result = {k: max(1.0, v * f) for k, v in result.items()}
     else:
         sm = deep_dao.seal_mult(conn)       # Sigilli della Sfida
+        if trace is not None:
+            trace["sigilli_sfida"] = sm
         if sm != 1.0:
             result = {k: v * sm for k, v in result.items()}
     return result

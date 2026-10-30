@@ -335,7 +335,7 @@ const PALACES = {
   mondo: { t: "🌍 Il mondo", tabs: [["mappa", "🗺 Mappa", "mappa"], ["mercato", "🏪 Mercato", "m:mercato"], ["asta", "⚖ Aste", "m:asta"],
     ["regni", "👑 Regni", "m:regni"], ["razze", "🐉 Razze", "m:razze"], ["sotto", "🙏 Mondo di sotto", "m:sotto"]] },
   tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["libro", "📖 Libro", "tesori:libro"]] },
-  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"]] },
+  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
   opzioni: { t: "⚙ Opzioni", tabs: [["pilota", "✧ Pilota e difficoltà", "pilota"], ["partita", "💾 Partita", "aiuto"]] },
 };
 const TARGET_OF = {};                               // destinazione → [palazzo, scheda]
@@ -553,7 +553,7 @@ function arenaHtml(a, s) {
   const foe = `<div class="fighter foe">${face(a.nome, 72, "--bad", "", { arch: a.lui.arch, kind: a.lui.kind, f: a.lui.f })}
       <div class="fi"><b>${esc(a.nome)}</b><div class="muted small">${esc(a.lui.regno)} · ${esc(a.lui.forza)}</div>
       ${hpBar("foe", a.lui.hp, a.lui.max, true)}<div class="stati">${elTag((a.elementi || {}).lui)}${stBadges(a.stati_lui)}</div>
-      <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>
+      <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>${a.rango === "boss" ? `<span class="tag boss">♛ BOSS${a.fase > 1 ? " · fase " + a.fase : ""}</span>` : a.rango === "elite" ? `<span class="tag rare">★ élite</span>` : ""}
       ${a.vantaggio > 1 ? `<span class="tag good">☸ elemento a tuo favore</span>` : a.vantaggio < 1 ? `<span class="tag bad">☸ elemento a suo favore</span>` : ""}
       ${a.intento && !a.finito ? `<div class="intent it-${esc(a.intento.tipo)}" title="Cosa farà al prossimo scambio"><b>${esc(a.intento.icon)} Prossima mossa:</b> ${esc(a.intento.testo)}${a.intento.danno[1] ? `<small>fino a −${a.intento.danno[1].toLocaleString("it-IT")} (${a.intento.pct[0]}–${a.intento.pct[1]}% della tua vita)</small>` : ""}</div>` : a.carica ? `<span class="tag bad blink">⚠ carica un colpo pesante</span>` : ""}</div>${pop(L.inflitto, "good" + (L.critico ? " crit" : ""))}</div>`;
   const allies = a.alleati.length ? `<details class="allies-box"><summary>${a.alleati.length} alleat${a.alleati.length === 1 ? "o" : "i"} in campo</summary><div class="allies">${a.alleati.map((x) => `<span>${esc(x)}</span>`).join("")}</div></details>` : "";
@@ -662,6 +662,7 @@ function renderScene(s) {
   box.hidden = false;
   const ar = s.duello && s.duello.arena;
   box.classList.toggle("in-duel", !!ar);
+  if (ar) codexHint("duello", "toast");
   let cut = null;
   const sig = ar && ar.ultimo ? ar.turno + "|" + JSON.stringify(ar.ultimo) : null;    // ogni scambio nuovo, anche l'ultimo
   if (sig && sig !== lastArenaTurn) { const first = lastArenaTurn === null || !ar.ultimo.mossa; lastArenaTurn = sig;
@@ -758,8 +759,32 @@ const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
 const SUBTABS = {
   personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici e talento"], ["corpo", "🩸 Corpo e sangue"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
   tesori: [["zaino", "🎒 Zaino"], ["libro", "📖 Libro"]],
-  storia: [["cronaca", "📜 Cronaca"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"]],
+  storia: [["cronaca", "📜 Cronaca"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
 };
+// (Agg. 70) il CODEX: la prima volta che apri una scheda, una pagina che spiega quel sistema
+let CODEX = null, CODEX_SEEN = {};
+try { CODEX_SEEN = JSON.parse(localStorage.getItem("ji_codex_seen") || "{}"); } catch (e) { /* niente */ }
+async function codexData() { if (!CODEX) CODEX = await api("/api/codex").catch(() => []); return CODEX; }
+function codexKeyOf(name) {
+  if (name.startsWith("m:via:")) return name.slice(6);
+  if (name === "tesori:zaino" || name === "tesori") return "zaino";
+  if (name === "m:setta" || name.startsWith("m:setta")) return "setta";
+  if (name === "mappa") return "mappa";
+  return null;
+}
+async function codexHint(key, where) {
+  if (!key || CODEX_SEEN[key]) return;
+  const c = (await codexData()).find((x) => x.key === key); if (!c) return;
+  if (where === "toast") { CODEX_SEEN[key] = 1; saveCodexSeen(); toast("Codex — " + c.titolo, c.testo, "info"); return; }
+  const b = $("#tabbody"); if (!b || b.querySelector(".codex-card")) return;
+  b.insertAdjacentHTML("afterbegin", `<div class="card codex-card"><b>📖 ${esc(c.titolo)}</b><p>${esc(c.testo)}</p>
+    <button class="primary" data-codex-ok="${esc(key)}">Ho capito</button> <span class="muted small">Lo ritrovi in Storia → Codex.</span></div>`);
+}
+function saveCodexSeen() { try { localStorage.setItem("ji_codex_seen", JSON.stringify(CODEX_SEEN)); } catch (e) { /* niente */ } }
+async function codexHtml() {
+  const list = await codexData();
+  return `<div class="codex">` + list.map((c) => `<details class="card sec"><summary><b>${esc(c.titolo)}</b></summary><p>${esc(c.testo)}</p></details>`).join("") + `</div>`;
+}
 const sub = { personaggio: "stato", tesori: "zaino", storia: "cronaca" };
 try { const j = JSON.parse(localStorage.getItem("ji_sub") || "{}"); Object.assign(sub, j); } catch (e) { /* niente */ }
 function subChips(name) {
@@ -786,10 +811,11 @@ async function loadTab(name) {
     if (!keep) b.innerHTML = `<div class="empty">Carico…</div>`;
     try { const top = b.scrollTop; b.innerHTML = menuHtml(await api("/api/menu/" + name.slice(2))); if (keep) b.scrollTop = top; }
     catch (e) { b.innerHTML = `<div class="empty">Errore: ${esc(e.message)}</div>`; }
+    if (!keep) codexHint(codexKeyOf(name));
     return;
   }
   if (name === "mete") { if (S) renderMete(S); return; }
-  if (name === "mappa") return loadMap();
+  if (name === "mappa") { await loadMap(); codexHint("mappa"); return; }
   const top = keep ? b.scrollTop : 0;
   if (!keep) b.innerHTML = `<div class="empty">Carico…</div>`;
   const texts = async (panel, open) => (await api("/api/pannello/" + panel)).map((p) =>
@@ -809,12 +835,14 @@ async function loadTab(name) {
       else h += `<div class="tools"><button class="primary" data-cmd="tesori cura">✧ Cura tutti i tesori</button></div>` + await bagHtml() + await texts("tesori");
     } else if (name === "storia") {
       h = subChips("storia");
-      if (sub.storia === "mondo") h += await worldHtml() + await texts("mondo");
+      if (sub.storia === "codex") h += await codexHtml();
+      else if (sub.storia === "mondo") h += await worldHtml() + await texts("mondo");
       else if (sub.storia === "trama") h += await texts("storia", "trama");
       else h += await chronicleHtml();
     } else if (name === "aiuto") h = await gameHtml() + V.legend() + await texts("aiuto");
     b.innerHTML = h;
     if (keep) b.scrollTop = top;
+    else if (tab === "tesori:zaino") codexHint("zaino");
   } catch (e) { b.innerHTML = `<div class="empty">Errore: ${esc(e.message)}</div>`; }
 }
 
@@ -1316,6 +1344,8 @@ document.addEventListener("click", async (ev) => {
   }
   if (ev.target.id === "dao-all") { daoAll = !daoAll; return loadTab("personaggio"); }
   if (ev.target.closest("#widen")) { setWide(!document.body.classList.contains("wide")); return; }
+  const cx = ev.target.closest("[data-codex-ok]");
+  if (cx) { CODEX_SEEN[cx.dataset.codexOk] = 1; saveCodexSeen(); const card = cx.closest(".codex-card"); if (card) card.remove(); return; }
   if (ev.target.closest("#adv")) { advance(); return; }
   if (ev.target.closest("#adv-all")) { flushAll(); return; }
   if (ev.target.closest("#readmode")) {

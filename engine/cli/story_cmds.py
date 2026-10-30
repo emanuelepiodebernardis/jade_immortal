@@ -427,6 +427,16 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("dharma", "corpo_dharma"):
         from engine.systems import dharma_body
         return dharma_body.command(conn, player, arg)
+    if cmd in ("guida", "primi_passi", "tutorial"):
+        from engine.systems import guide
+        return guide.command(conn, player, arg)
+    if cmd in ("codex", "enciclopedia"):
+        from engine.systems import guide
+        a = arg.strip().lower()
+        if a in guide.CODEX:
+            t, x = guide.CODEX[a]
+            return f"📜 {t}\n{x}"
+        return "📜 CODEX — " + ", ".join(guide.CODEX) + "\n'codex <voce>' per leggerla."
     if cmd in ("equip", "equipaggiamento", "equipaggia", "indossa", "vesti"):
         from engine.systems import gear
         if cmd in ("indossa", "equipaggia") and arg.strip():
@@ -695,6 +705,8 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
     from engine.systems import supreme_body, breakthrough_fates
     out += supreme_body.after_command(conn, player)
     out += breakthrough_fates.after_command(conn, player)
+    from engine.systems import guide
+    out += guide.check(conn, player)
     ch = story_tick(conn, player)
     if ch:
         out.append(ch)

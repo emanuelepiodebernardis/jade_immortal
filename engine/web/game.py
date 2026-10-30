@@ -170,6 +170,11 @@ def _after(conn, player) -> list[str]:
     from engine.systems import breakthrough_fates
     out += breakthrough_fates.after_command(conn, player)
     try:
+        from engine.systems import guide                    # (Agg. 70) primi passi completati
+        out += guide.check(conn, player)
+    except Exception:                         # noqa: BLE001
+        pass
+    try:
         from engine.systems import unlocks, attention
         out += unlocks.announce(conn, attention.badges(attention.items(conn, player)))
     except Exception:                         # noqa: BLE001
@@ -300,6 +305,10 @@ def state_snapshot() -> dict:
         from engine.systems import bonds as _bonds
         for n in entities.npcs_in_location(conn, p.location_id)[:40]:
             tag = _clean(loop._npc_tag(conn, n) or "")
+            from engine.systems import elites as _el
+            _et = _el.tag(conn, n.id)
+            if _et:
+                tag = _et + (" · " + tag if tag else "")
             kinds = _bonds.bond_kinds(conn, n.id, p.id) - {"family"}
             # chi conta per te in cima: legami e nemici, ricercati, figure di rango; poi gli altri
             pri = (0 if kinds & {"nemesis", "rival"} else 1 if kinds else
