@@ -2880,3 +2880,27 @@ maschili. Le persone importanti possono avere un ritratto tutto loro, `immagini/
 famiglia della tua partita.
 
 **Test:** `tests/test_gear.py`, 5 test. 715 in totale.
+
+### Agg. 69, terza parte — Prologo illustrato, mappa dipinta, musica
+
+**Prologo illustrato.** Dopo la creazione del personaggio, e anche dopo una rinascita, il racconto
+d'apertura scorre a pagine sopra il quadro della tua origine (`immagini/prologo/<origine>.jpg`, uno per
+ognuna delle 7 origini). Senza quadro usa il paesaggio di montagna. Si passa alla pagina dopo con Avanti,
+Spazio o Invio; Esc la salta. Nella scelta dell'origine compare la miniatura del suo quadro.
+
+**Mappa dipinta.**
+- Le strade sono tratti di pennello: leggermente curve, con il bordo irregolare dell'inchiostro (filtro SVG).
+- La strada che percorreresti appare in cinabro e scorre verso la meta.
+- Ogni tipo di luogo può avere il suo sigillo tondo (`immagini/mappa/<tipo>.jpg`: city, mountain, ruin,
+  forbidden_zone, setta); senza sigillo resta il simbolo di prima.
+
+**Musica d'atmosfera** (pulsante 🎵, insieme ai suoni 🔊). È generata dal codice, senza file: una cetra
+pizzicata su scala pentatonica, con il bordone e il vento. Cambia con il luogo:
+- città: luminosa, con la campana;
+- montagna: rada, con il vento;
+- rovine: minore e lenta;
+- zona proibita: dissonante;
+- sede di setta: con la campana;
+- duello: incalzante, col tamburo.
+
+Parte al primo clic, come vogliono i browser, e si spegne insieme ai suoni.

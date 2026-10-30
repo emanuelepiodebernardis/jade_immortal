@@ -843,3 +843,38 @@ body.scene-on .scene-img { height: 120px; }
 .gd-slot.r-divina, .bag-it.r-divina { border-color: #d4a72c; box-shadow: 0 0 10px color-mix(in srgb, #d4a72c 35%, transparent); }
 .gbag { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
 .bag-it.better { outline: 2px solid color-mix(in srgb, var(--good) 60%, transparent); }
+
+/* ===== Aggiornamento 69: prologo illustrato ===== */
+#prologue { position: fixed; inset: 0; z-index: 90; display: grid; grid-template-rows: 1fr auto; background: #0b0d0c; color: #e9e4d6; }
+#prologue .pro-img { background: center / cover no-repeat; animation: prozoom 18s ease-out forwards;
+  mask-image: linear-gradient(#000 70%, transparent); }
+@keyframes prozoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+#prologue .pro-text { max-width: 760px; width: calc(100% - 32px); margin: -80px auto 28px; position: relative;
+  background: color-mix(in srgb, #0b0d0c 82%, transparent); border: 1px solid #2c3a33; border-radius: 12px; padding: 18px 22px; }
+#prologue .pro-page p { margin: 0 0 8px; font-family: Georgia, "Noto Serif", serif; font-size: 17px; line-height: 1.55; animation: lnin .5s ease; }
+#prologue .pro-nav { display: flex; align-items: center; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+#prologue .pro-nav span { margin-right: auto; }
+.origins .opt { display: flex; gap: 10px; align-items: center; }
+.origins .orig-img { width: 86px; height: 48px; object-fit: cover; border-radius: 6px; flex: none; }
+
+/* ===== Aggiornamento 69: prologo illustrato ===== */
+#prologue { position: fixed; inset: 0; z-index: 90; display: grid; grid-template-rows: 1fr auto; background: #0b0d0c; color: #e9e4d6; }
+#prologue .pro-img { background: center / cover no-repeat; animation: prozoom 18s ease-out forwards;
+  mask-image: linear-gradient(#000 70%, transparent); }
+@keyframes prozoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+#prologue .pro-text { max-width: 760px; width: calc(100% - 32px); margin: -80px auto 28px; position: relative;
+  background: color-mix(in srgb, #0b0d0c 82%, transparent); border: 1px solid #2c3a33; border-radius: 12px; padding: 18px 22px;
+  max-height: 55vh; overflow-y: auto; }
+#prologue .pro-page p { margin: 0 0 8px; font-family: Georgia, "Noto Serif", serif; font-size: 17px; line-height: 1.55; animation: lnin .5s ease; }
+#prologue .pro-page .act { pointer-events: none; }
+#prologue .pro-nav { display: flex; align-items: center; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+#prologue .pro-nav span { margin-right: auto; }
+.origins .opt { display: flex; gap: 10px; align-items: center; }
+.origins .orig-img { width: 86px; height: 48px; object-fit: cover; border-radius: 6px; flex: none; }
+
+/* ===== Aggiornamento 69: mappa dipinta ===== */
+#map .edge { fill: none; stroke: color-mix(in srgb, var(--ink) 55%, transparent); stroke-width: 3; stroke-linecap: round; opacity: .75; }
+#map .edge.route { stroke: #c0392b; stroke-width: 4.5; opacity: 1; stroke-dasharray: 10 4; animation: inkflow 1.2s linear infinite; }
+@keyframes inkflow { to { stroke-dashoffset: -14; } }
+#map .herering { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+#map .node image { filter: saturate(.9); }

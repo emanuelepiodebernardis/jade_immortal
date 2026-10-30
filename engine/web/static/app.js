@@ -197,6 +197,88 @@ function sfx(kind) {
     });
   } catch (e) { /* audio non disponibile */ }
 }
+// ---------------- (Agg. 69) MUSICA D'ATMOSFERA, generata dal codice ----------------
+// Una cetra (guqin) pizzicata su una scala pentatonica, un bordone e, in montagna, il vento. Cambia con il luogo:
+// la città è luminosa e fitta, le rovine minori e lente, la zona proibita dissonante, il duello incalzante.
+const MOODS = {
+  city: { base: 262, scale: [0, 2, 4, 7, 9, 12, 14], beat: 0.9, dens: 0.6, drone: 0, bell: 1 },
+  mountain: { base: 196, scale: [0, 2, 4, 7, 9, 12], beat: 1.8, dens: 0.4, drone: 1, wind: 1 },
+  ruin: { base: 174, scale: [0, 3, 5, 7, 10, 12], beat: 2.2, dens: 0.35, drone: 1 },
+  forbidden_zone: { base: 110, scale: [0, 1, 6, 7, 10, 13], beat: 2.6, dens: 0.3, drone: 2 },
+  sect: { base: 220, scale: [0, 2, 5, 7, 9, 12], beat: 1.4, dens: 0.45, drone: 1, bell: 1 },
+  duel: { base: 147, scale: [0, 3, 5, 7, 10, 12, 15], beat: 0.45, dens: 0.75, drone: 2, drum: 1 },
+  quiet: { base: 196, scale: [0, 2, 4, 7, 9], beat: 2.4, dens: 0.3, drone: 1 },
+};
+let MUSIC = true;
+try { MUSIC = localStorage.getItem("ji_music") !== "0"; } catch (e) { /* niente */ }
+const MU = { mood: null, timer: null, next: 0, master: null, drone: [], wind: null, step: 0 };
+function muCtx() { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); return AC; }
+function muStop() {
+  if (MU.timer) clearInterval(MU.timer); MU.timer = null;
+  if (MU.master) { const g = MU.master, t = AC.currentTime; g.gain.setTargetAtTime(0.0001, t, 0.6); setTimeout(() => g.disconnect(), 3000); }
+  MU.master = null; MU.drone = []; MU.wind = null; MU.mood = null;
+}
+function muPluck(f, t, vol, dest) {
+  const o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(), lp = AC.createBiquadFilter();
+  o.type = "triangle"; o.frequency.value = f; o2.type = "sine"; o2.frequency.value = f * 2.005;
+  lp.type = "lowpass"; lp.frequency.setValueAtTime(2400, t); lp.frequency.exponentialRampToValueAtTime(500, t + 1.8);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.6);
+  const g2 = AC.createGain(); g2.gain.value = 0.25;
+  o.connect(g); o2.connect(g2).connect(g); g.connect(lp).connect(dest);
+  o.start(t); o2.start(t); o.stop(t + 2.7); o2.stop(t + 2.7);
+}
+function muDrum(t, dest) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.25);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+  o.connect(g).connect(dest); o.start(t); o.stop(t + 0.4);
+}
+function muStart(mood) {
+  muStop();
+  const M = MOODS[mood] || MOODS.quiet; MU.mood = mood;
+  const ctx = muCtx(), master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, ctx.currentTime); master.gain.setTargetAtTime(0.06, ctx.currentTime, 1.2);
+  master.connect(ctx.destination); MU.master = master;
+  if (M.drone) {                                       // bordone: fondamentale e quinta (o tritono, nella zona proibita)
+    for (const r of [0.5, M.drone === 2 ? 0.5 * 1.414 : 0.75]) {
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.value = M.base * r; g.gain.value = 0.12;
+      o.connect(g).connect(master); o.start(); MU.drone.push(o);
+    }
+  }
+  if (M.wind) {                                        // vento: rumore filtrato che ondeggia
+    const len = ctx.sampleRate * 4, buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+    src.buffer = buf; src.loop = true; bp.type = "bandpass"; bp.frequency.value = 500; bp.Q.value = 0.8; g.gain.value = 0.18;
+    lfo.frequency.value = 0.07; lg.gain.value = 300; lfo.connect(lg).connect(bp.frequency);
+    src.connect(bp).connect(g).connect(master); src.start(); lfo.start(); MU.wind = src;
+  }
+  MU.next = ctx.currentTime + 0.3; MU.step = 0;
+  let last = 2;
+  MU.timer = setInterval(() => {
+    if (!MU.master) return;
+    while (MU.next < AC.currentTime + 1.0) {
+      const t = MU.next;
+      if (Math.random() < M.dens) {                    // una nota, con un passo breve sulla scala (melodia, non caso puro)
+        last = Math.max(0, Math.min(M.scale.length - 1, last + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)]));
+        muPluck(M.base * Math.pow(2, M.scale[last] / 12), t, 0.5, MU.master);
+        if (Math.random() < 0.18) muPluck(M.base * Math.pow(2, M.scale[Math.max(0, last - 2)] / 12) / 2, t + 0.02, 0.35, MU.master);
+      }
+      if (M.bell && MU.step % 16 === 0) muPluck(M.base * 4, t, 0.18, MU.master);
+      if (M.drum && MU.step % 2 === 0) muDrum(t, MU.master);
+      MU.step++;
+      MU.next += M.beat * (0.85 + Math.random() * 0.3);
+    }
+  }, 250);
+}
+function musicFor(s) {
+  if (!MUSIC || !SOUND || !AC_UNLOCKED) { if (MU.mood) muStop(); return; }
+  let mood = s && s.duello && s.duello.arena && !s.duello.arena.finito ? "duel" : (s && s.luogo && s.luogo.type) || "quiet";
+  if (!MOODS[mood]) mood = /sect|setta/.test(mood) ? "sect" : "quiet";
+  if (mood !== MU.mood) try { muStart(mood); } catch (e) { /* audio non disponibile */ }
+}
+let AC_UNLOCKED = false;                               // i browser vogliono un gesto prima di suonare
+document.addEventListener("pointerdown", () => { if (!AC_UNLOCKED) { AC_UNLOCKED = true; try { muCtx().resume(); } catch (e) { /* niente */ } musicFor(S); } }, { once: false });
 function toast(head, body, tone) {
   sfx(tone || "info");
   const box = $("#toasts");
@@ -358,6 +440,7 @@ async function refresh() {
   if (s.fase === "morto") return showDeath();
   S = s;
   renderTop(s); renderTodo(s); renderBadges(s); renderPlace(s); renderScene(s); renderSugg(s); renderAutoCfg(s);
+  musicFor(s);
   renderPalaceHead();
   if (tab === "mete") renderMete(s);
   else if (tab === "oggi") renderToday(s);
@@ -970,11 +1053,19 @@ function drawMap() {
   }
   const byId = Object.fromEntries(m.nodes.map((n) => [n.id, n]));
   let svg = `<svg id="mapsvg" viewBox="${mapView.join(" ")}" xmlns="http://www.w3.org/2000/svg">
-    <defs><radialGradient id="glow"><stop offset="0" stop-color="var(--accent)" stop-opacity=".55"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient></defs>`;
+    <defs><radialGradient id="glow"><stop offset="0" stop-color="var(--accent)" stop-opacity=".55"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient>
+      <filter id="ink" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="3"/></filter>
+      <clipPath id="med" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath></defs><g class="edges" filter="url(#ink)">`;
+  // (Agg. 69) la MAPPA DIPINTA: le strade sono tratti di pennello leggermente curvi, i luoghi hanno il loro sigillo
   for (const [a, b] of m.edges) {
     const A = byId[a], B = byId[b];
-    svg += `<line data-e="${Math.min(a, b)}-${Math.max(a, b)}" x1="${px(A) + NW / 2}" y1="${py(A) + NH / 2}" x2="${px(B) + NW / 2}" y2="${py(B) + NH / 2}"/>`;
+    const x1 = px(A) + NW / 2, y1 = py(A) + NH / 2, x2 = px(B) + NW / 2, y2 = py(B) + NH / 2;
+    const bend = (((a * 37 + b * 61) % 9) - 4) * 2.2, dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+    const cx = (x1 + x2) / 2 - dy / L * bend, cy = (y1 + y2) / 2 + dx / L * bend;
+    svg += `<path class="edge" data-e="${Math.min(a, b)}-${Math.max(a, b)}" d="M${x1},${y1} Q${cx.toFixed(1)},${cy.toFixed(1)} ${x2},${y2}"/>`;
   }
+  svg += `</g>`;
   for (const n of m.nodes) {
     const x = px(n), y = py(n);
     const cls = ["node", "r" + Math.min(9, n.ring || 0), n.visited ? "visited" : "unseen", n.here ? "here" : "", n.marks.length ? "mark" : "", n.threats.length && mapLayers.minacce ? "threat" : ""].join(" ");
@@ -988,8 +1079,10 @@ function drawMap() {
     if (n.here) svg += `<circle class="pulse" cx="${x + NW / 2}" cy="${y + NH / 2}" r="46" fill="url(#glow)"/>`;
     svg += `<rect x="${x}" y="${y}" width="${NW}" height="${NH}" rx="8"/>
       <rect class="dz" x="${x + 3}" y="${y + NH - 6}" width="${NW - 6}" height="4" rx="2" style="fill:${dangerColor(n.danger)}"/>
-      <text class="ic" x="${x + 6}" y="${y + 17}">${n.here ? "◉" : ic}</text>
-      <text class="nm" x="${x + 6}" y="${y + 34}">${esc(short)}</text>`;
+      ${(() => { const u = !n.home && imgOf(["mappa/" + n.type]); return u
+        ? `<image href="${u}" x="${x + 4}" y="${y + 3}" width="22" height="22" clip-path="url(#med)" preserveAspectRatio="xMidYMid slice"/>${n.here ? `<circle class="herering" cx="${x + 15}" cy="${y + 14}" r="12"/>` : ""}`
+        : `<text class="ic" x="${x + 6}" y="${y + 17}">${n.here ? "◉" : ic}</text>`; })()}
+      <text class="nm" x="${x + 6}" y="${y + 38}">${esc(short)}</text>`;
     let bx = x + NW - 4;
     const badge = (t, c) => { svg += `<text class="bd ${c}" x="${bx}" y="${y + 15}" text-anchor="end">${t}</text>`; bx -= 16; };
     if (n.mystery) badge("❖", "rare");
@@ -1016,7 +1109,7 @@ function drawMap() {
 }
 // passando sopra un luogo, la strada a tappe che percorreresti
 function mapRoute(target) {
-  document.querySelectorAll("#mapsvg line.route").forEach((l) => l.classList.remove("route"));
+  document.querySelectorAll("#mapsvg .edge.route").forEach((l) => l.classList.remove("route"));
   document.querySelectorAll("#mapsvg .node.onroute").forEach((g) => g.classList.remove("onroute"));
   if (!MAP || target == null) return;
   const me = MAP.nodes.find((n) => n.here); if (!me) return;
@@ -1026,7 +1119,7 @@ function mapRoute(target) {
   while (q.length) { const c = q.shift(); if (c === target) break; for (const n of adj[c] || []) if (!(n in prev)) { prev[n] = c; q.push(n); } }
   if (!(target in prev)) return;
   for (let c = target; prev[c] != null; c = prev[c]) {
-    const p = prev[c], l = document.querySelector(`#mapsvg line[data-e="${Math.min(c, p)}-${Math.max(c, p)}"]`);
+    const p = prev[c], l = document.querySelector(`#mapsvg .edge[data-e="${Math.min(c, p)}-${Math.max(c, p)}"]`);
     if (l) l.classList.add("route");
     const g = document.querySelector(`#mapsvg [data-node-id="${c}"]`); if (g) g.classList.add("onroute");
   }
@@ -1122,7 +1215,7 @@ const val = (name) => (document.querySelector(`input[name="${name}"]:checked`) |
 async function showCreation() {
   const o = await api("/api/nuovo");
   openModal(`<h2>Una nuova vita</h2>
-    <fieldset><legend>Origine</legend>${choiceList("o", o.origini, "key", (x) => `<b>${esc(x.name)}</b> — ${esc(x.desc)}`)}</fieldset>
+    <fieldset class="origins"><legend>Origine</legend>${choiceList("o", o.origini, "key", originLabel)}</fieldset>
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
     <fieldset><legend>Rivali</legend>${choiceList("r", o.rivali, "key", (x) => esc(x.label), 1)}</fieldset>
     ${o.difficolta ? `<fieldset><legend>Difficoltà</legend>${choiceList("df", o.difficolta, "key", (x) => esc(x.label), 1)}</fieldset>` : ""}
@@ -1131,9 +1224,45 @@ async function showCreation() {
     <p><label><input type="checkbox" id="cb"> ✦ Affidati al Cielo: nasci con un <b>corpo leggendario</b> a caso (Caos Primordiale, Osso Supremo, Doppie Pupille, Vene Yin…)</label></p>
     <button class="primary" id="go-new">Comincia</button>`);
   $("#go-new").onclick = async () => {
-    const r = await api("/api/nuovo", { origine: val("o"), destino: val("d"), rivali: val("r"), nome: $("#nm").value, senza_ritorno: $("#hc").checked, corpo: $("#cb").checked, difficolta: val("df") || "" });
-    closeModal(); addLog(r.log); await refresh();
+    const origin = val("o");
+    const r = await api("/api/nuovo", { origine: origin, destino: val("d"), rivali: val("r"), nome: $("#nm").value, senza_ritorno: $("#hc").checked, corpo: $("#cb").checked, difficolta: val("df") || "" });
+    closeModal(); await showPrologue(origin, r.log); addLog(r.log); await refresh();
   };
+}
+function originLabel(x) {
+  const u = imgOf(["prologo/" + x.key]);
+  return `${u ? `<img class="orig-img" src="${u}" alt="" loading="lazy">` : ""}<span><b>${esc(x.name)}</b> — ${esc(x.desc)}</span>`;
+}
+// (Agg. 69) il PROLOGO ILLUSTRATO: il quadro della tua origine e il racconto, una pagina alla volta (Avanti / Spazio)
+function showPrologue(origin, text) {
+  const pages = [];
+  let cur = [];
+  for (const l of String(text || "").split("\n")) {
+    if (!l.trim()) { if (cur.length) { pages.push(cur); cur = []; } continue; }
+    cur.push(l);
+    if (cur.length >= 5) { pages.push(cur); cur = []; }
+  }
+  if (cur.length) pages.push(cur);
+  if (!pages.length) return Promise.resolve();
+  const u = imgOf(["prologo/" + origin, "luoghi/mountain", "mondi/0"]);
+  return new Promise((done) => {
+    let i = 0;
+    const box = document.createElement("div"); box.id = "prologue";
+    document.body.appendChild(box);
+    const end = () => { document.removeEventListener("keydown", key, true); box.remove(); done(); };
+    const draw = () => {
+      box.innerHTML = `<div class="pro-img"${u ? ` style="background-image:url('${u}')"` : ""}></div>
+        <div class="pro-text"><div class="pro-page">${pages[i].map((l) => `<p>${actionize(esc(l))}</p>`).join("")}</div>
+        <div class="pro-nav"><span class="muted small">${i + 1} / ${pages.length} · Spazio per continuare</span>
+        <button class="link" data-pro="skip">salta</button><button class="primary" data-pro="next">${i + 1 < pages.length ? "Avanti ▸" : "Comincia"}</button></div></div>`;
+    };
+    const next = () => { i++; if (i >= pages.length) end(); else draw(); };
+    const key = (ev) => { if (ev.key === " " || ev.key === "Enter" || ev.key === "ArrowRight") { ev.preventDefault(); ev.stopPropagation(); next(); }
+      else if (ev.key === "Escape") { ev.preventDefault(); end(); } };
+    box.addEventListener("click", (ev) => { const b = ev.target.closest("[data-pro]"); ev.stopPropagation(); if (!b) return; b.dataset.pro === "skip" ? end() : next(); });
+    document.addEventListener("keydown", key, true);
+    draw();
+  });
 }
 
 async function showDeath() {
@@ -1153,15 +1282,16 @@ async function showDeath() {
     ${o.eredi && o.eredi.length ? `<fieldset><legend>Chi continua la tua Via</legend>
       <label class="opt"><input type="radio" name="er" value="" checked> Un'anima nuova (rinasci da capo, con i frammenti scelti)</label>
       ${o.eredi.map((h) => `<label class="opt"><input type="radio" name="er" value="${h.id}"> ☯ Continua come <b>${esc(h.label)}</b> — tutti i frammenti, il suo regno, il suo nome</label>`).join("")}</fieldset>` : ""}
-    <fieldset><legend>Origine</legend>${choiceList("o", o.origini, "key", (x) => `<b>${esc(x.name)}</b> — ${esc(x.desc)}`)}</fieldset>
+    <fieldset class="origins"><legend>Origine</legend>${choiceList("o", o.origini, "key", originLabel)}</fieldset>
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
     <p><label>Nome <input id="nm" value="" placeholder="(lo stesso di prima)" maxlength="32"></label></p>
     <p><label><input type="checkbox" id="cb"> ✦ Affidati al Cielo: rinasci con un <b>corpo leggendario</b> a caso</label></p>
     <button class="primary" id="go-reb">Rinasci in questo mondo</button>`);
   $("#go-reb").onclick = async () => {
     const picks = [...document.querySelectorAll('input[name="e"]:checked')].map((x) => parseInt(x.value, 10)).slice(0, o.frammenti);
-    const r = await api("/api/rinasci", { origine: val("o"), destino: val("d"), nome: $("#nm").value, eredita: picks.length ? picks : [o.eredita.length - 1], corpo: $("#cb").checked, erede: val("er") ? parseInt(val("er"), 10) : null });
-    closeModal(); addLog(r.log); await refresh();
+    const origin = val("o");
+    const r = await api("/api/rinasci", { origine: origin, destino: val("d"), nome: $("#nm").value, eredita: picks.length ? picks : [o.eredita.length - 1], corpo: $("#cb").checked, erede: val("er") ? parseInt(val("er"), 10) : null });
+    closeModal(); await showPrologue(origin, r.log); addLog(r.log); await refresh();
   };
 }
 
@@ -1194,8 +1324,13 @@ document.addEventListener("click", async (ev) => {
     readBtn(); toast("Lettura", manual() ? "al tuo ritmo: premi Avanti (Spazio) per continuare" : "automatica: il testo scorre da solo", "info");
     return;
   }
+  if (ev.target.closest("#music")) {
+    MUSIC = !MUSIC; try { localStorage.setItem("ji_music", MUSIC ? "1" : "0"); } catch (e) { /* niente */ }
+    $("#music").style.opacity = MUSIC ? "1" : ".45"; musicFor(S); return;
+  }
   if (ev.target.closest("#sound")) {
     SOUND = !SOUND; try { localStorage.setItem("ji_sound", SOUND ? "1" : "0"); } catch (e) { /* niente */ }
+    musicFor(S);
     $("#sound").textContent = SOUND ? "🔊" : "🔈"; if (SOUND) sfx("info"); return;
   }
   if (ev.target.closest("#theme")) {
@@ -1274,6 +1409,7 @@ function setWide(on) {
 }
 try { if (localStorage.getItem("ji_wide") === "1") document.body.classList.add("wide"); } catch (e) { /* niente */ }
 $("#sound").textContent = SOUND ? "🔊" : "🔈";
+if ($("#music")) $("#music").style.opacity = MUSIC ? "1" : ".45";
 function readBtn() { const b = $("#readmode"); if (b) { b.textContent = manual() ? "📖" : "⏩"; b.title = manual() ? "Lettura al tuo ritmo (Avanti) — clic per automatica" : "Lettura automatica — clic per leggere al tuo ritmo"; } advUi(); }
 readBtn();
 
