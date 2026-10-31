@@ -10,7 +10,7 @@ for f in sorted(src.glob("*__*.jpg")):
     if f.name.startswith("ji3__"):
         continue
     d, n = f.stem.split("__", 1)
-    if d not in ("ritratti", "scene", "momenti", "oggetti", "azioni", "stati", "luoghi"):
+    if d not in ("ritratti", "scene", "momenti", "oggetti", "azioni", "stati", "luoghi", "dao"):
         continue
     im = Image.open(f).convert("RGB")
     w, h = im.size
