@@ -3525,3 +3525,30 @@ fonderli si scrive per esempio `fusione acqua fuoco`, `fusione tempesta` o «fon
 
 ### Test
 - `tests/test_dao_laws.py` (16 test). 956 in totale.
+
+## Aggiornamento 78 — I mestieri di chi divori, e le immagini delle vie nuove
+
+### I mestieri degli altri (`engine/systems/npc_crafts.py`)
+- **Ogni persona sa fare qualcosa.** Ogni NPC umano può conoscere un'arte: alchimia, talismani, forgia,
+  formazioni o addomesticamento.
+  - Ha un livello che dipende dall'archetipo e dal regno: anziani e patriarchi sono maestri, mercanti ed
+    eremiti alchimisti, le guardie fabbri, i cacciatori domatori.
+  - A volte conosce anche una seconda arte, a un livello più basso.
+  - Lo stesso NPC sa sempre le stesse cose. `examine <nome>` lo mostra («Mestiere: Alchimia — maestro, liv. 8»).
+- **L'Abisso Divoratore assorbe anche il mestiere:**
+  - se conosci già l'arte, ricevi una parte della sua esperienza e cresci fino al suo livello, mai oltre: un
+    apprendista non insegna nulla a un maestro, un gran maestro sì;
+  - se non la conosci, ne ricavi frammenti: con 8 frammenti l'arte è tua, poi la pratichi con `arti <nome>`;
+  - le bestie lasciano frammenti di addomesticamento;
+  - quanto ricevi dipende dalla freschezza del corpo e dall'integrazione pulita, come il resto
+    dell'assorbimento.
+- **Dove li vedi:** i frammenti raccolti compaiono nel menu `arti`.
+
+### Immagini
+- Ci sono le immagini dei 34 Dao nuovi e delle 27 fusioni (`immagini/dao/`).
+- Ci sono le scene `scene/fusione`, `scene/reperti`, `scene/fortune` e `scene/reame`; le ultime due il
+  codice le chiedeva già, ma mancavano.
+- Il ritratto `eroe_3` è stato rifatto più maschile.
+
+### Test
+- `tests/test_npc_crafts.py` (4 test).

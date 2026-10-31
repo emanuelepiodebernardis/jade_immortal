@@ -93,6 +93,11 @@ def absorb(conn: sqlite3.Connection, tick: int, rng: random.Random,
         _bump_count(conn, player_id, "abs_human")
         summary = outcome.pop("_summary", f"Divori l'eredità di {name}.")
 
+    from engine.systems import npc_crafts            # (Agg. 78) anche i mestieri di chi divori
+    _cr = npc_crafts.on_absorb(conn, player_id, target_id, kind, freshness, clean)
+    if _cr:
+        summary += "\n" + "\n".join(_cr)
+        outcome["crafts"] = _cr
     from engine.systems import constitutions, dao_heart
     _c = constitutions.get(conn)
     if _c and _c["key"] == "giada":

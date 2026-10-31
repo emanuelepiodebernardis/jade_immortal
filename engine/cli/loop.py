@@ -384,6 +384,10 @@ def cmd_examine(conn: sqlite3.Connection, player: entities.Player, arg: str) -> 
         lines.append(f"Affiliazione: {faction['name']}")
     if npc.description:
         lines.append(npc.description)
+    from engine.systems import npc_crafts            # (Agg. 78) che cosa sa fare
+    _cr = npc_crafts.describe_npc(conn, npc.id)
+    if _cr:
+        lines.append(_cr)
     if traits:
         ordered = sorted(traits.items(), key=lambda kv: abs(kv[1] - 50), reverse=True)
         shown = ", ".join(f"{k} {v}" for k, v in ordered)

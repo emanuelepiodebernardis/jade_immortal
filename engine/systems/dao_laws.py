@@ -687,7 +687,7 @@ def menu_section(conn, player):
     lines.append("Ogni Dao ha un vantaggio e un costo; le fusioni chiedono i componenti avanti e un cuore saldo.")
     acts.append(act("Tutte le ricette di fusione", "fusione"))
     acts.append(act("Tutte le vie nuove", "vie"))
-    return section("Le leggi nuove e le fusioni", lines, acts, icon="☯")
+    return section("Le leggi nuove e le fusioni", lines, acts, icon="☯", img="scene/fusione")
 
 
 def describe_new(conn, player) -> str:

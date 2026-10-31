@@ -252,6 +252,10 @@ def describe_menu(conn, pid: int = 1) -> str:
         else:
             lines.append(f"  {i}. {a['nome']} — mai praticata ({a['desc']})")
     lines.append(materials_line(conn, pid))
+    from engine.systems import npc_crafts           # (Agg. 78) frammenti dei mestieri assorbiti
+    _fr = npc_crafts.describe(conn, pid)
+    if _fr:
+        lines.append(_fr)
     n = len(d["pratichi"])
     if n > 1:
         lines.append(f"Con {n} arti in pratica, 'train' le fa crescere tutte (ognuna un po' più piano).")
