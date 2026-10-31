@@ -49,6 +49,10 @@ def hud_line(conn: sqlite3.Connection, player: entities.Player) -> str:
     pt = beasts.pet(conn, player.id)
     if pt:
         parts.append(f"Bestia: {pt['name']}")
+    from engine.systems import goals                  # (Agg. 79) l'obiettivo guidato
+    _g = goals.plan(conn, player.id)
+    if _g:
+        parts.append(f"🎯 {_g['title']} {_g['done']}/{_g['total']}")
     return "── " + " · ".join(parts) + " ──"
 
 

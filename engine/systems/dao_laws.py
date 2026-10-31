@@ -243,8 +243,8 @@ INSIGHT = {
     "spaziotempo": [(250, "mondo"), (1000, "origine")], "fili_fato": [(500, "samsara"), (1000, "numeri")],
     "singolarita": [(500, "annientamento")], "putrefazione": [(250, "vita_morte")],
     "fiamma_vita": [(100, "longevita"), (500, "vita_morte")], "fortezza": [(500, "confine")],
-    "anno_eterno": [(500, "ciclo")], "mille_specchi": [(500, "illusione")], "rimembranza": [(500, "samsara")],
-    "intento_assoluto": [(1000, "volonta")], "canto_anima": [(500, "illusione")],
+    "anno_eterno": [(500, "samsara")], "mille_specchi": [(250, "sguardo")], "rimembranza": [(500, "samsara")],
+    "intento_assoluto": [(1000, "annientamento")], "canto_anima": [(500, "illusione")],
 }
 LIGHT_HEART = 50
 CONFLICTS = [({"fuoco", "ghiaccio"}, ["yinyang", "acqua"]), ({"luce", "oscurita"}, ["yinyang"]),
@@ -685,6 +685,7 @@ def menu_section(conn, player):
                      + ", ".join(BY_KEY[k][1].split(" ", 2)[-1] for k in open_new[:12]) + ("…" if len(open_new) > 12 else "") + ".")
         acts += [act(f"Apri: {BY_KEY[k][1].split(' ', 2)[-1]}", f"comprehend {k}") for k in open_new[:3]]
     lines.append("Ogni Dao ha un vantaggio e un costo; le fusioni chiedono i componenti avanti e un cuore saldo.")
+    acts.append(act("🌳 L'albero dei Dao", "albero", main=not ready))
     acts.append(act("Tutte le ricette di fusione", "fusione"))
     acts.append(act("Tutte le vie nuove", "vie"))
     return section("Le leggi nuove e le fusioni", lines, acts, icon="☯", img="scene/fusione")

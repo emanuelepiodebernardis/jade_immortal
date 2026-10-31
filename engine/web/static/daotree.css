@@ -1,0 +1,82 @@
+/* DaoTree — grafo dei Dao. Usa i token di style.css, quindi segue il tema chiaro e scuro. */
+.dt-root { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.dt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dt-chip { border-radius: 99px; padding: 4px 12px; background: var(--chip); font-size: 13px; text-align: center; }
+.dt-chip .dt-n { color: var(--muted); font-size: 11.5px; margin-left: 2px; }
+.dt-chip.dt-chip-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.dt-chip.dt-chip-on .dt-n { color: inherit; opacity: .8; }
+.dt-search { flex: 1 1 160px; min-width: 0; max-width: 300px; border-radius: 99px; padding: 5px 12px; }
+.dt-zoom { display: flex; gap: 4px; margin-left: auto; }
+.dt-zbtn { min-width: 32px; padding: 4px 8px; text-align: center; border-radius: 8px; line-height: 1.2; }
+.dt-zpct { min-width: 54px; font-size: 12px; color: var(--muted); }
+.dt-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.dt-lg { display: inline-flex; align-items: center; gap: 6px; }
+.dt-sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--muted); }
+.dt-sw-derive { border-top-style: dashed; }
+.dt-sw-insight { border-top: 2px dotted var(--gold); }
+
+.dt-wrap {
+  overflow: auto; max-height: min(70vh, 720px); min-height: 160px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel2); cursor: grab; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+.dt-wrap.dt-grab { cursor: grabbing; user-select: none; }
+.dt-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.dt-svg { display: block; font-family: var(--sans); }
+.dt-empty { margin: 0; padding: 24px; text-align: center; color: var(--muted); }
+
+.dt-edge { fill: none; stroke: var(--muted); stroke-width: 1.4; opacity: .55; transition: opacity .15s; }
+.dt-e-derive { stroke-dasharray: 6 4; }
+.dt-e-insight { stroke: var(--gold); stroke-width: 1.8; stroke-dasharray: 1.5 4.5; stroke-linecap: round; opacity: .85; }
+.dt-arrow { fill: var(--muted); opacity: .8; }
+.dt-arrow-insight { fill: var(--gold); }
+.dt-elabel { font-size: 11px; font-weight: 600; fill: var(--gold); paint-order: stroke; stroke: var(--panel2); stroke-width: 4px; stroke-linejoin: round; }
+
+.dt-node { outline: none; transition: opacity .15s; }
+.dt-click { cursor: pointer; }
+.dt-box { fill: var(--panel); stroke: var(--line); stroke-width: 1.4; transition: stroke .15s, fill .15s; }
+.dt-name { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
+.dt-sub { font-size: 11px; fill: var(--muted); }
+.dt-imgbg { fill: var(--chip); }
+.dt-prog { fill: var(--accent); opacity: .7; }
+
+.dt-s-have .dt-box { fill: var(--accent); stroke: var(--accent-2); }
+.dt-s-have .dt-name { fill: var(--accent-ink); }
+.dt-s-have .dt-sub { fill: var(--accent-ink); opacity: .8; }
+.dt-s-have .dt-imgbg { fill: color-mix(in srgb, var(--accent-ink) 25%, transparent); }
+.dt-s-ready .dt-box { stroke: var(--gold); stroke-width: 2; fill: color-mix(in srgb, var(--gold) 12%, var(--panel)); animation: dt-pulse 2.2s ease-in-out infinite; }
+.dt-s-open .dt-box { stroke: color-mix(in srgb, var(--ink) 35%, var(--line)); }
+.dt-s-locked { opacity: .5; }
+.dt-s-locked .dt-box { stroke-dasharray: 3 3; }
+.dt-s-locked .dt-name { fill: var(--muted); }
+
+.dt-click:hover .dt-box, .dt-node:focus-visible .dt-box { stroke: var(--accent); stroke-width: 2.4; }
+.dt-s-ready.dt-click:hover .dt-box { stroke: var(--gold); }
+.dt-hit .dt-box { stroke: var(--info); stroke-width: 3; }
+@keyframes dt-pulse {
+  0%, 100% { filter: drop-shadow(0 0 1px color-mix(in srgb, var(--gold) 40%, transparent)); }
+  50% { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--gold) 85%, transparent)); }
+}
+
+.dt-hl .dt-edge:not(.dt-on), .dt-hl .dt-elabel:not(.dt-on) { opacity: .1; }
+.dt-hl .dt-node:not(.dt-on) { opacity: .35; }
+.dt-edge.dt-on { opacity: 1; stroke: var(--accent); stroke-width: 2.4; }
+.dt-e-insight.dt-on { stroke: var(--gold); }
+.dt-node.dt-dim, .dt-edge.dt-dim, .dt-elabel.dt-dim { opacity: .14; }
+.dt-hl .dt-node.dt-dim:not(.dt-on) { opacity: .14; }
+
+.dt-tip {
+  position: absolute; z-index: 5; pointer-events: none; max-width: min(280px, 80%);
+  background: var(--sys); color: var(--sys-ink); border: 1px solid var(--sys-line); border-radius: 8px;
+  padding: 6px 10px; font-size: 12.5px; line-height: 1.4; box-shadow: var(--shadow-lg);
+}
+.dt-tip[hidden] { display: none; }
+.dt-tip-st { color: var(--sys-dim); }
+.dt-tip-h { margin-top: 2px; }
+.dt-tip-c { margin-top: 3px; font-family: var(--mono); font-size: 11.5px; color: var(--sys-line); }
+
+@media (prefers-reduced-motion: reduce) { .dt-s-ready .dt-box { animation: none; } }
+@media (max-width: 600px) {
+  .dt-search { max-width: none; flex-basis: 100%; order: 3; }
+  .dt-wrap { max-height: 62vh; }
+}

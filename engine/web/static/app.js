@@ -427,6 +427,8 @@ async function run(cmd) {
   if (CUT_NEXT) { document.querySelectorAll(".cutin").forEach((x) => x.remove()); CUT_NEXT = null; }
   const lc = cmd.toLowerCase();
   if (lc === "mappa" || lc === "map") return loadTab("mappa");
+  if (/^albero( (dei )?dao)?$/.test(lc)) return openDaoTree();                       // (Agg. 79) l'albero dei Dao
+  if (window.CmdBar && /^(move|vai|n|s|e|w|nord|sud|est|ovest|teletrasporto)\b/.test(lc)) setTimeout(() => CmdBar.refresh(), 1500);
   if (lc === "equip" || lc === "equipaggiamento") return loadTab("tesori:zaino");
   if (lc === "traguardi") return loadTab("m:stagione");
   if (lc === "minigiochi") { MINIGAME = !MINIGAME; try { localStorage.setItem("ji_minigame", MINIGAME ? "1" : "0"); } catch (e) { /* niente */ }
@@ -1593,6 +1595,21 @@ document.addEventListener("change", async (ev) => {
   if (ev.target.id === "showall") run(ev.target.checked ? "schede tutte" : "schede graduali");
   if (ev.target.id === "diff") run(`difficolta ${ev.target.value}`);
 });
+// (Agg. 79) L'ALBERO DEI DAO in una finestra: le vie, le fusioni, i Dao alti che aprono; un clic = il comando.
+async function openDaoTree() {
+  if (!window.DaoTree) return;
+  const data = await api("/api/albero_dao");
+  openModal(`<div class="dtree-modal"><h2>🌳 L'albero dei Dao <button class="x" id="dtree-close" title="Chiudi">✕</button></h2>
+    <p class="muted">Oro: puoi aprirlo o fonderlo adesso. Pieno: è tuo. Le linee tratteggiate sono le vie derivate; le dorate
+    puntinate i Dao alti che una fusione mostra quando arriva in fondo. Clic su un nodo per il comando.</p><div id="dtree"></div></div>`);
+  $("#modal").classList.add("wide");
+  $("#dtree-close").onclick = () => { $("#modal").classList.remove("wide"); closeModal(); };
+  DaoTree.render($("#dtree"), data, { onCmd: (c) => { $("#modal").classList.remove("wide"); closeModal(); run(c); },
+                                      img: (k) => imgOf(["dao/" + k]) });
+}
+window.openDaoTree = openDaoTree;
+// (Agg. 79) LA BARRA DEI COMANDI: suggerimenti mentre scrivi, Tab per completare, gli argomenti dopo lo spazio
+if (window.CmdBar) CmdBar.init({ input: $("#cmd"), fetchJSON: (u) => api(u), onPick: () => {} });
 $("#cmdform").addEventListener("submit", (ev) => {
   ev.preventDefault();
   const v = $("#cmd").value;

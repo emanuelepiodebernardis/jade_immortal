@@ -202,6 +202,8 @@ def events(conn, player) -> dict:
     _tries = _d["tries"] if _d["tries_day"] == _day else 0
     from engine.systems import grand_tournament as _gt
     secs.insert(0, _gt.menu_section(conn, player))
+    from engine.systems import heaven_trials as _ht          # (Agg. 79) le Prove del Cielo
+    secs.insert(1, _ht.menu_section(conn, player))
     secs.insert(0, section("Torre della Deificazione", [
         f"Il tuo piano questa settimana: {_d['floor'] if _d['week'] == _day // _dt.WEEK else 0} (record {_d['best']}). "
         f"Tentativi di oggi: {_tries}/{_dt.TRIES}. Ogni 5 piani un forziere; a fine settimana un premio per la classifica."],

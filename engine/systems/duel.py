@@ -691,6 +691,11 @@ def _plot(conn, player, npc_id: int, outcome: str) -> list[str]:
         out += grand_tournament.on_duel(conn, player, npc_id, outcome)   # il Gran Torneo
         from engine.systems import caves
         out += caves.on_duel(conn, player, npc_id, outcome)              # (Agg. 71) i guardiani delle grotte
+        from engine.systems import heaven_trials
+        out += heaven_trials.on_duel(conn, player, npc_id, outcome)      # (Agg. 79) le Prove del Cielo
+        if outcome == "sconfitta":
+            from engine.systems import dao_insight
+            out += dao_insight.after_defeat(conn, npc_id, player.id)     # (Agg. 79) la sconfitta insegna
     except Exception:  # noqa: BLE001
         pass
     try:

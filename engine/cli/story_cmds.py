@@ -430,6 +430,34 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("voce", "comandi_vocali", "comandi_voce"):           # (Agg. 76) il prontuario dei comandi a voce
         from engine.cli import voice
         return voice.CHEATSHEET
+    if cmd in ("albero", "albero_dao"):                                    # (Agg. 79) nel terminale: le ricette
+        from engine.systems import dao_laws
+        return ("(Nella dashboard 'albero' apre il grafo delle vie e delle fusioni.)\n"
+                + dao_laws.describe_fusions(conn, player))
+    if cmd in ("riassunto", "dove_eravamo", "recap"):                     # (Agg. 79)
+        from engine.systems import recap
+        return "\n".join(recap.build(conn, player))
+    if cmd in ("prova_cielo", "prove_cielo", "prova"):                     # (Agg. 79) le Prove del Cielo
+        from engine.systems import heaven_trials
+        return heaven_trials.start(conn, player, arg)
+    if cmd in ("assisti", "guarda_allenamento", "osserva_duello"):        # (Agg. 79) imparare guardando
+        from engine.systems import dao_insight
+        return dao_insight.watch(conn, player)
+    if cmd in ("bottega", "apprendista_da", "impara_da", "apprendistato"):   # (Agg. 79) i mestieri senza divorare
+        from engine.systems import workshop
+        return workshop.apprentice(conn, player, arg)
+    if cmd in ("commissiona", "commissione", "ordina"):
+        from engine.systems import workshop
+        return workshop.commission(conn, player, arg)
+    if cmd in ("laboratorio", "lab", "mia_bottega"):
+        from engine.systems import workshop
+        return workshop.lab_command(conn, player, arg)
+    if cmd in ("cerca", "trova", "ricerca", "search"):                  # (Agg. 79) la ricerca globale
+        from engine.systems import search
+        return search.describe(conn, arg, player.id)
+    if cmd in ("obiettivo", "meta", "traguardo", "punta"):             # (Agg. 79) gli obiettivi guidati
+        from engine.systems import goals
+        return goals.command(conn, player, arg)
     if cmd in ("fusione", "fondi", "fusioni", "fondi_dao"):              # (Agg. 77) le fusioni dei Dao
         from engine.systems import dao_laws
         return dao_laws.fuse(conn, player, (arg or "").split())

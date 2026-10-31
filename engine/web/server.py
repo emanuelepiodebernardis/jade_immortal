@@ -136,6 +136,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.chronicle_data("tutte" in url.query))
             if path == "/api/salvataggi":
                 return self._json(game.saves())
+            if path == "/api/comandi":                   # (Agg. 79) suggerimenti, ricerca, albero dei Dao
+                return self._json(game.commands_data())
+            if path == "/api/cerca":
+                return self._json(game.search_data((parse_qs(url.query).get("q") or [""])[0]))
+            if path == "/api/albero_dao":
+                return self._json(game.dao_tree_data())
             if path == "/api/dao":
                 return self._json(game.dao_data())
             if path == "/api/mappa":

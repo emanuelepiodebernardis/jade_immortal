@@ -213,6 +213,20 @@ CODEX = {
                 "portati all'estremo aprono lo Yin-Yang). Combattere chi è più forte ti fa vedere come usa il suo Dao, e tra le "
                 "rovine ('reperti') i maestri del passato hanno lasciato insegnamenti: scorci di vie nuove, comprensione, "
                 "intuizioni sulle fusioni."),
+    "obiettivi": ("Obiettivi, ricerca e albero", "Scrivi 'obiettivo' seguito da dove vuoi arrivare: una fusione "
+                  "('obiettivo tempesta'), una via nuova ('obiettivo ghiaccio'), un Dao alto ('obiettivo yinyang': il piano "
+                  "passa dalla fusione che lo apre), un Dao a una soglia ('obiettivo spada 250') o un'arte ('obiettivo "
+                  "alchimia 10'). Vedi i passi con le barre, la riga di stato mostra a che punto sei e il pilota automatico "
+                  "dedica parte delle giornate al passo che manca. 'cerca <parola>' trova tutto ciò che la riguarda; "
+                  "'albero' apre il grafo dei Dao; 'riassunto' ti dice dove eravate rimasti. Nella barra dei comandi i "
+                  "suggerimenti compaiono mentre scrivi: Tab per completare."),
+    "bottega": ("Bottega, prove e maestri", "Ogni persona sa fare qualcosa ('examine <nome>'). 'bottega <nome>': una "
+                "giornata al fianco di un maestro ti insegna la sua arte, fino al suo livello. 'commissiona <nome>': gli "
+                "fai creare una cosa per pietre. 'laboratorio apri' (in città): un laboratorio tuo che rende ogni giorno. "
+                "'assisti': guardi chi si allena e impari dal più bravo. Perdere un duello insegna: ripensi a ogni colpo. "
+                "Le Prove del Cielo ('prova_cielo 1-3') sono duelli d'arena contro chi è più forte di te: perdere non "
+                "uccide, vincere paga. I prodigi della tua generazione crescono con le tue stesse regole (vie nuove, "
+                "fusioni, reperti) e, se ti superano da tempo, vengono a sfidarti davanti a tutti."),
     "voce": ("I comandi a voce", "Puoi giocare parlando: accendi 🎙 accanto alla barra dei comandi, usa un dettatore (per "
              "esempio Handy, o la dettatura di Windows) e di' gli ordini come a un compagno: «vai a est», «attacca il primo "
              "nemico», «sfida a duello Mei», «apri il Dao», «la seconda», «avanti». Il testo dettato parte da solo. Il 🔈 "

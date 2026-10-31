@@ -469,6 +469,24 @@ ATTR = {"forza": "FOR", "vitalita": "VIT", "vitalità": "VIT", "agilita": "AGI",
         "int": "INT", "sag": "SAG", "frt": "FRT"}
 SLOTS = ("veste", "corona", "amuleto", "anello", "stivali", "talismano")
 VERBI = [
+    # (Agg. 79) obiettivi, ricerca, bottega, prove, albero, riassunto
+    (r"^(apri |mostra )?(l'|l |lo )?albero( dei dao)?$", "albero"),
+    (r"^(riassunto|dove eravamo|ricordami dove eravamo|fammi il riassunto)$", "riassunto"),
+    (r"^(togli|cancella|annulla) (l'|l )?obiettivo$", "obiettivo via"),
+    (r"^(qual e|qual è|mostra|mostrami)? ?(il |l'|l )?(mio )?obiettivo$", "obiettivo"),
+    (r"^(obiettivo|punta|voglio arrivare|voglio ottenere|voglio raggiungere)( a| al| alla| allo| all'| il| la| lo| l')? (?P<rest>.+)$",
+     "obiettivo {rest}"),
+    (r"^(vai |va )?(a )?bottega (da |dal |dalla )?(?P<rest>.+)$", "bottega {who}"),
+    (r"^(impara|lavora) (da|dal|dalla|con) (?P<rest>.+)$", "bottega {who}"),
+    (r"^(commissiona|ordina)( a| al| alla)? (?P<rest>.+)$", "commissiona {rest}"),
+    (r"^(assisti|guarda (gli |l')?allenament[oi]|osserva (gli )?allenament[oi])$", "assisti"),
+    (r"^(riscuoti|incassa)( dal| il)? laboratorio$", "laboratorio riscuoti"),
+    (r"^(apri |mostra )?(il )?(mio )?laboratorio$", "laboratorio"),
+    (r"^(affronta |tenta |fai )?(la )?prova (del cielo )?(di |d')?(bronzo|uno|1)$", "prova_cielo 1"),
+    (r"^(affronta |tenta |fai )?(la )?prova (del cielo )?(di |d')?(argento|due|2)$", "prova_cielo 2"),
+    (r"^(affronta |tenta |fai )?(la )?prova (del cielo )?(di |d')?(oro|tre|3)$", "prova_cielo 3"),
+    (r"^(le )?prove del cielo$", "prova_cielo"),
+    (r"^(cerca|trova) (?!(i |le )?(reperti|stele|rovine|insegnamenti))(?P<rest>.+)$", "cerca {rest}"),
     # (Agg. 77) le leggi nuove, le fusioni, i reperti
     (r"^(cerca|esamina|studia|fruga)( tra)? (i |le )?(reperti|stele|rovine|insegnamenti)( dei maestri)?$", "reperti"),
     (r"^(mostra |elenca |quali )?(le )?(fusioni|ricette di fusione)( possibili)?$", "fusione"),

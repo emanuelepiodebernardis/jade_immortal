@@ -162,8 +162,10 @@ def intro() -> str:
     with LOCK, transaction() as conn:
         p = entities.get_player(conn)
         out = []
-        from engine.systems import idle_cultivation           # (Agg. 67) ciò che hai coltivato mentre eri via
+        from engine.systems import idle_cultivation, recap    # (Agg. 67) ciò che hai coltivato mentre eri via
+        _rc = recap.on_open(conn, p)                          # (Agg. 79) dove eravamo (prima che l'assenza si azzeri)
         out += idle_cultivation.on_open(conn, p)
+        out += _rc
         banner = loop._day_banner(conn, p)
         if banner:
             out.append(banner)
@@ -636,6 +638,26 @@ def summary_diff(a: dict, b: dict) -> dict:
             "fama": b["fame"] - a["fame"], "karma": b["karma"] - a["karma"], "uccisioni": b["kills"] - a["kills"],
             "titoli": [t for t in b["titoli"] if t not in a["titoli"]], "faide": b["faide"] - a["faide"],
             "debiti": b["debiti"] - a["debiti"], "oggetti": b["oggetti"] - a["oggetti"]}
+
+
+def commands_data() -> dict:
+    """(Agg. 79) I comandi e i loro argomenti, per i suggerimenti della barra."""
+    from engine.systems import search
+    with LOCK, transaction() as conn:
+        return {"comandi": search.commands(), "argomenti": search.argomenti(conn)}
+
+
+def search_data(q: str) -> list[dict]:
+    from engine.systems import search
+    with LOCK, transaction() as conn:
+        return search.search(conn, q)
+
+
+def dao_tree_data() -> dict:
+    """(Agg. 79) L'albero dei Dao: le vie, le fusioni e i Dao alti che aprono."""
+    from engine.systems import dao_tree
+    with LOCK, transaction() as conn:
+        return dao_tree.graph(conn)
 
 
 def dao_data() -> list[dict]:

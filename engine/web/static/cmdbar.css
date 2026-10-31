@@ -1,0 +1,24 @@
+/* CmdBar — elenco dei suggerimenti sopra la barra dei comandi. */
+.cb-list {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 60;
+  max-height: min(46vh, 340px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--shadow-lg); padding: 4px;
+}
+.cb-list[hidden] { display: none; }
+.cb-row {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px;
+  padding: 7px 10px; border-radius: 8px; cursor: pointer; min-height: 36px;
+}
+.cb-row.cb-sel, .cb-row:hover { background: var(--accent-soft); }
+.cb-row.cb-sel { box-shadow: inset 3px 0 0 var(--accent); }
+.cb-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.cb-main b { color: var(--ink); font-weight: 650; }
+.cb-args { color: var(--muted); font-family: var(--mono); font-size: 12.5px; }
+.cb-via { color: var(--muted); font-size: 12px; font-style: italic; }
+.cb-desc { color: var(--muted); font-size: 12.5px; line-height: 1.35; flex: 1 1 180px; min-width: 0; }
+@media (max-width: 600px) {
+  .cb-list { max-height: 38vh; }
+  .cb-row { padding: 9px 10px; }
+  .cb-desc { flex-basis: 100%; }
+}

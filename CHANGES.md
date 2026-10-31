@@ -3552,3 +3552,81 @@ fonderli si scrive per esempio `fusione acqua fuoco`, `fusione tempesta` o «fon
 
 ### Test
 - `tests/test_npc_crafts.py` (4 test).
+
+## Aggiornamento 79 — Obiettivi, ricerca, albero dei Dao, rivali vivi, bottega, prove del Cielo
+
+### Obiettivi guidati (`engine/systems/goals.py`)
+`obiettivo <meta>` calcola la strada verso una meta. Le mete possibili sono:
+- **una fusione:** `obiettivo tempesta`;
+- **una via nuova:** `obiettivo ghiaccio`;
+- **un Dao alto:** `obiettivo yinyang`; il piano passa dalla fusione che lo apre e arriva fino a 1000;
+- **un Dao fino a una soglia:** `obiettivo spada 250`;
+- **un'arte fino a un livello:** `obiettivo alchimia 10`.
+
+Il piano mostra:
+- i passi con le loro barre: componenti, cuore del Dao, pietre, ponte per le coppie in conflitto, scorci per i
+  Dao di base ancora chiusi;
+- il comando del passo successivo.
+
+Dove compare:
+- l'obiettivo è nella riga di stato e nella scheda Via → Dao;
+- il pilota automatico dedica circa metà delle scelte al passo che manca.
+
+`obiettivo via` toglie l'obiettivo.
+
+### Ricerca e barra dei comandi
+- **Ricerca globale (`engine/systems/search.py`):** `cerca <parola>` cerca tra Dao, vie nuove, fusioni, arti e
+  ricette, pagine della guida, comandi, persone qui intorno e zaino. Ogni risultato ha il suo comando.
+- **Comando sconosciuto:** propone «Forse intendevi …?».
+- **Barra dei comandi (`static/cmdbar.js`):** suggerimenti mentre scrivi, Tab per completare, e i valori
+  possibili dopo lo spazio: i Dao per `comprehend`, le ricette per `fusione`, le persone presenti per `duello`,
+  `bottega` e gli altri comandi sulle persone. La freccia su continua a scorrere i comandi precedenti.
+- **Nuovi indirizzi della dashboard:** `/api/comandi`, `/api/cerca?q=` e `/api/albero_dao`.
+
+### L'albero dei Dao (`engine/systems/dao_tree.py`, `static/daotree.js`)
+Un grafo di tutti i Dao: 92 nodi e 99 legami. `albero` lo apre; c'è anche il pulsante nella scheda Dao.
+- **Legami:** componenti delle fusioni, vie derivate e Dao alti che una fusione mostra in fondo, con la soglia.
+- **Nodi:** il pieno indica i Dao che hai; l'oro quelli che puoi aprire o fondere adesso. Un clic lancia il
+  comando giusto.
+- **Navigazione:** filtri (Tutti, Miei, Pronti, Fusioni), ricerca, zoom, trascinamento.
+- **Correzioni ai dati:** tre intuizioni creavano dei cicli e ora puntano altrove:
+  - anno eterno → samsara;
+  - mille specchi → sguardo;
+  - intento assoluto → annientamento.
+
+### Rivali che crescono con le tue regole (`engine/systems/rival_laws.py`)
+- I prodigi aprono vie nuove, fondono i loro Dao e trovano reperti; le voci te lo fanno sapere.
+- Le loro fusioni contano davvero in combattimento.
+- `prodigi` mostra fusioni e vie nuove di ciascuno.
+- Chi ti ha superato da almeno 10 giorni viene a sfidarti davanti a tutti. Accettare è un duello; rifiutare
+  costa fama.
+
+### Bottega (`engine/systems/workshop.py`)
+- **`bottega <nome>`:** una giornata da un maestro ti insegna la sua arte (le basi se non la conosci), fino al
+  suo livello e mai oltre. Si paga in pietre, gratis per gli amici.
+- **`commissiona <nome> [n]`:** il maestro ti fa una cosa della sua arte, al suo livello, per pietre.
+- **`laboratorio apri|riscuoti`:** un laboratorio tuo in città (1.500 pietre). Rende ogni giorno secondo la tua
+  arte migliore, più i discepoli della setta.
+
+### Prove del Cielo e imparare guardando
+- **Prove del Cielo (`engine/systems/heaven_trials.py`):** `prova_cielo 1|2|3`, duelli d'arena contro avversari
+  più forti di te di circa il 15%, il 40% e l'80%.
+  - Perdere non uccide.
+  - Vincere dà pietre e un Frutto del Dao; l'Oro dà anche uno scorcio di una via nuova e il titolo «Prescelto
+    del Cielo».
+  - Ogni prova si ritenta dopo 7 giorni. Sono nel menu Eventi.
+- **Imparare dalla sconfitta:** perdere un duello ti insegna come il nemico usava il suo Dao.
+- **`assisti`:** guardi chi si allena nel luogo e impari dal più bravo, una volta al giorno per luogo.
+
+### «Dove eravamo» (`engine/systems/recap.py`)
+Riaprendo il gioco dopo almeno 4 ore compare un riassunto: dove sei, gli ultimi fatti della cronaca,
+l'obiettivo, le scene in sospeso, i rivali più forti, la cassa del laboratorio. `riassunto` lo mostra quando
+vuoi.
+
+### Voce
+Nuove frasi: «voglio arrivare alla tempesta», «togli l'obiettivo», «cerca veleno», «apri l'albero dei Dao»,
+«vai a bottega da Mei», «commissiona a Mei 2», «assisti», «prova d'oro», «riscuoti il laboratorio», «dove
+eravamo».
+
+### Test
+- `tests/test_agg79.py` (14 test). 974 in totale.

@@ -1971,6 +1971,8 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     from engine.systems import constitutions, dao_heart, prodigies
     lines += ["  " + ln for ln in constitutions.daily(conn, t, random.Random(t * 79 + day), player)]
     lines += ["  " + ln for ln in prodigies.daily(conn, t, random.Random(t * 83 + day), player)]
+    from engine.systems import workshop as _ws                 # (Agg. 79) il laboratorio rende ogni giorno
+    lines += ["  " + ln for ln in _ws.daily(conn, t, None, player)]
     from engine.systems import intrigues, soul_arcs, soul_artifacts
     lines += ["  " + ln for ln in intrigues.daily(conn, t, random.Random(t * 101 + day), player)]
     lines += ["  " + ln for ln in soul_artifacts.daily(conn, t, random.Random(t * 103 + day), player)]
@@ -2580,7 +2582,11 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
             return f"(interpreto: {translated})\n" + (result or "")
     if cmd in VERB_ALIAS and allow_nl is not None:      # (Agg. 71) un verbo naturale: riprova col comando vero
         return dispatch(conn, (VERB_ALIAS[cmd] + " " + arg).strip(), allow_nl=False)
-    return f"Comando sconosciuto: '{cmd}'. Scrivi 'help'."
+    from engine.systems import search as _search          # (Agg. 79) «forse intendevi…?»
+    _dm = _search.did_you_mean(cmd)
+    if _dm:
+        return f"Comando sconosciuto: '{cmd}'. Forse intendevi '{_dm}'? ('cerca {cmd}' per cercare ovunque)"
+    return f"Comando sconosciuto: '{cmd}'. Scrivi 'help', o 'cerca <parola>' per cercare ovunque."
 
 
 _COLORS_ON = True
@@ -2606,8 +2612,9 @@ def _intro() -> None:
     from engine.cli import story_cmds
     with transaction() as conn:
         player = entities.get_player(conn)
-        from engine.systems import idle_cultivation           # (Agg. 67) ciò che hai coltivato mentre eri via
-        for ln in idle_cultivation.on_open(conn, player):
+        from engine.systems import idle_cultivation, recap    # (Agg. 67) ciò che hai coltivato mentre eri via
+        _rc = recap.on_open(conn, player)                     # (Agg. 79) dove eravamo
+        for ln in idle_cultivation.on_open(conn, player) + _rc:
             _say(ln)
         banner = _day_banner(conn, player)
         if banner:

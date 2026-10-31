@@ -974,3 +974,9 @@ body.scene-on #place.staged { display: none !important; }
   border-radius: 999px; padding: 4px 12px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.25); transition: opacity .6s, transform .6s; z-index: 5; }
 .voice-echo b { color: var(--accent); font-family: var(--mono); font-weight: 600; }
 .voice-echo.out { opacity: 0; transform: translateY(-6px); }
+
+/* (Agg. 79) l'albero dei Dao in una finestra larga */
+.modal.wide { width: min(1400px, 96vw); max-height: 94vh; }
+.dtree-modal h2 { display: flex; justify-content: space-between; align-items: center; }
+.dtree-modal h2 .x { font-size: 16px; }
+#dtree { height: min(72vh, 900px); }

@@ -367,6 +367,14 @@ def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | Non
         weights["allena"] = weights["coltiva"] = weights["dao"] = 0
     if tg and weights.get("caccia", 0) > 0 and rng.random() < 0.7:
         return f"attack {tg[0]}"
+    from engine.systems import goals                 # (Agg. 79) l'obiettivo guidato: parte della giornata va lì
+    _gc = goals.next_cmd(conn, player.id)
+    if _gc and rng.random() < 0.6:
+        if _gc.startswith("comprehend") and weights.get("dao", 0) == 0 and weights.get("allena", 0) == 0:
+            pass                                     # oggi niente meditazione
+        elif _gc.split()[0] in ("comprehend", "fusione", "train", "arti", "reperti"):
+            if _gc != "reperti" or _loc_type(conn, player.location_id) in _WILD:
+                return _gc
     acts = [a for a in ACTIVITIES if weights.get(a, 0) > 0]
     if not acts:
         return None                                 # giornata finita: si dorme

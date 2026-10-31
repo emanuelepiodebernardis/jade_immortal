@@ -116,6 +116,8 @@ def daily(conn, t: int, rng: random.Random, player) -> list[str]:
     elif down:
         out.append(f"✧ Hai superato {len(down)} giovani geni: {_list(down)}.")
     state.set_json(conn, "prodigies_above", sorted(new_above))
+    from engine.systems import rival_laws                 # (Agg. 79) vie nuove, fusioni, reperti; e le sfide
+    out += rival_laws.daily(conn, t, rng, player, ids, new_above)
     out += _chronicle(conn, t, rng, player)
     return out
 
@@ -179,5 +181,7 @@ def describe(conn, player) -> str:
         lines.append(f"  · {r['name']} — {cultivation.realm_label(conn, 'npc', nid)} — "
                      f"{perception.relative_strength(conn, player.id, nid)}"
                      + (f" — a {r['loc']}" if r["loc"] else " — in ritiro, introvabile")
-                     + (f"\n      fortune: {', '.join(f)}" if f else ""))
+                     + (f"\n      fortune: {', '.join(f)}" if f else "")
+                     + (f"\n      {_dl}" if (_dl := __import__("engine.systems.rival_laws", fromlist=["x"])
+                                                .dao_line(conn, nid)) else ""))
     return "\n".join(lines)

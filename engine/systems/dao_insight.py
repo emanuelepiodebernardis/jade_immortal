@@ -115,8 +115,10 @@ def _fusion_of(keys: set[str]) -> str | None:
 
 # ---------------------------------------------------------------- scontrarsi con chi è più forte
 
-def observe(conn, npc_id: int, pid: int = 1, rng: random.Random | None = None) -> list[str]:
-    """All'inizio di uno scontro: se il nemico ti supera, a volte vedi come usa il suo Dao."""
+def observe(conn, npc_id: int, pid: int = 1, rng: random.Random | None = None, force: bool = False,
+            intro: str | None = None) -> list[str]:
+    """All'inizio di uno scontro: se il nemico ti supera, a volte vedi come usa il suo Dao.
+    force=True (dopo una sconfitta, o guardando un duello altrui): accade sempre, anche con chi non ti supera."""
     from engine.simulation import cultivation
     from engine.systems.dao_techniques import _dao_label
     rng = rng or _rng(conn, npc_id)
@@ -130,10 +132,12 @@ def observe(conn, npc_id: int, pid: int = 1, rng: random.Random | None = None) -
     t_foe = cultivation.realm_tier(conn, "npc", npc_id) or 1
     top, top_c = next(iter(foe.items()))
     stronger = t_foe > t_me or top_c > mine.get(top, 0) * 1.5 + 10
-    if not stronger or rng.random() >= STRONG_CHANCE:
+    if not force and (not stronger or rng.random() >= STRONG_CHANCE):
         return []
+    if force and not stronger and top_c <= mine.get(top, 0):
+        return []                                 # non ha niente da insegnarti
     d = _data(conn)
-    out = [f"👁 Mentre vi studiate, vedi come usa il {_dao_label(top)}: non è un'arte, è un modo di essere."]
+    out = [intro or f"👁 Mentre vi studiate, vedi come usa il {_dao_label(top)}: non è un'arte, è un modo di essere."]
     if top in mine:
         gain = max(1, min(60, (top_c - mine[top]) // 8 + 2 * max(0, t_foe - t_me)))
         out.append("  " + deepen(conn, top, gain, pid))
@@ -214,6 +218,47 @@ def search(conn, player) -> str:
     d["log"].append(f"reperto a {loc.name}")
     _save(conn, d)
     return "\n".join(out)
+
+
+def after_defeat(conn, npc_id: int, pid: int = 1) -> list[str]:
+    """La sconfitta insegna: ripensi a ogni colpo che hai preso."""
+    from engine.systems.dao_techniques import _dao_label
+    top = conn.execute("SELECT dao_key FROM character_daos WHERE character_type='npc' AND character_id=? "
+                       "ORDER BY comprehension DESC LIMIT 1;", (npc_id,)).fetchone()
+    if not top:
+        return []
+    return observe(conn, npc_id, pid, force=True, intro=(
+        f"👁 La sconfitta brucia, ma ripensi a ogni colpo che hai preso: ora capisci come usava il "
+        f"{_dao_label(top['dao_key'])}."))
+
+
+def watch(conn, player) -> str:
+    """'assisti': ti fermi a guardare chi qui combatte o si allena, e impari dal più bravo."""
+    from engine.core import entities, tick
+    from engine.systems import training
+    from engine.simulation import world_tick
+    day = training.current_day(tick.get_tick(conn))
+    d = _data(conn)
+    seen = d.setdefault("watched", {})
+    if seen.get(str(player.location_id)) == day:
+        return "Hai già passato ore a guardare, oggi. Torna domani: ci saranno altri da osservare."
+    best = None
+    for n in entities.npcs_in_location(conn, player.location_id):
+        r = conn.execute("SELECT dao_key, comprehension FROM character_daos WHERE character_type='npc' "
+                         "AND character_id=? ORDER BY comprehension DESC LIMIT 1;", (n.id,)).fetchone()
+        if r and (r["comprehension"] or 0) >= 10 and (not best or r["comprehension"] > best[1]):
+            best = (n, r["comprehension"], r["dao_key"])
+    if not best:
+        return "Qui nessuno combatte né si allena: non c'è niente da guardare."
+    seen[str(player.location_id)] = day
+    _save(conn, d)
+    world_tick.advance(conn, tick.cost_of("short_rest"))
+    from engine.systems.dao_techniques import _dao_label
+    n = best[0]
+    out = observe(conn, n.id, player.id, force=True, intro=(
+        f"👁 Ti fermi a guardare {n.name} che si allena. Ogni gesto del suo {_dao_label(best[2])} è una lezione."))
+    return "\n".join(out) if out else (f"Guardi {n.name} allenarsi per ore, ma il suo {_dao_label(best[2])} non ha "
+                                        f"niente che tu non sappia già.")
 
 
 def can_search(conn, loc_id: int) -> bool:
