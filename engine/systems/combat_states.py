@@ -51,6 +51,8 @@ STATE_OF_DAO = {
     "yinyang": "equilibrio", "caos": "caos", "sangue": "drenaggio", "illusione": "confusione",
     "stelle": "accecamento", "vuoto": "pressione", "creazione": "scudo",
 }
+from engine.systems import dao_laws as _dao_laws   # (Agg. 77)
+STATE_OF_DAO.update({k: v for k, v in _dao_laws.STATE.items() if k not in STATE_OF_DAO})
 _NEGATIVE = {"veleno", "ustione", "gelo", "emorragia", "stordimento", "accecamento", "pressione",
              "terrore", "confusione"}
 _SELF_BUFFS = {"rigenerazione", "scudo", "velocita"}
@@ -94,6 +96,7 @@ class FightCtx:
         self.p = Side("Tu", hp_p, atk_p)
         self.e = Side(e_name, hp_e, atk_e)
         self.lines_intro: list[str] = []
+        self.npc_id = npc_id
         # --- giocatore: stati dai Dao, catene, leggendarie, domini ---
         self.p.procs = _procs(conn, "player", player_id)
         self.p.prof = elements.profile(conn, "player", player_id)
@@ -161,10 +164,11 @@ class FightCtx:
         trk.mark("tribolazione_celeste")
         from engine.systems import mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte, soul_artifacts
         from engine.systems import breakthrough_fates, mounts, dantian, meridians, dharma_body, ancestral_sigils, gear
-        from engine.systems import qi_compression
+        from engine.systems import qi_compression, dao_laws, dao_insight
         for _m in (mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte, soul_artifacts, breakthrough_fates,
-                   mounts, dantian, meridians, dharma_body, ancestral_sigils, gear, qi_compression):
+                   mounts, dantian, meridians, dharma_body, ancestral_sigils, gear, qi_compression, dao_laws):
             self.lines_intro += _m.combat(conn, self)
+        self.lines_intro += dao_insight.observe(conn, npc_id, player_id)   # (Agg. 77) vedere come lo usa chi è più forte
         trk.mark("anello e altri")
         # COSTITUZIONE SPECIALE
         from engine.systems import constitutions

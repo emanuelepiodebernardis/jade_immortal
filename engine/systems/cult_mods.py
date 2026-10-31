@@ -79,6 +79,10 @@ def _parts_cult(conn: sqlite3.Connection, pid: int, location_id: int | None,
     m, lbl = qi_compression.cultivation_mult(conn)
     if m != 1.0:
         out.append((m, lbl))
+    from engine.systems import dao_laws                     # (Agg. 77) le leggi nuove
+    m, lbl = dao_laws.cultivation_mult(conn)
+    if m != 1.0:
+        out.append((m, lbl))
     from engine.systems import pillars                      # (Agg. 73) armonia dei sei pilastri
     m, lbl = pillars.cultivation_mult(conn)
     if m != 1.0:
@@ -123,7 +127,8 @@ def _extra_dao(conn, dao_key: str) -> float:
     from engine.systems import attributes          # Saggezza
     from engine.systems import meridians
     return (celestial_elements.dao_mult(conn, dao_key) * lost_legacy.dao_mult(conn) * master_plot.dao_mult(conn)
-            * attributes.dao_mult(conn) * meridians.dao_mult(conn))
+            * attributes.dao_mult(conn) * meridians.dao_mult(conn)
+            * __import__("engine.systems.dao_laws", fromlist=["x"]).dao_gain_mult(conn))
 
 
 def _era(conn):

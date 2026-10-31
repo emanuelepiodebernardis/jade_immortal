@@ -148,6 +148,10 @@ def _build_one(conn, player, tab: str) -> dict:
         from engine.systems import dantian
         inner = dict(inner)
         inner["sections"] = [dantian.menu_section(conn, player)] + list(inner.get("sections", []))
+    if tab == "profondi":                              # (Agg. 77) le leggi nuove, le fusioni, le intuizioni
+        from engine.systems import dao_laws
+        inner = dict(inner)
+        inner["sections"] = [dao_laws.menu_section(conn, player)] + list(inner.get("sections", []))
     if tab == "coltivazione":
         from engine.systems import breakthrough_fates
         fl = breakthrough_fates.lines_for_menu(conn)

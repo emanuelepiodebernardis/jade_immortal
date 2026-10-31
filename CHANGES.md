@@ -3464,3 +3464,64 @@ tutto in locale.
   restano invariati, e la verifica che ogni frase produca un comando che il gioco conosce.
 - In `tests/test_web_ui.py`: il volto del protagonista.
 - 940 in totale.
+
+## Aggiornamento 77 — Le vie nuove, le fusioni dei Dao e le intuizioni
+
+### Le vie nuove (`engine/systems/dao_laws.py`)
+Ci sono 34 Dao in più, divisi in cinque famiglie. Si vedono con `vie`.
+- **Elementali:** ghiaccio, veleno, suono, gravità, nebbia, magnetismo, stagioni.
+- **D'arma:** scudo, martello, catena, pugnale, pennello, falce.
+- **Corpo e anima:** volontà, ammaestramento, alchimia, forgia, formazioni, longevità, sguardo.
+- **Profondi:** annientamento, ordine, numeri, ciclo, origine, mondo, memoria, confine, specchio.
+- **Proibiti:** divoramento, maledizione, morti, follia, sacrificio.
+
+**Come si aprono.** Ci sono tre modi:
+- *da studiare:* `comprehend scudo`, che costa pietre;
+- *derivati:* servono le basi (il ghiaccio richiede acqua ≥ 25);
+- *risveglio:* si aprono da soli quando una condizione del mondo è soddisfatta (l'annientamento richiede
+  massacro ≥ 100 e vuoto ≥ 25).
+
+**Effetti e costi.** Ogni via ha un vantaggio e un costo vero, quindi nessuna è migliore in tutto.
+- Gli effetti crescono con la soglia di comprensione e hanno un tetto.
+- Le leve sono attacco, difesa, vitalità, critici, schivata, danni subiti, perforazione, colpi in più,
+  coltivazione, comprensione dei Dao, anni di vita, qi e spirito.
+- Ogni via porta il suo stato in combattimento.
+
+### Le fusioni (`fusione`)
+Due o tre Dao abbastanza avanti si fondono in un Dao nuovo. Le ricette sono 27 (`fusione` le elenca); per
+fonderli si scrive per esempio `fusione acqua fuoco`, `fusione tempesta` o «fondi spada e volontà».
+- **Leggere:** vapore, linfa, ferro rovente, sabbia. Chiedono componenti a 25, cuore del Dao ≥ 50 e poche
+  pietre.
+- **Grandi:** tempesta, magma, spaziotempo, fili del fato, singolarità, lama atemporale, intento
+  assoluto, fino alla Via Unica. Chiedono cuore del Dao ≥ 70.
+- **Coppie in conflitto** (fuoco/ghiaccio, luce/oscurità, ordine/follia, annientamento/creazione): senza
+  un ponte, come lo Yin-Yang, c'è il 35% di rischio di fallire (cuore del Dao −15).
+- **Profondità:** il Dao fuso si allena come gli altri e passa da leggero a saldo, profondo, estremo.
+- **Intuizioni:** in fondo, la fusione apre un Dao più alto. Acqua e fuoco all'estremo aprono lo
+  Yin-Yang; la tempesta apre il suono e poi il caos; lo spaziotempo apre il mondo e poi l'origine.
+
+### Le intuizioni (`engine/systems/dao_insight.py`)
+- **Nemici più forti:** se il nemico ha un regno più alto o un Dao più profondo, a volte vedi come lo usa.
+  - Se pratichi quel Dao, la tua comprensione fa un salto.
+  - Se non lo pratichi, ne ricavi uno scorcio: tre scorci aprono il Dao, sei se è superiore.
+  - A volte intravedi anche le vie vicine (dall'acqua il ghiaccio e la nebbia).
+  - Se il nemico intreccia due Dao di una ricetta, ricavi un'intuizione sulla fusione: soglie −20% e
+    nessun rischio di conflitto.
+- **Reperti (`reperti`):** tra rovine, grotte, montagne e zone proibite ci sono stele, rotoli, spade
+  nella roccia e iscrizioni a due mani. Approfondiscono un tuo Dao, danno scorci, intuizioni di fusione o
+  profondità ai Dao fusi. Si cercano una volta per luogo ogni 30 giorni.
+- **Riepilogo:** `intuizioni` mostra gli scorci e le intuizioni che hai.
+
+### Interfaccia e voce
+- **Dashboard:** nella scheda Via → Dao c'è una nuova sezione con le fusioni pronte, le vie che puoi
+  aprire e le ricette.
+- **Suggerimenti:** tra le rovine compare «Cerca i reperti dei maestri».
+- **Comandi vocali:** «cerca i reperti», «mostra le fusioni», «fondi acqua e fuoco», «apri la via del
+  ghiaccio», «le mie intuizioni».
+
+### Ritratti
+- Ci sono 14 volti originali per il protagonista da scegliere: 8 maschili e 6 femminili
+  (`immagini/ritratti/eroe_*.jpg`).
+
+### Test
+- `tests/test_dao_laws.py` (16 test). 956 in totale.

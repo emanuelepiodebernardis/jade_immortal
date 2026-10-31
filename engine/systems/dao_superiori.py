@@ -146,6 +146,8 @@ def check_awakenings(conn: sqlite3.Connection, pid: int = 1) -> list[str]:
         state.grant_title(conn, f"Risvegliato al {name}")
         out.append(f"✺ RISVEGLIO — {name.upper()} ✺\n{text}\n"
                    f"(Nuovo Dao superiore: allenalo con 'comprehend {key}'.)")
+    from engine.systems import dao_laws                 # (Agg. 77) i Dao nuovi a risveglio e le intuizioni delle fusioni
+    out += dao_laws.check_awakenings(conn, pid)
     return out
 
 

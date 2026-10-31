@@ -430,6 +430,18 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("voce", "comandi_vocali", "comandi_voce"):           # (Agg. 76) il prontuario dei comandi a voce
         from engine.cli import voice
         return voice.CHEATSHEET
+    if cmd in ("fusione", "fondi", "fusioni", "fondi_dao"):              # (Agg. 77) le fusioni dei Dao
+        from engine.systems import dao_laws
+        return dao_laws.fuse(conn, player, (arg or "").split())
+    if cmd in ("vie", "vie_nuove", "leggi", "leggi_nuove"):
+        from engine.systems import dao_laws
+        return dao_laws.describe_new(conn, player)
+    if cmd in ("reperti", "cerca_reperti", "stele", "eredita_maestri"):
+        from engine.systems import dao_insight
+        return dao_insight.search(conn, player)
+    if cmd in ("intuizioni", "scorci"):
+        from engine.systems import dao_insight
+        return dao_insight.describe(conn)
     if cmd in ("compressione", "comprimi", "qi_compresso", "fondamenta"):   # (Agg. 75)
         from engine.systems import qi_compression
         return qi_compression.describe(conn)

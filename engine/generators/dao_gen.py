@@ -54,6 +54,9 @@ DAOS = [
     ("creazione", "Dao della Creazione", "superior", "La via che plasma: guarisce, protegge, forgia."),
 ]
 
+from engine.systems import dao_laws as _dao_laws   # (Agg. 77) le leggi nuove e i Dao fusi
+DAOS += _dao_laws.dao_rows()
+
 # Dao primario per archetipo NPC (pesato)
 _ARCH_DAO = {
     "guardia": (["corpo", "spada", "fulmine", "metallo"], [3, 2, 1, 1]),

@@ -130,6 +130,11 @@ DAO_STAT = {
 }
 
 
+from engine.systems import dao_laws as _dao_laws   # (Agg. 77) le leggi nuove e i Dao fusi
+COMBAT_DAOS |= _dao_laws.COMBAT
+DAO_STAT.update(_dao_laws.STAT)
+
+
 def _tier_index(c: int) -> int:
     idx = 0
     for i, t in enumerate(DAO_THRESHOLDS):

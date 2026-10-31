@@ -2121,9 +2121,17 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
     from engine.systems import dao_training, training
     if not arg:
         return "Affinare quale Dao? Usa: comprehend <nome> (vedi 'dao')."
+    from engine.systems import dao_laws                 # (Agg. 77) aprire una via nuova studiandola
+    _nk = dao_laws.find(arg)
     d = dao_training.find_dao(conn, arg, player.id)
+    if _nk in dao_laws.BY_KEY and (d is None or d["dao_key"] != _nk) and not dao_laws._has(conn, _nk, player.id):
+        d = None
+    if d is None or (not d["practiced"] and not d["comprehension"] and d["dao_key"] in dao_laws.BY_KEY):
+        msg = dao_laws.unlock(conn, player, arg)
+        if msg:
+            return msg
     if d is None:
-        return f"Non conosci un Dao simile a '{arg}'. Usa 'dao' per la lista."
+        return f"Non conosci un Dao simile a '{arg}'. Usa 'dao' per la lista ('vie' per le vie nuove)."
     t = tick.get_tick(conn)
     n = training.record_session(conn, t, "player", player.id)
     y = training.session_yield(n)

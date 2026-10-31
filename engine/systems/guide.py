@@ -203,6 +203,16 @@ CODEX = {
                   "attacco, difesa, vitalità e coltivazione."),
     "dharma": ("Dharma e sigilli", "Dal terzo regno il tuo Dao può prendere forma alle tue spalle: il Corpo del Dharma. "
                "I sigilli ancestrali (sei casate) si incastonano nel petto e danno bonus, con set da 2 e 4."),
+    "fusioni": ("Le vie nuove e le fusioni", "Oltre ai Dao di sempre ci sono 34 vie nuove ('vie'): elementali (ghiaccio, "
+                "veleno, suono, gravità, nebbia, magnetismo, stagioni), d'arma (scudo, martello, catena, pugnale, pennello, "
+                "falce), del corpo e dell'anima (volontà, alchimia, forgia, formazioni, longevità…), profonde (ordine, numeri, "
+                "ciclo, origine, mondo, specchio…) e proibite (divoramento, maledizione, morti, follia, sacrificio). Ognuna ha un "
+                "vantaggio e un costo. Alcune si studiano ('comprehend ghiaccio'), altre derivano da un Dao di base, altre si "
+                "risvegliano da sole. Due o tre Dao avanti si FONDONO in uno nuovo ('fusione acqua fuoco'): la fusione parte "
+                "leggera e, allenata, diventa salda, profonda, estrema — e in fondo ti mostra un Dao più alto (acqua e fuoco "
+                "portati all'estremo aprono lo Yin-Yang). Combattere chi è più forte ti fa vedere come usa il suo Dao, e tra le "
+                "rovine ('reperti') i maestri del passato hanno lasciato insegnamenti: scorci di vie nuove, comprensione, "
+                "intuizioni sulle fusioni."),
     "voce": ("I comandi a voce", "Puoi giocare parlando: accendi 🎙 accanto alla barra dei comandi, usa un dettatore (per "
              "esempio Handy, o la dettatura di Windows) e di' gli ordini come a un compagno: «vai a est», «attacca il primo "
              "nemico», «sfida a duello Mei», «apri il Dao», «la seconda», «avanti». Il testo dettato parte da solo. Il 🔈 "

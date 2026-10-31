@@ -469,6 +469,14 @@ ATTR = {"forza": "FOR", "vitalita": "VIT", "vitalità": "VIT", "agilita": "AGI",
         "int": "INT", "sag": "SAG", "frt": "FRT"}
 SLOTS = ("veste", "corona", "amuleto", "anello", "stivali", "talismano")
 VERBI = [
+    # (Agg. 77) le leggi nuove, le fusioni, i reperti
+    (r"^(cerca|esamina|studia|fruga)( tra)? (i |le )?(reperti|stele|rovine|insegnamenti)( dei maestri)?$", "reperti"),
+    (r"^(mostra |elenca |quali )?(le )?(fusioni|ricette di fusione)( possibili)?$", "fusione"),
+    (r"^(mostra |elenca |quali )?(le )?(vie nuove|leggi nuove)$", "vie"),
+    (r"^(mostra |quali )?(le )?(mie )?(intuizioni|scorci)$", "intuizioni"),
+    (r"^(fondi|fondere|unisci|fusione( di| tra)?) (?!(le |la |i |il )?(tecnic|arm|oggett|anim|pietr|clon))(?P<rest>.+)$",
+     "fusione {rest}"),
+    (r"^(apri|impara|intraprendi) (la via|il dao|la legge) (del |della |dello |dell'|dei |delle )(?P<rest>.+)$", "comprehend {rest}"),
     # coltivazione e Dao
     (r"^(comprendi|studia|contempla|medita sul) (il )?(dao )?(del |della |dello |dell')?(?P<rest>.+)$", "comprehend {rest}"),
     (r"^(ritirati|vai in ritiro|ritiro|chiuditi in ritiro)( per| di)? (?P<g>\d+) (giorni|giorno)$", "ritiro {g}"),

@@ -27,7 +27,8 @@ def base_years(conn: sqlite3.Connection, pid: int = 1) -> int:
 def max_years(conn: sqlite3.Connection, pid: int = 1) -> int:
     from engine.simulation import cultivation
     tier = cultivation.realm_tier(conn, "player", pid) or 1
-    years = int(base_years(conn, pid) * (2 ** (tier - 1))) + state.get_int(conn, "life_bonus_years", 0)
+    years = int(base_years(conn, pid) * (2 ** (tier - 1))) + state.get_int(conn, "life_bonus_years", 0) \
+        + __import__("engine.systems.dao_laws", fromlist=["x"]).life_years(conn)
     from engine.systems import constitutions
     cap = constitutions.lifespan_cap(conn)
     return min(years, cap) if cap else years

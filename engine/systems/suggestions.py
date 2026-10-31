@@ -209,6 +209,11 @@ def compute(conn: sqlite3.Connection, player: entities.Player) -> list[tuple[str
         here = entities.get_location(conn, loc)
         if here and here.location_type in ("mountain", "forbidden_zone", "ruin"):
             _add(out, "Raccogli materiali per la tua arte", "gather")
+    _here = entities.get_location(conn, loc)                # (Agg. 77) gli insegnamenti dei maestri del passato
+    if _here and _here.location_type in ("ruin", "cave", "forbidden_zone"):
+        from engine.systems import dao_insight
+        if dao_insight.can_search(conn, _here.id):
+            _add(out, "Cerca i reperti dei maestri del passato", "reperti")
     if items.player_inventory(conn, player.id):
         _add(out, "Usa ciò che hai nello zaino", "use all")
     if market.is_market_here(conn, loc):
