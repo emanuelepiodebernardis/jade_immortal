@@ -1,0 +1,80 @@
+/* ============================================================================
+   fx.css — stili del motore di effetti (fx.js). Inchiostro, giada e cinabro.
+   Usa le variabili di style.css (--accent, --bad, --good, --rare, --warn, --panel, --line).
+   ============================================================================ */
+
+/* tela delle particelle: sopra a tutto, mai bersaglio dei clic */
+.fx-canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9998; display: none; }
+
+/* lampo a schermo intero */
+.fx-flash { position: fixed; inset: 0; pointer-events: none; z-index: 9997; opacity: 0; mix-blend-mode: screen; }
+
+/* numeri e scritte che salgono */
+.fx-float {
+  position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; white-space: nowrap;
+  font: 700 22px/1 var(--serif, Georgia, "Times New Roman", serif); letter-spacing: .01em;
+  color: #fff3d6; -webkit-text-stroke: 4px rgba(12, 16, 14, .88); paint-order: stroke fill;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, .55), 0 0 14px rgba(255, 200, 120, .35);
+  will-change: transform, opacity; opacity: 0; transform: translate(-50%, -50%);
+}
+.fx-t-dmg  { color: #ffe6a8; text-shadow: 0 2px 6px rgba(0,0,0,.55), 0 0 14px rgba(255, 150, 70, .55); }
+.fx-t-crit { color: #ffd23f; font-size: 34px; letter-spacing: .04em; -webkit-text-stroke: 6px rgba(70, 12, 8, .92);
+  text-shadow: 0 3px 8px rgba(0,0,0,.6), 0 0 22px rgba(255, 190, 50, .85), 0 0 44px rgba(220, 60, 30, .6); }
+.fx-t-heal { color: #8affc8; -webkit-text-stroke: 4px rgba(6, 40, 26, .9); text-shadow: 0 0 14px rgba(63, 191, 143, .75); }
+.fx-t-gain { color: #ffe08a; font-size: 24px; -webkit-text-stroke: 4px rgba(60, 38, 4, .9); text-shadow: 0 0 16px rgba(242, 207, 91, .8); }
+.fx-t-qi   { color: #a8f6dd; font-size: 17px; font-weight: 600; -webkit-text-stroke: 3.5px rgba(8, 36, 30, .88); text-shadow: 0 0 12px rgba(63, 191, 143, .6); }
+.fx-t-rare { color: #e2d6ff; font-size: 25px; letter-spacing: .05em; -webkit-text-stroke: 4.5px rgba(34, 18, 74, .92); text-shadow: 0 0 18px rgba(179, 155, 255, .85); }
+.fx-t-bad  { color: #ff9c90; -webkit-text-stroke: 4px rgba(52, 8, 6, .92); text-shadow: 0 0 14px rgba(240, 90, 70, .7); }
+
+/* i vecchi numeri .pop del rendering testuale cedono il posto a quelli del motore */
+.fx-active .pop { display: none !important; }
+.fighter.fx-front { z-index: 30; }
+
+/* aura persistente sul ritratto */
+.fx-aura { --fx-c: var(--accent); animation: fx-aura 1.7s ease-in-out infinite alternate; }
+@keyframes fx-aura {
+  from { filter: drop-shadow(0 0 3px var(--fx-c)) drop-shadow(0 0 7px var(--fx-c)); }
+  to   { filter: drop-shadow(0 0 7px var(--fx-c)) drop-shadow(0 0 20px var(--fx-c)); }
+}
+
+/* scudo della guardia */
+.fx-shield {
+  position: absolute; z-index: 25; pointer-events: none; border-radius: 50%; --fx-c: #7fd3ff;
+  background:
+    radial-gradient(circle, transparent 52%, color-mix(in srgb, var(--fx-c) 30%, transparent) 66%, color-mix(in srgb, var(--fx-c) 85%, #fff) 70%, transparent 74%),
+    conic-gradient(from 0deg, transparent 0 8%, color-mix(in srgb, var(--fx-c) 40%, transparent) 8% 12%, transparent 12% 33%, color-mix(in srgb, var(--fx-c) 40%, transparent) 33% 37%, transparent 37% 58%, color-mix(in srgb, var(--fx-c) 40%, transparent) 58% 62%, transparent 62%);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--fx-c) 60%, transparent), inset 0 0 22px color-mix(in srgb, var(--fx-c) 40%, transparent);
+}
+
+/* KO: ritratto spento, resta così dopo la dissolvenza */
+.fighter.fx-ko .portrait, .fighter.fx-ko > svg, .fighter.fx-ko svg:first-child { filter: grayscale(1) blur(1.5px) brightness(.65); opacity: .38; }
+
+/* trascinamento delle carte */
+.hand .card-act[data-cmd] { -webkit-user-drag: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+body.fx-dragging, body.fx-dragging * { cursor: grabbing !important; user-select: none !important; -webkit-user-select: none !important; }
+.card-act.fx-dragsrc { opacity: .32; transform: scale(.96) !important; box-shadow: none !important; transition: opacity .15s; }
+.card-act.fx-ghost {
+  position: fixed !important; left: 0; top: 0; z-index: 10000; pointer-events: none; margin: 0; opacity: .97;
+  background: var(--panel); transform-origin: 50% 50%; will-change: transform;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, .38), 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 26px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.fighter.foe.fx-target {
+  border-radius: 14px; outline: 2px dashed color-mix(in srgb, var(--bad) 70%, transparent); outline-offset: 6px;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--bad) 40%, transparent); animation: fx-target 1s ease-in-out infinite;
+}
+@keyframes fx-target {
+  0%, 100% { box-shadow: 0 0 18px 0 color-mix(in srgb, var(--bad) 22%, transparent); }
+  50%      { box-shadow: 0 0 32px 4px color-mix(in srgb, var(--bad) 42%, transparent); }
+}
+.fighter.foe.fx-target::after {
+  content: "◎ rilascia per colpire"; position: absolute; left: 50%; top: -17px; transform: translateX(-50%) scale(.9); opacity: .0;
+  font: 700 11px var(--sans, system-ui, sans-serif); letter-spacing: .05em; white-space: nowrap; color: #fff;
+  background: var(--bad); border-radius: 99px; padding: 2px 10px; transition: opacity .12s, transform .12s; pointer-events: none;
+}
+.fighter.foe.fx-target.fx-hot { outline-style: solid; outline-width: 3px; background: color-mix(in srgb, var(--bad) 9%, transparent); animation-duration: .45s; }
+.fighter.foe.fx-target.fx-hot::after { opacity: 1; transform: translateX(-50%) scale(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-canvas, .fx-flash, .fx-float, .fx-shield, .card-act.fx-ghost { display: none !important; }
+  .fx-aura, .fighter.foe.fx-target { animation: none; }
+}

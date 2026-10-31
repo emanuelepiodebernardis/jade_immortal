@@ -54,6 +54,28 @@ def creation_options(life_no: int = 1) -> dict:
                            for k in calibration.PRESETS]}
 
 
+def interpret(text: str, tab: str = "") -> dict:
+    """(Agg. 76) Una frase (detta a voce o scritta in italiano) → comando o azione della dashboard."""
+    from engine.cli import voice
+    try:
+        s = state_snapshot()
+    except Exception:                                    # noqa: BLE001
+        s = {}
+    return voice.interpret(text, s, tab)
+
+
+def set_portrait(key: str) -> dict:
+    """(Agg. 76) Il volto del protagonista: una delle immagini «ritratti/eroe*» (vuoto = quello di base)."""
+    import re as _re
+    key = (key or "").strip()
+    if key and not _re.fullmatch(r"eroe[\w-]{0,20}", key):
+        return {"ok": False, "errore": "Volto sconosciuto."}
+    from engine.systems import state
+    with LOCK, transaction() as conn:
+        state.set(conn, "hero_portrait", key)
+    return {"ok": True, "ritratto": key}
+
+
 def create(origin: str, destiny: str, name: str, rivals: str, hardcore: bool = False, body: bool = False,
            difficulty: str = "") -> str:
     from engine.systems import character, destinies, constitutions, rebirth, calibration
@@ -362,6 +384,7 @@ def state_snapshot() -> dict:
         }
         from engine.systems import attributes
         snap["livello"] = attributes.level(conn, p.id)
+        snap["ritratto"] = state.get(conn, "hero_portrait", "") or ""     # (Agg. 76) il volto scelto
         from engine.systems import system_daily
         snap["quotidiana"] = system_daily.data(conn, p.id)
         from engine.systems import place_actions

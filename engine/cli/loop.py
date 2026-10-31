@@ -270,6 +270,13 @@ def cmd_move(conn: sqlite3.Connection, player: entities.Player, arg: str) -> str
     new_tick = tick.get_tick(conn)
     moved = entities.get_player(conn, player.id)
     out = obs_lost + f"Tick {new_tick}\n" + render_location(conn, moved)
+    try:                                                # (Agg. 76) il paesaggio, all'arrivo
+        from engine.narrative import scenery, varia
+        _loc = entities.get_location(conn, moved.location_id)
+        out += "\n" + scenery.arrival(_loc.location_type if _loc else None, varia.time_of_day(new_tick),
+                                     varia.weather(new_tick), new_tick + moved.location_id)
+    except Exception:                                   # noqa: BLE001
+        pass
     if obs:
         out += "\nNel frattempo:\n" + _format_observations(obs)
     return out + _after_arrival(conn, moved)
@@ -2418,6 +2425,12 @@ def dispatch(conn: sqlite3.Connection, raw: str, allow_nl: bool = True) -> str |
     player = entities.get_player(conn)
     if player is None:
         return "Nessun giocatore trovato. DB non generato?"
+    if allow_nl is not None and allow_nl is not False:   # (Agg. 76) una frase detta a voce o scritta in italiano
+        from engine.cli import voice
+        if voice.looks_spoken(raw):
+            _v = voice.interpret(raw, voice.context(conn, player))
+            if _v.get("cmd"):
+                return f"(interpreto: {_v['cmd']})\n" + (dispatch(conn, _v["cmd"], allow_nl=False) or "")
     from engine.systems import calibration as _cal
     _cal.ensure(conn)                                 # la difficoltà della partita (sereno/normale/spietato)
     if cmd in ("salva", "save", "carica", "load") and _cal.current(conn) in _cal.NO_MANUAL_SAVE:

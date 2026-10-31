@@ -526,6 +526,12 @@ def act(conn, player, arg: str) -> str:
     if ally_dmg:
         lines.append(f"  I tuoi alleati infieriscono: −{round(ally_dmg)} a {d['name']}.")
     hp_e_before = d.get("_hp_e_turn", d["emax"])
+    from engine.narrative import scenery               # (Agg. 76) il luogo porta i segni del colpo
+    _ptype = (entities.get_location(conn, player.location_id) or entities.Location(0, "", None, 0, None)).location_type
+    _envl = scenery.duel_mine(_ptype, d.get("_el") or "", max(0, hp_e_before - d["hp_e"]) / max(1.0, d["emax"]),
+                              bool(d.get("crit")), d["round"] * 31 + int(d["emax"]))
+    if _envl:
+        lines.append(_envl)
     d["last"] = {"inflitto": round(max(0, hp_e_before - d["hp_e"])), "alleati": round(ally_dmg), "subito": 0,
                  "critico": bool(d.get("crit")), "mossa": what, "nome": name, "eff": d.pop("_eff", ""),
                  "el": d.pop("_el", ""), "stato": d.pop("_stato", "")}
@@ -593,6 +599,9 @@ def act(conn, player, arg: str) -> str:
         edmg, ecrit = combat._strike(pd["attack"] * emult, pa["defense"], rng)
         edmg *= taken
         lines.append("  " + loop._enemy_line(d["name"], edmg, d["pmax"], ecrit, rng))
+        _envt = scenery.duel_theirs(_ptype, edmg / max(1.0, d["pmax"]), bool(ecrit), d["round"] * 37 + int(d["pmax"]))
+        if _envt:
+            lines.append(_envt)
         if (d["charge_e"] and not feint) or ie == "tecnica":
             e_line = duel_types.enemy_on_hit(d, d.get("el_e"), rng) if ie != "tecnica" else (
                 duel_types.apply(d, "p", _enemy_tech(d)[1]) if _enemy_tech(d)[1] and rng.random() < 0.6 else "")

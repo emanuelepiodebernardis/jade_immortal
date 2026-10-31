@@ -127,3 +127,12 @@ def test_export_import_round_trip(base):
     assert not bad["ok"]
     assert "testo" in _get(base + "/api/ultimo_salvataggio")
     assert _get(base + "/api/album")["pagine"]
+
+
+def test_hero_portrait_choice(base):
+    """(Agg. 76) Il volto del protagonista si sceglie e resta nello stato; i nomi strani sono rifiutati."""
+    assert _get(base + "/api/stato")["ritratto"] == ""
+    assert _post(base + "/api/ritratto", {"chiave": "eroe_3"})["ok"]
+    assert _get(base + "/api/stato")["ritratto"] == "eroe_3"
+    assert not _post(base + "/api/ritratto", {"chiave": "../../etc"})["ok"]
+    assert _get(base + "/api/stato")["ritratto"] == "eroe_3"

@@ -427,6 +427,9 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("dharma", "corpo_dharma"):
         from engine.systems import dharma_body
         return dharma_body.command(conn, player, arg)
+    if cmd in ("voce", "comandi_vocali", "comandi_voce"):           # (Agg. 76) il prontuario dei comandi a voce
+        from engine.cli import voice
+        return voice.CHEATSHEET
     if cmd in ("compressione", "comprimi", "qi_compresso", "fondamenta"):   # (Agg. 75)
         from engine.systems import qi_compression
         return qi_compression.describe(conn)

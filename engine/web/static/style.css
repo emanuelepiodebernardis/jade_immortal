@@ -947,3 +947,30 @@ button.obj.pil.weak .l { color: var(--bad, #c55); font-weight: 600; }
 .saga .saga-caps { margin: 8px 0 0; padding-left: 0; list-style: none; display: grid; gap: 8px; }
 .saga .saga-caps li b { display: block; margin: 1px 0; }
 .saga .saga-caps li div { font-size: 13px; line-height: 1.45; }
+
+/* (Agg. 76) la scelta del volto */
+.faces .face-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.face-opt { position: relative; cursor: pointer; border-radius: 12px; overflow: hidden; border: 2px solid var(--line); aspect-ratio: 1; display: block; }
+.face-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.face-opt img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s, filter .2s; filter: saturate(.8); }
+.face-opt:hover img { transform: scale(1.05); filter: none; }
+.face-opt:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.face-opt:has(input:checked) img { filter: none; }
+
+/* (Agg. 76) voce e narratore */
+#voicebtn, #narrbtn { min-width: 40px; }
+#voicebtn.on { background: var(--bad); color: #fff; border-color: var(--bad); animation: voicepulse 1.6s ease-in-out infinite; }
+#narrbtn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+@keyframes voicepulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--bad) 25%, transparent); } }
+body.voice-on #cmd { border-color: var(--bad); box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 25%, transparent); }
+.narr-opts { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 13px; }
+.narr-opts input { flex: 1; min-width: 80px; }
+@media (prefers-reduced-motion: reduce) { #voicebtn.on { animation: none; } }
+
+/* (Agg. 76) con una scena o un duello aperti la scena del luogo si fa da parte: il palcoscenico è dello scontro */
+body.scene-on #place.staged { display: none !important; }
+#cmdform { position: relative; }
+.voice-echo { position: absolute; left: 12px; bottom: calc(100% + 6px); background: var(--panel); border: 1px solid var(--accent);
+  border-radius: 999px; padding: 4px 12px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.25); transition: opacity .6s, transform .6s; z-index: 5; }
+.voice-echo b { color: var(--accent); font-family: var(--mono); font-weight: 600; }
+.voice-echo.out { opacity: 0; transform: translateY(-6px); }

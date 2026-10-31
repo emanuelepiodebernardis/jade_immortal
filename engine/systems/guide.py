@@ -203,6 +203,11 @@ CODEX = {
                   "attacco, difesa, vitalità e coltivazione."),
     "dharma": ("Dharma e sigilli", "Dal terzo regno il tuo Dao può prendere forma alle tue spalle: il Corpo del Dharma. "
                "I sigilli ancestrali (sei casate) si incastonano nel petto e danno bonus, con set da 2 e 4."),
+    "voce": ("I comandi a voce", "Puoi giocare parlando: accendi 🎙 accanto alla barra dei comandi, usa un dettatore (per "
+             "esempio Handy, o la dettatura di Windows) e di' gli ordini come a un compagno: «vai a est», «attacca il primo "
+             "nemico», «sfida a duello Mei», «apri il Dao», «la seconda», «avanti». Il testo dettato parte da solo. Il 🔈 "
+             "accende il narratore: legge tutto, con voci diverse per uomini, donne, vecchi, demoni, mostri, draghi e "
+             "spiriti, alla velocità che scegli nelle impostazioni. Scrivi 'voce' per l'elenco delle frasi."),
     "forza": ("I sei pilastri", "Tutta la tua forza sta in sei pilastri: ☯ Regno (la scala di tutto), 🩸 Corpo (corpo, "
               "sangue, meridiani), 🌌 Dao (Dao, spiriti, tecniche), ✧ Anima (tempra, vasi, Dharma, sigilli), ⚔ Ciò che "
               "porti (equipaggiamento, arma, cavalcatura) e ♥ Legami (compagni, bestie, discepoli). Ognuno si misura "

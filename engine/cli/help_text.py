@@ -274,6 +274,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "menu                          — l'INDICE DEI MENU: setta, arti, coltivazione, eventi, regni, famiglia",
         "coltivazione | eventi | regni | famiglia — i menu a sezioni, con le azioni numerate (scrivi il numero)",
         "tutorial                      — i primi passi, con ciò che ti resta da provare",
+        "voce                          — i COMANDI A VOCE: frasi come «attacca il primo nemico» o «apri il Dao» (anche scritte)",
         "senza_ritorno si|no           — modalità SENZA RITORNO: la morte è definitiva (niente reincarnazione)",
         "reincarnati [conferma]        — chiudi questa vita e RINASCI con i benefici di ciò che hai accumulato (merito → Samsara, pietre, tutti i frammenti)",
         "ricomincia [conferma]         — RICOMINCIA DA ZERO: un mondo nuovo, niente eredità (il mondo vecchio viene archiviato)",

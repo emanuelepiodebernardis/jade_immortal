@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jade Immortal</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/fx.css">
+<link rel="stylesheet" href="/static/stage.css">
 <script>try { const t = localStorage.getItem("ji_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
@@ -72,6 +74,8 @@
     <div id="sugg"></div>
     <form id="cmdform" autocomplete="off">
       <input id="cmd" placeholder="Scrivi un comando (train, mete, vai 1, attack nome, osserva nome)… — 'help' per l'elenco" autofocus>
+      <button type="button" id="voicebtn" title="Modalità voce: comanda il gioco parlando">🎙</button>
+      <button type="button" id="narrbtn" title="Narratore: legge ad alta voce">🔈</button>
       <button class="primary">Invia</button>
     </form>
   </section>
@@ -89,6 +93,11 @@
           <button id="mgtoggle"><span class="si">🔨</span><span class="sl">Minigiochi di forgia</span><em></em></button>
           <button id="theme"><span class="si">☾</span><span class="sl">Tema</span><em></em></button>
           <button id="widen"><span class="si">⤢</span><span class="sl">Pannello largo</span><em></em></button>
+          <button id="stagetoggle"><span class="si">🏞</span><span class="sl">Luogo come scena di gioco</span><em></em></button>
+          <button id="voicetoggle"><span class="si">🎙</span><span class="sl">Modalità voce (comandi parlati)</span><em></em></button>
+          <button id="narrtoggle"><span class="si">🗣</span><span class="sl">Narratore e voci dei personaggi</span><em></em></button>
+          <div class="narr-opts"><span class="sl">Velocità della voce</span><input id="narrspeed" type="range" min="0.6" max="1.8" step="0.1" value="1"><em id="narrspeed-v">1,0×</em></div>
+          <button id="fxtoggle"><span class="si">✨</span><span class="sl">Effetti e animazioni</span><em></em></button>
         </div></span></div>
     <div id="subnav" class="subtabs"></div>
     <div id="tabbody"></div>
@@ -98,6 +107,10 @@
 <div id="toasts" aria-live="polite"></div>
 <div id="overlay" hidden><div class="modal" id="modal"></div></div>
 <script src="/static/viz.js"></script>
+<script src="/static/icons.js"></script>
+<script src="/static/fx.js"></script>
+<script src="/static/stage.js"></script>
+<script src="/static/narrator.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

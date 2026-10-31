@@ -3374,3 +3374,93 @@ sfondamento parte da solo.
 
 Ogni capitolo di una saga mostra il quadro della sua saga (`scene/saga_<prima trama>`). Le scene
 «legame» hanno un quadro loro.
+
+---
+
+## Aggiornamento 76 — Un gioco vero: scena, effetti, icone, voce e narratore
+
+### La scena del luogo (`engine/web/static/stage.js`, `stage.css`)
+Il luogo non è più una scheda di testo ma una scena da cliccare:
+- **Lo sfondo:** il dipinto del luogo, che scorre lento, con la luce dell'ora del giorno e il meteo (pioggia,
+  neve, foglie, petali, nebbia).
+- **Il protagonista:** al centro, in un medaglione con l'aura.
+- **I presenti:** sono gettoni (rossi i nemici, verdi i legami, viola le creature). Cliccandone uno si apre
+  un menu con Osserva, Parla, Attacca e Duello. Oltre i sette presenti c'è un gettone «+N».
+- **Le uscite:** porte luminose ai bordi, con la direzione, il nome e il pericolo. Cliccando si vede il
+  viaggio: la scena scivola nella direzione presa.
+- **Le azioni del luogo:** una barra di icone in basso.
+
+Con una scena o un duello aperti, la scena del luogo si fa da parte. Si spegne in Impostazioni ⚙ con
+«Luogo come scena di gioco».
+
+### Effetti e animazioni (`engine/web/static/fx.js`, `fx.css`)
+- **Nel duello:**
+  - il tuo ritratto scatta verso il nemico;
+  - il colpo vola o taglia col colore dell'elemento e lo colpisce con lampo e scintille;
+  - i danni salgono come numeri, con CRITICO e SUPEREFFICACE in grande;
+  - la guardia ha uno scudo luminoso, la pillola una cura verde, la concentrazione un'aura;
+  - il nemico vinto si dissolve in inchiostro.
+- **Le carte delle tecniche si possono trascinare sul nemico.**
+- **Fuori dal duello:**
+  - quando ti alleni, il qi entra a spirale nel personaggio;
+  - le pietre guadagnate salgono come numeri;
+  - lo sfondamento ha un'esplosione dorata, la tribolazione i fulmini;
+  - anche titoli, finali delle saghe e ferite hanno il loro effetto.
+- **Interruttore:** in Impostazioni ⚙, «Effetti e animazioni». Con «riduci movimento» del sistema gli effetti
+  si spengono da soli.
+
+### Icone dipinte (`engine/web/static/icons.js`)
+Novanta icone disegnate a mano, in stile inchiostro e giada, prendono il posto delle emoji: barra dei
+palazzi, azioni, tessere del luogo, carte del duello, impostazioni.
+
+### Il volto del protagonista
+- **Alla creazione** (e alla rinascita) scegli il tuo volto da una galleria di ritratti.
+- **In seguito** lo cambi da Eroe → Stato → «🖼 Cambia volto».
+- **Dove si vede:** dappertutto, cioè nella scena, nei duelli e nella finestra dell'eroe.
+
+### Comandi a voce (`engine/cli/voice.py`)
+Il gioco si comanda con ordini detti come a un compagno, senza formule di cortesia: «vai a est»,
+«attacca il primo nemico», «sfida a duello Mei», «attacco due», «la seconda», «apri il Dao», «avanti».
+
+**Come funziona:**
+- Si usa un dettatore locale, per esempio Handy o la dettatura di Windows: il testo finisce nella barra dei
+  comandi.
+- Con la **🎙 modalità voce** accesa il testo parte da solo e la barra resta sempre pronta.
+- Un interprete senza intelligenza artificiale trasforma la frase nel comando. Tiene conto di chi è
+  presente (in ordine: «il primo», «l'ultimo»), dei nomi pronunciati male («su scian» trova Xu Shan),
+  delle uscite, delle mete, delle carte del duello e delle scelte della scena (anche con le loro parole:
+  «marchiagli l'anima»).
+- Anche la scheda aperta conta: «compra la terza» al tesoro della setta compra dal tesoro della setta.
+
+**Cosa copre:** movimento, coltivazione, Dao, ritiro, combattimento e duello, scene, oggetti, forgia e
+ricette, attributi, bestie e cavalcature, setta e missioni, persone, famiglia, servi, cloni, trame, reami,
+teletrasporto, salvataggi. Inoltre tutta la navigazione della dashboard («apri il corpo», «apri le saghe»,
+«apri lo zaino», «oggi», «chiudi», «pilota per 7 giorni», «ferma»).
+
+**I comandi scritti** funzionano come prima. L'interprete interviene solo sulle frasi, anche nel terminale.
+Il comando `voce` mostra il prontuario.
+
+### Il narratore e le voci dei personaggi (`engine/web/static/narrator.js`)
+Con 🔈 acceso il gioco si ascolta. Usa la sintesi vocale del browser, con le voci italiane del sistema,
+tutto in locale.
+- **Chi legge:** il narratore racconta; le battute tra «…» le dice chi parla. Le voci sono uomo, donna,
+  vecchio, vecchia, demone, demonessa, mostro, drago, spirito ed eroe o eroina; nascono da una voce maschile
+  e una femminile cambiandone tono e ritmo.
+- **Il ritmo:** con la lettura al proprio ritmo legge un pezzo alla volta e va avanti da solo quando ha
+  finito.
+- **I comandi:** «avanti» salta la riga; «ripeti», «mostra tutto» e «ferma» funzionano a voce.
+- **La velocità** si regola in Impostazioni (da 0,6× a 1,8×).
+
+### Un mondo che reagisce (`engine/narrative/scenery.py`)
+- **Nei duelli:**
+  - un colpo forte lascia il segno sul luogo, secondo il luogo e l'elemento: il selciato si spacca, un
+    tronco prende fuoco, il lago esplode in vapore;
+  - dal 65% della vita in giù l'onda d'urto rade al suolo tutto intorno;
+  - quando il colpo nemico è pesante devi saltare, rotolare o ripararti.
+- **Arrivando in un luogo:** due righe di paesaggio, secondo il tipo, l'ora e il tempo.
+
+### Test
+- `tests/test_voice.py` (56): le frasi di ogni famiglia di comandi, il duello, le scene, i comandi veri che
+  restano invariati, e la verifica che ogni frase produca un comando che il gioco conosce.
+- In `tests/test_web_ui.py`: il volto del protagonista.
+- 940 in totale.

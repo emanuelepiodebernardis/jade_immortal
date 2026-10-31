@@ -208,6 +208,10 @@ class Handler(BaseHTTPRequestHandler):
                                                       b.get("nome", ""), b.get("rivali", "normale"),
                                                       bool(b.get("senza_ritorno")), bool(b.get("corpo")),
                                                       str(b.get("difficolta", "")))})
+            if path == "/api/interpreta":                # (Agg. 76) comandi a voce
+                return self._json(game.interpret(str(b.get("testo", "")), str(b.get("scheda", ""))))
+            if path == "/api/ritratto":                  # (Agg. 76) il volto del protagonista
+                return self._json(game.set_portrait(str(b.get("chiave", ""))))
             if path == "/api/reincarnati":
                 return self._json(game.voluntary())
             if path == "/api/nuovo_mondo":

@@ -78,6 +78,7 @@ function advance() {
   if (PENDING.length) {
     const chunk = PENDING.shift();
     chunk.forEach((el) => { el.classList.remove("wait"); el.classList.add("fresh"); });
+    if (window.Narrator && Narrator.on()) { if (Narrator.busy()) Narrator.stop(); Narrator.feedEls(chunk); }
     const first = chunk[0]; if (first) first.scrollIntoView({ block: "nearest" });
     const box = $("#log"); if (!PENDING.length && box) box.scrollTop = box.scrollHeight;
     advUi(); return true;
@@ -115,7 +116,8 @@ function addLog(text, cmd, instant) {
     box.scrollTop = keepFirst ? Math.max(y, box.scrollHeight - box.clientHeight - 2000) : box.scrollTop;
     if (keepFirst) div.scrollIntoView({ block: "nearest" });
     advUi();
-  } else box.scrollTop = box.scrollHeight;
+    if (window.Narrator && Narrator.on()) Narrator.feedEls([...div.querySelectorAll(".ln:not(.wait)")]);
+  } else { box.scrollTop = box.scrollHeight; if (window.Narrator && Narrator.on() && !instant) Narrator.feed(lines.join("\n")); }
   systemToasts(text || "");
 }
 
@@ -446,6 +448,7 @@ async function run(cmd) {
     addLog(r.log, cmd);
     if (r.morto) return await showDeath();
     await refresh();
+    gameFx("log", r.log, cmd);
   } catch (e) {
     addLog("⚠ Errore: " + e.message, cmd);
   } finally {
@@ -492,8 +495,9 @@ async function refresh() {
   const s = await api("/api/stato");
   if (s.fase === "nuovo") return showCreation();
   if (s.fase === "morto") return showDeath();
-  S = s;
+  S = s; window.S = s;
   renderTop(s); renderTodo(s); renderBadges(s); renderPlace(s); renderScene(s); renderSugg(s); renderAutoCfg(s);
+  iconsUp(document.body);
   musicFor(s);
   renderPalaceHead();
   if (tab === "mete") renderMete(s);
@@ -549,6 +553,11 @@ function renderTop(s) {
 
 const DIR = { north: "Nord", south: "Sud", east: "Est", west: "Ovest", up: "Su", down: "Giù" };
 function renderPlace(s) {
+  if (stageOn() && window.Stage) {                   // (Agg. 76) il luogo come scena di gioco
+    try { $("#place").classList.add("staged"); $("#place").style.backgroundImage = ""; Stage.render(s, $("#place")); iconsUp($("#place")); return; }
+    catch (e) { console.error(e); }
+  }
+  $("#place").classList.remove("staged");
   const L = s.luogo;
   let h = `<h2>${esc(L.name)} <span class="muted">· pericolo ${L.danger}</span></h2>`;
   if (L.desc) h += `<p class="desc">${esc(L.desc)}</p>`;
@@ -647,11 +656,31 @@ function imgOf(list) {
   for (const p of [].concat(list || [])) { const i = p.lastIndexOf("/"); const u = slotImg(i >= 0 ? p.slice(0, i) : "", p.slice(i + 1)); if (u) return u; }
   return null;
 }
+// (Agg. 76) il volto del protagonista: scelto alla creazione (o dopo, dall'Eroe), tra i ritratti «eroe*»
+let FACE_PICK = null;
+const HERO_FACE = () => FACE_PICK ?? (S && S.ritratto) ?? "";
+function heroFaces() {
+  return Object.keys(IMGMAP).filter((k) => /^ritratti\/eroe/.test(k)).sort((a, b) => {
+    const fa = /eroef/.test(a), fb = /eroef/.test(b); return fa === fb ? a.localeCompare(b, "it", { numeric: true }) : fa ? 1 : -1; })
+    .map((k) => ({ key: IMGMAP[k].split("/").pop().replace(/\.[^.]+$/, ""), url: imgUrl(IMGMAP[k]) }));
+}
+function facePicker(cur) {
+  const list = heroFaces();
+  if (list.length < 2) return "";
+  return `<fieldset class="faces"><legend>Il tuo volto</legend><div class="face-grid">` + list.map((f) =>
+    `<label class="face-opt"><input type="radio" name="face" value="${esc(f.key)}" ${f.key === (cur || list[0].key) ? "checked" : ""}><img src="${f.url}" alt="" loading="lazy"></label>`).join("") +
+    `</div></fieldset>`;
+}
+async function choosePortrait() {
+  openModal(`<h2>Il tuo volto</h2><p class="muted">Scegli come ti vedranno amici e nemici. Puoi cambiarlo quando vuoi.</p>${facePicker(HERO_FACE() || "eroe")}
+    <button class="primary" id="go-face">Scegli</button>`);
+  $("#go-face").onclick = async () => { const k = val("face") || ""; await api("/api/ritratto", { chiave: k }); FACE_PICK = k; closeModal(); await refresh(); };
+}
 const BEAST_WORDS = ["drago", "fenice", "tigre", "tartaruga", "qilin", "gru", "volpe", "serpente", "kun"];
 function faceSrc(name, o = {}) {
   let u = slotImg("", name) || slotImg("ritratti", name);
   if (u) return u;
-  if (o.io) return slotImg("ritratti", "eroe");
+  if (o.io) return (HERO_FACE() && slotImg("ritratti", HERO_FACE())) || slotImg("ritratti", "eroe");
   if (o.kind && o.kind !== "human") {
     const low = String(name).toLowerCase(), w = BEAST_WORDS.find((x) => low.includes(x));
     return (w && slotImg("bestie", w)) || slotImg("creature", o.kind);
@@ -709,6 +738,24 @@ function cutIn(box, L, ar) {
   el.addEventListener("click", () => { if (manual() && CUT_NEXT) { advance(); return; } el.remove(); });
   show();
 }
+// (Agg. 76) IL GIOCO VERO: scena del luogo (stage.js), effetti e animazioni (fx.js), icone dipinte (icons.js).
+// Tutto facoltativo: se un modulo manca, o l'utente spegne gli effetti, la dashboard resta com'era.
+function fxOnNow() { try { return !!(window.FX && FX.enabled()); } catch (e) { return false; } }
+function stageOn() { try { return localStorage.getItem("ji_stage") !== "0"; } catch (e) { return true; } }
+function iconsUp(root) { try { if (window.Icons && root) Icons.upgrade(root); } catch (e) { console.error(e); } }
+function heroAnchor() { return document.getElementById("stage-hero") || $("#ring"); }
+function gameFx(kind, a, b) {
+  if (!window.FX) return;
+  try {
+    if (kind === "duel") { const ar = a.querySelector(".arena") || a; FX.duelTurn(ar, b); if (!b.finito) FX.enableCardDrag(ar); return; }
+    if (kind === "log") {
+      const cmd = (b || "").toLowerCase();
+      if (/^(train|allenati|medita|meditazione|tempra)/.test(cmd)) FX.train(heroAnchor());
+      FX.fromLog(a || "", { hero: heroAnchor(), stones: $("#t-pietre"), ring: $("#ring") });
+    }
+  } catch (e) { console.error(e); }
+}
+
 function renderScene(s) {
   const box = $("#scene");
   // con una scena aperta la colonna centrale fa spazio: luogo e diario si stringono, la scena si allarga
@@ -724,11 +771,12 @@ function renderScene(s) {
   if (sig && sig !== lastArenaTurn) { const first = lastArenaTurn === null || !ar.ultimo.mossa; lastArenaTurn = sig;
     if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); if (!first) cut = ar.ultimo; }
   if (!ar) { HP_PREV.me = HP_PREV.foe = null; }
-  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); animateHp(box); if (cut) cutIn(box, cut, ar); return; }
+  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); animateHp(box); gameFx("duel", box, ar); if (cut && !fxOnNow()) cutIn(box, cut, ar); return; }
   if (ar && ar.finito) {
     box.innerHTML = arenaHtml(ar, s) + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
     animateHp(box);
-    if (cut) cutIn(box, cut, ar);
+    gameFx("duel", box, ar);
+    if (cut && !fxOnNow()) cutIn(box, cut, ar);
     return;
   }
   const du = s.duello ? `<div class="duel"><div><span>Tu</span><div class="bar hp"><i style="width:${s.duello.tu.pct}%"></i></div><em>${s.duello.tu.cur}/${s.duello.tu.max}</em></div>
@@ -946,7 +994,7 @@ async function loadTab(name) {
 let HERO = null, daoAll = false;
 function heroHtml(h, sb, daos) {
   if (!h || !h.finestra) return `<div class="empty">Nessun personaggio.</div>`;
-  if (sb === "stato") return V.statusWindow(h) + V.pillarsCard(h.pilastri) + V.deepTriad(h.profondi) + V.spiritCards(h.spiriti, h.spiriti_slot);
+  if (sb === "stato") return `<div class="tools"><button id="change-face">🖼 Cambia volto</button></div>` + V.statusWindow(h) + V.pillarsCard(h.pilastri) + V.deepTriad(h.profondi) + V.spiritCards(h.spiriti, h.spiriti_slot);
   if (sb === "dao") return V.daoChart(daos || [], daoAll) + V.deepTriad(h.profondi);
   if (sb === "radici") return V.talentRadar(h.talento) + V.rootsChart(h.radici, h.combinazioni, h.talenti);
   if (sb === "corpo") return V.bodyCard(h.corpo, h.anima, h.cuore) + V.bloodChart(h.sangue);
@@ -1349,6 +1397,7 @@ async function showCreation() {
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
     <fieldset><legend>Rivali</legend>${choiceList("r", o.rivali, "key", (x) => esc(x.label), 1)}</fieldset>
     ${o.difficolta ? `<fieldset><legend>Difficoltà</legend>${choiceList("df", o.difficolta, "key", (x) => esc(x.label), 1)}</fieldset>` : ""}
+    ${facePicker("")}
     <p><label>Nome <input id="nm" value="Viandante" maxlength="32"></label></p>
     <p><label><input type="checkbox" id="hc"> Modalità <b>Senza Ritorno</b>: la morte è definitiva, niente reincarnazione</label></p>
     <p><label><input type="checkbox" id="cb"> ✦ Affidati al Cielo: nasci con un <b>corpo leggendario</b> a caso (Caos Primordiale, Osso Supremo, Doppie Pupille, Vene Yin…)</label></p>
@@ -1356,6 +1405,7 @@ async function showCreation() {
   $("#go-new").onclick = async () => {
     const origin = val("o");
     const r = await api("/api/nuovo", { origine: origin, destino: val("d"), rivali: val("r"), nome: $("#nm").value, senza_ritorno: $("#hc").checked, corpo: $("#cb").checked, difficolta: val("df") || "" });
+    if (val("face")) { await api("/api/ritratto", { chiave: val("face") }); FACE_PICK = val("face"); }
     closeModal(); await showPrologue(origin, r.log); addLog(r.log); await refresh();
   };
 }
@@ -1414,6 +1464,7 @@ async function showDeath() {
       ${o.eredi.map((h) => `<label class="opt"><input type="radio" name="er" value="${h.id}"> ☯ Continua come <b>${esc(h.label)}</b> — tutti i frammenti, il suo regno, il suo nome</label>`).join("")}</fieldset>` : ""}
     <fieldset class="origins"><legend>Origine</legend>${choiceList("o", o.origini, "key", originLabel)}</fieldset>
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
+    ${facePicker(HERO_FACE())}
     <p><label>Nome <input id="nm" value="" placeholder="(lo stesso di prima)" maxlength="32"></label></p>
     <p><label><input type="checkbox" id="cb"> ✦ Affidati al Cielo: rinasci con un <b>corpo leggendario</b> a caso</label></p>
     <button class="primary" id="go-reb">Rinasci in questo mondo</button>`);
@@ -1421,6 +1472,7 @@ async function showDeath() {
     const picks = [...document.querySelectorAll('input[name="e"]:checked')].map((x) => parseInt(x.value, 10)).slice(0, o.frammenti);
     const origin = val("o");
     const r = await api("/api/rinasci", { origine: origin, destino: val("d"), nome: $("#nm").value, eredita: picks.length ? picks : [o.eredita.length - 1], corpo: $("#cb").checked, erede: val("er") ? parseInt(val("er"), 10) : null });
+    if (val("face")) { await api("/api/ritratto", { chiave: val("face") }); FACE_PICK = val("face"); }
     closeModal(); await showPrologue(origin, r.log); addLog(r.log); await refresh();
   };
 }
@@ -1445,7 +1497,16 @@ document.addEventListener("click", async (ev) => {
     return loadTab(t);
   }
   if (ev.target.id === "dao-all") { daoAll = !daoAll; return loadTab("personaggio"); }
+  if (ev.target.closest("#change-face")) { choosePortrait(); return; }
+  if (ev.target.closest("#voicebtn") || ev.target.closest("#voicetoggle")) { VOICE = !VOICE; try { localStorage.setItem("ji_voice", VOICE ? "1" : "0"); } catch (e) { /* niente */ }
+    voiceUi(); settingsUi(); if (VOICE) toast("🎙 Modalità voce", "Detta un comando: «allenati», «attacca il primo nemico», «apri il Dao», «avanti»…", "info"); return; }
+  if (ev.target.closest("#narrbtn") || ev.target.closest("#narrtoggle")) { if (window.Narrator) { Narrator.setOn(!Narrator.on()); settingsUi(); } return; }
   if (ev.target.closest("#widen")) { setWide(!document.body.classList.contains("wide")); return; }
+  if (ev.target.closest("#stagetoggle")) { try { localStorage.setItem("ji_stage", stageOn() ? "0" : "1"); } catch (e) { /* niente */ }
+    settingsUi(); if (S) renderPlace(S); return; }
+  if (ev.target.closest("#fxtoggle")) { const on = !(window.FX && FX.enabled()); if (window.FX) FX.setEnabled(on);
+    else try { localStorage.setItem("ji_fx", on ? "1" : "0"); } catch (e) { /* niente */ }
+    settingsUi(); return; }
   const alb = ev.target.closest("[data-album]");
   if (alb) { albumPage = alb.dataset.album; return loadTab("tesori:album"); }
   const cx = ev.target.closest("[data-codex-ok]");
@@ -1538,8 +1599,55 @@ $("#cmdform").addEventListener("submit", (ev) => {
   if (!v.trim()) { advance(); return; }               // Invio a casella vuota = Avanti
   if (v.trim()) { history.push(v); hpos = history.length; }
   $("#cmd").value = "";
-  run(v);
+  runSpoken(v);
 });
+// (Agg. 76) COMANDI A VOCE: una frase («attacca il primo nemico», «apri la sezione del Dao») passa dall'interprete
+// del server, che la trasforma in un comando del gioco o in un'azione della dashboard. Con la MODALITÀ VOCE accesa
+// il testo incollato da un dettatore (Handy, la dettatura di Windows…) parte da solo, e la casella resta pronta.
+let VOICE = false;
+try { VOICE = localStorage.getItem("ji_voice") === "1"; } catch (e) { /* niente */ }
+async function runSpoken(text) {
+  let r = {};
+  try { r = await api("/api/interpreta", { testo: text, scheda: tab }); } catch (e) { r = {}; }
+  if (r.ui) { voiceEcho(text, r.ui); return doUi(r.ui); }
+  if (r.cmd) { voiceEcho(text, r.cmd); return run(r.cmd); }
+  return run(text);
+}
+function voiceEcho(said, what) {
+  const t = said.trim(); if (!t || t.toLowerCase() === String(what).toLowerCase()) return;
+  document.querySelectorAll(".voice-echo").forEach((x) => x.remove());
+  const el = document.createElement("div"); el.className = "voice-echo";
+  el.innerHTML = `🎙 «${esc(t)}» <b>→ ${esc(what)}</b>`;
+  $("#cmdform").appendChild(el);
+  setTimeout(() => el.classList.add("out"), 2600); setTimeout(() => el.remove(), 3300);
+}
+function doUi(x) {
+  if (x === "avanti") { if (!advance() && window.Narrator) Narrator.skip(); return; }
+  if (x === "tutto") { flushAll(); if (window.Narrator) Narrator.stop(); return; }
+  if (x === "chiudi") { closeModal(); document.querySelectorAll("#toasts > *").forEach((d) => d.remove()); if (window.Stage && Stage.closeMenu) Stage.closeMenu(); return; }
+  if (x === "ripeti") { if (window.Narrator) Narrator.repeat(); return; }
+  if (x === "ferma") { autoStop(); if (window.Narrator) Narrator.stop(); return; }
+  if (x.startsWith("pilota ")) { $("#auto-giorni").value = x.split(" ")[1]; autoStart(); return; }
+  if (x === "pilota") return openPalace("opzioni", "pilota");
+  if (x === "oggi") return openPalace("oggi");
+  const t = TARGET_OF[x];
+  if (t) return openPalace(t[0], t[1]);
+  return loadTab(x);
+}
+function voiceUi() {
+  document.body.classList.toggle("voice-on", VOICE);
+  const b = $("#voicebtn"); if (b) { b.classList.toggle("on", VOICE); b.title = VOICE ? "Modalità voce ACCESA: detta un comando (es. con Handy) e parte da solo" : "Modalità voce: comanda il gioco parlando"; }
+  if (VOICE) $("#cmd").focus();
+}
+$("#cmd").addEventListener("input", (ev) => {
+  if (!VOICE) return;
+  const bulk = ev.inputType === "insertFromPaste" || ev.inputType === "insertReplacementText" || (ev.data && ev.data.length > 2);
+  if (!bulk) return;
+  clearTimeout(window.__voiceT);
+  window.__voiceT = setTimeout(() => { if ($("#cmd").value.trim()) $("#cmdform").requestSubmit(); }, 450);
+});
+// in modalità voce la casella dei comandi resta sempre pronta a ricevere la dettatura
+document.addEventListener("click", () => { if (VOICE && !document.querySelector("#overlay:not([hidden]) input, #settings-pop:not([hidden])")) setTimeout(() => { const a = document.activeElement; if (!a || !["INPUT", "SELECT", "TEXTAREA"].includes(a.tagName)) $("#cmd").focus(); }, 0); });
 $("#cmd").addEventListener("keydown", (ev) => {
   if (ev.key === "ArrowUp" && hpos > 0) { hpos--; $("#cmd").value = history[hpos]; ev.preventDefault(); }
   if (ev.key === "ArrowDown") { hpos = Math.min(history.length, hpos + 1); $("#cmd").value = history[hpos] || ""; ev.preventDefault(); }
@@ -1579,8 +1687,21 @@ function settingsUi() {
   set("music", MUSIC ? "sì" : "no"); set("sound", SOUND ? "sì" : "no"); set("mgtoggle", MINIGAME ? "sì" : "no");
   set("theme", th === "dark" ? "scuro" : th === "light" ? "chiaro" : "automatico");
   set("widen", document.body.classList.contains("wide") ? "sì" : "no");
+  set("stagetoggle", stageOn() ? "sì" : "no");
+  set("voicetoggle", VOICE ? "sì" : "no");
+  set("narrtoggle", window.Narrator && Narrator.on() ? "sì" : "no");
+  const nb = $("#narrbtn"); if (nb) nb.classList.toggle("on", !!(window.Narrator && Narrator.on()));
+  let fxOn = true; try { fxOn = window.FX ? FX.enabled() : localStorage.getItem("ji_fx") !== "0"; } catch (e) { /* niente */ }
+  set("fxtoggle", fxOn ? "sì" : "no");
 }
 settingsUi();
+voiceUi();
+// (Agg. 76) il narratore legge un pezzo alla volta: finito un pezzo, la lettura al tuo ritmo va avanti da sola
+if (window.Narrator) {
+  Narrator.onIdle(() => { if (manual() && PENDING.length) advance(); });
+  const sp = $("#narrspeed"); if (sp) { sp.value = Narrator.rate(); $("#narrspeed-v").textContent = Narrator.rate().toFixed(1).replace(".", ",") + "×";
+    sp.addEventListener("input", () => { Narrator.setRate(sp.value); $("#narrspeed-v").textContent = Number(sp.value).toFixed(1).replace(".", ",") + "×"; }); }
+}
 // (Agg. 70) grandezza del testo e alto contrasto, ricordati nel browser
 function applyFs(v) { document.documentElement.dataset.fs = String(v); document.body.style.zoom = v === 100 ? "" : String(v / 100); }
 try { const fs = Number(localStorage.getItem("ji_fs") || 100); if (fs !== 100) applyFs(fs); if (localStorage.getItem("ji_contrast") === "1") document.documentElement.dataset.contrast = "1"; } catch (e) { /* niente */ }
