@@ -142,7 +142,8 @@ def _metrics(conn, t: int) -> dict[str, list[tuple[str, float, float, str]]]:
         "regno": [("Doni della tribolazione", 1.0, _safe(lambda: len(tribulation.boon_list(conn)) / max(1, t - 1)), "via coltivazione"),
                   ("Destini dello sfondamento", 1.0 if t >= 2 else 0.0,
                    _safe(lambda: len(breakthrough_fates.chosen(conn)) / max(1, t - 1)), "via coltivazione"),
-                  ("Cuore del Dao", 1.0, _safe(lambda: dao_heart.heart(conn) / 80), "via corpo")],
+                  ("Cuore del Dao", 1.0, _safe(lambda: dao_heart.heart(conn) / 80), "via corpo"),
+                  ("Fondamenta compresse", 1.0 if t >= 2 else 0.0, _safe(lambda: _fond(conn, t)), "via coltivazione")],
         "corpo": [("Corpo leggendario", 1.0, _safe(lambda: constitutions.stage(conn) / min(7, t)), "via corpo"),
                   ("Sangue", 1.0, _safe(blood), "via sangue"),
                   ("Meridiani", 1.0, _safe(merid), "via meridiani")],
@@ -161,6 +162,13 @@ def _metrics(conn, t: int) -> dict[str, list[tuple[str, float, float, str]]]:
                    ("Servi e schiavi", 1.0 if t >= 2 else 0.0, _safe(servants), "dominio"),
                    ("Discepoli e cloni", 1.0 if t >= 3 else 0.0, _safe(followers), "discepoli")],
     }
+
+
+def _fond(conn, t: int) -> float:
+    """(Agg. 75) Quanto hai compresso, regno dopo regno: un grado «Qi Cristallino» (+100%) a regno è il pieno."""
+    from engine.systems import qi_compression
+    log = qi_compression.get(conn)["log"]
+    return sum(min(4, g) for _t, _o, g, _r in log) / (4 * max(1, t - 1))
 
 
 def compute(conn) -> dict:

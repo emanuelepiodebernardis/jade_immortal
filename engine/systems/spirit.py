@@ -28,7 +28,8 @@ def max_spirit(conn: sqlite3.Connection, player_id: int = 1) -> int:
     from engine.systems import constitutions
     from engine.systems import attributes          # Saggezza
     return int((30 + int(anima) + tier * 20 + soul_temper.spirit_pool_bonus(conn, player_id)
-                + constitutions.spirit_pool(conn)) * attributes.spirit_mult(conn))
+                + constitutions.spirit_pool(conn)) * attributes.spirit_mult(conn)
+               * __import__("engine.systems.qi_compression", fromlist=["x"]).spirit_mult(conn))
 
 
 def _set(conn: sqlite3.Connection, player_id: int, value: int) -> None:

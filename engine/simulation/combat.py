@@ -192,6 +192,11 @@ def combat_power(conn: sqlite3.Connection, ctype: str, cid: int, trace: dict | N
         sm = deep_dao.seal_mult(conn)       # Sigilli della Sfida
         from engine.systems import pillars  # (Agg. 73) armonia dei sei pilastri (valore salvato: una query)
         sm *= pillars.combat_mult(conn)
+        from engine.systems import qi_compression   # (Agg. 75) le fondamenta compresse, regno dopo regno
+        _qc = qi_compression.combat_mults(conn)
+        if trace is not None:
+            trace["fondamenta"] = _qc
+        result = {k: v * _qc.get(k, 1.0) for k, v in result.items()}
         if trace is not None:
             trace["sigilli_sfida"] = deep_dao.seal_mult(conn)
             trace["armonia"] = pillars.combat_mult(conn)

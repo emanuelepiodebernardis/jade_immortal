@@ -19,6 +19,7 @@ quando succede qualcosa che vale la pena giocare.
   auto imposta oggetti <si|no>          usa pillole ed essenze raccolte
   auto imposta sfonda <si|no>           tenta da solo lo sfondamento quando sei al colmo (rischioso!)
   auto imposta rischio <percento>       il rischio di morte che il pilota accetta per sfondare da solo (10%)
+  auto imposta comprimi <percento>      prima di sfondare comprime il qi fino a questa % della soglia (50%)
   auto imposta condotta <virtuosa|prudente|opportunista|spietata>
                                         come comportarti negli incontri casuali minori
   auto imposta fermati <reame|assemblea|asta|invasione|elemento> <si|no>
@@ -94,6 +95,8 @@ def configure(conn, arg: str) -> str:
     elif what in ("assorbi", "loot", "oggetti", "sfonda", "routine", "potenzia", "setta", "pietre", "assente") and rest \
             and _yes(rest[0]) is not None:
         c[what] = _yes(rest[0])
+    elif what in ("comprimi", "compressione") and rest and rest[0].rstrip("%").isdigit():
+        c["comprimi"] = max(0, min(100, int(rest[0].rstrip("%")))) / 100     # (Agg. 75) % della soglia del talento
     elif what in ("rischio", "risk") and rest and rest[0].rstrip("%").isdigit():
         c["rischio"] = max(0, min(100, int(rest[0].rstrip("%"))))
     elif what in ("fermati", "fermata", "stop") and len(rest) >= 2 and rest[0].lower() in DEFAULT["fermate"] \
@@ -340,8 +343,11 @@ def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | Non
     from engine.simulation import cultivation
     rec = cultivation.get_record(conn, "player", player.id)
     from engine.systems import ascension
+    from engine.systems import qi_compression as _qc
+    _qs = _qc.status(conn)
+    _compressed = _qs["over"] >= min(_qs["cap"], 5.0) * cfg.get("comprimi", 0.5)   # (Agg. 75) prima comprime
     if cfg.get("sfonda") and rec and (rec["stage"] or 1) >= 10 and rec["progress"] >= 1.0 and inj == 0 \
-            and not ascension.at_world_peak(conn, player.id) \
+            and _compressed and not ascension.at_world_peak(conn, player.id) \
             and cultivation.breakthrough_odds(conn, "player", player.id)["death"] <= cfg.get("rischio", 10) / 100:
         return "breakthrough"
     if inj >= 9:

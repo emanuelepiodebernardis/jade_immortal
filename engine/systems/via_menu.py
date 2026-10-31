@@ -155,7 +155,9 @@ def _build_one(conn, player, tab: str) -> dict:
         from engine.systems import soul_roam
         _s = list(inner.get("sections", []))
         from engine.systems import stone_qi
-        inner["sections"] = _s[:1] + [soul_roam.menu_section(conn, player), stone_qi.menu_section(conn, player)] + _s[1:] + [M.section(
+        from engine.systems import qi_compression       # (Agg. 75) comprimere il qi prima di sfondare
+        inner["sections"] = _s[:1] + [qi_compression.menu_section(conn, player), soul_roam.menu_section(conn, player),
+                                      stone_qi.menu_section(conn, player)] + _s[1:] + [M.section(
             "Destini dello sfondamento", fl or ["A ogni nuovo regno il Cielo ti offre tre destini: ne scegli uno, "
                                               "per tutta la vita."], icon="✧")]
     inner = _with_images(conn, player, tab, inner)

@@ -83,8 +83,11 @@ def _cultivation(conn, player, day, out):
     rec = cultivation.get_record(conn, "player", player.id)
     if rec and (rec["stage"] or 1) >= cultivation.STAGES_PER_REALM and rec["progress"] >= 1.0:
         odds = cultivation.breakthrough_odds(conn, "player", player.id)
-        _item(out, "⇑", "Pronto allo sfondamento", f"Riuscita stimata {int(odds['success'] * 100)}%.",
-              "breakthrough", "via", "coltivazione", True, 1)
+        from engine.systems import qi_compression as _qc
+        _s = _qc.status(conn)
+        _why = (f"Riuscita stimata {int(odds['success'] * 100)}% · qi compresso +{round(100 * _s['over'])}% "
+                f"(soglia ~+{round(100 * _s['cap'])}%): sfonda, o allenati e comprimi ancora.")
+        _item(out, "⇑", "Pronto allo sfondamento", _why, "breakthrough", "via", "coltivazione", True, 1)
     d = deep_dao.get(conn)
     if d.get("pending_judgment"):
         _item(out, "⚖", "Il Giudizio del Cielo è aperto", "Piegarti, sfidarlo o ingannarlo.", "cielo", "via", "profondi", True, 0)

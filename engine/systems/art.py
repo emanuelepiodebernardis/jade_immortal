@@ -120,6 +120,14 @@ def scene_keys(key: str | None, event_type: str | None = None, plot_kind: str | 
     k = (key or "").lower()
     if k:
         out.append("scene/" + k)
+        if k.startswith("intrigo_"):                       # (Agg. 74) ogni capitolo di una saga: il quadro della saga
+            try:
+                from engine.systems import sagas
+                root = sagas.graph()["saga_of"].get(k[len("intrigo_"):])
+                if root:
+                    out.append("scene/saga_" + root)
+            except Exception:                              # noqa: BLE001
+                pass
         if k in SCENE_ALIAS:
             out.append(SCENE_ALIAS[k])
         p = k.split("_")[0]

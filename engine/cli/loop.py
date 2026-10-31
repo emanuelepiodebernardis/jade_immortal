@@ -1249,8 +1249,14 @@ def cmd_cultivate(conn: sqlite3.Connection, player: entities.Player,
         line += " Ti favoriscono: " + ", ".join(xlabels) + "."
     if y <= 0.15:
         line += "\nSei sfinito: conviene riposare ('wait') o dedicarti ad altro."
+    from engine.systems import qi_compression as _qc       # (Agg. 75) comprimere o sfondare
+    for _n in _qc.take_news(conn):
+        line += "\n" + _n
     if res["ready"]:
-        line += "\nSei al colmo dello Strato 10: prova 'breakthrough' per salire di regno (rischioso!)."
+        line += "\n" + (_qc.line_after_training(conn) or "Sei al colmo dello Strato 10: prova 'breakthrough'.")
+    if _qc.eruption_pending(conn):
+        line += ("\n💥 Il qi compresso è troppo: i meridiani non lo reggono più e lo sfondamento parte DA SOLO!\n"
+                 + cmd_breakthrough(conn, player, "!"))
     from engine.systems import dao_heart
     _dh = dao_heart.on_cultivate(conn, t, rng, player)
     if _dh:
@@ -1277,6 +1283,9 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
                                            observer=player.location_id, observations=[])
     world_tick.advance(conn, 1)
     status = res["status"]
+    if status not in ("success", "failure"):
+        from engine.systems import qi_compression as _qc0
+        _qc0.clear_eruption(conn)                 # al tetto del mondo, o non pronto: il qi resta compresso
     if status == "not_ready":
         return "Non sei ancora pronto. Continua a coltivare."
     if status == "peak":
@@ -1286,14 +1295,16 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
         return (f"☁ Sei alla Grande Perfezione, ma il {ascension.layer_name(res['layer'])} non regge un regno "
                 f"più alto del {res['cap']}°: il Cielo stesso ti trattiene. Non c'è più nulla da sfondare qui.\n"
                 "Resta solo l'ASCENSIONE: 'ascendi_mondo' (lascerai indietro gli oggetti di questo mondo).")
+    from engine.systems import qi_compression as _qc
+    _qcl = _qc.on_breakthrough(conn, t, player, status == "success") if status in ("success", "failure") else []
     if status == "success":
         from engine.systems import sects, sect_life
-        extra = ""
+        extra = "\n" + "\n".join(_qcl) if _qcl else ""
         if sects.get_membership(conn, player.id):
             rng2 = random.Random(t * 91 + player.id)
             sect_life.promote_class(conn, t, rng2, player.id)
             ag = sect_life.agenda_line(conn, t, player.id)
-            extra = f"\nLa setta ti promuove alla classe successiva. {ag or ''}"
+            extra += f"\nLa setta ti promuove alla classe successiva. {ag or ''}"
         out = f"Il tuo regno si squarcia e si ricompone: ora sei {res['realm']}!{extra}"
         from engine.systems import rebirth as _rb, chronicle as _chr
         _rb.remember_realm(conn, cultivation.realm_tier(conn, "player", player.id) or 1)
@@ -1325,7 +1336,7 @@ def cmd_breakthrough(conn: sqlite3.Connection, player: entities.Player, arg: str
                 "sarà più facile.")
         if fails >= 1:
             base += f" (fallimenti accumulati: {fails} — più sei vicino, più sfondare diventa inevitabile)"
-        return base
+        return base + ("\n" + "\n".join(_qcl) if _qcl else "")
     if status == "death":
         return "Il qi si ribella nei tuoi meridiani... il tuo corpo cede."
     return "Nulla accade."
@@ -1929,6 +1940,10 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in elites.daily(conn, t, None, player)]
     from engine.systems import pillars                    # (Agg. 73) i sei pilastri e la loro armonia
     lines += ["  " + ln for ln in pillars.daily(conn, t, None, player)]
+    from engine.systems import qi_compression as _qc2     # (Agg. 75) il qi compresso che erompe da solo
+    if _qc2.eruption_pending(conn):
+        lines.append("  💥 Il qi compresso erompe: lo sfondamento parte da solo!")
+        lines += ["  " + ln for ln in cmd_breakthrough(conn, player, "!").split("\n")]
     from engine.systems import sagas                      # (Agg. 74) il presagio del prossimo capitolo
     lines += ["  " + ln for ln in sagas.daily(conn, t, None, player)]
     lines += ["  " + ln for ln in deep_dao.daily(conn, t, random.Random(t * 97 + day), player)]

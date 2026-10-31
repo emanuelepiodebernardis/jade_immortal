@@ -3318,3 +3318,59 @@ e l'altro e la memoria dei personaggi. Corretto «il sigillo del tesoro de …»
 - la spadaccina nasce donna.
 
 875 in totale.
+
+---
+
+## Aggiornamento 75 — La compressione del Qi
+
+Allo Strato 10 colmo non devi per forza sfondare subito. Puoi **continuare ad allenarti**: il qi in più
+non si perde, si **comprime** nel dantian oltre il 100% (`engine/systems/qi_compression.py`). Più ne
+comprimi prima di salire, più solide sono le **fondamenta** del nuovo regno, e i loro doni restano per
+sempre:
+
+| Compresso | Grado | Doni (si sommano) |
+|---|---|---|
+| +10% | Qi Denso | riserva di qi +6% |
+| +20% | Qi Condensato | vitalità +3% |
+| +50% | Qi Liquido | attacco +4%, spirito +6% |
+| +100% | Qi Cristallino | coltivazione +5%, difesa +4% |
+| +300% | Qi Stellare | attacco +8%, vitalità +8%, critici +2% |
+| +500% | Qi del Caos Primordiale | attacco +12%, vitalità +10%, coltivazione +8%, riserva di qi +15% e il titolo «Fondamenta Contro il Cielo» |
+
+I doni si sommano regno dopo regno.
+
+**La soglia del talento.** Oltre una certa soglia il corpo non regge più: il qi **erompe** e lo
+sfondamento parte da solo.
+- La soglia dipende dal talento di coltivazione: un talento mostruoso arriva a +500%, uno comune a circa
+  +175%, un mortale a circa +70%.
+- Cresce con la **pratica**: ogni regno compresso a fondo la alza, fino a +400%. Così anche chi nasce con
+  un corpo comune, comprimendo a ogni regno, può recuperare chi ha più talento.
+- Sotto la soglia l'eruzione è rara; vicino alla soglia diventa probabile; sopra è quasi certa.
+- Più hai già compresso, più è lento comprimere ancora.
+
+**Il prezzo.**
+- Il qi compresso rende lo sfondamento più facile, fino a +25% di riuscita.
+- Dal +100% in su è un'offesa all'ordine del Cielo: appena sali di regno arriva la **Tribolazione della
+  Compressione**, tarata sulla tua stessa resistenza e più dura quanto più hai compresso. Se la domi, le
+  fondamenta di quel regno valgono +20%; se ti travolge, ti lascia ustioni e fondamenta −20%.
+- Se lo sfondamento fallisce, metà del qi compresso si disperde.
+- Al tetto di un mondo il qi compresso aspetta l'ascensione.
+
+**Dove si vede:**
+- **La Via → ☯ Regno:** nuova sezione «🌀 Compressione del Qi», con la barra, la soglia, il rischio di
+  eruzione, i doni che otterresti sfondando adesso e quelli già posati, e i pulsanti «Comprimi» e
+  «Sfonda adesso».
+- **Dopo ogni allenamento al colmo:** una riga con il qi compresso, il prossimo grado, la soglia e il
+  rischio.
+- **Cosa fare ora:** «Pronto allo sfondamento» mostra il qi compresso.
+- **Comando:** `compressione`.
+- **Pilota automatico:** prima di sfondare comprime fino a metà della tua soglia
+  (`auto imposta comprimi <percento>`).
+- **Pilastri:** il ☯ Regno ha una fonte in più, «Fondamenta compresse».
+
+**Test:** `tests/test_qi_compression.py` (8 test).
+
+### Le immagini delle saghe
+
+Ogni capitolo di una saga mostra il quadro della sua saga (`scene/saga_<prima trama>`). Le scene
+«legame» hanno un quadro loro.

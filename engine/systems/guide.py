@@ -181,7 +181,10 @@ def command(conn, player, arg: str) -> str:
 CODEX = {
     "coltivazione": ("La coltivazione", "Il qi si accumula allenandoti ('train') e meditando. Ogni regno ha dieci strati; "
                      "a strato dieci, con la barra piena, tenti lo SFONDAMENTO: se riesce, tutta la tua forza si "
-                     "moltiplica (×1,6 a regno). Il regno è la scala principale del gioco."),
+                     "moltiplica (×1,6 a regno). Il regno è la scala principale del gioco. Al colmo puoi anche NON "
+                     "sfondare subito: continua ad allenarti e il qi si COMPRIME oltre il 100% (fino a +500% e "
+                     "oltre). Più comprimi, più forti le fondamenta del nuovo regno, per sempre; ma oltre la soglia "
+                     "del tuo talento il qi erompe e sfonda da solo, e dal +100% il Cielo manda una tribolazione."),
     "corpo": ("Il corpo", "Il corpo si tempra con la sofferenza: allenamento fisico, bestie divorate, elisir. Dà vitalità "
               "e difesa, e apre le costituzioni leggendarie."),
     "sangue": ("Il sangue", "Un lignaggio antico (drago, fenice, qilin…) può risvegliarsi nelle tue vene. Più è puro, più "

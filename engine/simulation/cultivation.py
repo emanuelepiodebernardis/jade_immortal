@@ -138,6 +138,9 @@ def cultivate(conn, ctype, cid, tick: int, rng: random.Random,
 
     ready = False
     if stage >= STAGES_PER_REALM and progress >= 1.0:
+        if ctype == "player":   # (Agg. 75) il qi in più non si perde: si COMPRIME (vedi qi_compression)
+            from engine.systems import qi_compression
+            qi_compression.feed(conn, progress - max(1.0, rec["progress"]))
         progress = 1.0          # allo strato massimo l'esperienza si ferma: serve il breakthrough
         ready = True
 
@@ -183,6 +186,8 @@ def _bt_success(conn, ctype, cid, rec, tier, consume: bool) -> tuple[float, floa
         extra += tenacity.bt_bonus(conn, cid)              # la testardaggine del mortale
         from engine.systems import breakthrough_fates
         extra += breakthrough_fates.bt_bonus(conn)         # i destini scelti agli sfondamenti
+        from engine.systems import qi_compression
+        extra += qi_compression.bt_bonus(conn)             # (Agg. 75) il qi compresso spinge
     p_success = max(0.05, min(0.97,
                               0.55 - 0.08 * math.log2(max(1, tier)) + (rec["progress"] - 1.0) + dao * 0.003
                               + aff_bonus - residue_penalty + fail_bonus + fate_succ + extra))

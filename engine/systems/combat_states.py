@@ -161,8 +161,9 @@ class FightCtx:
         trk.mark("tribolazione_celeste")
         from engine.systems import mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte, soul_artifacts
         from engine.systems import breakthrough_fates, mounts, dantian, meridians, dharma_body, ancestral_sigils, gear
+        from engine.systems import qi_compression
         for _m in (mentor_ring, celestial_elements, lost_legacy, gu, soul_war, svolte, soul_artifacts, breakthrough_fates,
-                   mounts, dantian, meridians, dharma_body, ancestral_sigils, gear):
+                   mounts, dantian, meridians, dharma_body, ancestral_sigils, gear, qi_compression):
             self.lines_intro += _m.combat(conn, self)
         trk.mark("anello e altri")
         # COSTITUZIONE SPECIALE
