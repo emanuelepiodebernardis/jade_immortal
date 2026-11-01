@@ -41,18 +41,27 @@ Per il Trasmigratore: `Marco Rinaldi`, `Giulia Ferri`, `Sara Conti`, `Davide Mor
 | il caduto (Davide Moretti) | young demonic cultivator, crimson eyes, black robes with blood-red trim, a cold smile |
 | il cacciatore (Luca Bianchi) | young hunter with a black blade, haunted eyes, a shadowy voice-like mist around his head |
 
-## bestie/ (1:1)
+## bestie/ (1:1) — versione mistica (da rifare)
+Le bestie attuali sono troppo semplici (cornici, la tartaruga è una macchia, il qilin sembra una capra).
+Per queste usa questo **stile al posto di quello base**, in coda al soggetto:
+> ethereal xianxia mythology, divine sacred beast, traditional Chinese ink wash painting blended with luminous mineral
+> pigments, glowing qi aura, swirling auspicious clouds, drifting mist, rays of celestial light, gold leaf highlights,
+> jade green and cinnabar accents, deep mysterious atmosphere, masterpiece, full bleed composition, no border, no frame,
+> no text, no watermark
+
 | file | soggetto |
 |---|---|
-| drago | Chinese dragon coiling through clouds, jade scales, pearl |
-| fenice | fenghuang phoenix in flight, cinnabar and gold plumage |
-| tigre | white tiger on a rock, fierce, ink fur strokes |
-| tartaruga | black tortoise with a serpent coiled around its shell, Xuanwu |
-| qilin | qilin with deer antlers and dragon scales, hooves of fire |
-| gru | red-crowned crane among pines |
-| volpe | nine-tailed fox spirit, white fur, glowing eyes |
-| serpente | celestial serpent with a jewel on the brow |
-| kun | Kun, the colossal fish turning into the Peng bird, waves and clouds |
+| drago | majestic azure Chinese dragon (long) coiling through stormy clouds above sacred mountain peaks, long serpentine body, jade and sapphire scales shimmering, flowing whiskers, chasing a glowing flaming pearl, lightning in the clouds |
+| fenice | divine fenghuang phoenix rising with wings fully spread, long flowing tail feathers of cinnabar, gold and violet trailing like flames and silk ribbons, sacred fire halo behind it, soaring over a sea of clouds at dawn |
+| gru | celestial red-crowned crane immortal mount dancing above a misty sacred lake, wings spread, silver-white luminous feathers, ancient twisted pine on a cliff, full moon, floating petals of light |
+| kun | colossal mythical Kun fish breaching from a dark endless ocean and transforming into the giant Peng bird, half fish half vast wings, enormous scale, tiny mountains below, swirling cosmic waves and clouds |
+| qilin | sacred qilin unicorn beast, dragon head with single antler-like horns, deer body covered in shimmering jade scales, flowing mane of flame, hooves wreathed in golden fire, walking on clouds without touching the ground, benevolent and noble |
+| serpente | celestial serpent spirit with a glowing jewel on its brow, immense coiling body of iridescent black and emerald scales, coiled around an ancient stone pillar with runes, moonlit mist, eyes glowing gold |
+| tartaruga | Xuanwu the Black Tortoise of the North, a giant ancient tortoise with a mountain-like dark shell carved with glowing constellations, a black serpent coiled around it, rising from a dark ocean under a starry night sky |
+| tigre | Baihu the White Tiger of the West, majestic divine white tiger with black ink stripes, glowing silver-blue eyes, standing on a jagged cliff, wind of metal blades and autumn leaves swirling, celestial light behind |
+| volpe | nine-tailed fox spirit huli jing, elegant white fox with nine luminous flowing tails fanned like a halo, glowing violet eyes, foxfire orbs floating around, moonlit bamboo forest, mysterious and enchanting |
+
+Pollinations gratuito: **una immagine ogni 45 secondi**, formato 768×768, poi `strumenti/sistema_scaricate.py`.
 
 ## creature/ (1:1)
 | file | soggetto |
