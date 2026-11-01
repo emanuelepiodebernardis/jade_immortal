@@ -839,9 +839,12 @@ function renderTodo(s) {
 function renderToday(s) {
   const b = $("#tabbody");
   const groups = {};
-  for (const x of s.todo || []) (groups[x.palace] = groups[x.palace] || []).push(x);
+  // (Agg. 82) niente doppioni: le tre cose già in «Cosa fare ora», al centro, qui non si ripetono
+  const shown = new Set(s.scena ? [] : (s.todo || []).slice(0, 3).map((x) => x.cmd + "|" + x.title));
+  for (const x of s.todo || []) if (!shown.has(x.cmd + "|" + x.title)) (groups[x.palace] = groups[x.palace] || []).push(x);
   let h = s.quotidiana ? V.dailyQuest(s.quotidiana) : "";
   if (!(s.todo || []).length) h += `<div class="empty">Niente di urgente: allenati, esplora, segui le tue mete.</div>`;
+  else if (!Object.keys(groups).length) h += `<div class="empty">Le cose da fare sono qui accanto, in «Cosa fare ora».</div>`;
   // (Agg. 81) prima ciò che conta (urgente o utile), il resto — informativo — raccolto in fondo
   const info = [];
   for (const p of Object.keys(PALACES)) {
@@ -1269,6 +1272,10 @@ function drawMap() {
     let vw = Math.min(Math.max(full[2], 3 * W), 5 * W), vh = vw * ch / cw;          // (Agg. 81) più vicino: caselle leggibili
     if (vh < Math.min(full[3], 5 * H)) { vh = Math.min(full[3], 5 * H) + 20; vw = vh * cw / ch; }
     mapView = me ? [px(me) + NW / 2 - vw / 2, py(me) + NH / 2 - vh / 2, vw, vh] : full.slice();
+    // (Agg. 82) la vista resta dentro i confini del mondo: niente grandi vuoti ai bordi
+    const clamp = (v, lo, hi) => (hi < lo ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v)));
+    mapView[0] = clamp(mapView[0], full[0] - 10, full[2] - mapView[2] + 10);
+    mapView[1] = clamp(mapView[1], full[1] - 10, full[3] - mapView[3] + 10);
   }
   const byId = Object.fromEntries(m.nodes.map((n) => [n.id, n]));
   let svg = `<svg id="mapsvg" viewBox="${mapView.join(" ")}" xmlns="http://www.w3.org/2000/svg">

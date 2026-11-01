@@ -3782,3 +3782,12 @@ principale era la gerarchia: tutto chiedeva attenzione insieme.
 
 ### Test
 - `tests/test_agg81.py` (4 test).
+
+## Aggiornamento 82 — Rifiniture dopo un nuovo giro di controllo
+
+- **Niente doppioni in «Oggi»:** le tre cose già mostrate al centro, in «Cosa fare ora», non si ripetono nel
+  pannello di destra.
+- **La mappa resta dentro i confini del mondo:** niente grandi vuoti ai bordi quando ti trovi vicino al limite.
+- **Puntini delle schede:** più piccoli, dentro il bordo, senza pulsazione.
+- **Telefono:** nella scheda dello Stato l'ultima riga («Punti liberi») non finisce più sotto la barra dei
+  comandi.

@@ -401,3 +401,10 @@ html[data-fs="150"] #rail button .lb { font-size: 10.5px; }
 #cmdform button { flex: none; }
 html[data-fs="150"] #cmdform { gap: 5px; }
 html[data-fs="150"] #cmdform button { padding-left: 8px; padding-right: 8px; }
+
+/* (Agg. 82) puntini delle schede più discreti e dentro il bordo; lo Stato al telefono non finisce sotto la barra */
+#subnav .pdot { width: 7px; height: 7px; top: 3px; right: 3px; box-shadow: none; }
+@media (max-width: 700px) {
+  #tabbody { padding-bottom: 150px; }
+}
+#subnav .pdot, #subnav .pdot.urgent { animation: none; }
