@@ -3792,6 +3792,59 @@ principale era la gerarchia: tutto chiedeva attenzione insieme.
 - **Telefono:** nella scheda dello Stato l'ultima riga («Punti liberi») non finisce più sotto la barra dei
   comandi.
 
+## Aggiornamento 84 — I volti del destino, leggere il nemico, un registro che si legge, come un'app
+
+### I volti del destino (`engine/systems/destiny_faces.py`, Storia → 🎭 Volti, comando `volti`)
+- **Cos'è:** un pannello con le persone che contano per te. Ci sono l'arcinemico con le sue cicatrici, i
+  vendicatori delle faide, chi ti deve la vita, chi hai risparmiato, sconfitto, aiutato o tradito.
+- **Per ognuno:** il volto (grande quanto la sua forza), il sentimento (odio, rancore, gratitudine…), il
+  regno, dove si trova e cosa ricorda di te. Se è qui, ci sono i pulsanti «Parla» e «Sfida».
+- **Voci dal mondo:** quando uno di loro sale di regno lo vieni a sapere, nel suo tono («…e si allena
+  pensando a te»). Al massimo due notizie al giorno.
+- **Corretto:** i vendicatori «padre», «fratello» e «figlio» potevano nascere donne. Nelle partite già
+  avviate si sistemano da soli.
+
+### Leggere il nemico nel duello (`engine/systems/duel_reading.py`)
+- **Punti deboli:** ogni stile ne ha uno, e all'inizio non lo conosci. Lo scopri studiandolo: difendersi
+  o concentrarsi aiuta, e un senso divino forte lo vede subito.
+  - L'impetuoso resta scoperto dopo la carica: il colpo dopo fa ×1,6.
+  - Il prudente ha un varco nella guardia: la guardia non ti frena più.
+  - Il subdolo resta senza fiato dopo una finta: il colpo dopo fa ×1,4.
+  - L'equilibrato ha un meridiano storto: le tue tecniche fanno ×1,2.
+- **Le finte:** un senso divino abbastanza forte capisce se il colpo pesante arriverà davvero o se è
+  una finta. Senza, contro il subdolo a volte noti un indizio.
+- **Nell'arena:** il punto debole compare (🔎), e quando è scoperto lo dice («colpisci ora!»).
+
+### Un registro che si legge
+- **Elenchi lunghi:** chi è presente, le creature, gli oggetti si chiudono in «▸ 6 voci», da aprire
+  con un clic. L'elenco dei presenti si chiude sempre, perché la scena li mostra già.
+- **Righe ripetute:** quelle già lette di recente («C'è un mercato qui…») non si ripetono. Un link le
+  rimostra.
+- **Fatti vecchi:** si accorciano alle prime righe, e un clic li riapre.
+
+### L'inizio pulito
+- **Al centro, durante i primi passi:** solo la tappa in corso, grande, con i pallini di avanzamento,
+  «Fallo ora» e «salta la guida». Accanto al più un'altra cosa urgente.
+- **Niente doppioni:** «Assegna i punti attributo» e «4 punti attributo» erano la stessa cosa.
+- **La missione quotidiana:** aspetta chiusa finché la guida non è finita.
+
+### Suoni
+- **Effetti:** sfondamenti, fulmini, apparizioni e colpi critici ora suonano anche con l'ambiente
+  spento. Seguono l'interruttore «Suoni».
+- **Notizie e duelli:** le voci dal mondo, la scoperta di un punto debole e la lettura di una finta
+  hanno il loro suono.
+- **Ambiente sonoro:** alla prima visita un avviso lo fa conoscere (si accende da Impostazioni).
+
+### Come un'app (Opzioni → Partita)
+- **Installabile:** il gioco ha un'icona (un disco di giada), un manifest e un service worker. Sul
+  computer si installa come app.
+- **Dal telefono:** con `python dashboard.py --rete` la scheda mostra l'indirizzo da aprire sulla
+  stessa Wi-Fi. Poi «Aggiungi a schermata Home».
+- **Avvisi:** quando il pilota automatico finisce e stai facendo altro, arriva una notifica (se la
+  attivi).
+- **Il limite:** sul telefono gli avvisi e l'installazione completa richiedono una connessione
+  sicura (HTTPS), che in casa non c'è. Il gioco si apre comunque a schermo intero dall'icona.
+
 ## Aggiornamento 83 — L'effetto «wow»: momenti cinematografici, paesaggi vivi, duelli spettacolari, voci vere
 
 ### Momenti cinematografici (`static/cinema.js`)

@@ -256,6 +256,7 @@ CATEGORIES: list[tuple[str, str, list[str]]] = [
         "cronaca [tutte|esporta]       — la CRONACA della tua vita (e delle vite passate); 'esporta' in un file .md",
         "trama                         — la tua storia: l'atto, le verità scoperte, le scelte che il mondo ricorda",
         "arcinemico                    — il rivale di una vita: cosa ricorda, le cicatrici, i suoi eredi",
+        "volti                         — i volti del destino: chi ti odia, chi ti deve la vita, dove sono",
         "regni | corte                 — i regni del mondo | la corte del regno in cui ti trovi",
         "sostieni <regno> | tributo <pietre> — servi un regno e sali di rango (da Suddito a Re dei Re)",
         "guerra_regni | trono          — combatti per il tuo regno | prendi il trono (da Duca, se il popolo ti segue)",

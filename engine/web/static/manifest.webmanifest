@@ -1,0 +1,17 @@
+{
+  "name": "Jade Immortal",
+  "short_name": "Jade Immortal",
+  "description": "Un gioco di coltivazione xianxia: la tua Via, dal mortale all'immortale.",
+  "lang": "it",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#10221d",
+  "theme_color": "#10221d",
+  "icons": [
+    { "src": "/static/icone/icona-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/icone/icona-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/static/icone/icona-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

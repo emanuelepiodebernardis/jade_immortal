@@ -26,7 +26,8 @@
   let ON = store.get(K.on, "0") === "1";
   let VOL = (() => { const v = parseFloat(store.get(K.vol, "0.35")); return isFinite(v) ? clamp(v, 0, 1) : 0.35; })();
   let CUES_PREF = store.get(K.cues, null);          // null = segue on()
-  const cuesOn = () => (CUES_PREF === null ? ON : CUES_PREF === "1");
+  // (Agg. 84) gli effetti isolati (sfondamento, fulmini, apparizioni, critici) seguono di base i «Suoni», non l'ambiente
+  const cuesOn = () => (CUES_PREF === null ? store.get("ji_sound", "1") !== "0" : CUES_PREF === "1");
 
   let G = null;                                     // grafo audio corrente
   let want = null;                                  // scena richiesta (normalizzata)

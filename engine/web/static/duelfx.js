@@ -232,6 +232,7 @@
       const tech = !!L.mossa && !BASIC[L.mossa];
       const dealt = Number(L.inflitto) || 0, taken = Number(L.subito) || 0;
       const crit = !!L.critico, critFoe = !!L.critico_lui;
+      if (crit || critFoe) { try { if (window.Ambient && Ambient.cuesOn()) Ambient.cue("critico"); } catch (e) { /* niente */ } }   // (Agg. 84)
       const maxFoe = (a.lui && a.lui.max) || 1, maxMe = (a.tu && a.tu.max) || 1;
 
       let cut = null;

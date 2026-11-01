@@ -69,6 +69,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path in ("/", "/index.html"):
                 return self._file(STATIC / "index.html")
+            if path == "/manifest.webmanifest":          # (Agg. 84) installabile come app
+                return self._send(200, (STATIC / "manifest.webmanifest").read_bytes(), "application/manifest+json")
+            if path == "/sw.js":                         # alla radice, così governa tutta la pagina
+                return self._send(200, (STATIC / "sw.js").read_bytes(), "application/javascript; charset=utf-8")
+            if path == "/favicon.ico":
+                return self._file(STATIC / "icone" / "favicon.png")
+            if path == "/api/telefono":                  # (Agg. 84) l'indirizzo per giocare dal telefono
+                return self._json(_lan_info(self.server.server_address))
             if path.startswith("/static/"):
                 f = (STATIC / path[len("/static/"):]).resolve()
                 if STATIC.resolve() in f.parents and f.is_file():
@@ -132,6 +140,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/codex":
                 from engine.systems import guide
                 return self._json(guide.codex())
+            if path == "/api/volti":                     # (Agg. 84) i volti del destino
+                return self._json(game.faces_data())
             if path == "/api/cronaca":
                 return self._json(game.chronicle_data("tutte" in url.query))
             if path == "/api/salvataggi":
@@ -247,6 +257,22 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, b"non trovato", "text/plain")
         except Exception as e:
             return self._error(e)
+
+
+def _lan_info(addr) -> dict:
+    """In casa (dashboard.py --rete) il telefono raggiunge il gioco a questo indirizzo."""
+    host, port = addr[0], addr[1]
+    if host not in ("0.0.0.0", "::"):
+        return {"rete": False, "url": "", "porta": port}
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("10.255.255.255", 1))
+        ip = s.getsockname()[0]
+        s.close()
+    except OSError:
+        ip = ""
+    return {"rete": True, "url": f"http://{ip}:{port}/" if ip else "", "porta": port}
 
 
 def serve(host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:

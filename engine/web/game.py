@@ -425,7 +425,8 @@ def state_snapshot() -> dict:
         snap["difficolta"] = calibration.current(conn)
         snap["nascondi_numeri"] = snap["difficolta"] in calibration.HIDE_NUMBERS
         from engine.systems import attention                    # pallini rossi e «Cosa fare ora»
-        snap["todo"] = attention.items(conn, p)
+        from engine.systems import guide as _guide
+        snap["todo"] = _guide.focus(attention.items(conn, p))       # (Agg. 84) niente doppioni della guida
         snap["badges"] = attention.badges(snap["todo"])
         snap["livelli"] = attention.levels(snap["todo"])        # (Agg. 81) rosso, oro, nessun segno
         from engine.systems import unlocks                      # (Agg. 67) le schede si aprono poco a poco
@@ -887,6 +888,16 @@ def gear_data() -> dict:
     from engine.systems import gear
     with LOCK, transaction() as conn:
         return gear.view(conn)
+
+
+def faces_data() -> dict:
+    """(Agg. 84) I volti del destino e le voci dal mondo."""
+    from engine.systems import destiny_faces
+    with LOCK, transaction() as conn:
+        p = entities.get_player(conn)
+        if p is None:
+            return {"volti": [], "notizie": []}
+        return {"volti": destiny_faces.faces(conn, p), "notizie": destiny_faces.news_feed(conn)}
 
 
 def chronicle_data(all_lives: bool = False) -> list[dict]:

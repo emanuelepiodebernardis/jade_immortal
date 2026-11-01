@@ -1035,3 +1035,57 @@ body.scene-on #place.staged { display: none !important; }
 .origins.cards .opt > span { padding: 8px 10px 10px; font-size: 12.5px; line-height: 1.35; }
 .origins.cards .opt > span b { display: block; font-family: "Cormorant Garamond", Georgia, serif; font-size: 17px; margin-bottom: 2px; }
 .origins.cards .opt:has(input:checked) { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 8px 22px #0003; }
+
+/* (Agg. 84) un registro che si legge */
+#log .ln.rep { display: none; }
+#log .rep-note .linkbtn, .linkbtn { background: none; border: 0; padding: 0; color: var(--muted); font-size: .85em; cursor: pointer; text-decoration: underline dotted; }
+#log details.lnfold { margin: 2px 0 4px; }
+#log details.lnfold > summary { cursor: pointer; color: var(--jade, #2f7d64); font-size: .92em; list-style: none; padding: 2px 8px; border-radius: 999px;
+  display: inline-block; background: color-mix(in srgb, var(--jade, #2f7d64) 9%, transparent); }
+#log details.lnfold > summary::-webkit-details-marker { display: none; }
+#log details.lnfold[open] > summary { margin-bottom: 2px; }
+#log .entry.compact { cursor: pointer; position: relative; }
+#log .entry.compact .ln:nth-of-type(n+4), #log .entry.compact details.lnfold, #log .entry.compact .rep-note { display: none; }
+#log .entry.compact::after { content: "… mostra tutto"; display: block; font-size: .82em; color: var(--muted); margin-top: 2px; }
+
+/* (Agg. 84) i volti del destino */
+.vfaces { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: 10px; }
+.vf { display: flex; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--card, #fff);
+  position: relative; overflow: hidden; }
+.vf::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--vf, var(--line)); }
+.vf.t-odio { --vf: #b03a2e; } .vf.t-rancore { --vf: #c47a2c; } .vf.t-grato, .vf.t-affetto { --vf: #2f7d64; }
+.vf.t-rispetto { --vf: #3d6fa8; } .vf.t-paura { --vf: #8a8170; }
+.vf.here { box-shadow: 0 0 0 2px color-mix(in srgb, var(--vf, var(--accent)) 55%, transparent); }
+.vf-pic { flex: 0 0 auto; width: calc(64px * var(--ts, 1)); height: calc(64px * var(--ts, 1)); min-width: 40px; min-height: 40px; }
+.vf-pic img, .vf-pic svg { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--vf, var(--line)); }
+.vf-body { min-width: 0; flex: 1; }
+.vf-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.vf-role { font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.08em; font-style: italic; margin: 1px 0 2px; }
+.vf-story { margin: 6px 0 0; padding-left: 16px; font-size: .9em; color: var(--muted); }
+.vf-news { margin-top: 6px; font-size: .9em; padding: 4px 8px; border-radius: 8px; background: color-mix(in srgb, var(--vf, var(--accent)) 8%, transparent); }
+.vf-act { margin-top: 8px; display: flex; gap: 6px; }
+.pill { display: inline-block; font-size: .75em; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 15%, transparent); }
+.pill.bad { background: #b03a2e22; color: #9a2f24; } .pill.good { background: #2f7d6422; color: #23664f; }
+.pill.warn { background: #c47a2c22; color: #94591c; } .pill.info { background: #3d6fa822; color: #2c5585; }
+
+/* (Agg. 84) l'inizio pulito: la tappa della guida, grande */
+.guide-hero { border-radius: 16px; padding: 14px 16px; margin: 4px 0 2px; color: var(--ink, #2b2620);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--jade, #2f7d64) 12%, var(--card, #fff)), var(--card, #fff) 70%);
+  border: 1px solid color-mix(in srgb, var(--jade, #2f7d64) 35%, transparent); box-shadow: 0 6px 22px -14px #2f7d6488; }
+.gh-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.gh-k { font-size: .78em; letter-spacing: .14em; text-transform: uppercase; color: var(--jade, #2f7d64); font-weight: 600; }
+.gh-dots { display: flex; gap: 5px; } .gh-dots i { width: 9px; height: 9px; border-radius: 50%; background: color-mix(in srgb, var(--muted) 30%, transparent); }
+.gh-dots i.done { background: var(--jade, #2f7d64); } .gh-dots i.cur { background: var(--gold, #c9a227); box-shadow: 0 0 0 3px #c9a22733; }
+.gh-main { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 8px; }
+.gh-main b { font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.45em; display: block; line-height: 1.15; }
+.gh-main small { color: var(--muted); }
+.gh-go { flex: 0 0 auto; font-size: 1.02em; padding: 10px 18px; }
+.gh-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.gh-skip { margin-left: auto; font-size: .82em; color: var(--muted); }
+@media (max-width: 640px) { .gh-main { flex-direction: column; align-items: stretch; } .gh-go { width: 100%; } }
+
+/* (Agg. 84) come un'app */
+.phone-card .pc-row { display: flex; gap: 12px; align-items: center; margin: 8px 0; }
+.phone-card .pc-row img { border-radius: 14px; flex: 0 0 auto; }
+.phone-card .pc-url { font-family: ui-monospace, monospace; font-size: 1.05em; user-select: all; }
+@media (display-mode: standalone) { body { padding-top: env(safe-area-inset-top); } }

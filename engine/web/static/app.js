@@ -92,6 +92,54 @@ function flushAll() {
   const box = $("#log"); if (box) box.scrollTop = box.scrollHeight;
   advUi();
 }
+// ---------------- (Agg. 84) UN REGISTRO CHE SI LEGGE ----------------
+// 1) le liste lunghe (chi è presente, le creature, gli oggetti…) si chiudono in «▸ 9 voci», da aprire con un clic;
+// 2) le righe già lette di recente (senza numeri: «C'è un mercato qui…», «Sei in incognito…») non si ripetono;
+// 3) i fatti vecchi si accorciano alle prime righe: un clic li riapre.
+const LN_LIVE = ".ln:not(.rep):not(.folded)";
+const SEEN_LN = new Map();                       // riga -> numero dell'evento in cui è comparsa
+let LOG_EVT = 0;
+const LIST_RE = /^\s+[-·•–]\s|^\s{2,}\S/;
+function tidyEntry(div, box) {
+  LOG_EVT++;
+  const lns = [...div.querySelectorAll(".ln")];
+  // 1) liste lunghe
+  for (let i = 0; i < lns.length;) {
+    if (!LIST_RE.test(lns[i].textContent)) { i++; continue; }
+    let j = i; while (j < lns.length && LIST_RE.test(lns[j].textContent) && lns[j].textContent.trim()) j++;
+    const head = i > 0 ? lns[i - 1].textContent.replace(/[:：]\s*$/, "").trim() : "";
+    // chi è presente lo mostra già la scena: quell'elenco si chiude anche se è corto
+    if (j - i >= 5 || (j - i >= 2 && /^(Presenti|Creature|Oggetti|A terra)/i.test(head) && $("#place .stg-view"))) {
+      const det = document.createElement("details"); det.className = "lnfold";
+      det.innerHTML = `<summary>▸ ${j - i} voci${head && head.length < 40 ? " · " + esc(head) : ""}</summary>`;
+      lns[i].before(det);
+      for (let k = i; k < j; k++) { lns[k].classList.add("folded"); det.appendChild(lns[k]); }
+      det.addEventListener("toggle", () => det.querySelectorAll(".ln").forEach((x) => x.classList.toggle("folded", !det.open)));
+    }
+    i = Math.max(j, i + 1);
+  }
+  // 2) righe ripetute da poco
+  let rep = 0;
+  for (const el of lns) {
+    const t = el.textContent.trim();
+    if (t.length < 22 || /\d/.test(t) || el.classList.contains("folded")) continue;
+    const prev = SEEN_LN.get(t);
+    if (prev !== undefined && LOG_EVT - prev <= 4) { el.classList.add("rep"); rep++; }
+    SEEN_LN.set(t, LOG_EVT);
+  }
+  if (SEEN_LN.size > 600) { for (const [k, v] of SEEN_LN) if (LOG_EVT - v > 6) SEEN_LN.delete(k); }
+  if (rep) {
+    const r = document.createElement("div"); r.className = "ln rep-note";
+    r.innerHTML = `<button class="linkbtn" data-showrep>↺ ${rep} rig${rep === 1 ? "a" : "he"} come prima</button>`;
+    div.appendChild(r);
+  }
+  // 3) i fatti più vecchi si accorciano
+  const all = box.querySelectorAll(":scope > .entry:not(.card-entry)");
+  const old = all[all.length - 9];
+  if (old && !old.dataset.compact && old.querySelectorAll(".ln").length > 5) {
+    old.dataset.compact = "1"; old.classList.add("compact");
+  }
+}
 function addLog(text, cmd, instant) {
   if (!text && !cmd) return;
   ambientCue(text);
@@ -111,15 +159,16 @@ function addLog(text, cmd, instant) {
   div.innerHTML = html;
   box.appendChild(div);
   while (box.children.length > 300) box.removeChild(box.firstChild);
+  try { tidyEntry(div, box); } catch (e) { /* il registro resta com'è */ }
   if (manual() && !instant && !document.body.classList.contains("duel-on")) {   // nel duello si legge l'arena; l'ingresso si legge subito
-    const chunks = chunkLines([...div.querySelectorAll(".ln")]);
+    const chunks = chunkLines([...div.querySelectorAll(LN_LIVE)]);
     const keepFirst = !PENDING.length;                // il primo pezzo si vede subito, se non c'è altro da leggere
     chunks.forEach((c, i) => { if (i === 0 && keepFirst) return; c.forEach((el) => el.classList.add("wait")); PENDING.push(c); });
     const y = div.offsetTop - box.offsetTop - 8;
     box.scrollTop = keepFirst ? Math.max(y, box.scrollHeight - box.clientHeight - 2000) : box.scrollTop;
     if (keepFirst) div.scrollIntoView({ block: "nearest" });
     advUi();
-    if (window.Narrator && Narrator.on()) Narrator.feedEls([...div.querySelectorAll(".ln:not(.wait)")]);
+    if (window.Narrator && Narrator.on()) Narrator.feedEls([...div.querySelectorAll(LN_LIVE)].filter((x) => !x.classList.contains("wait")));
   } else { box.scrollTop = box.scrollHeight; if (window.Narrator && Narrator.on() && !instant) Narrator.feed(lines.join("\n")); }
   systemToasts(text || "");
 }
@@ -292,7 +341,18 @@ function ambientCue(text) {
   else if (/SFONDAMENTO RIUSCITO|Avanzi al regno|Sei salito/i.test(t)) Ambient.cue("sfondamento");
   else if (/⛩|PROVA D/.test(t)) Ambient.cue("gong");
   else if (/RISVEGLIO|NOVITÀ/.test(t)) Ambient.cue("campana");
+  else if (/📜 Voci dal mondo|🔎 .*punto debole/.test(t)) Ambient.cue("campana");      // (Agg. 84)
+  else if (/👁 .*FINTA/.test(t)) Ambient.cue("critico");
 }
+// (Agg. 84) il paesaggio sonoro c'è ma è spento di base: alla prima interazione, una volta sola, lo si fa sapere
+document.addEventListener("pointerdown", function ambHint() {
+  document.removeEventListener("pointerdown", ambHint);
+  try {
+    if (!window.Ambient || Ambient.on() || !SOUND || localStorage.getItem("ji_amb_hint")) return;
+    localStorage.setItem("ji_amb_hint", "1");
+    setTimeout(() => toast("🔈 Paesaggio sonoro", "Vento, pioggia, la folla della città, i grilli di notte: accendilo da ⚙ Impostazioni → «Suoni d'ambiente».", "info", true), 2500);
+  } catch (e) { /* niente */ }
+});
 function musicFor(s) {
   if (!MUSIC || !SOUND || !AC_UNLOCKED) { if (MU.mood) muStop(); return; }
   let mood = s && s.duello && s.duello.arena && !s.duello.arena.finito ? "duel" : (s && s.luogo && s.luogo.type) || "quiet";
@@ -356,7 +416,7 @@ const PALACES = {
   mondo: { t: "🌍 Il mondo", tabs: [["mappa", "🗺 Mappa", "mappa"], ["mercato", "🏪 Mercato", "m:mercato"], ["asta", "⚖ Aste", "m:asta"],
     ["regni", "👑 Regni", "m:regni"], ["razze", "🐉 Razze", "m:razze"], ["sotto", "🙏 Mondo di sotto", "m:sotto"]] },
   tesori: { t: "🎒 Tesori", tabs: [["zaino", "🎒 Zaino", "tesori:zaino"], ["album", "🖼 Album", "tesori:album"], ["libro", "📖 Libro", "tesori:libro"]] },
-  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["saghe", "📚 Saghe", "storia:saghe"], ["scelte", "⚖ Scelte", "storia:scelte"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
+  storia: { t: "📜 Storia", tabs: [["cronaca", "📜 Cronaca", "storia:cronaca"], ["volti", "🎭 Volti", "storia:volti"], ["saghe", "📚 Saghe", "storia:saghe"], ["scelte", "⚖ Scelte", "storia:scelte"], ["trama", "✦ Trama", "storia:trama"], ["mondo", "🌍 Mondo", "storia:mondo"], ["codex", "📖 Codex", "storia:codex"]] },
   opzioni: { t: "⚙ Opzioni", tabs: [["pilota", "✧ Pilota e difficoltà", "pilota"], ["partita", "💾 Partita", "aiuto"]] },
 };
 const TARGET_OF = {};                               // destinazione → [palazzo, scheda]
@@ -668,7 +728,10 @@ function arenaHtml(a, s) {
   const foe = `<div class="fighter foe" style="--fs:${fs.toFixed(3)}" title="${esc(window.Stage && Stage.forzaText ? Stage.forzaText(a.lui.rapporto) : "")}">${face(a.nome, Math.round(72 * fs), "--bad", "", { arch: a.lui.arch, kind: a.lui.kind, f: a.lui.f })}
       <div class="fi"><b>${esc(a.nome)}</b><div class="muted small">${esc(a.lui.regno)} · ${esc(a.lui.forza)}</div>
       ${hpBar("foe", a.lui.hp, a.lui.max, true)}<div class="stati">${elTag((a.elementi || {}).lui)}${stBadges(a.stati_lui)}</div>
-      <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>${a.rango === "boss" ? `<span class="tag boss">♛ BOSS${a.fase > 1 ? " · fase " + a.fase : ""}</span>` : a.rango === "elite" ? `<span class="tag rare">★ élite</span>` : ""}
+      <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>${a.lettura && !a.finito ? (a.lettura.noto
+        ? `<span class="tag good" title="Punto debole: ${esc(a.lettura.testo)}">🔎 ${esc(a.lettura.nome)}</span>`
+        : `<span class="tag" title="${esc(a.lettura.testo)}">🔎 punto debole: ?</span>`) +
+        (a.lettura.noto && a.lettura.aperto ? `<span class="tag rare blink">✧ è scoperto: colpisci ora!</span>` : "") : ""}${a.rango === "boss" ? `<span class="tag boss">♛ BOSS${a.fase > 1 ? " · fase " + a.fase : ""}</span>` : a.rango === "elite" ? `<span class="tag rare">★ élite</span>` : ""}
       ${a.vantaggio > 1 ? `<span class="tag good">☸ elemento a tuo favore</span>` : a.vantaggio < 1 ? `<span class="tag bad">☸ elemento a suo favore</span>` : ""}
       ${a.intento && !a.finito ? `<div class="intent it-${esc(a.intento.tipo)}" title="Cosa farà al prossimo scambio"><b>${esc(a.intento.icon)} Prossima mossa:</b> ${esc(a.intento.testo)}${a.intento.danno[1] ? `<small>fino a −${a.intento.danno[1].toLocaleString("it-IT")} (${a.intento.pct[0]}–${a.intento.pct[1]}% della tua vita)</small>` : ""}</div>` : a.carica ? `<span class="tag bad blink">⚠ carica un colpo pesante</span>` : ""}</div>${pop(L.inflitto, "good" + (L.critico ? " crit" : ""))}</div>`;
   const allies = a.alleati.length ? `<details class="allies-box"><summary>${a.alleati.length} alleat${a.alleati.length === 1 ? "o" : "i"} in campo</summary><div class="allies">${a.alleati.map((x) => `<span>${esc(x)}</span>`).join("")}</div></details>` : "";
@@ -857,8 +920,24 @@ function todoCard(x) {
   return `<button class="todo-card ${x.hot ? "hot" : ""}" data-cmd="${esc(x.cmd)}" title="${esc(x.cmd)}"><span class="ti">${esc(x.icon)}</span>
     <span class="tt"><b>${esc(x.title)}</b><small>${esc(x.why)}</small></span></button>`;
 }
+// (Agg. 84) L'INIZIO PULITO: finché c'è la guida, al centro solo la tappa in corso (grande, con i pallini) e al più
+// un'altra cosa davvero urgente. Il resto aspetta in «Oggi».
+function guideHero(x, extra) {
+  const g = x.guida;
+  const dots = Array.from({ length: g.di }, (_, i) => `<i class="${i < g.n - 1 ? "done" : i === g.n - 1 ? "cur" : ""}"></i>`).join("");
+  return `<div class="guide-hero"><div class="gh-top"><span class="gh-k">🧭 Primi passi · ${g.n} di ${g.di}</span><span class="gh-dots">${dots}</span></div>
+    <div class="gh-main"><div><b>${esc(g.titolo)}</b><small>${esc(g.perche)} · premio ${g.premio} pietre</small></div>
+    <button class="primary gh-go" data-cmd="${esc(x.cmd)}">Fallo ora ›</button></div>
+    <div class="gh-foot">${extra ? `<span class="muted small">Intanto:</span> ${extra}` : ""}<button class="link gh-skip" data-cmd="guida salta" title="Conosco già il gioco">salta la guida</button></div></div>`;
+}
 function renderTodo(s) {
   const box = $("#todo"); if (!box) return;
+  const gi = (s.todo || []).find((x) => x.guida);
+  if (gi && !s.scena) {
+    const other = (s.todo || []).find((x) => x !== gi && x.hot);
+    box.innerHTML = guideHero(gi, other ? `<button class="link" data-cmd="${esc(other.cmd)}">${esc(other.icon)} ${esc(other.title)}</button>` : "");
+    return;
+  }
   const items = (s.todo || []).slice(0, 3);
   box.innerHTML = s.scena || !items.length ? "" : `<div class="h">Cosa fare ora</div><div class="todo-row">${items.map(todoCard).join("")}</div>`
     + ((s.todo || []).length > 3 ? `<button class="link more-todo" data-ptab="oggi:sintesi">e altre ${(s.todo || []).length - 3} cose ›</button>` : "");
@@ -867,9 +946,12 @@ function renderToday(s) {
   const b = $("#tabbody");
   const groups = {};
   // (Agg. 82) niente doppioni: le tre cose già in «Cosa fare ora», al centro, qui non si ripetono
-  const shown = new Set(s.scena ? [] : (s.todo || []).slice(0, 3).map((x) => x.cmd + "|" + x.title));
+  const shown = new Set(s.scena ? [] : (s.todo || []).some((x) => x.guida)
+    ? (s.todo || []).filter((x) => x.guida).map((x) => x.cmd + "|" + x.title)
+    : (s.todo || []).slice(0, 3).map((x) => x.cmd + "|" + x.title));
   for (const x of s.todo || []) if (!shown.has(x.cmd + "|" + x.title)) (groups[x.palace] = groups[x.palace] || []).push(x);
-  let h = s.quotidiana ? V.dailyQuest(s.quotidiana) : "";
+  const guiding = (s.todo || []).some((x) => x.guida);       // (Agg. 84) durante la guida la missione aspetta, chiusa
+  let h = s.quotidiana ? (guiding ? `<details class="card sec dq-wait"><summary><b>Missione quotidiana</b> <span class="muted small">— quando hai finito i primi passi</span></summary>${V.dailyQuest(s.quotidiana)}</details>` : V.dailyQuest(s.quotidiana)) : "";
   if (!(s.todo || []).length) h += `<div class="empty">Niente di urgente: allenati, esplora, segui le tue mete.</div>`;
   else if (!Object.keys(groups).length) h += `<div class="empty">Le cose da fare sono qui accanto, in «Cosa fare ora».</div>`;
   // (Agg. 81) prima ciò che conta (urgente o utile), il resto — informativo — raccolto in fondo
@@ -932,7 +1014,7 @@ const PANEL_TEXT = { personaggio: 1, tesori: 1, storia: 1, mondo: 1, aiuto: 1 };
 const SUBTABS = {
   personaggio: [["stato", "🪟 Stato"], ["dao", "☸ Dao"], ["radici", "🌱 Radici"], ["crescita", "📈 Crescita"], ["dettagli", "📄 Schede"]],
   tesori: [["zaino", "🎒 Zaino"], ["album", "🖼 Album"], ["libro", "📖 Libro"]],
-  storia: [["cronaca", "📜 Cronaca"], ["saghe", "📚 Saghe"], ["scelte", "⚖ Scelte"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
+  storia: [["cronaca", "📜 Cronaca"], ["volti", "🎭 Volti"], ["saghe", "📚 Saghe"], ["scelte", "⚖ Scelte"], ["trama", "✦ Trama"], ["mondo", "🌍 Mondo"], ["codex", "📖 Codex"]],
 };
 // (Agg. 70) il CODEX: la prima volta che apri una scheda, una pagina che spiega quel sistema
 let CODEX = null, CODEX_SEEN = {};
@@ -1059,6 +1141,7 @@ async function loadTab(name) {
       if (sub.storia === "codex") h += await codexHtml();
       else if (sub.storia === "scelte") h += await choicesHtml();
       else if (sub.storia === "saghe") h += await sagasHtml();
+      else if (sub.storia === "volti") h += await facesHtml();
       else if (sub.storia === "mondo") h += await worldHtml() + await texts("mondo");
       else if (sub.storia === "trama") h += await texts("storia", "trama");
       else h += await chronicleHtml();
@@ -1217,6 +1300,27 @@ function gearHtml(g) {
     <span class="muted small">Forgia: ${g.costo_forgia.toLocaleString("it-IT")} pietre a pezzo (regno ${g.regno})</span></div>${bag}</div>`;
 }
 
+// (Agg. 84) I VOLTI DEL DESTINO: chi ti odia, chi ti deve la vita, chi ti aspetta — con le voci dal mondo
+const TONE_CLS = { odio: "bad", rancore: "warn", grato: "good", affetto: "good", rispetto: "info", paura: "", complice: "" };
+async function facesHtml() {
+  const d = await api("/api/volti");
+  const fz = (r, cel) => cel ? "sembra un mortale qualunque" : (window.Stage && Stage.forzaText ? Stage.forzaText(r) : "");
+  const cards = d.volti.map((f) => {
+    const first = f.nome.split(" ")[0];
+    const acts = f.qui ? `<div class="vf-act"><button data-cmd="parla ${esc(first)}">Parla</button><button class="danger" data-cmd="duello ${esc(first)}">Sfida</button></div>` : "";
+    return `<div class="vf t-${esc(f.tono || "nessuno")}${f.qui ? " here" : ""}">
+      <div class="vf-pic" style="--ts:${window.Stage ? Stage.tokenScale(f.celato ? 0.25 : f.forza).toFixed(3) : 1}">${face(f.nome, 96, "", f.kind, { arch: f.arch, f: f.f, kind: f.kind })}</div>
+      <div class="vf-body"><div class="vf-head"><b>${esc(f.nome)}</b> <span class="pill ${TONE_CLS[f.tono] || ""}">${esc(f.tono_it || "—")}</span>
+        ${f.caccia ? `<span class="pill bad">ti dà la caccia</span>` : ""}${f.tornera ? `<span class="pill info">tornerà</span>` : ""}</div>
+        <div class="vf-role">${esc(f.ruolo)}</div>
+        <div class="muted small">${esc(f.regno)} · ${esc(fz(f.forza, f.celato))} · ${f.qui ? "<b>è qui</b>" : "a " + esc(f.dove)}</div>
+        ${f.storia.length ? `<ul class="vf-story">${f.storia.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+        ${f.notizia ? `<div class="vf-news">📜 ${esc(f.notizia)}</div>` : ""}${acts}</div></div>`;
+  }).join("");
+  const news = d.notizie.length ? `<div class="card"><b>📜 Voci dal mondo</b>${d.notizie.map((n) => `<div class="cr"><span class="muted">g.${n.day + 1}</span> ${esc(n.text)}</div>`).join("")}</div>` : "";
+  return `<div class="card"><b>🎭 I volti del destino</b> <span class="muted small">chi ti porta nel cuore — o nell'odio. Crescono anche loro.</span>
+    <div class="vfaces">${cards || `<div class="empty">Nessuno, per ora. Risparmia un vinto, uccidi un nemico, aiuta uno sconosciuto: il mondo comincerà a ricordarti.</div>`}</div></div>${news}`;
+}
 let allLives = false;
 async function chronicleHtml() {
   const cr = await api("/api/cronaca" + (allLives ? "?tutte" : ""));
@@ -1238,6 +1342,42 @@ async function worldHtml() {
     <div class="card"><b>Razze antiche</b><table><tr><th>Razza</th><th>Rapporto</th><th>Onore</th></tr>${rz}</table></div>`;
 }
 
+// ---------------- (Agg. 84) COME UN'APP: installabile, sul telefono, con gli avvisi ----------------
+let INSTALL_EV = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); INSTALL_EV = e; });
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+}
+const NOTIFY_OK = () => { try { return "Notification" in window && Notification.permission === "granted" && localStorage.getItem("ji_notify") !== "0"; } catch (e) { return false; } };
+function notify(title, body) {
+  if (!NOTIFY_OK() || !document.hidden) return;                // solo se stai facendo altro
+  const opt = { body, icon: "/static/icone/icona-192.png", badge: "/static/icone/favicon.png", tag: "jade" };
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then((r) => r.showNotification(title, opt));
+    else new Notification(title, opt);
+  } catch (e) { /* niente */ }
+}
+async function phoneCard() {
+  const t = await api("/api/telefono").catch(() => ({}));
+  const canNotify = "Notification" in window && window.isSecureContext;
+  const nState = !canNotify ? "" : Notification.permission === "granted" ? (NOTIFY_OK() ? "attivi" : "spenti") : Notification.permission === "denied" ? "bloccati dal browser" : "";
+  return `<div class="card phone-card"><b>📱 Come un'app</b>
+    <div class="pc-row"><img src="/static/icone/icona-192.png" alt="" width="56" height="56"><div>
+    ${t.rete && t.url ? `<div>Sul telefono, connesso alla stessa Wi-Fi, apri <b class="pc-url">${esc(t.url)}</b></div>
+      <div class="muted small">Poi dal menu del browser scegli «Aggiungi a schermata Home»: avrai l'icona del disco di giada e il gioco a schermo intero.</div>`
+    : `<div>Per giocare dal telefono avvia il gioco con <code>python dashboard.py --rete</code>: qui comparirà l'indirizzo da aprire.</div>
+      <div class="muted small">Il gioco gira sul tuo PC: il telefono deve essere sulla stessa Wi-Fi. Nessuna password: usalo solo in casa.</div>`}
+    </div></div><div class="tools">${INSTALL_EV ? `<button class="primary" id="pc-install">⬇ Installa come app su questo computer</button>` : ""}
+    ${canNotify ? `<button id="pc-notify">🔔 Avvisi quando il pilota finisce${nState ? ": " + nState : ""}</button>` : ""}</div></div>`;
+}
+document.addEventListener("click", async (ev) => {
+  if (ev.target.closest("#pc-install") && INSTALL_EV) { INSTALL_EV.prompt(); INSTALL_EV = null; ev.target.closest("#pc-install").remove(); return; }
+  if (ev.target.closest("#pc-notify")) {
+    if (Notification.permission === "default") await Notification.requestPermission();
+    else if (Notification.permission === "granted") { try { localStorage.setItem("ji_notify", NOTIFY_OK() ? "0" : "1"); } catch (e) { /* niente */ } }
+    loadTab("aiuto");
+  }
+});
 async function gameHtml() {
   const m = await api("/api/merito");
   const sv = await api("/api/salvataggi");
@@ -1249,6 +1389,7 @@ async function gameHtml() {
       <label class="btn" title="Carica una partita esportata (.jiw): quella attuale viene messa al sicuro">⬆ Importa da file<input type="file" id="imp-file" accept=".jiw,.db" hidden></label></div>` +
     (sv.length ? sv.map((x) => `<div class="dest"><div class="t">${esc(x.name)}</div><div class="w">${esc(x.when)}</div>
       <div class="b"><button data-cmd="carica ${esc(x.name)}">Carica</button></div></div>`).join("") : `<div class="empty">Nessun salvataggio.</div>`) + `</div>`;
+  h += await phoneCard();
   h += `<div class="card"><b>Rinascita e nuova partita</b>`;
   if (m.senza_ritorno) {
     h += `<p class="muted">Modalità Senza Ritorno: niente reincarnazione volontaria.</p>`;
@@ -1440,6 +1581,7 @@ function autoStart() {
     if (d.fine) {
       es.close(); es = null; busy = false;
       $("#auto-go").hidden = false; $("#auto-stop").hidden = true;
+      notify("Jade Immortal", d.stop === "morto" ? "La tua vita si è spenta." : d.stop ? `Il pilota si è fermato: ${d.stop}` : "Il pilota ha finito il suo viaggio.");
       if (d.stop === "morto") return showDeath();
       if (d.riepilogo && d.riepilogo.giorni !== undefined) addCard(V.summary(d.riepilogo, d.stop));
       else if (d.stop) addLog(`⏸ Il pilota si ferma: ${d.stop}`);
@@ -1662,6 +1804,10 @@ document.addEventListener("click", async (ev) => {
   if (bk && BOOK) { bookCat = bk.dataset.book; $("#tabbody").innerHTML = V.book(BOOK, bookCat); return; }
   const gn = ev.target.closest("[data-node]");
   if (gn && GRAPH) { const box = $("#gnode-info"); if (box) box.innerHTML = V.nodeInfo(GRAPH, gn.dataset.node); return; }
+  const sr = ev.target.closest("[data-showrep]");
+  if (sr) { const en = sr.closest(".entry"); en.querySelectorAll(".ln.rep").forEach((x) => x.classList.remove("rep")); sr.parentElement.remove(); return; }
+  const ce = ev.target.closest("#log .entry.compact");
+  if (ce && !ev.target.closest("button, a, summary")) { ce.classList.remove("compact"); return; }
   const lf = ev.target.closest("[data-logf]");
   if (lf) {
     logFilter = lf.dataset.logf;

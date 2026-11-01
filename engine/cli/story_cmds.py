@@ -247,6 +247,19 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("trama", "storia", "plot"):
         from engine.systems import master_plot
         return master_plot.describe(conn, player)
+    if cmd in ("volti", "destino", "nemici"):                 # (Agg. 84) i volti del destino
+        from engine.systems import destiny_faces
+        fs = destiny_faces.faces(conn, player)
+        if not fs:
+            return "Nessuno, per ora, ti porta nel cuore — né nell'odio. Il mondo non ti conosce ancora."
+        out = ["I VOLTI DEL DESTINO"]
+        for f in fs:
+            out.append(f"  {f['nome']} — {f['ruolo']} ({f['tono_it'] or 'nessun sentimento'}) · {f['regno']} · "
+                       f"{'QUI' if f['qui'] else f['dove']}")
+            out += ["      " + s for s in f["storia"][:2]]
+            if f["notizia"]:
+                out.append("      📜 " + f["notizia"])
+        return "\n".join(out)
     if cmd in ("arcinemico", "archrival", "rivale"):
         from engine.systems import archrival
         return archrival.describe(conn, player)

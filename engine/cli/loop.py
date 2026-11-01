@@ -2000,9 +2000,10 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
         lines += ["  " + ln for ln in lost_legacy.assign(conn, _rng2)]
         _set_flag(conn, "legacy_init")
     from engine.systems import archrival, kingdoms, races, eras, contests, captivity, echoes, race_realms, ascension, income, auto_collect
+    from engine.systems import destiny_faces
     for _mod in (mentor_ring, inner_space, clones, celestial_elements, family, gu, lost_legacy, divine_sense,
                  archrival, kingdoms, races, race_realms, eras, contests, captivity, echoes, ascension, income,
-                 auto_collect):
+                 auto_collect, destiny_faces):
         lines += ["  " + ln for ln in _mod.daily(conn, t, _rng2, entities.get_player(conn))]
     from engine.systems import beast_eggs, qol
     lines += ["  " + ln for ln in beast_eggs.daily(conn, t, random.Random(t * 89 + day), player)]

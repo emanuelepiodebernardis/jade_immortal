@@ -185,7 +185,7 @@ def _moves(conn, player, limit: int = 3) -> list[dict]:
 
 def arena(conn, player) -> dict | None:
     """Il duello come ARENA per la dashboard: ritratti, barre, carte delle tecniche, alleati, ultimo scambio."""
-    from engine.systems import qi as qimod, spirit as spmod, perception
+    from engine.systems import qi as qimod, spirit as spmod, perception, duel_reading
     from engine.simulation import cultivation
     d = get(conn)
     if not d:
@@ -223,8 +223,10 @@ def arena(conn, player) -> dict | None:
     except Exception:                                 # noqa: BLE001
         pass
     cards.append({"key": "difendi", "name": "Difendi", "icon": "🛡", "cost": "",
-                  "desc": "para quasi tutto il colpo pesante" if d["charge_e"] else "subisci meno, recuperi Qi",
-                  "ok": True, "why": "", "cmd": "duello_azione difendi", "kind": "base", "hot": d["charge_e"]})
+                  "desc": ("è una finta: difendersi serve a poco" if d.get("read") == "finta" else
+                           "para quasi tutto il colpo pesante" if d["charge_e"] else "subisci meno, recuperi Qi (e lo studi)"),
+                  "ok": True, "why": "", "cmd": "duello_azione difendi", "kind": "base",
+                  "hot": d["charge_e"] and d.get("read") != "finta"})
     cards.append({"key": "concentrati", "name": "Concentrati", "icon": "☯", "cost": "", "desc": "colpo devastante al prossimo turno",
                   "ok": not d["focus"], "why": "sei già concentrato", "cmd": "duello_azione concentrati", "kind": "base"})
     pills = _pills(conn, player.id)
@@ -252,6 +254,7 @@ def arena(conn, player) -> dict | None:
                 "rapporto": round(1.0 / max(1e-6, perception.strength_ratio(conn, player.id, d["npc"])), 3)},
         "stile": st[0], "stile_desc": st[1], "vantaggio": d.get("adv", 1.0), "carica": d["charge_e"], "concentrato": d["focus"],
         "alleati": [a["intro"] for a in d.get("allies", [])], "ultimo": d.get("last", {}),
+        "lettura": duel_reading.view(d),
         "carte": [] if finished else cards,
     }
 
@@ -318,8 +321,11 @@ def _intent(conn, player, d: dict, st) -> dict:
     ie = d.get("intent_e", "attacco")
     bm = BOSS_MULT.get(d.get("phase", 1), 1.0) if d.get("boss") else 1.0
     base *= bm
-    if d.get("charge_e"):
-        kind, icon, txt, m = "carica", "⚠", "colpo PESANTE — difenditi!", 1.7
+    if d.get("charge_e") and d.get("read") == "finta":
+        kind, icon, txt, m = "finta", "👁", "una FINTA (il tuo senso divino non mente) — attaccalo!", 1.0
+    elif d.get("charge_e"):
+        kind, icon, txt, m = "carica", "⚠", "colpo PESANTE — difenditi!" + (
+            " (forse finge…)" if d.get("read") == "indizio" else ""), 1.7
     elif ie == "tecnica":
         nm, st_k = _enemy_tech(d)
         kind, icon, txt, m = "tecnica", duel_types.EL_ICON.get(d.get("el_e") or "", "✦"), \
@@ -360,6 +366,8 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
     # (Agg. 69) il prudente a volte si mette in guardia: colpirlo ora rende poco, è il turno per prepararsi
     d["guard_e"] = (not d["charge_e"]) and d["round"] > 1 and rng.random() < (0.3 if d.get("style") == "prudente" else 0.08)
     d["intent_e"] = _decide_enemy(d, rng)
+    from engine.systems import duel_reading            # (Agg. 84) punti deboli e finte lette col senso divino
+    read_lines = duel_reading.on_turn(conn, player, d, rng)
     _save(conn, d)
     lines = list(extra or [])
     lines.append(f"Turno {d['round']}.  Tu  {_bar(d['hp_p'], d['pmax'])}  "
@@ -376,6 +384,7 @@ def _next_turn(conn, player, extra: list[str] | None = None) -> str:
         lines.append(f"💊 {d['name']} porta la mano alla cintura: sta per ingoiare una pillola.")
     elif d.get("intent_e") == "fuga":
         lines.append(f"↩ {d['name']} arretra e cerca una via di fuga!")
+    lines += read_lines
     if d["focus"]:
         lines.append("Sei concentrato: il tuo prossimo colpo sarà devastante.")
     choices = [{"label": "Colpisci", "effects": {}, "command": "duello_azione colpisci"}]
@@ -422,6 +431,8 @@ def act(conn, player, arg: str) -> str:
     parts = arg.split()
     what = parts[0] if parts else "colpisci"
     lines: list[str] = []
+    from engine.systems import duel_reading
+    _opened = d.pop("opened", None)                   # (Agg. 84) si era scoperto al turno prima?
     taken = 1.0
     mods: dict = {}
     name = None
@@ -495,6 +506,7 @@ def act(conn, player, arg: str) -> str:
         mult *= duel_types.mod(d.get("st_p"), "dmg") * duel_types.mod(d.get("st_e"), "taken")
         if d.get("guard_e"):
             mult *= 0.6
+        mult *= duel_reading.attack_mult(d, what, lines, _opened)
         dealt, crit_any = 0.0, False
         if rng.random() < duel_types.mod(d.get("st_p"), "miss"):
             lines.append("  Accecato, colpisci il vuoto!")
@@ -614,6 +626,7 @@ def act(conn, player, arg: str) -> str:
                 duel_types.apply(d, "p", _enemy_tech(d)[1]) if _enemy_tech(d)[1] and rng.random() < 0.6 else "")
             if e_line:
                 lines.append(e_line)
+    duel_reading.after_enemy(d, bool(d["charge_e"]) and not feint, bool(feint))
     d["hp_p"] -= edmg
     d["last"]["subito"] = round(edmg)
     d["last"]["critico_lui"] = bool(ecrit)

@@ -41,6 +41,7 @@ REL_LABEL = {"padre": "il padre", "madre": "la madre", "fratello": "il fratello"
              "figlio": "il figlio", "figlia": "la figlia", "maestro": "il maestro", "giurato": "il fratello giurato",
              "setta": "la setta", "allievo": "l'allievo"}
 FEMALE = {"madre", "sorella", "figlia"}
+MALE = {"padre", "fratello", "figlio"}          # (Agg. 84) prima nascevano a caso: un «padre» poteva essere donna
 # relazione -> (scarto di regno rispetto alla vittima, ardore iniziale, giorni prima di partire)
 REL = {"padre": (1, 85, (8, 25)), "madre": (1, 80, (8, 25)), "fratello": (0, 75, (5, 18)),
        "sorella": (0, 70, (5, 18)), "figlio": (-1, 95, (30, 70)), "figlia": (-1, 90, (30, 70)),
@@ -141,7 +142,8 @@ def _spawn_avenger(conn, rng, victim, relation: str) -> int:
     nid = npc_factory.spawn(conn, rng, archetype=arch, location_id=home, tier=tier,
                             stage=rng.randint(4, 9), faction_id=vfac,
                             traits={"pride": 75, "courage": 80, "loyalty": 90},
-                            **({"gender": "f"} if relation in FEMALE else {}))
+                            **({"gender": "f"} if relation in FEMALE else
+                               {"gender": "m"} if relation in MALE else {}))
     if relation in REL_LABEL and relation not in ("maestro", "setta", "giurato", "allievo"):
         # stessa famiglia, stesso cognome
         r = conn.execute("SELECT name FROM npcs WHERE id=?;", (nid,)).fetchone()
@@ -314,9 +316,24 @@ def _cost(conn, f) -> int:
     return int(f["intensity"] * 4 * tier * f["gen"])
 
 
+def _fix_genders(conn) -> None:
+    """(Agg. 84) Le partite vecchie: padri, fratelli e figli nati donne tornano uomini (una volta sola)."""
+    from engine.systems import state
+    if state.get(conn, "feuds_gender84"):
+        return
+    q = ",".join("?" * len(MALE))
+    conn.execute(f"UPDATE npcs SET gender='m' WHERE gender='f' AND id IN "
+                 f"(SELECT npc_id FROM feuds WHERE relation IN ({q}));", tuple(MALE))
+    q = ",".join("?" * len(FEMALE))
+    conn.execute(f"UPDATE npcs SET gender='f' WHERE (gender IS NULL OR gender<>'f') AND id IN "
+                 f"(SELECT npc_id FROM feuds WHERE relation IN ({q}));", tuple(FEMALE))
+    state.set(conn, "feuds_gender84", "1")
+
+
 def daily(conn, t: int, rng: random.Random, player) -> list[str]:
     from engine.systems import npc_factory, encounters
     ensure_table(conn)
+    _fix_genders(conn)
     out = []
     day = _day(conn)
     for f in feuds(conn):

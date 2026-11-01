@@ -154,7 +154,18 @@ def attention_item(conn, player) -> dict | None:
     i, (key, title, why, cmd, prize) = cur
     cmd, why = _live_cmd(conn, player, key, cmd, why)
     return {"icon": "🧭", "title": f"Primi passi {i + 1}/{len(STEPS)}: {title}", "why": f"{why} (+{prize} pietre)",
-            "cmd": cmd, "palace": "oggi", "tab": "", "hot": True, "prio": -1}
+            "cmd": cmd, "palace": "oggi", "tab": "", "hot": True, "prio": -1,
+            "guida": {"n": i + 1, "di": len(STEPS), "chiave": key, "titolo": title, "perche": why, "premio": prize}}
+
+
+def focus(todo: list[dict]) -> list[dict]:
+    """(Agg. 84) L'INIZIO PULITO: finché la guida è attiva, niente doppioni della tappa in corso
+    («Assegna i punti attributo» e «4 punti attributo» sono la stessa cosa)."""
+    g = next((x for x in todo if x.get("guida")), None)
+    if not g:
+        return todo
+    key, cmd = g["guida"]["chiave"], g["cmd"].split()[-1] if g["cmd"] else ""
+    return [x for x in todo if x is g or not (x.get("tab") == key or (x.get("cmd") or "").split()[-1:] == [cmd])]
 
 
 def command(conn, player, arg: str) -> str:
