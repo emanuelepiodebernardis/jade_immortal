@@ -3630,3 +3630,87 @@ eravamo».
 
 ### Test
 - `tests/test_agg79.py` (14 test). 974 in totale.
+
+## Aggiornamento 80 — Taratura su 200 giorni, novità graduali, anteprima, eredi, fusioni personali, suoni
+
+### La partita di prova lunga (`strumenti/taratura.py`)
+- **Cosa fa ora la taratura:** misura anche i sistemi nuovi (vie, fusioni, scorci, intuizioni, Prove del
+  Cielo, rivali, arti, pietre) e gioca come un giocatore vero: cerca reperti, assiste, tenta le Prove, segue gli
+  obiettivi.
+- **Cosa è emerso:**
+  - la prima fusione arrivava al giorno 132 per chi non divora, perché gli elementi di base si aprivano solo
+    con scorci o assorbimento;
+  - il pilota che seguiva l'obiettivo il 60% delle volte rallentava il regno di un livello su 200 giorni;
+  - le Prove del Cielo si vincono circa 1 volta su 3 giocando in modo semplice; le pietre abbondano; i rivali
+    sfidano circa ogni 25 giorni.
+- **Correzioni:**
+  - i sei elementi di base (fuoco, acqua, terra, vento, metallo, legno) ora si possono anche STUDIARE con
+    `comprehend <elemento>`, al doppio del costo di una via nuova;
+  - il pilota dedica all'obiettivo il 40% delle scelte.
+  - Risultato: prima fusione al giorno 32–37, e il regno cresce come prima.
+- **Velocità:** misurata su un salvataggio grande. I comandi impiegano tra 5 e 40 ms, la fotografia per la
+  dashboard 10 ms, una giornata simulata circa 0,15 s. Nessun collo di bottiglia da correggere.
+
+### Le novità, quando servono (`engine/systems/intro.py`)
+- **Le presentazioni:** dieci sistemi si presentano da soli, una volta, nel momento in cui diventano utili.
+  Esce al massimo una presentazione per comando.
+  - obiettivi e ricerca (dal 3° giorno);
+  - le vie nuove (quando hai le pietre);
+  - la prima fusione (quando una ricetta leggera è pronta);
+  - i reperti (al primo luogo che li custodisce);
+  - la bottega (al primo maestro di livello 4 incontrato);
+  - assistere (nelle sette e in città);
+  - l'albero (alla prima via nuova);
+  - i rivali (al primo che ti supera);
+  - le Prove del Cielo (quando nessuno ti tiene più testa);
+  - il laboratorio (con un'arte a livello 5 in città).
+- **Comandi:** `novita` rilegge quelle viste; `novita no` le spegne.
+
+### L'anteprima (`engine/systems/dao_preview.py`)
+- **Cosa mostra:** `anteprima tempesta`, oppure «prova fusione magma» o «cosa mi darebbe la tempesta», dice
+  cosa ti darebbe una fusione o una via nuova all'inizio, a 100 e a 1000: attacco, difesa, vitalità, critici,
+  schivata, danni subiti, perforazione, colpi in più, coltivazione, anni di vita.
+- **Altro nel riepilogo:** il costo, e i Dao alti che apre in fondo.
+- **Come lo calcola:** il gioco prova davvero dentro un punto di salvataggio provvisorio e poi torna indietro,
+  quindi nulla cambia nel salvataggio.
+
+### Gli eredi del tuo stile (`engine/systems/disciple_heirs.py`)
+- **Le lezioni:** `insegna <discepolo> <dao>` trasmette davvero il Dao, anche le vie nuove e le fusioni. Più
+  lo comprendi, più ne passa, fino al tuo livello.
+- **Il discepolo cresce da solo:** allena ogni giorno i tuoi Dao, secondo la sua ambizione.
+- **Quando ti supera:**
+  - se ti è leale, ti mostra un modo che non vedevi: il tuo Dao fa un salto, e ricevi il titolo «Superato dal
+    Discepolo»;
+  - se è ambizioso e poco legato a te, può andarsene con il tuo stile e diventare un rivale della tua
+    generazione.
+- **Il riepilogo:** `eredi` mostra chi conosce quale Dao.
+
+### Le fusioni personali (`engine/systems/personal_fusion.py`)
+- **L'intuizione:** quando due tuoi Dao sono entrambi a 250 e non formano già una fusione nota, a volte arriva
+  un'intuizione mai avuta da nessuno.
+- **Battezzarla:** `battezza <nome>` la fa nascere col nome che scegli, per esempio «Dao «Fiamma del Lupo
+  Bianco»».
+  - Effetti: le leve dei componenti, un po' rafforzate.
+  - Costo: la media dei costi dei componenti.
+  - Titolo: «Padre del …».
+- **Limite e visibilità:** al massimo tre per vita. Compaiono nell'albero, in `fusione` e in tutto il resto.
+
+### Rivali: sfide d'onore
+Accettare la sfida di un rivale è ora un duello d'onore: chi perde cede, nessuno muore.
+
+### Suoni d'ambiente (`static/ambient.js`)
+- **Cos'è:** paesaggi sonori sintetizzati nel browser, senza file audio.
+- **I luoghi:** vento in montagna, uccelli e ruscello nella foresta, brusio in città, campana nelle sette, gocce
+  e riverbero nelle grotte, onde al lago, un ronzio cupo nelle zone proibite.
+- **Il contesto:** pioggia, neve, nebbia, vento e tempesta (con i tuoni); di notte i grilli; in combattimento
+  un battito teso.
+- **Gli effetti puntuali:** colpo, critico, fulmine, sfondamento, fusione, campana, moneta.
+- **Come si regola:** si accende in Impostazioni, col suo volume.
+
+### Immagini e pulizia
+- **Immagini rifatte:** pugnale, annientamento, oblio e calcolo del fato.
+- **Cartelle di lavoro:** i fogli di anteprima e `_oggetti/` sono ora ignorati da git.
+- **Lo strumento che sistema le immagini scaricate** gestisce anche la cartella «dao».
+
+### Test
+- `tests/test_agg80.py` (6 test).

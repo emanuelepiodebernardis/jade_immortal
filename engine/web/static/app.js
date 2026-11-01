@@ -94,6 +94,7 @@ function flushAll() {
 }
 function addLog(text, cmd, instant) {
   if (!text && !cmd) return;
+  ambientCue(text);
   const box = $("#log");
   const div = document.createElement("div");
   div.className = "entry";
@@ -272,6 +273,23 @@ function muStart(mood) {
       MU.next += M.beat * (0.85 + Math.random() * 0.3);
     }
   }, 250);
+}
+// (Agg. 80) I SUONI D'AMBIENTE: il luogo, il tempo, l'ora e il combattimento diventano un paesaggio sonoro
+function ambientFor(s) {
+  if (!window.Ambient || !Ambient.on() || !SOUND || !s || !s.luogo) return;
+  const pick = (txt, keys, dflt) => keys.find((k) => String(txt || "").toLowerCase().includes(k)) || dflt;
+  Ambient.setScene({ place: s.luogo.type || "wilderness",
+    weather: pick(s.meteo, ["tempesta", "pioggia", "neve", "nebbia", "vento"], ""),
+    time: pick(s.momento, ["alba", "mattino", "pomeriggio", "giorno", "sera", "notte"], "giorno"),
+    combat: !!(s.duello && s.duello.arena && !s.duello.arena.finito) });
+}
+function ambientCue(text) {
+  if (!window.Ambient || !SOUND || !Ambient.cuesOn()) return;
+  const t = String(text || "");
+  if (/FUSIONE|NASCE UNA VIA NUOVA|INTUIZIONE/.test(t)) Ambient.cue("fusione");
+  else if (/SFONDAMENTO RIUSCITO|Avanzi al regno|Sei salito/i.test(t)) Ambient.cue("sfondamento");
+  else if (/⛩|PROVA D/.test(t)) Ambient.cue("gong");
+  else if (/RISVEGLIO|NOVITÀ/.test(t)) Ambient.cue("campana");
 }
 function musicFor(s) {
   if (!MUSIC || !SOUND || !AC_UNLOCKED) { if (MU.mood) muStop(); return; }
@@ -501,6 +519,7 @@ async function refresh() {
   renderTop(s); renderTodo(s); renderBadges(s); renderPlace(s); renderScene(s); renderSugg(s); renderAutoCfg(s);
   iconsUp(document.body);
   musicFor(s);
+  ambientFor(s);
   renderPalaceHead();
   if (tab === "mete") renderMete(s);
   else if (tab === "oggi") renderToday(s);
@@ -1543,8 +1562,13 @@ document.addEventListener("click", async (ev) => {
     MUSIC = !MUSIC; try { localStorage.setItem("ji_music", MUSIC ? "1" : "0"); } catch (e) { /* niente */ }
     settingsUi(); musicFor(S); return;
   }
+  if (ev.target.closest("#ambtoggle")) {                 // (Agg. 80) il clic è il gesto che il browser vuole
+    if (window.Ambient) { Ambient.setOn(!Ambient.on()); if (Ambient.on()) ambientFor(S); }
+    settingsUi(); return;
+  }
   if (ev.target.closest("#sound")) {
     SOUND = !SOUND; try { localStorage.setItem("ji_sound", SOUND ? "1" : "0"); } catch (e) { /* niente */ }
+    if (window.Ambient) { if (!SOUND) Ambient.stop(); else ambientFor(S); }
     musicFor(S); settingsUi(); if (SOUND) sfx("info"); return;
   }
   if (ev.target.closest("#theme")) {
@@ -1701,6 +1725,7 @@ function settingsUi() {
   set("fontsz", (document.documentElement.dataset.fs || "100") + "%");
   set("contrast", document.documentElement.dataset.contrast === "1" ? "sì" : "no");
   set("readmode", manual() ? "al tuo ritmo" : "automatica");
+  set("ambtoggle", window.Ambient && Ambient.on() ? "sì" : "no");
   set("music", MUSIC ? "sì" : "no"); set("sound", SOUND ? "sì" : "no"); set("mgtoggle", MINIGAME ? "sì" : "no");
   set("theme", th === "dark" ? "scuro" : th === "light" ? "chiaro" : "automatico");
   set("widen", document.body.classList.contains("wide") ? "sì" : "no");
@@ -1716,6 +1741,9 @@ voiceUi();
 // (Agg. 76) il narratore legge un pezzo alla volta: finito un pezzo, la lettura al tuo ritmo va avanti da sola
 if (window.Narrator) {
   Narrator.onIdle(() => { if (manual() && PENDING.length) advance(); });
+  const av = $("#ambvol"); if (av && window.Ambient && !av.dataset.on) { av.dataset.on = "1"; av.value = Ambient.volume();
+    $("#ambvol-v").textContent = Math.round(Ambient.volume() * 100) + "%";
+    av.addEventListener("input", () => { Ambient.setVolume(Number(av.value)); $("#ambvol-v").textContent = Math.round(av.value * 100) + "%"; }); }
   const sp = $("#narrspeed"); if (sp) { sp.value = Narrator.rate(); $("#narrspeed-v").textContent = Narrator.rate().toFixed(1).replace(".", ",") + "×";
     sp.addEventListener("input", () => { Narrator.setRate(sp.value); $("#narrspeed-v").textContent = Number(sp.value).toFixed(1).replace(".", ",") + "×"; }); }
 }

@@ -369,7 +369,7 @@ def _choose_action_raw(conn, player, cfg: dict, rng: random.Random) -> str | Non
         return f"attack {tg[0]}"
     from engine.systems import goals                 # (Agg. 79) l'obiettivo guidato: parte della giornata va lì
     _gc = goals.next_cmd(conn, player.id)
-    if _gc and rng.random() < 0.6:
+    if _gc and rng.random() < 0.4:              # (Agg. 80) taratura: 0,6 rallentava il regno di un livello su 200 giorni
         if _gc.startswith("comprehend") and weights.get("dao", 0) == 0 and weights.get("allena", 0) == 0:
             pass                                     # oggi niente meditazione
         elif _gc.split()[0] in ("comprehend", "fusione", "train", "arti", "reperti"):

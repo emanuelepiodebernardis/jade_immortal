@@ -88,6 +88,9 @@ def _open_steps(conn, key: str, pid: int) -> list[dict]:
         for th, d in steps:
             if d == key:
                 return _dao_reach(conn, fk, th, pid)
+    if key in dao_laws.BASE_STUDY:
+        return [_step("Pietre per studiarlo", sects.get_resource(conn, "pietre_spirituali", pid), 2 * dao_laws.learn_cost(conn)),
+                _step(f"Studia il {_dao_name(key)} (o: scorci, reperti, assorbimento)", 0, 1, f"comprehend {key}")]
     from engine.systems import dao_insight
     sc = dao_insight._data(conn)["scorci"].get(key, 0)
     need = dao_insight.GLIMPSES_HIGH if dao_insight._is_high(key) else dao_insight.GLIMPSES

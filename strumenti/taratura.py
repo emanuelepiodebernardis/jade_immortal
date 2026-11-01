@@ -34,6 +34,8 @@ for cmd in ["attributi auto on", "auto imposta sfonda si", "auto imposta rischio
     loop.dispatch(c, cmd, allow_nl=False)
 if origin == "divoratore":
     loop.dispatch(c, "auto imposta assorbi si", allow_nl=False)
+loop.dispatch(c, "obiettivo vapore", allow_nl=False)          # (Agg. 80) un obiettivo, come farebbe un giocatore
+L80 = {"reperti": 0, "assisti": 0, "prove": [], "obiettivi": [], "eventi": []}
 
 # ---------------- strumentazione (Agg. 55): scontri, scene, fasi
 from engine.systems import power as _pw, duel as _duel
@@ -135,7 +137,30 @@ while day() < days and guard < 6000:
         story_cmds.after_command(c, entities.get_player(c)); c.commit(); continue
     if captivity.active(c):
         loop.dispatch(c, "evadi", allow_nl=False); continue
+    # (Agg. 80) ciò che un giocatore fa a mano: reperti, assistere, prove del Cielo, nuovi obiettivi
+    from engine.systems import dao_insight as _di, heaven_trials as _ht, goals as _gl
+    _loc = entities.get_location(c, pl.location_id)
+    if _loc and _loc.location_type in _di.RELIC_PLACES and _di.can_search(c, pl.location_id):
+        loop.dispatch(c, "reperti", allow_nl=False); L80["reperti"] += 1
+    if rng.random() < 0.15:
+        if "Ti fermi" in (loop.dispatch(c, "assisti", allow_nl=False) or ""):
+            L80["assisti"] += 1
+    _htd = _ht._get(c)
+    for _g in (3, 2, 1):
+        _last = _htd["last"].get(str(_g))
+        if (_last is None or day() - int(_last) >= _ht.COOLDOWN) and not _duel.get(c) and not encounters.pending(c):
+            if "PROVA" in (loop.dispatch(c, f"prova_cielo {_g}", allow_nl=False) or ""):
+                L80["prove"].append([day(), _g, None])
+            break
+    _gp = _gl.plan(c)
+    if _gp and _gp["complete"]:
+        L80["obiettivi"].append([day(), _gp["title"]])
+        nxt = {"Dao del Vapore": "tempesta", "Dao della Tempesta": "magma", "Dao del Magma": "spaziotempo"}.get(_gp["title"])
+        loop.dispatch(c, f"obiettivo {nxt}" if nxt else "obiettivo via", allow_nl=False)
     out = loop.dispatch(c, f"auto {min(30, days - day())}", allow_nl=False) or ""
+    for _ln in out.splitlines():
+        if any(w in _ln for w in ("FUSIONE", "INTUIZIONE", "RISVEGLIO", "Voci dal mondo", "ti sfida", "Gli scorci", "⛩")):
+            L80["eventi"].append([day(), _ln.strip()[:90]])
     if "sfondamento" in out and "si ferma" in out:
         bt = loop.dispatch(c, "breakthrough", allow_nl=False) or ""     # il giocatore decide di tentare
         if "Demone" in bt or encounters.pending(c):
@@ -154,7 +179,12 @@ while day() < days and guard < 6000:
                         "stage": (cultivation.get_record(c, "player", pl.id) or {"stage": 0})["stage"],
                         "atk": round(cp["attack"]), "def": round(cp["defense"]), "vit": round(cp["vitality"]),
                         "dao": c.execute("SELECT COALESCE(SUM(comprehension),0) s FROM character_daos WHERE "
-                                         "character_type='player' AND character_id=?", (pl.id,)).fetchone()["s"]})
+                                         "character_type='player' AND character_id=?", (pl.id,)).fetchone()["s"],
+                        "pietre": __import__("engine.systems.sects", fromlist=["x"]).get_resource(c, "pietre_spirituali", pl.id),
+                        "vie": sum(1 for k in __import__("engine.systems.dao_laws", fromlist=["x"]).BY_KEY
+                                   if __import__("engine.systems.dao_laws", fromlist=["x"])._has(c, k, pl.id)),
+                        "fusi": sum(1 for k in __import__("engine.systems.dao_laws", fromlist=["x"]).FUSED
+                                    if __import__("engine.systems.dao_laws", fromlist=["x"])._has(c, k, pl.id))})
 pl = entities.get_player(c)
 from engine.systems import cult_mods, dao_training
 mult, labels = cult_mods.cultivation_mult(c, pl.id, pl.location_id)
@@ -173,6 +203,15 @@ res["extra"] = {"attr": attributes.allocated(c), "combat_mults": {k: round(v, 2)
     "rings": frontier.world(c, ascension.player_layer(c, pl.id))["rings"], "layer": ascension.player_layer(c, pl.id),
     "pursuers": [[k, round(pursuers.ratio(c, pl.id, n), 2)] for n, k in pursuers.tracked(c)][:8],
     "power": round(__import__("engine.systems.power", fromlist=["x"]).combat_rating(c, "player", pl.id))}
+from engine.systems import dao_laws as _dl, dao_insight as _di2, heaven_trials as _ht2, prodigies as _pr
+res["agg80"] = dict(L80, scorci=_di2._data(c)["scorci"], intuizioni=sorted(_dl.hints(c)),
+                    vie=[k for k in _dl.BY_KEY if _dl._has(c, k, pl.id)], fusi=[k for k in _dl.FUSED if _dl._has(c, k, pl.id)],
+                    prove_vinte=_ht2._get(c)["wins"],
+                    rivali_fusi={str(n): [k for k in _dl.FUSED if c.execute(
+                        "SELECT 1 FROM character_daos WHERE character_type='npc' AND character_id=? AND dao_key=?",
+                        (n, k)).fetchone()] for n in _pr.roster(c)},
+                    arti={k: __import__("engine.systems.professions", fromlist=["x"]).level(c, pl.id, k)
+                          for k in __import__("engine.systems.professions", fromlist=["x"]).known(c, pl.id)})
 res["fights"] = FIGHTS
 res["scene_log"] = SCENE_LOG
 res["phase_days"] = PHASE_DAYS

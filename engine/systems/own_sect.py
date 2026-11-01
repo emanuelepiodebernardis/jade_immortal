@@ -128,10 +128,12 @@ def teach(conn, t: int, rng, player, npc, dao_frag: str = "") -> str:
     else:
         dk = rows[0]["dao_key"] if rows else None
     if dk:
+        from engine.systems import disciple_heirs           # (Agg. 80) il discepolo eredita il tuo Dao, fino a te
+        g = disciple_heirs.lesson_gain(conn, player.id, npc.id, dk)
         conn.execute("INSERT INTO character_daos (character_type, character_id, dao_key, affinity, "
-                     "comprehension, practiced) VALUES ('npc', ?, ?, 50, 3, 1) "
+                     "comprehension, practiced) VALUES ('npc', ?, ?, 50, ?, 1) "
                      "ON CONFLICT(character_type, character_id, dao_key) DO UPDATE SET "
-                     "comprehension=comprehension+3, practiced=1;", (npc.id, dk))
+                     "comprehension=comprehension+?, practiced=1;", (npc.id, dk, g, g))
         lines.append("Spiegando il tuo Dao, lo vedi con occhi nuovi:")
         lines += items.apply_effects(conn, t, rng, player.id, {"dao_key": dk, "dao_gain": 1 + ptier // 2})
     n = state.get_int(conn, "lessons", 0) + 1

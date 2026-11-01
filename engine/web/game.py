@@ -185,6 +185,8 @@ def _after(conn, player) -> list[str]:
     from engine.systems import menus
     menus.consume_open(conn)                  # nella dashboard i menu hanno i loro pulsanti
     out = list(dao_superiori.check_awakenings(conn, player.id))
+    from engine.systems import intro as _intro                # (Agg. 80) le novità, quando servono
+    out += _intro.check(conn, player)
     from engine.systems import system_daily, frontier
     out += system_daily.check(conn, player)
     out += frontier.expand(conn, player)

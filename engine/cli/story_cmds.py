@@ -437,6 +437,21 @@ def handle(conn: sqlite3.Connection, player: entities.Player, cmd: str, arg: str
     if cmd in ("riassunto", "dove_eravamo", "recap"):                     # (Agg. 79)
         from engine.systems import recap
         return "\n".join(recap.build(conn, player))
+    if cmd == "sfida_onore":                                            # (Agg. 80) i rivali: duello d'onore
+        from engine.systems import rival_laws
+        return rival_laws.accept(conn, player, arg)
+    if cmd in ("battezza", "nomina_via", "fusione_personale"):             # (Agg. 80) le fusioni personali
+        from engine.systems import personal_fusion
+        return personal_fusion.baptize(conn, player, arg)
+    if cmd in ("discepoli_dao", "eredi", "eredi_dao"):                    # (Agg. 80) gli eredi del tuo stile
+        from engine.systems import disciple_heirs
+        return disciple_heirs.describe(conn, player)
+    if cmd in ("novita", "novità", "novita_viste"):                       # (Agg. 80) le presentazioni
+        from engine.systems import intro
+        return intro.command(conn, player, arg)
+    if cmd in ("anteprima", "preview", "simula") or (cmd == "prova" and arg.strip() and not arg.strip().isdigit()):
+        from engine.systems import dao_preview                           # (Agg. 80) l'anteprima prima di pagare
+        return dao_preview.preview(conn, player, arg)
     if cmd in ("prova_cielo", "prove_cielo", "prova"):                     # (Agg. 79) le Prove del Cielo
         from engine.systems import heaven_trials
         return heaven_trials.start(conn, player, arg)
@@ -764,6 +779,8 @@ def after_command(conn: sqlite3.Connection, player: entities.Player) -> str:
         return ""
     from engine.systems import dao_superiori, system_daily, frontier
     out += dao_superiori.check_awakenings(conn, player.id)
+    from engine.systems import intro as _intro                 # (Agg. 80) le novità, quando servono
+    out += _intro.check(conn, player)
     out += system_daily.check(conn, player)
     out += frontier.expand(conn, player)
     from engine.systems import supreme_body, breakthrough_fates

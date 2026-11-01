@@ -108,12 +108,19 @@ def _challenge(conn, t: int, rng: random.Random, player, above: set[int]) -> lis
           "text": (f"{nm} si fa largo tra la folla. «Da quanto tempo ti guardo dall'alto, eh? Tutti dicono che eri il "
                    f"più promettente. Dimostralo. Qui, davanti a loro.» Intorno a voi la gente si ferma a guardare."),
           "ctx": {"npc_id": nid, "npc_name": nm},
-          "choices": [{"label": "Accetti la sfida (duello d'onore)", "effects": {}, "command": f"duello {first}"},
+          "choices": [{"label": "Accetti la sfida (duello d'onore: chi perde cede, nessuno muore)", "effects": {},
+                       "command": f"sfida_onore {first}"},
                       {"label": "Rifiuti: non è il momento (la gente ne parlerà)",
                        "effects": {"fame": -12, "text": f"{first} ride e se ne va. «Lo sapevo.» Le voci corrono."},
                        "command": None}]}
     txt = encounters.start_scene(conn, player, sc, force=True)
     return [txt] if txt else []
+
+
+def accept(conn, player, arg: str) -> str:
+    """Il duello d'onore con un rivale: si combatte nell'arena improvvisata della folla; chi perde cede."""
+    from engine.systems import duel
+    return duel.start(conn, player, arg, arena=True) or "Il tuo sfidante non è più qui."
 
 
 def dao_line(conn, nid: int) -> str:

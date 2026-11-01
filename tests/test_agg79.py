@@ -96,7 +96,7 @@ def test_autopilot_follows_the_goal(conn):
     goals.command(conn, p, "spada 500")
     cfg = autopilot.config(conn)
     picks = collections.Counter(autopilot._choose_action_raw(conn, p, cfg, random.Random(i)) for i in range(40))
-    assert picks["comprehend spada"] >= 15
+    assert picks["comprehend spada"] >= 8
 
 
 # ---------------------------------------------------------------- ricerca e comandi

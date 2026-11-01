@@ -469,6 +469,14 @@ ATTR = {"forza": "FOR", "vitalita": "VIT", "vitalità": "VIT", "agilita": "AGI",
         "int": "INT", "sag": "SAG", "frt": "FRT"}
 SLOTS = ("veste", "corona", "amuleto", "anello", "stivali", "talismano")
 VERBI = [
+    # (Agg. 80) le fusioni personali, gli eredi, le novità
+    (r"^(battezza|chiamala|la chiamo|la chiamerò|il suo nome e|il suo nome è)( la via)? (?P<rest>.+)$", "battezza {rest}"),
+    (r"^(mostra |quali sono )?(i |gli )?(miei )?(eredi|discepoli e i dao)$", "eredi"),
+    (r"^(mostra |quali sono )?(le )?novita$", "novita"),
+    # (Agg. 80) l'anteprima
+    (r"^(?!.*\b(cielo|bronzo|argento|oro)\b)(anteprima|simula|prova)( della| del| la| il)? (fusione |via )?(?P<rest>.+)$",
+     "anteprima {rest}"),
+    (r"^(cosa mi darebbe|che cosa mi darebbe|cosa mi da|cosa mi dà)( il| la| lo| l')? (?P<rest>.+)$", "anteprima {rest}"),
     # (Agg. 79) obiettivi, ricerca, bottega, prove, albero, riassunto
     (r"^(apri |mostra )?(l'|l |lo )?albero( dei dao)?$", "albero"),
     (r"^(riassunto|dove eravamo|ricordami dove eravamo|fammi il riassunto)$", "riassunto"),

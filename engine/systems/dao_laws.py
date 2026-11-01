@@ -313,6 +313,9 @@ def levers(conn, pid: int = 1) -> dict[str, float]:
         if i >= 1:
             for lv, v in cost.items():
                 out[lv] = out.get(lv, 0.0) + v
+    from engine.systems import personal_fusion          # (Agg. 80) le fusioni a cui hai dato tu il nome
+    for lv, v in personal_fusion.levers(conn, pid, tier_index).items():
+        out[lv] = out.get(lv, 0.0) + v
     return out
 
 
@@ -461,9 +464,31 @@ def _key_of(word: str) -> str | None:
     return None
 
 
+# (Agg. 80) i sei elementi di base si possono anche STUDIARE (prima solo scorci o assorbimento): la taratura su
+# 200 giorni mostrava la prima fusione al giorno 130 per chi non divora. Costano il doppio di una via nuova.
+BASE_STUDY = {"fuoco", "acqua", "terra", "vento", "metallo", "legno"}
+
+
+def unlock_base(conn, player, key: str) -> str | None:
+    from engine.systems import sects
+    from engine.systems.dao_techniques import _dao_label
+    if key not in BASE_STUDY or _has(conn, key, player.id):
+        return None
+    cost = 2 * learn_cost(conn)
+    if sects.get_resource(conn, "pietre_spirituali", player.id) < cost:
+        return (f"Studiare da zero il {_dao_label(key)} costa {cost} pietre (manuali e maestri); non ti bastano. "
+                "Oppure: scorci da chi lo usa meglio di te, reperti, o assorbire chi lo conosce.")
+    sects.grant_resource(conn, "pietre_spirituali", -cost, player.id)
+    grant(conn, key, 1, player.id)
+    return (f"☯ Studi le basi del {_dao_label(key)}: ora lo pratichi (−{cost} pietre). "
+            f"Allenalo con 'comprehend {key}'.")
+
+
 def unlock(conn, player, text: str) -> str | None:
     """«comprehend <Dao nuovo>» quando non lo pratichi ancora: se puoi, lo apri (pagando)."""
-    key = find(text)
+    key = find(text) or _key_of(text)
+    if key in BASE_STUDY:
+        return unlock_base(conn, player, key)
     if not key or key not in BY_KEY:
         return None
     from engine.systems import sects, dao_heart
@@ -664,6 +689,10 @@ def describe_fusions(conn, player) -> str:
         if nxt:
             extra += f" · a {nxt[0][0]} → {_dao_label(nxt[0][1])}"
         lines.append(f"  {mark} {st['name']} ({key}) ← {comps}{risk}{extra}")
+    from engine.systems import personal_fusion
+    for f in personal_fusion.all_(conn):
+        lines.append(f"  ✔ {f['name']} ({f['key']}) ← {_dao_label(f['comps'][0])} + {_dao_label(f['comps'][1])} · "
+                     f"la TUA via, profondità {grade(_comp(conn, f['key'], player.id))}")
     return "\n".join(lines)
 
 

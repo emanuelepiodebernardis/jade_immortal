@@ -16,7 +16,8 @@ GROUP = {"systemic": "base", "narrative": "arma", "deep": "profondo", "elemental
 
 def graph(conn, pid: int = 1) -> dict:
     from engine.generators import dao_gen
-    from engine.systems import dao_laws, dao_training as dt
+    from engine.systems import dao_laws, dao_training as dt, personal_fusion
+    personal_fusion.all_(conn)                             # registra i nomi delle fusioni personali
     comp = {r["dao_key"]: int(r["comprehension"] or 0) for r in conn.execute(
         "SELECT dao_key, comprehension FROM character_daos WHERE character_type='player' AND character_id=? "
         "AND (practiced=1 OR comprehension>0);", (pid,))}
@@ -39,6 +40,10 @@ def graph(conn, pid: int = 1) -> dict:
             ok = dao_laws.requirement(conn, k, pid)[0]
             st = "ready" if ok and row[4][0] != "risveglio" else ("open" if row[4][0] != "risveglio" else "locked")
             cmd = f"comprehend {k}" if st == "ready" else f"obiettivo {k}"
+        elif k in dao_laws.BASE_STUDY:
+            from engine.systems import sects
+            ok = sects.get_resource(conn, "pietre_spirituali", pid) >= 2 * dao_laws.learn_cost(conn)
+            st, cmd = ("ready" if ok else "open"), f"comprehend {k}"
         else:
             st, cmd = "locked", f"obiettivo {k}"
         if row:
@@ -60,6 +65,13 @@ def graph(conn, pid: int = 1) -> dict:
     for fk, steps in dao_laws.INSIGHT.items():
         for th, d in steps:
             edges.append({"from": fk, "to": d, "kind": "insight", "at": th})
+    from engine.systems import personal_fusion           # (Agg. 80) le tue vie mai viste
+    for f in personal_fusion.all_(conn):
+        for nd in nodes:
+            if nd["key"] == f["key"]:
+                nd["group"], nd["hint"] = "fuso", f["desc"]
+        for c in f["comps"]:
+            edges.append({"from": c, "to": f["key"], "kind": "component"})
     return {"nodes": nodes, "edges": edges}
 
 

@@ -1973,6 +1973,10 @@ def _day_banner_inner(conn: sqlite3.Connection, player: entities.Player) -> str 
     lines += ["  " + ln for ln in prodigies.daily(conn, t, random.Random(t * 83 + day), player)]
     from engine.systems import workshop as _ws                 # (Agg. 79) il laboratorio rende ogni giorno
     lines += ["  " + ln for ln in _ws.daily(conn, t, None, player)]
+    from engine.systems import disciple_heirs as _dh             # (Agg. 80) i discepoli allenano i tuoi Dao
+    lines += ["  " + ln for ln in _dh.daily(conn, t, random.Random(t * 127 + day), player)]
+    from engine.systems import personal_fusion as _pf            # (Agg. 80) l'intuizione di una via mai vista
+    lines += ["  " + ln for ln in _pf.daily(conn, t, random.Random(t * 131 + day), player)]
     from engine.systems import intrigues, soul_arcs, soul_artifacts
     lines += ["  " + ln for ln in intrigues.daily(conn, t, random.Random(t * 101 + day), player)]
     lines += ["  " + ln for ln in soul_artifacts.daily(conn, t, random.Random(t * 103 + day), player)]
@@ -2132,7 +2136,8 @@ def cmd_comprehend(conn: sqlite3.Connection, player: entities.Player, arg: str) 
     d = dao_training.find_dao(conn, arg, player.id)
     if _nk in dao_laws.BY_KEY and (d is None or d["dao_key"] != _nk) and not dao_laws._has(conn, _nk, player.id):
         d = None
-    if d is None or (not d["practiced"] and not d["comprehension"] and d["dao_key"] in dao_laws.BY_KEY):
+    if d is None or (not d["practiced"] and not d["comprehension"]
+                     and (d["dao_key"] in dao_laws.BY_KEY or d["dao_key"] in dao_laws.BASE_STUDY)):
         msg = dao_laws.unlock(conn, player, arg)
         if msg:
             return msg
