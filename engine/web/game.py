@@ -349,7 +349,17 @@ def state_snapshot() -> dict:
             if _bk:
                 tag = (tag + " · " if tag else "") + "✦ " + _cons.BODIES[_bk][0]
                 pri = min(pri, 3)
-            npcs.append({"name": n.name, "tag": tag, "pri": pri, "kind": _row["kind"] or "human",
+            _extra = []                                   # (Agg. 81) le azioni giuste per questa persona, a un tocco
+            _first = n.name.split()[0]
+            if (_row["kind"] or "human") == "human":
+                from engine.systems import npc_crafts as _nc
+                _cr = _nc.of_npc(conn, n.id)
+                if _cr:
+                    _extra += [["⚒", "Bottega", f"bottega {_first}", "good"], ["🛒", "Commissiona", f"commissiona {_first}", ""]]
+                if "disciple" in kinds:
+                    _extra.append(["📖", "Insegna", f"insegna {_first}", "good"])
+                _extra.append(["🙏", "Saluta", f"greet {_first}", ""])
+            npcs.append({"name": n.name, "tag": tag, "pri": pri, "kind": _row["kind"] or "human", "extra": _extra,
                          "arch": _row["archetype"] or "", "f": (_row["gender"] or "") == "f",
                          "rel": "nemico" if kinds & {"nemesis", "rival"} else ("legame" if kinds else "")})
         npcs.sort(key=lambda x: x["pri"])
@@ -404,6 +414,7 @@ def state_snapshot() -> dict:
         from engine.systems import attention                    # pallini rossi e «Cosa fare ora»
         snap["todo"] = attention.items(conn, p)
         snap["badges"] = attention.badges(snap["todo"])
+        snap["livelli"] = attention.levels(snap["todo"])        # (Agg. 81) rosso, oro, nessun segno
         from engine.systems import unlocks                      # (Agg. 67) le schede si aprono poco a poco
         snap["bloccati"] = unlocks.locked(conn, snap["badges"])
         snap["schede_tutte"] = unlocks.show_all(conn)

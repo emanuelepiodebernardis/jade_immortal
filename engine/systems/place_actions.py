@@ -62,6 +62,52 @@ def tiles(conn, player) -> list[dict]:
             out.append(_t("🎯", f"Taglia: {b['name']}", f"duello {b['name'].split()[0]}", f"{b['reward']} pietre", tone="warn"))
     if q and loc.location_type == "city":
         out.append(_t("🤝", "Chi ha bisogno di te", "bacheca", "incarichi, taglie, missioni"))
+    out += _more(conn, player, loc, rows)
+    return out
+
+
+def _more(conn, player, loc, rows) -> list[dict]:
+    """(Agg. 81) Le azioni che prima stavano solo nel testo: ora sono tessere a un tocco."""
+    out: list[dict] = []
+    try:
+        from engine.core import entities
+        from engine.systems import absorption, dao_insight, heaven_trials, dao_laws, workshop, goals, npc_crafts
+        dead = entities.dead_npcs_in_location(conn, player.location_id)
+        if dead:
+            if absorption.can_absorb(conn, player.id):
+                out.append(_t("🩸", f"Divora i resti ({len(dead)})", "absorb all", "corpo, anima, Dao e mestieri",
+                              tone="bad"))
+        if loc.location_type in dao_insight.RELIC_PLACES:
+            ok = dao_insight.can_search(conn, player.location_id)
+            out.append(_t("🏺", "Cerca reperti", "reperti", "insegnamenti dei maestri", ok,
+                          "già frugato di recente", tone="rare"))
+        if any((r["kind"] or "human") == "human" for r in rows) and loc.location_type in ("sect", "city", "village"):
+            out.append(_t("👁", "Assisti agli allenamenti", "assisti", "impara dal più bravo"))
+        masters = [(r, npc_crafts.of_npc(conn, r["id"])) for r in rows if (r["kind"] or "human") == "human"]
+        masters = [(r, c[0]) for r, c in masters if c and c[0][1] >= 3]
+        if masters:
+            r, (k, lv) = max(masters, key=lambda x: x[1][1])
+            from engine.systems import professions
+            out.append(_t("⚒", f"Bottega da {r['name'].split()[0]}", f"bottega {r['name'].split()[0]}",
+                          f"{professions.PROFESSIONS[k]} liv. {lv}"))
+        ready = [k for k in dao_laws.FUSED if not dao_laws._has(conn, k, player.id)
+                 and not dao_laws.recipe_status(conn, k, player.id)["missing"]]
+        if ready:
+            out.append(_t("☯", f"Fondi: {dao_laws.FUSED[ready[0]][1].split(' ', 2)[-1]}", f"fusione {ready[0]}",
+                          "una fusione è pronta", tone="rare"))
+        d = heaven_trials._get(conn)
+        day = heaven_trials._day(conn)
+        free = [g for g in (1, 2, 3) if d["last"].get(str(g)) is None or day - int(d["last"][str(g)]) >= heaven_trials.COOLDOWN]
+        if free and day >= 10:
+            out.append(_t("⛩", "Prove del Cielo", "prova_cielo", f"{len(free)} pronte"))
+        lab = workshop.lab(conn)
+        if lab and lab.get("cassa", 0) > 0:
+            out.append(_t("⚒", f"Incassa il laboratorio ({lab['cassa']})", "laboratorio riscuoti", lab["dove"], tone="info"))
+        g = goals.plan(conn, player.id)
+        if g and g["next"] and g["next"]["cmd"]:
+            out.append(_t("🎯", g["next"]["text"][:28], g["next"]["cmd"], g["title"], tone="info"))
+    except Exception:                                    # noqa: BLE001 — una tessera in meno, mai un errore
+        pass
     return out
 
 

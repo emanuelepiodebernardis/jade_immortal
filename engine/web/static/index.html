@@ -9,7 +9,9 @@
 <link rel="stylesheet" href="/static/stage.css">
 <link rel="stylesheet" href="/static/cmdbar.css">
 <link rel="stylesheet" href="/static/daotree.css">
-<script>try { const t = localStorage.getItem("ji_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<script>try { const t = localStorage.getItem("ji_theme"); if (t) document.documentElement.dataset.theme = t;
+  if (localStorage.getItem("ji_cb") === "1") document.documentElement.dataset.cb = "1"; } catch (e) {}</script>
+<link rel="stylesheet" href="/static/ui80.css">
 </head>
 <body>
 <header id="topbar">
@@ -76,6 +78,7 @@
     <div id="sugg"></div>
     <form id="cmdform" autocomplete="off">
       <input id="cmd" placeholder="Scrivi un comando (train, mete, vai 1, attack nome, osserva nome)… — 'help' per l'elenco" autofocus>
+      <button type="button" id="palbtn" title="Vai ovunque e cerca tutto (Ctrl+K oppure /)">🔎</button>
       <button type="button" id="voicebtn" title="Modalità voce: comanda il gioco parlando">🎙</button>
       <button type="button" id="narrbtn" title="Narratore: legge ad alta voce">🔈</button>
       <button class="primary">Invia</button>
@@ -101,6 +104,7 @@
           <button id="voicetoggle"><span class="si">🎙</span><span class="sl">Modalità voce (comandi parlati)</span><em></em></button>
           <button id="narrtoggle"><span class="si">🗣</span><span class="sl">Narratore e voci dei personaggi</span><em></em></button>
           <div class="narr-opts"><span class="sl">Velocità della voce</span><input id="narrspeed" type="range" min="0.6" max="1.8" step="0.1" value="1"><em id="narrspeed-v">1,0×</em></div>
+          <button id="cbtoggle"><span class="si">◐</span><span class="sl">Modalità daltonici (segni oltre ai colori)</span><em></em></button>
           <button id="fxtoggle"><span class="si">✨</span><span class="sl">Effetti e animazioni</span><em></em></button>
         </div></span></div>
     <div id="subnav" class="subtabs"></div>

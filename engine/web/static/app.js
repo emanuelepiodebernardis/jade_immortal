@@ -299,13 +299,13 @@ function musicFor(s) {
 }
 let AC_UNLOCKED = false;                               // i browser vogliono un gesto prima di suonare
 document.addEventListener("pointerdown", () => { if (!AC_UNLOCKED) { AC_UNLOCKED = true; try { muCtx().resume(); } catch (e) { /* niente */ } musicFor(S); } }, { once: false });
-function toast(head, body, tone) {
+function toast(head, body, tone, auto) {
   sfx(tone || "info");
   const box = $("#toasts");
   if (!box) return;
   const d = document.createElement("div");
   d.className = "toast " + (tone || "");
-  if (manual()) {                                     // resta finché non la chiudi (clic o Avanti); le altre aspettano in fila
+  if (manual() && !auto) {                           // resta finché non la chiudi (clic o Avanti); le altre aspettano in fila
     d.innerHTML = `<b>[ ${esc(head)} ]</b><div>${esc(body)}</div><i class="tclose" title="chiudi">×</i>`;
     d.addEventListener("click", () => { closeToast(d); advUi(); });
     if (box.children.length >= 3) { TOAST_Q.push(d); advUi(); return; }
@@ -381,16 +381,27 @@ function renderPalaceHead() {
   const B = (S && S.badges) || {};
   $("#ptitle").textContent = P.t;
   const L = (S && S.bloccati) || {};
-  const dot = (k) => B[palace + ":" + k] || (palace === "via" && Object.entries(VIA_GROUP).some(([m, g]) => g === k && B["via:" + m]));
-  $("#subnav").innerHTML = P.tabs.filter(([k]) => !L[palace + ":" + k] || k === cur).map(([k, l, dest]) => `<button class="chip ${k === cur ? "on" : ""}" data-ptab="${palace}:${k}">${esc(l)}${dot(k) ? `<i class="pdot"></i>` : ""}</button>`).join("");
+  // (Agg. 81) avvisi a TRE LIVELLI: rosso = urgente, oro = utile, niente = informativo; e una volta vista la scheda,
+  // il suo segno si spegne finché non cambia qualcosa
+  const LV = (S && S.livelli) || {};
+  const lvOf = (k) => Math.max(LV[palace + ":" + k] || 0, ...(palace === "via" ? Object.entries(VIA_GROUP).filter(([, g]) => g === k).map(([m]) => LV["via:" + m] || 0) : [0]));
+  const sig = (k) => lvOf(k) + ":" + (B[palace + ":" + k] || 0);
+  if (cur) seenSet(palace + ":" + cur, sig(cur));
+  const dot = (k) => { const lv = lvOf(k); return lv && seenGet(palace + ":" + k) !== sig(k) ? (lv >= 2 ? "urgent" : "useful") : ""; };
+  $("#subnav").innerHTML = P.tabs.filter(([k]) => !L[palace + ":" + k] || k === cur).map(([k, l, dest]) => `<button class="chip ${k === cur ? "on" : ""}" data-ptab="${palace}:${k}">${esc(l)}${dot(k) ? `<i class="pdot ${dot(k)}"></i>` : ""}</button>`).join("");
   document.querySelectorAll("#rail [data-palace]").forEach((b) => b.classList.toggle("on", b.dataset.palace === palace));
 }
+let SEEN = {};
+try { SEEN = JSON.parse(localStorage.getItem("ji_seen") || "{}"); } catch (e) { SEEN = {}; }
+function seenGet(k) { return SEEN[k]; }
+function seenSet(k, v) { if (SEEN[k] === v) return; SEEN[k] = v; try { localStorage.setItem("ji_seen", JSON.stringify(SEEN)); } catch (e) { /* niente */ } }
 function renderBadges(s) {
-  const B = s.badges || {};
+  const B = s.badges || {}, LV = s.livelli || {};
   document.querySelectorAll("#rail [data-palace]").forEach((b) => {
     const d = b.querySelector(".dot"); if (!d) return;
-    const n = B[b.dataset.palace] || 0;
-    d.hidden = !n; d.textContent = n > 9 ? "9+" : n;
+    const n = B[b.dataset.palace] || 0, lv = LV[b.dataset.palace] || 0;
+    d.classList.toggle("urgent", n > 0); d.classList.toggle("useful", !n && lv === 1);
+    d.hidden = !n && lv !== 1; d.textContent = n ? (n > 9 ? "9+" : n) : "";
   });
 }
 const AS_MENU = { market: "mercato", shop: "mercato", negozio: "mercato", aste: "asta", auction: "asta", recipes: "ricette",
@@ -591,7 +602,7 @@ function renderPlace(s) {
     h += `<div class="npcs">` + list.map((n) => {
       const first = n.name.split(" ")[0];
       return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${face(n.name, 22, n.rel === "nemico" ? "--bad" : "--accent", "", { arch: n.arch, kind: n.kind, f: n.f })}${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
-        <button data-cmd="osserva ${esc(first)}" title="la sua finestra di stato">osserva</button><button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button></span>`;
+        <button data-cmd="osserva ${esc(first)}" title="la sua finestra di stato">osserva</button><button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button>${(n.extra || []).map((x) => `<button data-cmd="${esc(x[2])}" title="${esc(x[1])}">${x[0]} ${esc(x[1].toLowerCase())}</button>`).join("")}</span>`;
     }).join("") + (many ? `<button id="more-npc">+ altri ${s.presenti.length - 6}</button>` : "") + `</div>`;
   }
   if (s.azioni_luogo && s.azioni_luogo.length) {
@@ -794,7 +805,9 @@ function renderScene(s) {
   if (!ar) { HP_PREV.me = HP_PREV.foe = null; }
   if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); animateHp(box); gameFx("duel", box, ar); if (cut && !fxOnNow()) cutIn(box, cut, ar); return; }
   if (ar && ar.finito) {
-    box.innerHTML = arenaHtml(ar, s) + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
+    // (Agg. 81) a duello finito restano le scelte: lo scontro si richiude in una riga (si può riaprire)
+    box.innerHTML = `<details class="arena-done"><summary>⚔ <b>${esc(ar.nome || "Il duello")}</b> — lo scontro è finito <span class="muted small">(tocca per rivederlo)</span></summary>${arenaHtml(ar, s)}</details>`
+      + `<div class="choices">` + s.scena.choices.map((c) => `<button data-cmd="${c.n}"><b>${c.n}.</b> ${esc(c.label)}</button>`).join("") + `</div>`;
     animateHp(box);
     gameFx("duel", box, ar);
     if (cut && !fxOnNow()) cutIn(box, cut, ar);
@@ -829,10 +842,15 @@ function renderToday(s) {
   for (const x of s.todo || []) (groups[x.palace] = groups[x.palace] || []).push(x);
   let h = s.quotidiana ? V.dailyQuest(s.quotidiana) : "";
   if (!(s.todo || []).length) h += `<div class="empty">Niente di urgente: allenati, esplora, segui le tue mete.</div>`;
+  // (Agg. 81) prima ciò che conta (urgente o utile), il resto — informativo — raccolto in fondo
+  const info = [];
   for (const p of Object.keys(PALACES)) {
     if (!groups[p]) continue;
-    h += `<div class="card sec todo-list"><b>${esc(PALACES[p].t)}</b>${groups[p].map(todoCard).join("")}</div>`;
+    const main = groups[p].filter((x) => x.hot || (x.prio || 5) <= 4);
+    info.push(...groups[p].filter((x) => !(x.hot || (x.prio || 5) <= 4)));
+    if (main.length) h += `<div class="card sec todo-list"><b>${esc(PALACES[p].t)}</b>${main.map(todoCard).join("")}</div>`;
   }
+  if (info.length) h += `<details class="card sec todo-list todo-more"><summary><b>Altro da fare, senza fretta (${info.length})</b></summary>${info.map(todoCard).join("")}</details>`;
   b.innerHTML = h;
 }
 function pilotHtml() {
@@ -900,10 +918,12 @@ function codexKeyOf(name) {
 async function codexHint(key, where) {
   if (!key || CODEX_SEEN[key]) return;
   const c = (await codexData()).find((x) => x.key === key); if (!c) return;
-  if (where === "toast") { CODEX_SEEN[key] = 1; saveCodexSeen(); toast("Codex — " + c.titolo, c.testo, "info"); return; }
+  // (Agg. 81) le spiegazioni non coprono più il gioco: una riga che si apre, e un toast che sparisce da solo
+  if (where === "toast") { CODEX_SEEN[key] = 1; saveCodexSeen(); toast("Codex — " + c.titolo, c.testo, "info", true); return; }
   const b = $("#tabbody"); if (!b || b.querySelector(".codex-card")) return;
-  b.insertAdjacentHTML("afterbegin", `<div class="card codex-card"><b>📖 ${esc(c.titolo)}</b><p>${esc(c.testo)}</p>
-    <button class="primary" data-codex-ok="${esc(key)}">Ho capito</button> <span class="muted small">Lo ritrovi in Storia → Codex.</span></div>`);
+  b.insertAdjacentHTML("afterbegin", `<details class="card codex-card compact"><summary>📖 <b>${esc(c.titolo)}</b> <span class="muted small">— come funziona? (tocca per leggere)</span>
+    <button class="link" data-codex-ok="${esc(key)}" title="Non mostrarlo più">✕</button></summary><p>${esc(c.testo)}</p>
+    <button class="primary" data-codex-ok="${esc(key)}">Ho capito</button> <span class="muted small">Lo ritrovi in Storia → Codex.</span></details>`);
 }
 function saveCodexSeen() { try { localStorage.setItem("ji_codex_seen", JSON.stringify(CODEX_SEEN)); } catch (e) { /* niente */ } }
 // (Agg. 72) l'ALBUM: sei pagine da completare; chi hai trovato è a colori, chi manca è un'ombra
@@ -1246,13 +1266,13 @@ function drawMap() {
   if (!mapView) {
     const me = m.nodes.find((n) => n.here);
     const cw = Math.max(300, $("#tabbody").clientWidth - 4), ch = Math.min(window.innerHeight * 0.7, 620);
-    let vw = Math.min(Math.max(full[2], 3.5 * W), 7 * W), vh = vw * ch / cw;
+    let vw = Math.min(Math.max(full[2], 3 * W), 5 * W), vh = vw * ch / cw;          // (Agg. 81) più vicino: caselle leggibili
     if (vh < Math.min(full[3], 5 * H)) { vh = Math.min(full[3], 5 * H) + 20; vw = vh * cw / ch; }
     mapView = me ? [px(me) + NW / 2 - vw / 2, py(me) + NH / 2 - vh / 2, vw, vh] : full.slice();
   }
   const byId = Object.fromEntries(m.nodes.map((n) => [n.id, n]));
   let svg = `<svg id="mapsvg" viewBox="${mapView.join(" ")}" xmlns="http://www.w3.org/2000/svg">
-    <defs><radialGradient id="glow"><stop offset="0" stop-color="var(--accent)" stop-opacity=".55"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient>
+    <defs><pattern id="dstripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="8" fill="var(--bad)" opacity=".16"/></pattern><radialGradient id="glow"><stop offset="0" stop-color="var(--accent)" stop-opacity=".55"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient>
       <filter id="ink" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="3"/></filter>
       <clipPath id="med" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath></defs><g class="edges" filter="url(#ink)">`;
@@ -1268,7 +1288,10 @@ function drawMap() {
   for (const n of m.nodes) {
     const x = px(n), y = py(n);
     const cls = ["node", "r" + Math.min(9, n.ring || 0), n.visited ? "visited" : "unseen", n.here ? "here" : "", n.marks.length ? "mark" : "", n.threats.length && mapLayers.minacce ? "threat" : ""].join(" ");
-    const short = n.name.length > 14 ? n.name.slice(0, 13) + "…" : n.name;
+    // (Agg. 81) il nome intero, su due righe se serve
+    const words = n.name.split(" "); let l1 = "", l2 = "";
+    for (const w of words) { if ((l1 + " " + w).trim().length <= 13 && !l2) l1 = (l1 + " " + w).trim(); else l2 = (l2 + " " + w).trim(); }
+    if (l2.length > 14) l2 = l2.slice(0, 13) + "…";
     const ic = n.home ? "⌂" : (ICON[n.type] || "·");
     const tip = [`${n.name} — pericolo ${n.danger}`, n.sect ? `⛩ sede: ${n.sect}` : "", n.people ? `👥 ${n.people} persone` : "",
       n.beasts ? `🐾 ${n.beasts} creature` : "", n.threats.length ? `⚔ ti cercano: ${n.threats.join(", ")}` : "",
@@ -1281,7 +1304,9 @@ function drawMap() {
       ${(() => { const u = !n.home && imgOf(["mappa/" + n.type]); return u
         ? `<image href="${u}" x="${x + 4}" y="${y + 3}" width="22" height="22" clip-path="url(#med)" preserveAspectRatio="xMidYMid slice"/>${n.here ? `<circle class="herering" cx="${x + 15}" cy="${y + 14}" r="12"/>` : ""}`
         : `<text class="ic" x="${x + 6}" y="${y + 17}">${n.here ? "◉" : ic}</text>`; })()}
-      <text class="nm" x="${x + 6}" y="${y + 38}">${esc(short)}</text>`;
+      ${l2 ? `<text class="nm two" x="${x + 6}" y="${y + 32}">${esc(l1)}</text><text class="nm two" x="${x + 6}" y="${y + 41}">${esc(l2)}</text>`
+           : `<text class="nm" x="${x + 6}" y="${y + 38}">${esc(l1)}</text>`}
+      ${n.danger >= 7 ? `<rect class="dstripe" x="${x}" y="${y}" width="${NW}" height="${NH}" rx="8" fill="url(#dstripes)"/>` : ""}`;
     let bx = x + NW - 4;
     const badge = (t, c) => { svg += `<text class="bd ${c}" x="${bx}" y="${y + 15}" text-anchor="end">${t}</text>`; bx -= 16; };
     if (n.mystery) badge("❖", "rare");
@@ -1562,6 +1587,13 @@ document.addEventListener("click", async (ev) => {
     MUSIC = !MUSIC; try { localStorage.setItem("ji_music", MUSIC ? "1" : "0"); } catch (e) { /* niente */ }
     settingsUi(); musicFor(S); return;
   }
+  if (ev.target.closest("#palbtn")) { palOpen(); return; }
+  if (ev.target.closest("#cbtoggle")) {                  // (Agg. 81) daltonici: segni e motivi, non solo colori
+    const on = document.documentElement.dataset.cb !== "1";
+    if (on) document.documentElement.dataset.cb = "1"; else delete document.documentElement.dataset.cb;
+    try { localStorage.setItem("ji_cb", on ? "1" : "0"); } catch (e) { /* niente */ }
+    settingsUi(); return;
+  }
   if (ev.target.closest("#ambtoggle")) {                 // (Agg. 80) il clic è il gesto che il browser vuole
     if (window.Ambient) { Ambient.setOn(!Ambient.on()); if (Ambient.on()) ambientFor(S); }
     settingsUi(); return;
@@ -1632,6 +1664,66 @@ async function openDaoTree() {
                                       img: (k) => imgOf(["dao/" + k]) });
 }
 window.openDaoTree = openDaoTree;
+// (Agg. 81) LA TAVOLOZZA DEI COMANDI: Ctrl+K (o «/» fuori dalla casella) — salti ovunque scrivendo:
+// schede della dashboard, comandi, e tutto ciò che la ricerca trova (Dao, ricette, persone, guida)
+const PAL = { el: null, items: [], sel: 0, t: null };
+function palNav() {
+  const out = [];
+  for (const [p, P] of Object.entries(PALACES)) for (const [k, l] of P.tabs)
+    out.push({ tipo: "Vai a", titolo: `${P.t.replace(/^\S+\s/, "")} › ${l.replace(/^\S+\s/, "")}`, testo: "", go: [p, k] });
+  return out;
+}
+function palRender() {
+  const ul = PAL.el.querySelector("ul");
+  ul.innerHTML = PAL.items.slice(0, 40).map((x, i) => `<li class="pi ${i === PAL.sel ? "sel" : ""}" data-i="${i}"><span class="pt">${esc(x.tipo)}</span>
+    <b>${esc(x.titolo)}</b>${x.testo ? `<small>${esc(String(x.testo).slice(0, 110))}</small>` : ""}</li>`).join("")
+    || `<li class="pi empty"><small>Scrivi per cercare: una scheda, un comando, un Dao, una persona…</small></li>`;
+  const cur = ul.querySelector(".sel"); if (cur) cur.scrollIntoView({ block: "nearest" });
+}
+async function palQuery(q) {
+  const t = q.trim().toLowerCase();
+  const nav = palNav().filter((x) => !t || x.titolo.toLowerCase().includes(t)).slice(0, t ? 6 : 30);
+  let cmds = [];
+  if (t && window.CmdBar) cmds = CmdBar.suggest(t).filter((x) => x.type === "cmd").slice(0, 6)
+    .map((x) => ({ tipo: "Comando", titolo: x.cmd + (x.args ? " " + x.args : ""), testo: x.desc, cmd: x.cmd + (x.args ? " " : ""), fill: !!x.args }));
+  let found = [];
+  if (t.length >= 2) { try { found = (await api("/api/cerca?q=" + encodeURIComponent(t))).slice(0, 14); } catch (e) { found = []; } }
+  if (q !== PAL.el.querySelector("input").value) return;          // è arrivata una richiesta più nuova
+  PAL.items = [...nav, ...cmds, ...found.filter((f) => f.tipo !== "Comando")]; PAL.sel = 0; palRender();
+}
+function palOpen() {
+  if (!PAL.el) {
+    PAL.el = document.createElement("div"); PAL.el.id = "palette"; PAL.el.className = "palette"; PAL.el.hidden = true;
+    PAL.el.innerHTML = `<div class="pal-box" role="dialog" aria-label="Tavolozza dei comandi"><input placeholder="Vai a… cerca… comando… (Esc per chiudere)" aria-label="Cerca">
+      <ul role="listbox"></ul><div class="pal-foot muted small">↑↓ per scegliere · Invio per andare · Esc per chiudere</div></div>`;
+    document.body.appendChild(PAL.el);
+    const inp = PAL.el.querySelector("input");
+    inp.addEventListener("input", () => { clearTimeout(PAL.t); PAL.t = setTimeout(() => palQuery(inp.value), 140); });
+    inp.addEventListener("keydown", (ev) => {
+      if (ev.key === "ArrowDown") { PAL.sel = Math.min(PAL.items.length - 1, PAL.sel + 1); palRender(); ev.preventDefault(); }
+      else if (ev.key === "ArrowUp") { PAL.sel = Math.max(0, PAL.sel - 1); palRender(); ev.preventDefault(); }
+      else if (ev.key === "Enter") { ev.preventDefault(); palPick(PAL.items[PAL.sel]); }
+      else if (ev.key === "Escape") { ev.preventDefault(); palClose(); }
+      ev.stopPropagation();
+    });
+    PAL.el.addEventListener("click", (ev) => { const li = ev.target.closest("li[data-i]"); if (li) palPick(PAL.items[+li.dataset.i]); else if (ev.target === PAL.el) palClose(); });
+  }
+  PAL.el.hidden = false; const inp = PAL.el.querySelector("input"); inp.value = ""; palQuery(""); setTimeout(() => inp.focus(), 0);
+}
+function palClose() { if (PAL.el) PAL.el.hidden = true; }
+function palPick(x) {
+  if (!x) return;
+  palClose();
+  if (x.go) return openPalace(x.go[0], x.go[1]);
+  if (x.fill) { $("#cmd").value = x.cmd; $("#cmd").focus(); return; }
+  if (x.cmd) run(x.cmd);
+}
+window.palOpen = palOpen;
+document.addEventListener("keydown", (ev) => {
+  const typing = document.activeElement && ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName);
+  if ((ev.key === "k" || ev.key === "K") && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); palOpen(); }
+  else if (ev.key === "/" && !typing) { ev.preventDefault(); palOpen(); }
+}, true);
 // (Agg. 79) LA BARRA DEI COMANDI: suggerimenti mentre scrivi, Tab per completare, gli argomenti dopo lo spazio
 if (window.CmdBar) CmdBar.init({ input: $("#cmd"), fetchJSON: (u) => api(u), onPick: () => {} });
 $("#cmdform").addEventListener("submit", (ev) => {
@@ -1726,6 +1818,7 @@ function settingsUi() {
   set("contrast", document.documentElement.dataset.contrast === "1" ? "sì" : "no");
   set("readmode", manual() ? "al tuo ritmo" : "automatica");
   set("ambtoggle", window.Ambient && Ambient.on() ? "sì" : "no");
+  set("cbtoggle", document.documentElement.dataset.cb === "1" ? "sì" : "no");
   set("music", MUSIC ? "sì" : "no"); set("sound", SOUND ? "sì" : "no"); set("mgtoggle", MINIGAME ? "sì" : "no");
   set("theme", th === "dark" ? "scuro" : th === "light" ? "chiaro" : "automatico");
   set("widen", document.body.classList.contains("wide") ? "sì" : "no");

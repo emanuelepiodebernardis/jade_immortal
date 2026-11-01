@@ -44,6 +44,17 @@ def badges(lst: list[dict]) -> dict:
     return b
 
 
+def levels(lst: list[dict]) -> dict:
+    """(Agg. 81) TRE LIVELLI per palazzo e scheda: 2 urgente (rosso), 1 utile (oro), 0 informativo (nessun segno)."""
+    lv: dict = {}
+    for it in lst:
+        level = 2 if it.get("hot") else (1 if it.get("prio", 5) <= 4 else 0)
+        for k in (it["palace"], f"{it['palace']}:{it['tab']}" if it["tab"] else None):
+            if k and level > lv.get(k, 0):
+                lv[k] = level
+    return lv
+
+
 # ---------------------------------------------------------------- le voci
 
 def _album(conn, player, day, out):

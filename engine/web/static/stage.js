@@ -307,6 +307,7 @@
     const f = esc(String(n.name).split(" ")[0]);
     const acts = [["👁", "Osserva", "osserva " + f, ""], ["💬", "Parla", "talk " + f, "good"], ["⚔", "Attacca", "attack " + f, "bad"]];
     if (!n.kind || n.kind === "human") acts.push(["🤺", "Duello", "duello " + f, "warn"]);
+    for (const x of n.extra || []) acts.push([x[0], x[1], x[2], x[3] || ""]);       // (Agg. 81) bottega, insegna, saluta…
     const rel = n.rel === "nemico" ? `<span class="rl foe">nemico</span>` : n.rel === "legame" ? `<span class="rl friend">legame</span>` : "";
     return `<div class="mh"><b>${esc(n.name)}</b>${rel}${n.tag ? `<small>${esc(n.tag)}</small>` : ""}</div>
       <div class="mb">${acts.map((a, i) => `<div class="mbtn ${a[3]}" role="menuitem" tabindex="0" data-cmd="${esc(a[2])}" style="--i:${i}" title="${a[1]} ${esc(n.name)} (${esc(a[2])})"><span class="mi">${a[0]}</span><span class="ml">${a[1]}</span></div>`).join("")}</div>`;

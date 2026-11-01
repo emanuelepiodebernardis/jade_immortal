@@ -980,3 +980,18 @@ body.scene-on #place.staged { display: none !important; }
 .dtree-modal h2 { display: flex; justify-content: space-between; align-items: center; }
 .dtree-modal h2 .x { font-size: 16px; }
 #dtree { height: min(72vh, 900px); }
+
+/* (Agg. 81) avvisi a tre livelli: rosso urgente (col numero), oro utile (solo un punto), informativo senza segno */
+#rail .dot.useful { background: var(--gold, #c9a227); min-width: 10px; width: 10px; height: 10px; padding: 0; top: 6px; right: 8px; }
+#subnav .pdot.useful { background: var(--gold, #c9a227); }
+#subnav .pdot.urgent { background: var(--bad); }
+.codex-card.compact { padding: 8px 12px; }
+.codex-card.compact summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+.codex-card.compact summary::-webkit-details-marker { display: none; }
+.codex-card.compact summary .link { margin-left: auto; }
+.todo-more summary { cursor: pointer; }
+.arena-done > summary { cursor: pointer; padding: 8px 10px; list-style: none; }
+.arena-done > summary::-webkit-details-marker { display: none; }
+#mapsvg .nm.two { font-size: 9.5px; }
+#mapsvg .dstripe { pointer-events: none; }
+.palette .pal-foot { padding: 6px 14px 10px; }

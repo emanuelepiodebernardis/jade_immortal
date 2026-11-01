@@ -3714,3 +3714,71 @@ Accettare la sfida di un rivale è ora un duello d'onore: chi perde cede, nessun
 
 ### Test
 - `tests/test_agg80.py` (6 test).
+
+## Aggiornamento 81 — La grafica e la navigazione: più azioni a schermo, meno testo, avvisi che contano
+
+Nasce da una ricerca su interfacce di gioco e giochi di testo (la riprogettazione di *Sunless Skies*, le
+lezioni di *80 Days*, le linee guida di accessibilità, le critiche ai giochi di coltivazione). Il problema
+principale era la gerarchia: tutto chiedeva attenzione insieme.
+
+### Azioni a schermo invece che nel testo
+- **Tessere del luogo (`engine/systems/place_actions.py`):** si aggiungono a quelle che c'erano già e compaiono
+  solo quando servono:
+  - «🩸 Divora i resti (N)» se ci sono caduti e hai l'Abisso;
+  - «🏺 Cerca reperti» nelle rovine, nelle grotte, sulle montagne e nelle zone proibite;
+  - «👁 Assisti agli allenamenti» nelle sette, in città e nei villaggi;
+  - «⚒ Bottega da …» quando c'è un maestro;
+  - «☯ Fondi: …» quando una fusione è pronta;
+  - «⛩ Prove del Cielo» quando sono pronte;
+  - «⚒ Incassa il laboratorio» quando c'è qualcosa in cassa;
+  - «🎯» il prossimo passo dell'obiettivo.
+- **Menu delle persone:** il menu di ogni persona, nella scena e nell'elenco, ha i pulsanti giusti per lei:
+  Bottega e Commissiona per chi ha un mestiere, Insegna per i discepoli, Saluta per tutti.
+
+### Avvisi a tre livelli
+- **I tre livelli:** rosso per l'urgente (col numero), oro per l'utile (solo un punto), nessun segno per
+  l'informativo.
+- **Le schede:** il punto si spegne quando hai visto la scheda, e torna solo se cambia qualcosa.
+- **«Oggi»:** mostra prima ciò che conta; il resto sta in «Altro da fare, senza fretta».
+
+### Leggere meglio
+- **Il duello finito:** il riquadro si richiude in una riga (si può riaprire) e restano solo le scelte, così
+  il registro torna visibile.
+- **Le spiegazioni del Codex:** sono una riga che si apre, non un riquadro che copre il gioco; quella del
+  duello sparisce da sola.
+
+### Navigare
+- **La tavolozza dei comandi:** Ctrl+K, oppure «/» o il pulsante 🔎. Si scrive e si salta a qualsiasi scheda,
+  comando, Dao, ricetta, persona o pagina della guida; frecce e Invio.
+- **La mappa:**
+  - parte più vicina, con caselle leggibili e il nome intero su due righe;
+  - le zone molto pericolose hanno righe diagonali, non solo un colore.
+
+### Accessibilità
+- **Modalità daltonici** (Impostazioni): segni e motivi oltre ai colori.
+
+### Lo stile (`engine/web/static/ui80.css`)
+- **Leggere:** il registro ha più spazio (almeno metà schermo), righe di 75 caratteri al massimo, interlinea
+  comoda e un separatore tra i pezzi. Il duello è più compatto: ritratti più piccoli e barre sottili.
+- **Un solo stile:** il pannello «Stato» non è più un riquadro nero da terminale ma carta e giada, coi numeri
+  allineati. Resta scuro solo nel tema scuro.
+- **I colori:**
+  - giada per la navigazione;
+  - oro per le azioni principali (Allenati, Invia, i punti da spendere);
+  - i chip secondari più tenui.
+- **Icone:** le icone della barra e delle schede sono più grandi di circa il 30%.
+- **Telefono:**
+  - in alto un'intestazione di una riga;
+  - le sezioni in una barra in fondo allo schermo;
+  - la casella dei comandi fissa appena sopra, a portata di pollice;
+  - pulsanti di almeno 44 px;
+  - nessuno scorrimento orizzontale.
+- **Accessibilità:**
+  - contorni visibili per chi usa la tastiera;
+  - modalità daltonici: rosso e verde diventano arancio e blu, con ✖, ⚠, ✦ e ✔ davanti alle righe e motivi
+    sulle tessere;
+  - testo al 125% e al 150% senza rotture;
+  - meno animazioni per chi le riduce nel sistema.
+
+### Test
+- `tests/test_agg81.py` (4 test).
