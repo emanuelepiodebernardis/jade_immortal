@@ -2,7 +2,7 @@
 // Prima la rete (il gioco si aggiorna spesso e il server è il tuo PC); se la rete manca, la copia salvata
 // della pagina e dei file statici. Le immagini, che non cambiano, si prendono dalla copia quando c'è.
 // Le chiamate /api/ non passano mai dalla copia: la partita è sempre quella vera.
-const CACHE = "jade-v84";
+const CACHE = "jade-v85";
 self.addEventListener("install", (e) => { self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))

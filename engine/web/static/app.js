@@ -12,10 +12,44 @@ let hpos = 0;
 
 async function api(path, body) {
   const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
-  const r = await fetch(path, opt);
+  let r;
+  try { r = await fetch(path, opt); } catch (e) { connLost(); throw e; }      // (Agg. 85) il PC non risponde
+  if (CONN_LOST) connBack();
   const j = await r.json();
   if (j && j.errore) throw new Error(j.errore);
   return j;
+}
+
+// ---------------- (Agg. 85) IL GIOCO NON RISPONDE ----------------
+// Il gioco gira sul tuo computer: se il telefono lo perde (PC spento, Wi-Fi caduta, dashboard chiusa) lo dice
+// chiaramente e riprova da solo ogni tre secondi; appena torna, riprende da dove eri.
+let CONN_LOST = false, CONN_T = null;
+function connBox() {                                // pronto (e con l'icona già caricata) prima che serva
+  let box = document.getElementById("conn-lost");
+  if (!box) {
+    box = document.createElement("div"); box.id = "conn-lost"; box.setAttribute("role", "alertdialog");
+    box.innerHTML = `<div class="cl-box"><img src="/static/icone/icona-192.png" alt=""><h3>Il gioco non risponde</h3>
+      <p>Jade Immortal gira sul tuo computer. Controlla che sia acceso, che la dashboard sia aperta e, dal telefono, di essere sulla stessa Wi-Fi.</p>
+      <p class="cl-try">Riprovo da solo… <button class="link" type="button" id="cl-now">riprova ora</button></p></div>`;
+    document.body.appendChild(box);
+    box.querySelector("#cl-now").onclick = () => connPoll(true);
+    box.hidden = true;
+  }
+  return box;
+}
+setTimeout(connBox, 1500);
+function connLost() {
+  if (CONN_LOST) return;
+  CONN_LOST = true;
+  connBox().hidden = false;
+  clearInterval(CONN_T); CONN_T = setInterval(connPoll, 3000);
+}
+async function connPoll() {
+  try { const r = await fetch("/api/telefono", { cache: "no-store" }); if (r.ok) { connBack(); refresh(); } } catch (e) { /* ancora niente */ }
+}
+function connBack() {
+  CONN_LOST = false; clearInterval(CONN_T);
+  const box = document.getElementById("conn-lost"); if (box) box.hidden = true;
 }
 
 // ---------------- registro ----------------
@@ -170,6 +204,7 @@ function addLog(text, cmd, instant) {
     advUi();
     if (window.Narrator && Narrator.on()) Narrator.feedEls([...div.querySelectorAll(LN_LIVE)].filter((x) => !x.classList.contains("wait")));
   } else { box.scrollTop = box.scrollHeight; if (window.Narrator && Narrator.on() && !instant) Narrator.feed(lines.join("\n")); }
+  if (window.Phone && !es) Phone.onLog(div);                // (Agg. 85) dal pannello, l'esito sale dal basso
   systemToasts(text || "");
 }
 
@@ -1357,14 +1392,19 @@ function notify(title, body) {
     else new Notification(title, opt);
   } catch (e) { /* niente */ }
 }
+function qrSvg(text) {
+  try { const q = qrcode(0, "M"); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch (e) { return ""; }
+}
 async function phoneCard() {
   const t = await api("/api/telefono").catch(() => ({}));
   const canNotify = "Notification" in window && window.isSecureContext;
   const nState = !canNotify ? "" : Notification.permission === "granted" ? (NOTIFY_OK() ? "attivi" : "spenti") : Notification.permission === "denied" ? "bloccati dal browser" : "";
   return `<div class="card phone-card"><b>📱 Come un'app</b>
-    <div class="pc-row"><img src="/static/icone/icona-192.png" alt="" width="56" height="56"><div>
-    ${t.rete && t.url ? `<div>Sul telefono, connesso alla stessa Wi-Fi, apri <b class="pc-url">${esc(t.url)}</b></div>
-      <div class="muted small">Poi dal menu del browser scegli «Aggiungi a schermata Home»: avrai l'icona del disco di giada e il gioco a schermo intero.</div>`
+    <div class="pc-row">${t.rete && t.url && window.qrcode ? `<div class="pc-qr" title="${esc(t.url)}">${qrSvg(t.url)}</div>` : `<img src="/static/icone/icona-192.png" alt="" width="56" height="56">`}<div>
+    ${t.rete && t.url ? `<div>Inquadra il codice con la fotocamera del telefono (stessa Wi-Fi), oppure apri <b class="pc-url">${esc(t.url)}</b></div>
+      <ol class="pc-steps"><li>Si apre il gioco nel browser del telefono.</li>
+        <li>Menu del browser → «Aggiungi a schermata Home» (su iPhone: Condividi → «Aggiungi alla schermata Home»).</li>
+        <li>Da lì in poi lo apri dall'icona del disco di giada, a schermo intero.</li></ol>`
     : `<div>Per giocare dal telefono avvia il gioco con <code>python dashboard.py --rete</code>: qui comparirà l'indirizzo da aprire.</div>
       <div class="muted small">Il gioco gira sul tuo PC: il telefono deve essere sulla stessa Wi-Fi. Nessuna password: usalo solo in casa.</div>`}
     </div></div><div class="tools">${INSTALL_EV ? `<button class="primary" id="pc-install">⬇ Installa come app su questo computer</button>` : ""}

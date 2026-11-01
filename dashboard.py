@@ -94,6 +94,8 @@ def main() -> None:
         except OSError:
             ip = "<indirizzo del PC>"
         print(f"Dal telefono (stessa Wi-Fi): http://{ip}:{a.porta}/  — nessuna password: usalo solo in casa.")
+        print("  (Sul computer, in Opzioni → Partita, c'è il codice QR da inquadrare. Se il telefono non si collega,")
+        print("   consenti Python nel firewall di Windows per le «Reti private».)")
     if not a.no_browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     if not a.no_reload:

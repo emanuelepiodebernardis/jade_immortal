@@ -3792,6 +3792,42 @@ principale era la gerarchia: tutto chiedeva attenzione insieme.
 - **Telefono:** nella scheda dello Stato l'ultima riga («Punti liberi») non finisce più sotto la barra dei
   comandi.
 
+## Aggiornamento 85 — L'app sul telefono
+
+### Due schermate invece di una pagina lunghissima (`static/phone.js`, `static/phone.css`)
+- **«Oggi» è la schermata di gioco:** altare, cosa fare, scena del luogo, registro e casella del comando.
+- **Gli altri palazzi** (La Via, Setta, Seguaci, Mondo, Tesori, Storia, Opzioni) si aprono a schermo intero.
+  In alto, fissi, ci sono il titolo, le schede e il tasto «‹ Gioco». Prima finivano in fondo alla pagina,
+  sotto il registro: toccando «La Via» sembrava non succedere nulla.
+- **L'esito dal basso:** se fai qualcosa da un pannello (indossa, raccogli, ritira…), il risultato sale
+  dal basso in un foglio, con «Vai al gioco» e «Ok». Si chiude anche trascinandolo giù.
+- **Le scene hanno la precedenza:** se si apre una scena con delle scelte o un duello, torni da solo
+  alla schermata di gioco.
+- **Le schede col dito:** nei pannelli si passa da una scheda all'altra scorrendo a destra o a sinistra.
+
+### Più comodo da tenere in mano
+- **L'altare è basso:** anello piccolo, azioni su una riga che scorre, il pilota in una riga.
+- **La scena del luogo:** le sue azioni stanno su una riga sola.
+- **Con la tastiera aperta** la barra dei palazzi si fa da parte.
+- **La casella del comando** non fa più ingrandire la pagina su iPhone. Il pulsante del narratore è
+  nelle Impostazioni.
+- **Niente ricariche per sbaglio:** «tira per ricaricare» e lo zoom con il doppio tocco sono spenti.
+  Il gioco rispetta la tacca dello schermo.
+- **Vibrazione:** un piccolo tocco conferma i pulsanti importanti (Android). Si spegne in Impostazioni.
+- **La barra dei palazzi** sfuma a destra per dire che continua (Opzioni e Salva sono in fondo).
+
+### Collegarsi
+- **Codice QR:** in Opzioni → Partita, se il gioco è avviato con `--rete`, c'è il codice da inquadrare
+  con la fotocamera del telefono. Poi tre passi per metterlo nella schermata Home. Usa la libreria
+  `qrcode-generator` di Kazuhiko Arase, licenza MIT (`static/vendor/qrcode.js`).
+- **«Gioca dal telefono.bat»:** un doppio clic avvia il gioco per il telefono. La prima volta Windows
+  chiede il permesso del firewall: «Reti private», consenti.
+- **«Il gioco non risponde»:** se il telefono perde il PC (spento, Wi-Fi caduta, dashboard chiusa), lo
+  dice chiaramente e riprova da solo ogni tre secondi. Appena il PC torna, riprende da dove eri.
+
+### Corretto
+- **Le icone nella mappa:** diventavano enormi e coprivano la mappa, al telefono e sul computer.
+
 ## Aggiornamento 84 — I volti del destino, leggere il nemico, un registro che si legge, come un'app
 
 ### I volti del destino (`engine/systems/destiny_faces.py`, Storia → 🎭 Volti, comando `volti`)
