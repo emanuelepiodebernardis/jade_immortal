@@ -359,7 +359,16 @@ def state_snapshot() -> dict:
                 if "disciple" in kinds:
                     _extra.append(["📖", "Insegna", f"insegna {_first}", "good"])
                 _extra.append(["🙏", "Saluta", f"greet {_first}", ""])
+            try:                                          # (Agg. 83) la sua forza rispetto alla tua, COME LA VEDI
+                from engine.systems import perception as _pc     # (chi cela la propria forza sembra un mortale)
+                _forza, _cel = _pc.apparent(conn, p.id, n.id)
+                _forza = round(_forza, 3)
+                if _cel == "smascherato":
+                    tag = (tag + " · " if tag else "") + "👁 cela la sua vera forza"
+            except Exception:                             # noqa: BLE001
+                _forza = 1.0
             npcs.append({"name": n.name, "tag": tag, "pri": pri, "kind": _row["kind"] or "human", "extra": _extra,
+                         "forza": _forza,
                          "arch": _row["archetype"] or "", "f": (_row["gender"] or "") == "f",
                          "rel": "nemico" if kinds & {"nemesis", "rival"} else ("legame" if kinds else "")})
         npcs.sort(key=lambda x: x["pri"])
@@ -374,6 +383,10 @@ def state_snapshot() -> dict:
             "fase": "gioco" if p.status == "alive" else "morto",
             "nome": p.name,
             "regno": cultivation.realm_label(conn, "player", p.id),
+            "tier": cultivation.realm_tier(conn, "player", p.id) or 1,            # (Agg. 83) per l'aura del ritratto
+            "dao_top": (lambda r: r["dao_key"] if r else "")(conn.execute(
+                "SELECT dao_key FROM character_daos WHERE character_type='player' AND character_id=? "
+                "ORDER BY comprehension DESC LIMIT 1;", (p.id,)).fetchone()),
             "esperienza": round((rec["progress"] if rec else 0) * 100),
             "qi": _bar(qimod.get_qi(conn, p.id), qimod.max_qi(conn, p.id)),
             "spirito": _bar(spmod.get_spirit(conn, p.id), spmod.max_spirit(conn, p.id)),
@@ -651,6 +664,13 @@ def summary_diff(a: dict, b: dict) -> dict:
             "fama": b["fame"] - a["fame"], "karma": b["karma"] - a["karma"], "uccisioni": b["kills"] - a["kills"],
             "titoli": [t for t in b["titoli"] if t not in a["titoli"]], "faide": b["faide"] - a["faide"],
             "debiti": b["debiti"] - a["debiti"], "oggetti": b["oggetti"] - a["oggetti"]}
+
+
+def life_book() -> str:
+    """(Agg. 83) Il libro della tua vita: HTML illustrato da stampare o salvare in PDF."""
+    from engine.web import lifebook
+    with LOCK, transaction() as conn:
+        return lifebook.build(conn)
 
 
 def commands_data() -> dict:

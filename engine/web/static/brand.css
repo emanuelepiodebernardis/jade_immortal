@@ -1,0 +1,146 @@
+/* Jade Immortal — identità visiva: titoli in Cormorant Garamond, hanzi a pennello, inchiostro e carta, foglia d'oro.
+   Va caricato dopo ui80.css: sovrascrive per cascata senza toccare la struttura. */
+
+/* ---------- 0. token ---------- */
+:root {
+  --serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --brush: "Ma Shan Zheng", "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif CJK SC", serif;
+  --vermilion: #c3321f; --vermilion-2: #8f2012;
+  --foil-a: #7a520a; --foil-b: #a87c14; --foil-c: #d6ae45;
+  --ink-line: rgba(29, 35, 32, .55);
+  --paper-hi: rgba(255, 255, 255, .55); --paper-lo: rgba(120, 100, 60, .05); --paper-grain: rgba(80, 64, 30, .028);
+  --title-track: .035em;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --foil-a: #cfa443; --foil-b: #f1d98f; --foil-c: #fff1c2; --ink-line: rgba(228, 232, 227, .5);
+    --paper-hi: rgba(255, 255, 255, .028); --paper-lo: rgba(0, 0, 0, .0); --paper-grain: rgba(255, 244, 214, .016);
+  }
+}
+:root[data-theme="dark"] {
+  --foil-a: #cfa443; --foil-b: #f1d98f; --foil-c: #fff1c2; --ink-line: rgba(228, 232, 227, .5);
+  --paper-hi: rgba(255, 255, 255, .028); --paper-lo: rgba(0, 0, 0, .0); --paper-grain: rgba(255, 244, 214, .016);
+}
+
+/* ---------- 1. tipografia ---------- */
+h1, h2, h3, h4, #ptitle, .card h2, .card h3, .card h4, .modal h2, .menuhead h3, #place h2, .scene h3,
+.card.sec > b:first-child, .sec > b:first-child, .sw-name b, .arena-head, .fighter .fi b, #altar-realm, #t-nome,
+.stg-hero .plaque b, .cut-t b, #actions details.grp summary, #tabbody h4, .vs {
+  font-family: var(--serif); font-optical-sizing: auto; font-kerning: normal; font-feature-settings: "liga", "kern", "onum" 0;
+}
+/* Cormorant ha un occhio piccolo: i corpi si alzano un poco per restare leggibili */
+#ptitle { font-size: 23px; font-weight: 700; letter-spacing: var(--title-track); line-height: 1.1; }
+.card h2, #place h2, .modal h2 { font-size: 24px; font-weight: 700; letter-spacing: var(--title-track); line-height: 1.15; }
+.card h3, .menuhead h3, .scene h3, #tabbody h3 { font-size: 19.5px; font-weight: 700; letter-spacing: .04em; line-height: 1.2; }
+.card h4, #tabbody h4 { font-size: 17px; font-weight: 700; letter-spacing: .03em; }
+.card.sec > b:first-child, .sec > b:first-child { font-size: 18px; font-weight: 700; letter-spacing: .045em; }
+#actions details.grp summary { font-size: 16px; font-weight: 700; letter-spacing: .04em; }
+#altar-realm { font-size: 28px; font-weight: 700; letter-spacing: .05em; line-height: 1.05; }
+#t-nome { font-size: 20px; font-weight: 700; letter-spacing: .04em; }
+.stg-hero .plaque b { font-size: 15.5px; font-weight: 700; letter-spacing: .04em; }
+.arena-head { font-size: 17px; font-weight: 700; letter-spacing: .05em; }
+.fighter .fi b { font-size: 17px; font-weight: 700; letter-spacing: .045em; }
+.vs { font-size: 26px; font-weight: 600; letter-spacing: .08em; font-style: italic; }
+.sw-name b { font-size: 17px; font-weight: 700; letter-spacing: .045em; }
+.cut-t b { letter-spacing: .08em; }
+/* intestazioni delle finestre di sistema: il piccolo maiuscolo spaziato resta, ma con grazia */
+.sw-head { letter-spacing: .2em; font-weight: 700; }
+.sw-sep { letter-spacing: .18em; }
+
+/* scritta a pennello: <span class="hz">道</span> */
+.hz { font-family: var(--brush); font-weight: 400; font-style: normal; letter-spacing: 0; line-height: 1; color: var(--accent-2); font-synthesis: none; }
+:root[data-theme="dark"] .hz { color: var(--accent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hz { color: var(--accent); } }
+.hz.red { color: var(--vermilion); } .hz.gold { color: var(--foil-b); }
+.hz.xl { font-size: 3.2em; } .hz.faint { opacity: .12; }
+
+/* sigillo di giada dietro all'altare: un solo carattere, quasi invisibile */
+#altar { position: relative; }
+#altar::after {
+  content: "道"; position: absolute; right: 12px; top: 6px; font: 400 76px/1 var(--brush); color: var(--accent); opacity: .075;
+  pointer-events: none; transform: rotate(-4deg);
+}
+body.scene-on #altar::after { display: none; }
+@media (max-width: 620px) { #altar::after { font-size: 56px; right: 8px; top: 4px; } }
+
+/* ---------- 2. foglia d'oro ---------- */
+#altar-realm, .foil {
+  background: linear-gradient(100deg, var(--foil-a) 0%, var(--foil-b) 38%, var(--foil-c) 50%, var(--foil-b) 62%, var(--foil-a) 100%);
+  background-size: 220% 100%; background-position: 0 0;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+#log .ln.l-rare, #log .l-rare, .l-rare.foil {
+  background: linear-gradient(100deg, var(--foil-a) 0%, var(--foil-b) 35%, var(--foil-c) 50%, var(--foil-b) 65%, var(--foil-a) 100%);
+  background-size: 240% 100%; background-position: 20% 0;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: var(--foil-b);
+  text-shadow: none; font-weight: 700;
+}
+@media (prefers-reduced-motion: no-preference) {
+  #altar-realm { animation: brand-foil 9s ease-in-out infinite alternate; }
+  @keyframes brand-foil { from { background-position: 0 0; } to { background-position: 100% 0; } }
+}
+/* titolo del palazzo: filo d'oro sotto */
+#phead { position: relative; padding-bottom: 7px; margin-bottom: 8px; }
+#phead::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, var(--foil-a), var(--foil-b) 18%, var(--foil-c) 30%, color-mix(in srgb, var(--foil-b) 40%, transparent) 62%, transparent 100%);
+  border-radius: 2px; opacity: .8;
+}
+#phead #ptitle { display: inline-flex; align-items: center; gap: 8px; }
+#ptitle svg.ic-svg { width: .86em; height: .86em; color: var(--foil-a); }
+:root[data-theme="dark"] #ptitle svg.ic-svg { color: var(--foil-b); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #ptitle svg.ic-svg { color: var(--foil-b); } }
+
+/* ---------- 3. inchiostro: separatori ---------- */
+hr, #actions hr, .sep {
+  display: block; width: 100%; height: 7px; border: 0; margin: 10px 0; padding: 0; overflow: visible; background-color: transparent;
+  background-image:
+    radial-gradient(circle at 50% 50%, var(--vermilion) 0 2.4px, transparent 2.9px),
+    radial-gradient(ellipse 50% 100% at 50% 50%, var(--ink-line) 0%, transparent 100%),
+    linear-gradient(90deg, transparent 0, var(--ink-line) 14%, var(--ink-line) 86%, transparent 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%, 100% 1.2px, 100% 1px;
+  background-position: center, center, center;
+  opacity: .62;
+}
+.sep.thin { height: 3px; background-image: linear-gradient(90deg, transparent, var(--ink-line), transparent); background-size: 100% 1px; background-position: center; }
+.sw-sep { position: relative; }
+
+/* ---------- 4. carta ---------- */
+body {
+  background-image:
+    radial-gradient(ellipse 80% 55% at 50% -8%, var(--paper-hi), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, var(--paper-lo), transparent 75%),
+    repeating-linear-gradient(0deg, var(--paper-grain) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, var(--paper-grain) 0 1px, transparent 1px 4px);
+  background-attachment: fixed;
+}
+.card, #log, #actions details.grp {
+  background-image:
+    linear-gradient(180deg, var(--paper-hi), transparent 46px),
+    repeating-linear-gradient(0deg, var(--paper-grain) 0 1px, transparent 1px 3px);
+}
+.card { border-top-color: color-mix(in srgb, var(--foil-b) 38%, var(--line)); }
+#altar { border-top: 2px solid color-mix(in srgb, var(--foil-b) 65%, var(--line)); }
+
+/* ---------- 5. rifiniture per le icone e i sigilli ---------- */
+.ic-svg { stroke-linecap: round; stroke-linejoin: round; }
+#rail button .ic svg { stroke-width: 1.7; }
+#rail button.on .ic svg { color: var(--vermilion); }
+:root[data-theme="dark"] #rail button.on .ic svg { color: var(--foil-b); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #rail button.on .ic svg { color: var(--foil-b); } }
+svg.ic-lead { margin-right: .08em; }
+.seal { -webkit-user-select: none; user-select: none; }
+.seal-stamp { transform-origin: 70% 30%; }
+@media print { .seal-stamp { display: none; } }
+
+/* ---------- 6. mobile ---------- */
+@media (max-width: 620px) {
+  #ptitle { font-size: 21px; }
+  #altar-realm { font-size: 24px; }
+  .card h2, #place h2 { font-size: 22px; }
+  .card h3, .menuhead h3, #tabbody h3 { font-size: 18px; }
+  .arena-head, .fighter .fi b { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { #altar-realm { animation: none !important; } }
+

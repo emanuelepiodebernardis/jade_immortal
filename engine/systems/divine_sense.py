@@ -61,6 +61,9 @@ def scan(conn, player, arg: str) -> str:
         nm = conn.execute("SELECT name, kind FROM npcs WHERE id=?;", (nid,)).fetchone()
         ratio = perception.strength_ratio(conn, player.id, nid)
         extra = []
+        if perception.conceals(conn, nid) and not perception.seen_through(conn, player.id, nid):
+            extra.append("CELAVA LA SUA FORZA: ora la vedi")
+        perception.reveal(conn, nid)                     # (Agg. 83) scrutato: il suo vero volto non ti sfugge più
         if nm["kind"] == "beast":
             tr = beasts.traits(conn, nid)
             extra.append(f"talento {tr['talent']}, {tr['rarity']}")

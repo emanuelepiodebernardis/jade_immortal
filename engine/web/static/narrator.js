@@ -106,13 +106,35 @@
     return out.filter((x) => x.text.length > 1);
   }
 
+  // ---------------------------------------------------------------- (Agg. 83) le voci vere: Piper, in locale
+  // Se il gioco ha la cartella «voci» (strumenti/installa_voci.py), le battute le dice Piper: voce maschile e femminile
+  // di qualità; demoni, draghi e spiriti si ottengono abbassando o alzando il tono (senza preservare l'altezza).
+  let PIPER = false, PIPER_G = {}, AUDIO = null;
+  try { fetch("/api/tts/stato").then((r) => r.json()).then((j) => { PIPER = !!(j && j.attivo); PIPER_G = (j && j.voci) || {}; }).catch(() => {}); } catch (e) { /* niente */ }
+  function nextPiper(it, P) {
+    fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ testo: it.text, genere: P.g, velocita: P.r * RATE }) })
+      .then((r) => (r.status === 200 ? r.blob() : null))
+      .then((b) => {
+        if (!b || !speaking) { if (!b) { PIPER = false; Q.unshift(it); speaking = false; next(); } return; }
+        AUDIO = new Audio(URL.createObjectURL(b));
+        AUDIO.preservesPitch = false; AUDIO.mozPreservesPitch = false; AUDIO.webkitPreservesPitch = false;
+        AUDIO.playbackRate = Math.max(0.75, Math.min(1.25, 1 + (P.p - 1) * 0.18));
+        AUDIO.onended = AUDIO.onerror = () => { const u = AUDIO && AUDIO.src; AUDIO = null; if (u) URL.revokeObjectURL(u); next(); };
+        AUDIO.play().catch(() => { AUDIO = null; next(); });
+      })
+      .catch(() => { PIPER = false; Q.unshift(it); speaking = false; next(); });
+  }
+
   // ---------------------------------------------------------------- la coda
   function next() {
-    if (!SS) return;
+    if (!SS && !PIPER) return;
     const it = Q.shift();
     if (!it) { speaking = false; if (onIdle) { const f = onIdle; setTimeout(() => { if (!speaking && !Q.length) f(); }, 350); } return; }
     speaking = true;
     const P = PROF[it.prof] || PROF.narratore;
+    if (PIPER && PIPER_G[P.g]) { nextPiper(it, P); return; }       // le voci che Piper ha; le altre dal browser
+    if (!SS) { next(); return; }
     const u = new SpeechSynthesisUtterance(it.text);
     u.lang = "it-IT";
     const v = (P.g === "f" ? VOICES.f : VOICES.m) || VOICES.any;
@@ -125,7 +147,7 @@
     SS.speak(u);
   }
   function enqueue(list) {
-    if (!ON || !SS || !list.length) return;
+    if (!ON || (!SS && !PIPER) || !list.length) return;
     Q.push(...list);
     if (!speaking) next();
   }
@@ -150,13 +172,14 @@
     /** legge delle righe del registro (elementi), per la lettura al proprio ritmo */
     feedEls(els) { this.feed((els || []).map((e) => e.textContent).join("\n")); },
     say(text, prof) { enqueue([{ text: clean(text), prof: prof || "narratore" }]); },
-    skip() { if (SS && speaking) SS.cancel(); },               // salta la riga (la coda prosegue)
-    stop() { Q.length = 0; if (SS) SS.cancel(); speaking = false; },
+    skip() { if (AUDIO) { AUDIO.pause(); const f = AUDIO.onended; AUDIO.onended = null; if (f) f(); return; } if (SS && speaking) SS.cancel(); },               // salta la riga (la coda prosegue)
+    stop() { Q.length = 0; if (AUDIO) { AUDIO.onended = null; AUDIO.pause(); AUDIO = null; } if (SS) SS.cancel(); speaking = false; },
     repeat() { if (last.length) { this.stop(); enqueue(last.slice()); } },
     busy: () => speaking || Q.length > 0,
     /** chiamata quando ha finito di leggere tutto (per far avanzare la lettura al proprio ritmo) */
     onIdle(f) { onIdle = f; },
-    available: () => !!SS,
+    available: () => !!SS || PIPER,
+    piper: () => PIPER,
     voices: () => ({ maschile: VOICES.m && VOICES.m.name, femminile: VOICES.f && VOICES.f.name }),
     _parts: parts,
   };

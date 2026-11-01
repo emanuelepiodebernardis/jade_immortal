@@ -71,6 +71,9 @@ def start(conn, player, arg: str, arena: bool = False) -> str:
         return f"Non vedi nessuno di nome '{target}' qui. (duello <nome>)"
     from engine.systems import elites                 # (Agg. 70) un élite o un boss si porta al tuo passo
     elites.touch(conn, player, [npc.id])
+    from engine.systems import perception as _pc      # (Agg. 83) incrociate le armi, nessuno può più celarsi
+    _unmask = _pc.conceals(conn, npc.id) and not _pc.seen_through(conn, player.id, npc.id)
+    _pc.reveal(conn, npc.id)
     pa = combat.combat_power(conn, "player", player.id)
     pd = combat.combat_power(conn, "npc", npc.id)
     sc = combat.duel_scale(pa, pd) * _length(conn, player, npc)
@@ -85,6 +88,9 @@ def start(conn, player, arg: str, arena: bool = False) -> str:
          "boss": elites.rank(conn, npc.id) == "boss", "phase": 1, "heals": 0, "ecd": 0, "intent_e": "attacco"}
     _save(conn, d)
     intro = [f"Stile di {npc.name}: {STYLES[style][0]} — {STYLES[style][1]}"]
+    if _unmask:
+        intro.insert(0, f"👁 Appena incrociate le armi, l'aura di {npc.name} si spalanca: celava la sua vera forza! "
+                        f"({_pc.relative_strength(conn, player.id, npc.id)})")
     if adv_txt:
         intro.append(adv_txt)
     return _next_turn(conn, player, intro)
@@ -242,7 +248,8 @@ def arena(conn, player) -> dict | None:
                                                                        (r["gender"] or "") == "f") if r else ("", "human", False))(
                     conn.execute("SELECT archetype, kind, gender FROM npcs WHERE id=?;", (d["npc"],)).fetchone()))},
                 "regno": cultivation.realm_label(conn, "npc", d["npc"]),
-                "forza": perception.relative_strength(conn, player.id, d["npc"])},
+                "forza": perception.relative_strength(conn, player.id, d["npc"]),
+                "rapporto": round(1.0 / max(1e-6, perception.strength_ratio(conn, player.id, d["npc"])), 3)},
         "stile": st[0], "stile_desc": st[1], "vantaggio": d.get("adv", 1.0), "carica": d["charge_e"], "concentrato": d["focus"],
         "alleati": [a["intro"] for a in d.get("allies", [])], "ultimo": d.get("last", {}),
         "carte": [] if finished else cards,

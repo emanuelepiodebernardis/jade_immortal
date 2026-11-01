@@ -73,3 +73,25 @@ def test_three_levels():
     lv = attention.levels(lst)
     assert lv["via"] == 2 and lv["via:dao"] == 2 and lv["oggi"] == 1 and lv.get("mondo", 0) == 0
     assert "_livelli" not in attention.badges(lst)
+
+
+def test_concealed_strength_and_unmasking(conn):
+    from engine.systems import perception
+    from engine.simulation import cultivation
+    from engine.systems import npc_factory
+    p = entities.get_player(conn, 1)
+    nid = None
+    for i in range(200):
+        n = npc_factory.spawn(conn, random.Random(i), archetype="eremita", location_id=p.location_id, tier=5, stage=5,
+                              traits={}, tick=0)
+        if perception.conceals(conn, n):
+            nid = n
+            break
+    assert nid and cultivation.realm_tier(conn, "npc", nid) >= 3
+    true = 1 / perception.strength_ratio(conn, 1, nid)
+    seen, st = perception.apparent(conn, 1, nid)
+    if not perception.seen_through(conn, 1, nid):
+        assert st == "celato" and seen <= 0.25 < true or true <= 0.25
+    perception.reveal(conn, nid)
+    seen2, st2 = perception.apparent(conn, 1, nid)
+    assert st2 == "smascherato" and abs(seen2 - true) < 1e-9

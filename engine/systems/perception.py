@@ -86,6 +86,48 @@ def strength_ratio(conn: sqlite3.Connection, player_id: int, npc_id: int) -> flo
         max(1.0, _overall(combat.combat_power(conn, "npc", npc_id)))
 
 
+# ---------------------------------------------------------------- (Agg. 83) chi cela la propria forza
+# Alcuni coltivatori — eremiti, vagabondi, anziani che hanno visto molto — ritirano l'aura fin dentro le ossa: a
+# vederli sembrano persone qualunque. Li smaschera un senso divino abbastanza forte, 'scruta', o combatterci.
+REVEALED_KEY = "veri_volti"
+
+
+def conceals(conn: sqlite3.Connection, npc_id: int) -> bool:
+    import random as _r
+    from engine.simulation import cultivation
+    row = conn.execute("SELECT archetype, kind FROM npcs WHERE id=?;", (npc_id,)).fetchone()
+    if not row or (row["kind"] or "human") != "human" or (row["archetype"] or "") not in ("eremita", "vagabondo", "anziano"):
+        return False
+    if (cultivation.realm_tier(conn, "npc", npc_id) or 1) < 3:
+        return False
+    return _r.Random(npc_id * 7919 + 3).random() < 0.35
+
+
+def seen_through(conn: sqlite3.Connection, player_id: int, npc_id: int) -> bool:
+    from engine.systems import state, divine_sense
+    from engine.simulation import cultivation
+    if npc_id in (state.get_json(conn, REVEALED_KEY, []) or []):
+        return True
+    return divine_sense._sense(conn, player_id) >= 40 * (cultivation.realm_tier(conn, "npc", npc_id) or 1)
+
+
+def reveal(conn: sqlite3.Connection, npc_id: int) -> None:
+    from engine.systems import state
+    ids = state.get_json(conn, REVEALED_KEY, []) or []
+    if npc_id not in ids:
+        state.set_json(conn, REVEALED_KEY, (ids + [npc_id])[-300:])
+
+
+def apparent(conn: sqlite3.Connection, player_id: int, npc_id: int) -> tuple[float, str]:
+    """(sua forza / tua forza come LA VEDI, stato): stato '' · 'celato' (ti inganna) · 'smascherato' (lo hai visto)."""
+    true = 1.0 / max(1e-6, strength_ratio(conn, player_id, npc_id))
+    if not conceals(conn, npc_id):
+        return true, ""
+    if seen_through(conn, player_id, npc_id):
+        return true, "smascherato"
+    return min(true, 0.25), "celato"
+
+
 def relative_strength(conn: sqlite3.Connection, player_id: int, npc_id: int) -> str:
     from engine.simulation import combat
     r = _overall(combat.combat_power(conn, "player", player_id)) / \

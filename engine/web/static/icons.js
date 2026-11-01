@@ -163,6 +163,50 @@
   I.espandi = '<path d="M14 3.500h6.500V10M10 20.500H3.500V14M20.500 3.500l-7 7M3.500 20.500l7-7"/>';
   I.contrasto = '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z"' + F + '/>';
 
+  // === serie 2: pittogrammi per le restanti emoji dell'interfaccia (stesso tratto, stessa griglia) ===
+  I.medaglia = '<circle cx="12" cy="15" r="5.500"/><path d="M8 3.500l2.800 6.200M16 3.500l-2.800 6.200M7.500 3.500h9"/><path d="M12 12.600l.9 1.800 2 .3-1.450 1.400.35 2-1.800-.95-1.800.95.35-2L9.100 14.700l2-.3z"' + F + '/>';
+  I.tomba = '<path d="M12 3v14M6.500 8h11"/><path d="M7 21h10M9 17.500h6"/>';
+  I.piu = '<path d="M12 4.500v15M4.500 12h15"/>';
+  I.urna = '<path d="M8.500 3.500h7M9.500 3.500v2.600C6.400 7.600 5.500 10.600 5.500 13.800c0 4 2.600 6.700 6.500 6.700s6.500-2.700 6.500-6.700c0-3.200-.9-6.200-4-7.700V3.500"/><path d="M6 11.500h12"/><path d="M9 20.500h6"/>';
+  I.catena = '<rect x="2.500" y="8.800" width="11" height="6.400" rx="3.200" transform="rotate(-28 8 12)"/><rect x="10.500" y="8.800" width="11" height="6.400" rx="3.200" transform="rotate(-28 16 12)"/>';
+  I.libri = '<path d="M4 4h4.500v16H4zM8.500 6.500H13V20H8.500z"/><path d="M14.200 7.200l4.200-1.100 3.400 13.200-4.200 1.100z"/><path d="M4 8h4.500"/>';
+  I.microfono = '<rect x="9" y="2.800" width="6" height="11" rx="3"/><path d="M5.500 11.200a6.500 6.500 0 0 0 13 0M12 17.700v3.300M8.500 21h7"/>';
+  I.clessidra = '<path d="M6 3h12M6 21h12"/><path d="M7.200 3c0 5.200 4.800 6.200 4.800 9s-4.800 3.800-4.800 9M16.800 3c0 5.200-4.800 6.200-4.800 9s4.800 3.800 4.800 9"/><path d="M10 18.500h4"/>';
+  I.dado = '<rect x="3.800" y="3.800" width="16.400" height="16.400" rx="3.500"/><circle cx="8.600" cy="8.600" r="1"' + F + '/><circle cx="15.400" cy="8.600" r="1"' + F + '/><circle cx="12" cy="12" r="1"' + F + '/><circle cx="8.600" cy="15.400" r="1"' + F + '/><circle cx="15.400" cy="15.400" r="1"' + F + '/>';
+  I.germoglio = '<path d="M12 21v-9.500"/><path d="M12 13.500c-4.300.2-6.600-2-6.800-5.800 4.300-.2 6.600 2 6.800 5.800z"/><path d="M12 11c.2-3.600 2.400-5.700 6.600-5.800.1 3.700-2.200 5.700-6.600 5.800z"/><path d="M6 21h12"/>';
+  I.elica = '<path d="M7 3c0 5.500 10 6.500 10 12v6"/><path d="M17 3c0 5.500-10 6.500-10 12v6"/><path d="M8.200 6.800h7.600M8.200 17.200h7.600M7.800 12h8.400" />';
+  I.quadro = '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3.500 17l5-5.500 4 4.200 2.800-2.800 5.200 4.800"/><circle cx="16.200" cy="8.800" r="1.600"/>';
+  I.verme = '<circle cx="17.800" cy="7.200" r="2.600"/><circle cx="12.300" cy="11.300" r="2.500"/><circle cx="7.600" cy="15.800" r="2.300"/><circle cx="4.800" cy="20.200" r="1.300"' + F + '/><path d="M18.800 4.800l1.700-2.200M16.600 5.200l-.9-2.600"/>';
+  I.albero = '<path d="M12 21v-7"/><path d="M12 14.200c-4.600 0-7.200-2.500-7.200-6C4.800 4.800 8 2.800 12 2.800s7.200 2 7.200 5.400c0 3.500-2.600 6-7.200 6z"/><path d="M12 18l-3-2.600M12 16l3-2.600"/>';
+  I.esplosione = '<path d="M12 2.500l2.300 5.800 5.700-2.700-2.600 5.900 4.600 3.300-6 .3.200 6.100-4.200-4.500-4.200 4.500.2-6.100-6-.3 4.600-3.300L4 5.600l5.700 2.700z"/>';
+  I.uovo = '<path d="M12 3c-4 0-6.500 6-6.500 10.500a6.500 6.500 0 0 0 13 0C18.500 9 16 3 12 3z"/><path d="M6.200 14.200l2.600-1.700 2.200 2.100 2.400-2.100 2.400 1.700"/>';
+  I.domanda = '<circle cx="12" cy="12" r="9"/><path d="M9.200 9.600a2.900 2.900 0 1 1 4.100 2.600c-.9.500-1.300 1.100-1.300 2.100"/><circle cx="12" cy="17.200" r=".9"' + F + '/>';
+  I.paesaggio = '<path d="M2.500 19.500l6.200-10.200 4 6.200 2.500-3.600 6.300 7.600z"/><circle cx="17.200" cy="6" r="2.100"/>';
+  I.alba = '<path d="M2.500 18h19M6 21.500h12"/><path d="M6.600 18a5.400 5.400 0 0 1 10.800 0"/><path d="M12 6.200v2.600M4.700 9.900l1.800 1.800M19.300 9.900l-1.800 1.800"/>';
+  I.pioggia = '<path d="M7 14.300a4.100 4.100 0 0 1-.5-8.100 5.600 5.600 0 0 1 10.600 1.200 3.500 3.500 0 0 1-.5 6.900z"/><path d="M8.600 17.300l-1.100 3M12.600 17.300l-1.100 3M16.600 17.300l-1.100 3"/>';
+  I.nebbia = '<path d="M4.500 7.500h11M3 11.500h16M5.500 15.500h15M8.500 19.500h8"/>';
+  I.foglia = '<path d="M4 20C3.800 10 9 4 20 4c.2 11-5.500 16.500-13.500 16.500"/><path d="M4 20c3-5.200 6.200-8.200 10.500-10.500"/>';
+  I.demone = '<path d="M5.200 9.500L3.500 3.500l5.200 3.300M18.800 9.500l1.700-6-5.200 3.300"/><path d="M12 5.700c-4.500 0-7 3-7 7 0 4.500 3 8 7 8s7-3.500 7-8c0-4-2.500-7-7-7z"/><path d="M8.300 11.200l2.600 1.500M15.700 11.200l-2.600 1.500M9 17.300c2 1.200 4 1.200 6 0"/>';
+  I.spettro = '<path d="M5 20.500V10.500a7 7 0 0 1 14 0v10l-2.300-2-2.400 2-2.300-2-2.300 2-2.400-2z"/><circle cx="9.500" cy="10.800" r="1.100"' + F + '/><circle cx="14.500" cy="10.800" r="1.100"' + F + '/>';
+  I.grafico = '<path d="M3.500 3.500v17h17"/><path d="M7 15.500l4-5 3 3 5.500-7"/><path d="M16 6.500h3.500V10"/>';
+  I.foglio = '<path d="M6 3h8l4.500 4.500V21H6z"/><path d="M14 3v4.500h4.500M9 12h6M9 15.500h6"/>';
+  I.colomba = '<path d="M3 10.200c3 .6 5-.5 7-3.100 1-1.300 3.100-2.100 5.100-1l-1 2.600c3 .5 5.600 3 6.100 6.100-3-1-5.100-1-6.600 0-1 2.500-3.500 4.500-7.500 4.500l2-3.500C7 15.700 3.500 14.200 3 10.200z"/><circle cx="16.300" cy="8.900" r=".7"' + F + '/>';
+  I.lucchetto = '<rect x="5" y="10.500" width="14" height="10" rx="2"/><path d="M8 10.500V7.500a4 4 0 0 1 8 0v3"/><path d="M12 14.500v2.200"/>';
+  I.maschera = '<path d="M4 6c5-2 11-2 16 0v5c0 5-3.500 8-8 9.500C7.500 19 4 16 4 11z"/><path d="M7.300 10.300c1.600-.9 3-.8 3.700.6M16.700 10.300c-1.600-.9-3-.8-3.700.6M9 15.300c2 1.500 4 1.500 6 0"/>';
+  I.dono = '<rect x="3.500" y="8.500" width="17" height="4.200" rx="1"/><path d="M5 12.700v8h14v-8M12 8.500v12"/><path d="M12 8.500C8.800 8.500 7 7 7 5.500S8.500 3.200 10 3.800c1.600.6 2 2.800 2 4.700zM12 8.500c3.200 0 5-1.500 5-3s-1.500-2.300-3-1.700c-1.600.6-2 2.800-2 4.700z"/>';
+  I.fortuna = '<circle cx="8.800" cy="8.800" r="3.300"/><circle cx="15.200" cy="8.800" r="3.300"/><circle cx="8.800" cy="15.200" r="3.300"/><circle cx="15.200" cy="15.200" r="3.300"/><path d="M12 12c1.200 3.200 3 6 5.500 8.500"/>';
+  I.automa = '<rect x="5" y="8" width="14" height="11.500" rx="2.800"/><path d="M12 8V4.200M10 4.200h4M2.800 12.500v3.200M21.200 12.500v3.200"/><circle cx="9.200" cy="13" r="1.200"' + F + '/><circle cx="14.800" cy="13" r="1.200"' + F + '/><path d="M9.500 16.600h5"/>';
+  I.candela = '<path d="M12 2.500c1.600 2 2.600 3.200 2.600 4.600a2.600 2.600 0 0 1-5.200 0c0-1.400 1-2.600 2.600-4.600z"/><path d="M12 10.200v1.500"/><rect x="8.500" y="11.700" width="7" height="8.800" rx="1"/><path d="M6 21h12"/>';
+  I.pausa = '<path d="M8.500 5.200v13.600M15.500 5.200v13.600"/>';
+  I.avvia = '<path d="M7.500 4.500l11 7.500-11 7.500z"/>';
+  I.ferma = '<rect x="5.500" y="5.500" width="13" height="13" rx="1.800"/>';
+  I.chiudi = '<path d="M6 6l12 12M18 6L6 18"/>';
+  I.losanga = '<path d="M12 2.500l3 3-3 3-3-3zM12 15.500l3 3-3 3-3-3zM2.500 12l3-3 3 3-3 3zM15.500 12l3-3 3 3-3 3z"/>';
+  I.bersaglio = '<circle cx="12" cy="12" r="7.500"/><circle cx="12" cy="12" r="3.600"/><circle cx="12" cy="12" r="1"' + F + '/><path d="M12 1.800v3.300M12 18.900v3.300M1.800 12h3.300M18.900 12h3.300"/>';
+  I.menu = '<path d="M4 6.500h16M4 12h16M4 17.500h16"/>';
+  I.ripeti = '<path d="M4.600 12a7.500 7.500 0 1 0 2.400-5.500"/><path d="M4.200 3.800v4.700h4.700"/>';
+  I.pesce = '<path d="M2.800 12c3-4.700 7-6.300 11-5 2.700.9 4.600 3 6.400 5-1.800 2-3.700 4.100-6.400 5-4 1.300-8-.3-11-5z"/><path d="M20.200 12l1.700-3.500v7z"/><circle cx="7.500" cy="11.200" r=".9"' + F + '/>';
+
   /* ---------- API di base ---------- */
   var ALIAS = { uscita: "uscita", exit: "uscita", gate: "porta", scale_su: "scala_su", scale_giu: "scala_giu",
     meditazione: "medita", sigillo: "salva", pozione: "pillola", gourd: "pillola", ritiro: "medita",
@@ -195,7 +239,15 @@
     "🐉": "bestia", "🏴": "setta_missione", "🏠": "casa", "⌂": "casa", "🪟": "porta", "🚪": "porta",
     "💍": "anello", "💰": "moneta", "📅": "calendario", "✉": "lettera", "✎": "penna", "✔": "ok", "✓": "ok", "⚠": "allerta",
     "💀": "teschio", "☠": "teschio", "🕸": "ragnatela", "🧓": "persona", "👤": "persona", "🧥": "abito", "☁": "nuvola", "☸": "dao",
-    "❄": "ghiaccio", "💫": "stordito", "🎵": "musica", "🔊": "suono", "⤢": "espandi", "◐": "contrasto", "✨": "cura"
+    "❄": "ghiaccio", "💫": "stordito", "🎵": "musica", "🔊": "suono", "⤢": "espandi", "◐": "contrasto", "✨": "cura",
+    "★": "fama", "☆": "fama", "🥇": "medaglia", "🥈": "medaglia", "🥉": "medaglia", "✝": "tomba", "✚": "piu", "⚱": "urna", "♛": "corona", "⛓": "catena",
+    "📚": "libri", "🎙": "microfono", "🔈": "suono", "⏳": "clessidra", "⌛": "clessidra", "🎲": "dado", "🌱": "germoglio", "🧬": "elica", "🖼": "quadro",
+    "🐛": "verme", "⚑": "setta_missione", "💬": "parla", "🗣": "parla", "🌳": "albero", "💥": "esplosione", "🥚": "uovo", "❓": "domanda", "🫀": "cuore",
+    "🏞": "paesaggio", "🌅": "alba", "🌇": "alba", "🌧": "pioggia", "🌫": "nebbia", "🍃": "foglia", "⛈": "tribolazione", "👹": "demone", "😈": "demone", "👻": "spettro",
+    "🤺": "duello", "📈": "grafico", "📄": "foglio", "🛒": "mercato", "🕊": "colomba", "🔒": "lucchetto", "🎭": "maschera", "🔍": "osserva", "🎁": "dono",
+    "🌊": "acqua", "🍀": "fortuna", "🤖": "automa", "🕯": "candela", "🌗": "contrasto", "🜂": "fuoco", "⏸": "pausa", "▶": "avvia", "►": "avvia", "■": "ferma",
+    "✖": "chiudi", "✕": "chiudi", "✗": "chiudi", "✘": "chiudi", "❖": "losanga", "◈": "bersaglio", "◉": "bersaglio", "◎": "bersaglio", "⟡": "scintilla",
+    "☰": "menu", "↺": "ripeti", "🐟": "pesce", "🎣": "pesce", "🧙": "persona", "🧑": "persona", "🔔": "allerta", "⏱": "clessidra", "🌙": "dormi", "🌠": "scintilla", "🌟": "fama", "💡": "luce"
   };
   // ambiguità risolte dal contesto: le carte del duello usano le icone degli elementi
   var EMOJI_EL = { "⚙": "metallo", "✺": "luce", "☾": "oscurita", "☯": "concentrati", "⚡": "fulmine", "✦": "tecnica", "🛡": "difendi", "⚔": "attacca", "🔥": "fuoco", "🩸": "sangue", "🌀": "tempra" };
@@ -254,9 +306,9 @@
 
   /* ---------- upgrade del DOM ---------- */
   var SEL_BOX = ".ic, .ti, .ci, .si";
-  var SEL_LEAD = "#quick button, .chip, #primary";
   // un solo pittogramma "grafico" (emoji o simbolo): niente lettere o numeri normali
   var GLYPH = /^[^\w\s.,;:'"()\[\]\-+*\/%!?<>=&#@]{1,4}$/u;
+  var SKIP = "#log, textarea, input, select, option, script, style, svg, [contenteditable], .no-ic";
 
   function ctxOf(el) {
     var p = el.closest ? el.closest("[data-cmd]") : null;
@@ -267,64 +319,129 @@
     var m = node.className.match(/(?:^|\s)el-([a-z]+)/);
     return m && ELEMENTI[m[1]] ? m[1] : null;
   }
+  function make(name, size, cls, glyph) {
+    var holder = document.createElement("span");
+    holder.innerHTML = svg(name, size, cls);
+    var s = holder.firstChild;
+    if (s && glyph) s.setAttribute("data-emoji", glyph);
+    return s;
+  }
 
+  // contenitore con il solo glifo: <span class="ic">☯</span>
   function swapBox(el) {
-    if (el.getAttribute("data-ic-done") || el.namespaceURI === "http://www.w3.org/2000/svg") return;
-    if (el.querySelector && el.querySelector("svg.ic-svg")) { el.setAttribute("data-ic-done", "1"); return; }
-    // testo del solo glifo (la <kbd> dei tasti rapidi resta dov'è)
-    var kids = Array.prototype.slice.call(el.childNodes), tn = null, i;
+    if (el.namespaceURI === "http://www.w3.org/2000/svg") return false;
+    var kids = el.childNodes, tn = null, i;
     for (i = 0; i < kids.length; i++) {
-      if (kids[i].nodeType === 3 && kids[i].nodeValue.trim()) { if (tn) return; tn = kids[i]; }
-      else if (kids[i].nodeType === 1 && kids[i].tagName !== "KBD") return;
+      if (kids[i].nodeType === 3 && kids[i].nodeValue.trim()) { if (tn) return false; tn = kids[i]; }
+      else if (kids[i].nodeType === 1 && kids[i].tagName !== "KBD") return false;
     }
-    if (!tn) return;
+    if (!tn) return false;
     var glyph = tn.nodeValue.trim();
-    if (!GLYPH.test(glyph)) return;
+    if (!GLYPH.test(glyph)) return false;
     var c = ctxOf(el), isCard = el.classList.contains("ci"), name = null;
     if (isCard) name = elementClass(c.node) || forEmoji(glyph, "el") || forCmd(c.cmd);
     else if (el.classList.contains("si")) name = forEmoji(glyph);
     else name = forEmoji(glyph) || forCmd(c.cmd);
-    if (!name) return;
-    var holder = document.createElement("span");
-    holder.innerHTML = svg(name, "1.15em");
-    el.insertBefore(holder.firstChild, tn);
+    if (!name) return false;
+    el.insertBefore(make(name, "1.15em", "", glyph), tn);
     el.removeChild(tn);
     el.setAttribute("data-ic-done", "1");
     el.setAttribute("data-emoji", glyph);
     if (!el.getAttribute("aria-label") && !(el.closest && el.closest("button[title], [aria-label]"))) { el.setAttribute("role", "img"); el.setAttribute("aria-label", glyph); }
     if (!el.getAttribute("title") && !(el.closest && el.closest("button, [title]"))) el.setAttribute("title", glyph);
+    return true;
   }
 
-  // pulsanti con il pittogramma davanti al testo: "☯ Allenati" -> [svg] Allenati
-  function swapLead(btn) {
-    if (btn.getAttribute("data-ic-done") || btn.querySelector("svg.ic-svg")) return;
-    var tn = null, i, kids = btn.childNodes;
-    for (i = 0; i < kids.length; i++) if (kids[i].nodeType === 3 && kids[i].nodeValue.trim()) { tn = kids[i]; break; }
-    if (!tn) return;
-    var m = tn.nodeValue.match(/^(\s*)(\S+)(\s+)([\s\S]*)$/);
-    if (!m || !GLYPH.test(m[2])) return;
-    var name = btn.id === "primary" ? "allenati" : (forCmd(btn.getAttribute("data-cmd")) || forEmoji(m[2]));
-    if (btn.id !== "primary" && forEmoji(m[2]) && /^(chip)$/.test(btn.className.split(" ")[0] || "")) name = forEmoji(m[2]);
-    if (!name) return;
-    var holder = document.createElement("span");
-    holder.innerHTML = svg(name, "1.1em", "ic-lead");
-    var s = holder.firstChild;
-    s.setAttribute("data-emoji", m[2]);
-    btn.insertBefore(s, tn);
-    tn.nodeValue = " " + m[4];
-    if (!btn.getAttribute("title") && !btn.getAttribute("aria-label")) btn.setAttribute("aria-label", m[2] + " " + m[4].trim());
-    btn.setAttribute("data-ic-done", "1");
+  // un gruppo di simboli attaccati ("🌌⏳🎲") diventa una fila di icone
+  function clusters(tok) {
+    var out = [], cur = "";
+    Array.from(tok).forEach(function (ch) {
+      if (/[︎️‍]/.test(ch)) { cur += ch; return; }
+      if (cur) out.push(cur);
+      cur = ch;
+    });
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  // testo con pittogrammi: "☯ Allenati", "🏯 Oggi", "Alza ♥ Legami", oppure solo "🔎"
+  function swapText(tn) {
+    var par = tn.parentNode;
+    if (!par || par.nodeType !== 1 || (par.closest && (par.closest(SKIP) || (par.closest("pre, code") && !par.closest("button"))))) return false;
+    var val = tn.nodeValue;
+    if (val.length > 400) return false;
+    var parts = val.split(/(\s+)/), btn = par.closest("[data-cmd]"), inCard = par.closest(".ci, .eltag"), changed = false, onlyGlyph = true;
+    var frag = document.createDocumentFragment(), buf = "";
+    function flushText() { if (buf) { frag.appendChild(document.createTextNode(buf)); buf = ""; } }
+    parts.forEach(function (tok, idx) {
+      if (!tok || /^\s+$/.test(tok)) { buf += tok; return; }
+      var names = null;
+      if (GLYPH.test(tok) || /^[^\w\s]{1,8}$/u.test(tok)) {
+        var cl = clusters(tok), one = null;
+        if (cl.length === 1) {
+          if (inCard) one = elementClass(inCard) || forEmoji(tok, "el") || forEmoji(tok);
+          else if (par.id === "primary") one = "allenati";
+          else if (idx === 0 && btn && btn.tagName === "BUTTON" && !btn.classList.contains("chip") && !btn.hasAttribute("data-palace")) one = forCmd(btn.getAttribute("data-cmd")) || forEmoji(tok);
+          else one = forEmoji(tok);
+          if (one) names = [one];
+        } else {
+          var all = cl.map(function (c) { return forEmoji(c); });
+          if (all.every(Boolean)) names = all;
+        }
+      }
+      if (!names) { buf += tok; onlyGlyph = false; return; }
+      flushText();
+      names.forEach(function (nm, k) { frag.appendChild(make(nm, "1.12em", "ic-lead", tok)); });
+      changed = true;
+    });
+    if (!changed) return false;
+    flushText();
+    par.replaceChild(frag, tn);
+    if (onlyGlyph && par.tagName === "BUTTON" && !par.getAttribute("aria-label")) par.setAttribute("aria-label", par.getAttribute("title") || val.trim());
+    return true;
   }
 
   function upgrade(root) {
     root = root || document;
-    if (!root.querySelectorAll) return 0;
+    if (!root.querySelectorAll || (root.nodeType === 1 && root.namespaceURI === "http://www.w3.org/2000/svg")) return 0;
     var n = 0;
-    Array.prototype.forEach.call(root.querySelectorAll(SEL_BOX), function (el) { var b = el.getAttribute("data-ic-done"); swapBox(el); if (!b && el.getAttribute("data-ic-done")) n++; });
-    Array.prototype.forEach.call(root.querySelectorAll(SEL_LEAD), function (el) { var b = el.getAttribute("data-ic-done"); swapLead(el); if (!b && el.getAttribute("data-ic-done")) n++; });
-    if (root.matches && root.matches(SEL_BOX)) swapBox(root);
+    if (root.nodeType === 1 && root.closest && root.closest("#log")) return 0;
+    if (root.nodeType === 1 && root.matches && root.matches(SEL_BOX) && swapBox(root)) n++;
+    Array.prototype.forEach.call(root.querySelectorAll(SEL_BOX), function (el) { if (swapBox(el)) n++; });
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), list = [], t;
+    while ((t = w.nextNode())) { if (/[^\x00-\u2000]/.test(t.nodeValue)) list.push(t); }
+    list.forEach(function (tn) { if (swapText(tn)) n++; });
     return n;
   }
 
-  window.Icons = { svg: svg, has: has, names: names, forEmoji: forEmoji, forCmd: forCmd, upgrade: upgrade };
+  /* osservatore: porta le nuove porzioni di DOM nello stesso stile senza chiedere nulla agli altri script */
+  var queue = [], queued = false, obs = null;
+  function flush() {
+    queued = false;
+    var items = queue; queue = [];
+    items.forEach(function (el) { if (el.isConnected) { try { upgrade(el); } catch (e) { /* un errore non deve fermare gli altri */ } } });
+  }
+  function enqueue(el) {
+    if (!el || el.nodeType !== 1 || el.namespaceURI === "http://www.w3.org/2000/svg") return;
+    queue.push(el);
+    if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(flush); }
+  }
+  function observe() {
+    if (obs || !window.MutationObserver || !document.body) return;
+    obs = new MutationObserver(function (list) {
+      list.forEach(function (m) {
+        if (m.type === "characterData") { enqueue(m.target.parentNode); return; }
+        var hasText = false;
+        Array.prototype.forEach.call(m.addedNodes, function (nd) { if (nd.nodeType === 1) enqueue(nd); else if (nd.nodeType === 3) hasText = true; });
+        if (hasText) enqueue(m.target);
+      });
+    });
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+    enqueue(document.body);
+  }
+  if (typeof document !== "undefined" && document.addEventListener) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", observe); else observe();
+  }
+
+  window.Icons = { svg: svg, has: has, names: names, forEmoji: forEmoji, forCmd: forCmd, upgrade: upgrade, observe: observe };
 })();

@@ -95,6 +95,8 @@ function flushAll() {
 function addLog(text, cmd, instant) {
   if (!text && !cmd) return;
   ambientCue(text);
+  // (Agg. 83) i momenti che contano diventano una breve sequenza a schermo pieno (non durante il pilota automatico)
+  if (window.Cinema && Cinema.enabled() && !es && text) { try { Cinema.fromLog(text); } catch (e) { /* niente */ } }
   const box = $("#log");
   const div = document.createElement("div");
   div.className = "entry";
@@ -584,12 +586,26 @@ function renderTop(s) {
 }
 
 const DIR = { north: "Nord", south: "Sud", east: "Est", west: "Ovest", up: "Su", down: "Giù" };
+// (Agg. 83) il luogo vive (luce dell'ora, pioggia, neve, lucciole) e il tuo ritratto respira nella sua aura
+function livingScene(s) {
+  try {
+    const pick = (txt, keys, dflt) => keys.find((k) => String(txt || "").toLowerCase().includes(k)) || dflt;
+    const sc = { place: (s.luogo && s.luogo.type) || "wilderness", weather: pick(s.meteo, ["tempesta", "pioggia", "neve", "nebbia", "vento"], ""),
+      time: pick(s.momento, ["alba", "mattino", "pomeriggio", "giorno", "sera", "notte"], "giorno"), combat: !!(s.duello && s.duello.arena && !s.duello.arena.finito),
+      season: s.stagione || "" };
+    if (window.LiveBG && LiveBG.enabled()) LiveBG.attach($("#place"), sc);
+    const hero = document.querySelector("#stage-hero .tkh");
+    if (hero && window.Aura && Aura.enabled()) Aura.apply(hero, { dao: s.dao_top, realmTier: s.tier, combat: sc.combat });
+  } catch (e) { /* niente */ }
+}
 function renderPlace(s) {
   if (stageOn() && window.Stage) {                   // (Agg. 76) il luogo come scena di gioco
-    try { $("#place").classList.add("staged"); $("#place").style.backgroundImage = ""; Stage.render(s, $("#place")); iconsUp($("#place")); return; }
+    try { $("#place").classList.add("staged"); $("#place").style.backgroundImage = ""; Stage.render(s, $("#place")); iconsUp($("#place"));
+      livingScene(s); return; }
     catch (e) { console.error(e); }
   }
   $("#place").classList.remove("staged");
+  if (window.LiveBG && LiveBG.detach) LiveBG.detach();
   const L = s.luogo;
   let h = `<h2>${esc(L.name)} <span class="muted">· pericolo ${L.danger}</span></h2>`;
   if (L.desc) h += `<p class="desc">${esc(L.desc)}</p>`;
@@ -601,7 +617,7 @@ function renderPlace(s) {
     const list = many ? s.presenti.slice(0, 6) : s.presenti;
     h += `<div class="npcs">` + list.map((n) => {
       const first = n.name.split(" ")[0];
-      return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${face(n.name, 22, n.rel === "nemico" ? "--bad" : "--accent", "", { arch: n.arch, kind: n.kind, f: n.f })}${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
+      return `<span class="npc ${n.rel === "nemico" ? "foe" : n.rel === "legame" ? "friend" : ""}" title="${esc(n.tag)}">${face(n.name, Math.round(26 * (window.Stage && Stage.tokenScale ? Stage.tokenScale(n.forza) : 1)), n.rel === "nemico" ? "--bad" : "--accent", "", { arch: n.arch, kind: n.kind, f: n.f })}${esc(n.name)}${n.tag ? ` <span class="muted">${esc(n.tag)}</span>` : ""}
         <button data-cmd="osserva ${esc(first)}" title="la sua finestra di stato">osserva</button><button data-cmd="talk ${esc(first)}">parla</button><button data-cmd="attack ${esc(first)}">attacca</button>${(n.extra || []).map((x) => `<button data-cmd="${esc(x[2])}" title="${esc(x[1])}">${x[0]} ${esc(x[1].toLowerCase())}</button>`).join("")}</span>`;
     }).join("") + (many ? `<button id="more-npc">+ altri ${s.presenti.length - 6}</button>` : "") + `</div>`;
   }
@@ -647,7 +663,9 @@ function arenaHtml(a, s) {
       <div class="mini"><div class="bar qi"><i style="width:${pct(a.tu.qi[0], a.tu.qi[1])}%"></i></div><small>Qi ${a.tu.qi[0]}</small>
         <div class="bar sp"><i style="width:${pct(a.tu.spirito[0], a.tu.spirito[1])}%"></i></div><small>Spirito ${a.tu.spirito[0]}</small></div>
       ${a.concentrato ? `<span class="tag rare">☯ concentrato</span>` : ""}</div>${pop(L.subito, "bad" + (L.critico_lui ? " crit" : ""))}</div>`;
-  const foe = `<div class="fighter foe">${face(a.nome, 72, "--bad", "", { arch: a.lui.arch, kind: a.lui.kind, f: a.lui.f })}
+  // (Agg. 83) nel duello il ritratto dell'avversario è grande quanto la sua forza rispetto alla tua
+  const fs = window.Stage && Stage.tokenScale ? Stage.tokenScale(a.lui.rapporto) : 1;
+  const foe = `<div class="fighter foe" style="--fs:${fs.toFixed(3)}" title="${esc(window.Stage && Stage.forzaText ? Stage.forzaText(a.lui.rapporto) : "")}">${face(a.nome, Math.round(72 * fs), "--bad", "", { arch: a.lui.arch, kind: a.lui.kind, f: a.lui.f })}
       <div class="fi"><b>${esc(a.nome)}</b><div class="muted small">${esc(a.lui.regno)} · ${esc(a.lui.forza)}</div>
       ${hpBar("foe", a.lui.hp, a.lui.max, true)}<div class="stati">${elTag((a.elementi || {}).lui)}${stBadges(a.stati_lui)}</div>
       <span class="tag" title="${esc(a.stile_desc)}">${esc(a.stile)}</span>${a.rango === "boss" ? `<span class="tag boss">♛ BOSS${a.fase > 1 ? " · fase " + a.fase : ""}</span>` : a.rango === "elite" ? `<span class="tag rare">★ élite</span>` : ""}
@@ -803,7 +821,15 @@ function renderScene(s) {
   if (sig && sig !== lastArenaTurn) { const first = lastArenaTurn === null || !ar.ultimo.mossa; lastArenaTurn = sig;
     if (ar.ultimo.inflitto) sfx(ar.ultimo.critico ? "crit" : "hit"); if (!first) cut = ar.ultimo; }
   if (!ar) { HP_PREV.me = HP_PREV.foe = null; }
-  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); animateHp(box); gameFx("duel", box, ar); if (cut && !fxOnNow()) cutIn(box, cut, ar); return; }
+  if (!ar) window.__prevArena = null;
+  const duelFx = () => {                              // (Agg. 83) tecniche in primo piano, danni, crepe, vittoria; e la tua aura
+    try {
+      if (window.DuelFX && DuelFX.enabled()) { DuelFX.config.numbers = false; DuelFX.turn(box.querySelector(".arena"), ar, window.__prevArena || null); }
+      if (window.Aura && Aura.enabled()) { const me = box.querySelector(".fighter.me .portrait, .fighter.me img"); if (me) Aura.apply(me, { dao: s.dao_top, realmTier: s.tier, combat: true }); }
+    } catch (e) { /* niente */ }
+    window.__prevArena = ar;
+  };
+  if (ar && !ar.finito) { box.innerHTML = arenaHtml(ar, s); animateHp(box); gameFx("duel", box, ar); if (cut && !fxOnNow()) cutIn(box, cut, ar); duelFx(); return; }
   if (ar && ar.finito) {
     // (Agg. 81) a duello finito restano le scelte: lo scontro si richiude in una riga (si può riaprire)
     box.innerHTML = `<details class="arena-done"><summary>⚔ <b>${esc(ar.nome || "Il duello")}</b> — lo scontro è finito <span class="muted small">(tocca per rivederlo)</span></summary>${arenaHtml(ar, s)}</details>`
@@ -811,6 +837,7 @@ function renderScene(s) {
     animateHp(box);
     gameFx("duel", box, ar);
     if (cut && !fxOnNow()) cutIn(box, cut, ar);
+    duelFx();
     return;
   }
   const du = s.duello ? `<div class="duel"><div><span>Tu</span><div class="bar hp"><i style="width:${s.duello.tu.pct}%"></i></div><em>${s.duello.tu.cur}/${s.duello.tu.max}</em></div>
@@ -976,7 +1003,15 @@ function subChips(name) {
   if (name === "tesori" || name === "storia") return "";                    // le schede le mostra il palazzo
   return `<div class="subtabs">` + SUBTABS[name].map(([k, l]) => `<button class="chip ${sub[name] === k ? "on" : ""}" data-sub="${name}:${k}">${l}</button>`).join("") + `</div>`;
 }
+// (Agg. 83) cambiando scheda il contenuto arriva come una pennellata d'inchiostro (solo quando lo chiedi tu)
+let INK_T = null;
+function inkIn() {
+  const b = $("#tabbody"); if (!b) return;
+  b.classList.remove("ink-in"); void b.offsetWidth; b.classList.add("ink-in");
+  clearTimeout(INK_T); INK_T = setTimeout(() => b.classList.remove("ink-in"), 700);
+}
 async function loadTab(name) {
+  inkIn();
   if (name === "tesori" || name === "storia") name = name + ":" + sub[name];      // le schede interne ora sono del palazzo
   if (name.startsWith("tesori:") || name.startsWith("storia:")) { const [t, k] = name.split(":"); sub[t] = k; }
   if (name.startsWith("m:via:")) { lastVia = name.slice(6); try { localStorage.setItem("ji_via", lastVia); } catch (e) { /* niente */ } }
@@ -1187,7 +1222,7 @@ async function chronicleHtml() {
   const cr = await api("/api/cronaca" + (allLives ? "?tutte" : ""));
   const rows = cr.slice(-60).reverse().map((r) => `<div class="cr"><span class="muted">${allLives ? `vita ${r.vita} · ` : ""}g.${r.giorno}</span> ${esc(r.icona)} ${esc(r.testo)}</div>`).join("");
   return `<div class="card"><b>Cronaca</b> <button id="cr-all">${allLives ? "Solo questa vita" : "Tutte le vite"}</button>
-    <button data-cmd="cronaca esporta">Esporta (.md)</button>
+    <button data-cmd="cronaca esporta">Esporta (.md)</button> <a class="btn primary" href="/libro" target="_blank" rel="noopener">📖 Il libro della tua vita (stampa o PDF)</a>
     <div class="crlist">${rows || `<div class="empty">Ancora nulla da raccontare.</div>`}</div></div>
     <div class="tools"><button data-cmd="encounter">Rileggi la scena</button><button data-cmd="favori">Favori</button></div>`;
 }
@@ -1445,8 +1480,8 @@ const val = (name) => (document.querySelector(`input[name="${name}"]:checked`) |
 
 async function showCreation() {
   const o = await api("/api/nuovo");
-  openModal(`<h2>Una nuova vita</h2>
-    <fieldset class="origins"><legend>Origine</legend>${choiceList("o", o.origini, "key", originLabel)}</fieldset>
+  openModal(`<div class="new-life-head"><span class="hz">玉仙</span><h2>Una nuova vita</h2><p class="muted">Scegli da dove comincia la tua strada verso l'immortalità.</p></div>
+    <fieldset class="origins cards"><legend>Origine</legend>${choiceList("o", o.origini, "key", originLabel)}</fieldset>
     <fieldset><legend>Destino</legend>${choiceList("d", o.destini, "key", (x) => esc(x.label))}</fieldset>
     <fieldset><legend>Rivali</legend>${choiceList("r", o.rivali, "key", (x) => esc(x.label), 1)}</fieldset>
     ${o.difficolta ? `<fieldset><legend>Difficoltà</legend>${choiceList("df", o.difficolta, "key", (x) => esc(x.label), 1)}</fieldset>` : ""}
@@ -1559,7 +1594,10 @@ document.addEventListener("click", async (ev) => {
     settingsUi(); if (S) renderPlace(S); return; }
   if (ev.target.closest("#fxtoggle")) { const on = !(window.FX && FX.enabled()); if (window.FX) FX.setEnabled(on);
     else try { localStorage.setItem("ji_fx", on ? "1" : "0"); } catch (e) { /* niente */ }
-    settingsUi(); return; }
+    for (const m of [window.LiveBG, window.DuelFX, window.Aura]) if (m && m.setEnabled) m.setEnabled(on);   // (Agg. 83)
+    if (!on && window.LiveBG && LiveBG.detach) LiveBG.detach();
+    settingsUi(); if (S) renderPlace(S); return; }
+  if (ev.target.closest("#cinetoggle")) { if (window.Cinema) Cinema.setEnabled(!Cinema.enabled()); settingsUi(); return; }
   const alb = ev.target.closest("[data-album]");
   if (alb) { albumPage = alb.dataset.album; return loadTab("tesori:album"); }
   const cx = ev.target.closest("[data-codex-ok]");
@@ -1826,6 +1864,7 @@ function settingsUi() {
   set("readmode", manual() ? "al tuo ritmo" : "automatica");
   set("ambtoggle", window.Ambient && Ambient.on() ? "sì" : "no");
   set("cbtoggle", document.documentElement.dataset.cb === "1" ? "sì" : "no");
+  set("cinetoggle", window.Cinema && Cinema.enabled() ? "sì" : "no");
   set("music", MUSIC ? "sì" : "no"); set("sound", SOUND ? "sì" : "no"); set("mgtoggle", MINIGAME ? "sì" : "no");
   set("theme", th === "dark" ? "scuro" : th === "light" ? "chiaro" : "automatico");
   set("widen", document.body.classList.contains("wide") ? "sì" : "no");

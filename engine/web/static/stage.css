@@ -264,3 +264,11 @@
 /* ombra a terra: i gettoni «fluttuano» sopra una piccola ellisse scura */
 .stg-tk::before, .stg-hero::before { content: ""; position: absolute; left: 50%; bottom: -7px; width: 78%; height: 9px; margin-left: -39%; border-radius: 50%; background: rgba(0,0,0,.38); filter: blur(4px); }
 .stg-hero::before { bottom: -8px; width: 90%; margin-left: -45%; }
+
+/* (Agg. 83) la grandezza è la forza: --ts (0,55–1,4) moltiplica la grandezza del tuo gettone */
+.stg-view { --hero: 76px; }
+.stg-tk { --tk: calc(var(--hero, 76px) * var(--ts, 1)); transition: width .4s, height .4s, margin .4s; }
+.stg-tk .nm { font-size: max(10px, calc(11px * min(var(--ts, 1), 1.2))); }
+.stg-tk.stronger .ring { box-shadow: 0 0 0 2px var(--bad), 0 0 14px color-mix(in srgb, var(--bad) 45%, transparent); }
+.stg-tk.weaker { opacity: .92; }
+@media (max-width: 700px) { .stg-view { --hero: 62px; } }

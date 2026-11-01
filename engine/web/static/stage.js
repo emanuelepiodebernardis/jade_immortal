@@ -183,6 +183,15 @@
     for (const n of list) { if (out.has(n.name)) continue; while (used.has(next)) next++; used.add(next); out.set(n.name, next); }
     st.assigned = out; return out;
   }
+  // (Agg. 83) LA GRANDEZZA È LA FORZA: alla pari, il gettone è grande come il tuo; più è forte di te, più è grande
+  // (fino a ×1,4), più è debole, più è piccolo (fino a ×0,55). Così si capisce a colpo d'occhio chi c'è davanti.
+  function tokenScale(r) { r = Number(r) || 1; return Math.max(0.55, Math.min(1.4, Math.pow(r, 0.42))); }
+  function forzaText(r) {
+    if (!r) return "";
+    if (r > 1.15) return `più forte di te (×${r >= 10 ? Math.round(r) : r.toFixed(1).replace(".", ",")})`;
+    if (r < 0.87) return `più debole di te (×${(1 / r) >= 10 ? Math.round(1 / r) : (1 / r).toFixed(1).replace(".", ",")})`;
+    return "forza simile alla tua";
+  }
   function npcsHtml(s, st, fresh) {
     const all = ordered(s.presenti || []);
     const over = all.length > MAX_TOKENS;
@@ -194,10 +203,10 @@
     let h = shown.map((n, idx) => {
       const isNew = fresh || !st.names.has(n.name);
       const badge = n.kind && KIND_BADGE[n.kind] ? `<span class="kb">${KIND_BADGE[n.kind]}</span>` : n.kind && n.kind !== "human" ? `<span class="kb">✦</span>` : "";
-      const tip = `${n.name}${n.tag ? " — " + n.tag : ""}`;
-      return `<div class="stg-tk ${npcClass(n)}${isNew ? " new" : ""}" role="button" tabindex="0" aria-haspopup="menu" data-npc="${esc(n.name)}" title="${esc(tip)}"
-        style="${pos(slots.get(n.name), n.name)}--dl:${((hash(n.name) % 30) / 10).toFixed(1)}s;--in:${(idx * 0.07).toFixed(2)}s">
-        <span class="tk"><span class="ring"></span><span class="pic">${callFace(n.name, 56, n.rel === "nemico" ? "--bad" : n.rel === "legame" ? "--good" : "--accent", "", { arch: n.arch, kind: n.kind, f: n.f })}</span>${badge}<span class="nm">${esc(n.name)}</span></span></div>`;
+      const tip = `${n.name}${n.tag ? " — " + n.tag : ""}${n.forza ? " · " + forzaText(n.forza) : ""}`;
+      return `<div class="stg-tk ${npcClass(n)}${isNew ? " new" : ""}${n.forza > 1.15 ? " stronger" : n.forza < 0.87 ? " weaker" : ""}" role="button" tabindex="0" aria-haspopup="menu" data-npc="${esc(n.name)}" title="${esc(tip)}"
+        style="${pos(slots.get(n.name), n.name)}--ts:${tokenScale(n.forza).toFixed(3)};--dl:${((hash(n.name) % 30) / 10).toFixed(1)}s;--in:${(idx * 0.07).toFixed(2)}s">
+        <span class="tk"><span class="ring"></span><span class="pic">${callFace(n.name, 112, n.rel === "nemico" ? "--bad" : n.rel === "legame" ? "--good" : "--accent", "", { arch: n.arch, kind: n.kind, f: n.f })}</span>${badge}<span class="nm">${esc(n.name)}</span></span></div>`;
     }).join("");
     if (over) {
       const S = SLOTS[MAX_TOKENS - 1];
@@ -429,7 +438,7 @@
   const origRender = render;
   function renderWired(s, box) { box = box || document.getElementById("place"); if (box) wire(box); origRender(s, box); }
 
-  window.Stage = {
+  window.Stage = { tokenScale, forzaText,
     render: renderWired,
     heroEl: () => document.getElementById("stage-hero"),
     anchor: (name) => { const all = document.querySelectorAll(".stg-tk[data-npc]"); for (const e of all) if (e.dataset.npc === name) return e; return null; },

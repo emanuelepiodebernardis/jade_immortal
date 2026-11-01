@@ -995,3 +995,43 @@ body.scene-on #place.staged { display: none !important; }
 #mapsvg .nm.two { font-size: 9.5px; }
 #mapsvg .dstripe { pointer-events: none; }
 .palette .pal-foot { padding: 6px 14px 10px; }
+
+/* (Agg. 83) pennellate d'inchiostro: il contenuto della scheda e le immagini arrivano come inchiostro che si allarga */
+@keyframes ink-in { from { clip-path: inset(0 100% 0 0 round 12px); opacity: .35; filter: blur(2px); }
+                    60% { opacity: 1; filter: blur(0); } to { clip-path: inset(0 0 0 0 round 0); opacity: 1; } }
+#tabbody.ink-in { animation: ink-in .55s cubic-bezier(.25,.8,.25,1) both; }
+@keyframes ink-img { from { -webkit-mask-size: 0% 0%; mask-size: 0% 0%; opacity: .2; } to { -webkit-mask-size: 300% 300%; mask-size: 300% 300%; opacity: 1; } }
+#tabbody.ink-in img, .modal img {
+  -webkit-mask-image: radial-gradient(circle, #000 45%, transparent 70%); mask-image: radial-gradient(circle, #000 45%, transparent 70%);
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
+  animation: ink-img .8s ease-out both; }
+@media (prefers-reduced-motion: reduce) { #tabbody.ink-in, #tabbody.ink-in img, .modal img { animation: none; -webkit-mask-image: none; mask-image: none; } }
+
+/* (Agg. 83) l'albero dei Dao come una costellazione nel cielo notturno */
+.dtree-modal #dtree { background:
+    radial-gradient(1px 1px at 12% 20%, #fff8 50%, transparent 51%), radial-gradient(1px 1px at 72% 35%, #fff9 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 40% 70%, #fffa 50%, transparent 51%), radial-gradient(1px 1px at 88% 82%, #fff7 50%, transparent 51%),
+    radial-gradient(1px 1px at 25% 90%, #fff6 50%, transparent 51%), radial-gradient(1.5px 1.5px at 58% 12%, #fffb 50%, transparent 51%),
+    radial-gradient(ellipse at 30% 20%, #1d2a4a 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, #2a1d3f 0%, transparent 55%),
+    #0b1020; border-radius: 12px; }
+.dtree-modal .dt-wrap { background: transparent !important; border-color: #ffffff22 !important; }
+.dtree-modal .dt-edge { stroke: #b9c6ff; opacity: .35; }
+.dtree-modal .dt-e-insight { stroke: var(--gold); opacity: .9; filter: drop-shadow(0 0 3px #f5d27a99); }
+.dtree-modal .dt-box { fill: #141a30cc; stroke: #6f7fb8aa; }
+.dtree-modal .dt-node text { fill: #e8ecff; }
+.dtree-modal .dt-ctrl, .dtree-modal .dt-ctrl * { color: var(--ink); }
+
+/* (Agg. 83) la scelta dell'origine su carte dipinte */
+.new-life-head { text-align: center; margin-bottom: 8px; }
+.new-life-head .hz { font: 42px "Ma Shan Zheng", serif; color: var(--bad); display: block; line-height: 1; }
+.new-life-head h2 { margin: 4px 0 2px; font-family: "Cormorant Garamond", Georgia, serif; font-size: 30px; }
+.origins.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.origins.cards legend { grid-column: 1 / -1; }
+.origins.cards .opt { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.origins.cards .opt:hover { transform: translateY(-2px); box-shadow: 0 6px 18px #0002; }
+.origins.cards .opt input { position: absolute; opacity: 0; pointer-events: none; }
+.origins.cards .orig-img { width: 100%; height: 110px; border-radius: 0; }
+.origins.cards .opt > span { padding: 8px 10px 10px; font-size: 12.5px; line-height: 1.35; }
+.origins.cards .opt > span b { display: block; font-family: "Cormorant Garamond", Georgia, serif; font-size: 17px; margin-bottom: 2px; }
+.origins.cards .opt:has(input:checked) { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 8px 22px #0003; }

@@ -1,0 +1,118 @@
+/* DuelFX — stili. Prefisso dfx-. Vedi duelfx.js */
+.dfx-host { position: fixed; z-index: 90; overflow: hidden; pointer-events: none; border-radius: 12px; }
+.dfx-host > * { position: absolute; }
+
+/* ---- cut-in ---- */
+.dfx-cut { left: 0; right: 0; top: 50%; height: clamp(92px, 36%, 150px); transform: translateY(-50%); pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: clamp(10px, 3vw, 26px); padding: 0 clamp(14px, 4vw, 40px);
+  animation: dfx-in .26s cubic-bezier(.16, .9, .3, 1) both; overflow: hidden; }
+.dfx-cut.dfx-foe { flex-direction: row-reverse; text-align: right; animation-name: dfx-in-r; }
+.dfx-cut.out { animation: dfx-out .22s ease-in forwards; }
+.dfx-cut-bg { position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(100deg, rgba(8, 10, 14, .94) 0%, rgba(10, 12, 16, .88) 55%, rgba(10, 12, 16, .72) 100%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--cg) 55%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--c1) 70%, transparent), 0 8px 40px rgba(0, 0, 0, .55); }
+.dfx-foe .dfx-cut-bg { background: linear-gradient(260deg, rgba(8, 10, 14, .94) 0%, rgba(10, 12, 16, .88) 55%, rgba(10, 12, 16, .72) 100%); }
+.dfx-brush { z-index: 1; left: -2%; width: 104%; top: 50%; height: 78%; transform: translateY(-50%); opacity: .62; mix-blend-mode: screen;
+  clip-path: inset(0 100% 0 0); animation: dfx-wipe .5s .08s cubic-bezier(.4, .1, .2, 1) forwards; filter: drop-shadow(0 0 14px var(--c1)); }
+.dfx-foe .dfx-brush { transform: translateY(-50%) scaleX(-1); clip-path: inset(0 0 0 100%); animation-name: dfx-wipe-r; }
+.dfx-rays { position: absolute; inset: 0; z-index: 1; opacity: .5; mix-blend-mode: screen;
+  background: repeating-linear-gradient(100deg, transparent 0 22px, color-mix(in srgb, var(--cg) 14%, transparent) 22px 24px, transparent 24px 60px);
+  mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent); animation: dfx-rays .9s linear infinite; }
+.dfx-face { position: relative; z-index: 2; flex: none; width: clamp(62px, 22vh, 104px); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+  border: 2px solid var(--cg); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 26px var(--c1), inset 0 0 18px rgba(0, 0, 0, .5);
+  background: #10141a; animation: dfx-face .5s .06s cubic-bezier(.2, 1.2, .3, 1) both; }
+.dfx-face-img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; filter: contrast(1.06) saturate(1.1); }
+.dfx-face-none { display: grid; place-items: center; font: 44px "Ma Shan Zheng", serif; color: var(--cg); }
+.dfx-cut-body { flex: 1; position: relative; z-index: 2; min-width: 0; display: flex; flex-direction: column; gap: 2px; animation: dfx-text .5s .14s cubic-bezier(.2, .9, .3, 1) both; }
+.dfx-kick { font: 600 12px/1 "Cormorant Garamond", serif; letter-spacing: .34em; text-transform: uppercase; color: var(--cg); opacity: .9; }
+.dfx-kick i { font-style: normal; opacity: .6; margin: 0 .2em; }
+.dfx-title { font-family: "Cormorant Garamond", "Ma Shan Zheng", serif; font-weight: 700; font-style: italic;
+  font-size: clamp(30px, 8vw, 62px); line-height: 1.02; letter-spacing: .01em; color: var(--ci); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  text-shadow: 0 0 22px var(--c1), 0 2px 0 rgba(0, 0, 0, .5), 0 0 3px color-mix(in srgb, var(--c1) 80%, transparent); }
+@keyframes dfx-in { from { transform: translate(-105%, -50%); opacity: .4; } to { transform: translate(0, -50%); opacity: 1; } }
+@keyframes dfx-in-r { from { transform: translate(105%, -50%); opacity: .4; } to { transform: translate(0, -50%); opacity: 1; } }
+@keyframes dfx-out { to { opacity: 0; transform: translate(0, -50%) scaleY(.2); } }
+@keyframes dfx-wipe { to { clip-path: inset(0 0 0 0); } }
+@keyframes dfx-wipe-r { to { clip-path: inset(0 0 0 0); } }
+@keyframes dfx-rays { to { background-position: 60px 0; } }
+@keyframes dfx-face { from { transform: scale(.4) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes dfx-text { from { transform: translateX(-26px); opacity: 0; letter-spacing: .18em; } to { transform: none; opacity: 1; } }
+.dfx-foe .dfx-cut-body { animation-name: dfx-text-r; text-align: right; }
+@keyframes dfx-text-r { from { transform: translateX(26px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---- numeri ---- */
+.dfx-num { transform: translate(-50%, 0); display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: 5;
+  animation: dfx-rise 1.5s cubic-bezier(.2, .8, .3, 1) forwards; font-family: "Cormorant Garamond", "Ma Shan Zheng", serif; white-space: nowrap; }
+.dfx-n { font-weight: 700; font-size: 30px; line-height: 1; letter-spacing: .01em; color: #fff5e6; font-variant-numeric: lining-nums tabular-nums;
+  -webkit-text-stroke: .6px color-mix(in srgb, var(--c1) 60%, #000);
+  text-shadow: 0 0 12px var(--c1), 0 2px 0 rgba(0, 0, 0, .55); animation: dfx-pop .32s cubic-bezier(.2, 1.5, .4, 1) both; }
+.dfx-num.taken .dfx-n { color: #ffd9d4; text-shadow: 0 0 12px #e0334f, 0 2px 0 rgba(0, 0, 0, .55); -webkit-text-stroke-color: #5a0f1c; }
+.dfx-num.crit { animation-duration: 2s; }
+.dfx-num.crit .dfx-n { font-size: 54px; background: linear-gradient(180deg, #fffbe0 8%, #ffd75e 48%, #e29a1a 92%); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; -webkit-text-stroke: 0; filter: drop-shadow(0 0 10px rgba(255, 200, 60, .75)) drop-shadow(0 2px 0 rgba(60, 25, 0, .7)); animation-duration: .45s; }
+.dfx-lab { font: italic 700 13px/1 "Cormorant Garamond", serif; letter-spacing: .24em; text-transform: uppercase; padding: 3px 9px 2px; border-radius: 3px; color: #fff;
+  background: rgba(12, 14, 18, .78); border: 1px solid rgba(255, 255, 255, .25); animation: dfx-lab .35s .12s ease-out both; }
+.dfx-lab.crit { color: #ffe9a6; border-color: #e0a526; }
+.dfx-lab.sup { color: #2a1a00; background: linear-gradient(90deg, #ffd75e, #ffb02e); border-color: #fff0b0; box-shadow: 0 0 14px rgba(255, 190, 50, .65); font-size: 14px; letter-spacing: .2em; }
+@keyframes dfx-rise { 0% { transform: translate(-50%, 14px); opacity: 0; } 12% { opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(-50%, -54px); opacity: 0; } }
+@keyframes dfx-pop { from { transform: scale(.4); } to { transform: scale(1); } }
+@keyframes dfx-lab { from { transform: scaleX(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---- hit-stop, flash, scossa ---- */
+.dfx-freeze .fighter *:not(.dfx-fx), .dfx-freeze .hand *, .dfx-freeze .arena-log * { animation-play-state: paused !important; transition: none !important; }
+.dfx-flash { inset: 0; z-index: 8; background: radial-gradient(closest-side, rgba(255, 255, 255, var(--a, .6)), rgba(255, 255, 255, calc(var(--a, .6) * .55)) 70%, transparent); mix-blend-mode: screen;
+  animation: dfx-flash .5s ease-out forwards; }
+@keyframes dfx-flash { 0% { opacity: 1; } 45% { opacity: .7; } 100% { opacity: 0; } }
+.dfx-shake { animation: dfx-shake .5s cubic-bezier(.3, .6, .3, 1); }
+@keyframes dfx-shake { 0% { transform: translate(0, 0); } 12% { transform: translate(-5px, 2px) rotate(-.2deg); } 26% { transform: translate(5px, -3px) rotate(.2deg); }
+  42% { transform: translate(-3px, 2px); } 60% { transform: translate(2px, -1px); } 80% { transform: translate(-1px, 0); } 100% { transform: translate(0, 0); } }
+
+/* ---- crepe e polvere ---- */
+.dfx-cracks { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: inherit; opacity: .85; }
+.dfx-crack { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dfx-crack path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.dfx-crack .lo path { stroke: rgba(20, 14, 10, .62); stroke-width: 1.7px; }
+.dfx-crack .hi path { stroke: rgba(255, 255, 255, .35); stroke-width: .8px; transform: translate(-1px, -1px); }
+.dfx-crack.grow path { stroke-dashoffset: 1; animation: dfx-crack .55s cubic-bezier(.1, .8, .2, 1) forwards; }
+@keyframes dfx-crack { to { stroke-dashoffset: 0; } }
+.dfx-dust { z-index: 4; border-radius: 50%; transform: translate(-50%, -50%) scale(.3); opacity: 0;
+  background: radial-gradient(closest-side, rgba(190, 175, 150, .55), rgba(170, 155, 130, .2) 60%, transparent); filter: blur(3px);
+  animation: dfx-dust 1.2s cubic-bezier(.2, .7, .3, 1) forwards; }
+@keyframes dfx-dust { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 18% { opacity: .9; } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.8); } }
+.dfx-chip { z-index: 4; background: #b9a98b; border-radius: 1px; animation: dfx-chip .8s cubic-bezier(.2, .6, .4, 1) forwards; }
+@keyframes dfx-chip { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 55% { opacity: 1; } 100% { transform: translate(var(--dx), calc(var(--dy) + 90px)) rotate(var(--r)); opacity: 0; } }
+
+/* ---- vittoria / sconfitta ---- */
+.dfx-banner { inset: 0; display: grid; place-items: center; z-index: 9; cursor: pointer; animation: dfx-bn-in .4s ease-out both; }
+.dfx-banner.out { animation: dfx-bn-out .45s ease-in forwards; }
+.dfx-bn-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(8, 9, 12, .88) 0%, rgba(8, 9, 12, .72) 55%, rgba(8, 9, 12, .2) 100%); }
+.dfx-banner.win .dfx-bn-bg { background: radial-gradient(ellipse at center, rgba(20, 14, 2, .88) 0%, rgba(20, 14, 2, .68) 55%, rgba(255, 200, 60, .08) 100%); }
+.dfx-bn-in { position: relative; text-align: center; font-family: "Cormorant Garamond", "Ma Shan Zheng", serif; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.dfx-bn-in small { font: 600 13px/1 "Cormorant Garamond", serif; letter-spacing: .5em; text-transform: uppercase; color: rgba(255, 255, 255, .72); text-indent: .5em; animation: dfx-text .7s .2s both; }
+.dfx-bn-in b { font-size: clamp(54px, 13vw, 104px); line-height: 1; font-weight: 700; font-style: italic; letter-spacing: .06em; padding: 0 .1em .06em;
+  animation: dfx-title 1s .1s cubic-bezier(.2, .9, .3, 1) both; }
+.dfx-banner.win b { background: linear-gradient(180deg, #fffbe6 6%, #ffd75e 46%, #c98410 94%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px rgba(255, 190, 50, .6)) drop-shadow(0 3px 0 rgba(50, 22, 0, .6)); }
+.dfx-banner.lose b { color: #b8bcc6; filter: drop-shadow(0 0 20px rgba(210, 40, 60, .55)) drop-shadow(0 3px 0 #000); }
+.dfx-bn-in svg { width: min(78%, 360px); height: 18px; overflow: visible; }
+.dfx-bn-in svg path { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: dfx-crack .8s .55s ease-out forwards; }
+.dfx-banner.win svg path { stroke: #ffd75e; filter: drop-shadow(0 0 6px #ffb02e); }
+.dfx-banner.lose svg path { stroke: #c8283c; filter: drop-shadow(0 0 6px #7c0f26); }
+.dfx-defeat { filter: saturate(.55) brightness(.85); transition: filter .8s; }
+@keyframes dfx-bn-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dfx-bn-out { to { opacity: 0; } }
+@keyframes dfx-title { from { opacity: 0; transform: scale(1.35); letter-spacing: .3em; filter: blur(8px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 700px) {
+  .dfx-n { font-size: 24px; } .dfx-num.crit .dfx-n { font-size: 42px; }
+  .dfx-cut { height: clamp(84px, 30%, 120px); }
+  .dfx-kick { font-size: 10px; letter-spacing: .26em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dfx-cut, .dfx-cut.dfx-foe { animation: dfx-bn-in .2s both; transform: translateY(-50%); }
+  .dfx-brush { animation: none; clip-path: none; } .dfx-rays, .dfx-face, .dfx-cut-body, .dfx-flash, .dfx-dust, .dfx-chip { animation: none; }
+  .dfx-flash { opacity: .3; } .dfx-dust, .dfx-chip { display: none; }
+  .dfx-num { animation: dfx-bn-in 1.4s both; } .dfx-n, .dfx-lab, .dfx-num.crit .dfx-n, .dfx-bn-in b, .dfx-bn-in small { animation: none; }
+  .dfx-crack.grow path { animation: none; stroke-dashoffset: 0; }
+  .dfx-shake { animation: none; }
+}

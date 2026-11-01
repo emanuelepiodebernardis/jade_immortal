@@ -9,3 +9,6 @@ strumenti/taratura_out/
 # fogli di anteprima delle immagini generate (strumenti di lavoro)
 _oggetti/
 immagini/_anteprima*.jpg
+
+# voci del narratore (Piper e modelli: si scaricano con strumenti/installa_voci.py)
+voci/

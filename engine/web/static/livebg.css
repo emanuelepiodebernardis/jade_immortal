@@ -1,0 +1,68 @@
+/* LiveBG — strati del paesaggio vivo (dentro .stg-world, sotto i gettoni; nessun evento del puntatore) */
+.lbg { position: absolute; inset: -12px; pointer-events: none; overflow: hidden; isolation: isolate; transition: translate .45s ease-out; will-change: translate; }
+.lbg[hidden] { display: none; }
+.livebg-on .stg-bg { transition: translate .45s ease-out; }
+/* il livello vivo sostituisce le particelle CSS di base del palcoscenico (restano con animazioni ridotte) */
+@media (prefers-reduced-motion: no-preference) { .livebg-on:not(.livebg-off) .stg-fx, .livebg-on:not(.livebg-off) .stg-stars { display: none; } }
+.lbg > * { position: absolute; inset: 0; pointer-events: none; }
+.lbg-cv { width: 100%; height: 100%; }
+
+/* luce del momento: sei veli che sfumano l'uno nell'altro */
+.lbg-light > i { position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease; }
+.lbg[data-time="alba"] .lbg-light > i[data-t="alba"],
+.lbg[data-time="mattina"] .lbg-light > i[data-t="mattina"],
+.lbg[data-time="giorno"] .lbg-light > i[data-t="giorno"],
+.lbg[data-time="pomeriggio"] .lbg-light > i[data-t="pomeriggio"],
+.lbg[data-time="sera"] .lbg-light > i[data-t="sera"],
+.lbg[data-time="notte"] .lbg-light > i[data-t="notte"] { opacity: 1; }
+.lbg-light > i[data-t="alba"] { background:
+  radial-gradient(70% 55% at 22% 100%, rgba(255,196,110,.30), transparent 70%),
+  linear-gradient(180deg, rgba(255,150,176,.20), rgba(255,206,140,.14) 55%, rgba(255,232,196,.04)); }
+.lbg-light > i[data-t="mattina"] { background:
+  radial-gradient(90% 60% at 82% -10%, rgba(255,232,180,.20), transparent 65%),
+  linear-gradient(180deg, rgba(255,214,160,.07), transparent 60%); }
+.lbg-light > i[data-t="giorno"] { background: radial-gradient(120% 70% at 72% -12%, rgba(255,252,238,.13), transparent 62%); }
+.lbg-light > i[data-t="pomeriggio"] { background:
+  radial-gradient(80% 60% at 92% 8%, rgba(255,214,140,.20), transparent 68%),
+  linear-gradient(180deg, transparent 40%, rgba(255,186,110,.08)); }
+.lbg-light > i[data-t="sera"] { background:
+  radial-gradient(90% 55% at 50% 102%, rgba(255,128,64,.24), transparent 72%),
+  linear-gradient(180deg, rgba(104,48,124,.26), rgba(255,116,62,.12) 66%, rgba(58,28,92,.20)); }
+.lbg-light > i[data-t="notte"] { background:
+  radial-gradient(38% 32% at 82% 8%, rgba(176,204,255,.13), transparent 72%),
+  linear-gradient(180deg, rgba(4,12,52,.42), rgba(10,22,64,.30)); }
+
+/* cielo coperto */
+.lbg-wx { opacity: 0; transition: opacity 1.4s ease; }
+.lbg.is-rain .lbg-wx { opacity: 1; background: linear-gradient(180deg, rgba(52,70,92,.30), rgba(40,56,76,.18)); }
+.lbg.is-storm .lbg-wx { opacity: 1; background: linear-gradient(180deg, rgba(24,32,52,.42), rgba(18,26,44,.26)); }
+.lbg.is-snow .lbg-wx { opacity: 1; background: linear-gradient(180deg, rgba(220,232,246,.12), rgba(236,244,255,.07)); }
+.lbg.is-in .lbg-wx { opacity: 0; }
+
+/* nebbia: tre bande morbide alla deriva */
+.lbg-fog { opacity: 0; transition: opacity 1.8s ease; --fog: 232,238,242; }
+.lbg[data-time="notte"] .lbg-fog { --fog: 150,172,206; }
+.lbg[data-time="sera"] .lbg-fog { --fog: 232,200,206; }
+.lbg[data-time="alba"] .lbg-fog { --fog: 250,222,214; }
+.lbg.is-fog .lbg-fog { opacity: 1; }
+.lbg-fog > i { position: absolute; left: -35%; width: 170%; height: 46%; border-radius: 50%; will-change: transform;
+  background: radial-gradient(closest-side, rgba(var(--fog), .66), rgba(var(--fog), .30) 55%, transparent); filter: blur(10px); }
+.lbg-fog > i:nth-child(1) { top: 14%; animation: lbg-fog-a 64s ease-in-out infinite alternate; }
+.lbg-fog > i:nth-child(2) { top: 40%; height: 52%; opacity: .85; animation: lbg-fog-b 88s ease-in-out infinite alternate; }
+.lbg-fog > i:nth-child(3) { top: 66%; height: 44%; opacity: .7; animation: lbg-fog-a 110s ease-in-out -30s infinite alternate-reverse; }
+@keyframes lbg-fog-a { from { transform: translate3d(-9%, 0, 0); } to { transform: translate3d(12%, 2%, 0); } }
+@keyframes lbg-fog-b { from { transform: translate3d(10%, 0, 0); } to { transform: translate3d(-12%, -3%, 0); } }
+
+/* lampo */
+.lbg-flash { opacity: 0; background: radial-gradient(90% 70% at 62% 0%, rgba(236,242,255,.92), rgba(190,208,255,.5) 55%, rgba(150,170,230,.25)); mix-blend-mode: screen; }
+
+/* combattimento: bordo rosso che pulsa piano */
+.lbg-combat { opacity: 0; transition: opacity .9s ease; background: radial-gradient(ellipse 72% 78% at 50% 50%, transparent 46%, rgba(160,12,26,.30) 78%, rgba(150,10,22,.5) 100%); }
+.lbg.is-combat .lbg-combat { opacity: 1; animation: lbg-pulse 3.4s ease-in-out infinite; }
+@keyframes lbg-pulse { 0%, 100% { opacity: .72; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lbg, .livebg-on .stg-bg { transition: none; translate: none !important; }
+  .lbg-fog > i, .lbg.is-combat .lbg-combat { animation: none; }
+  .lbg-flash { display: none; }
+}

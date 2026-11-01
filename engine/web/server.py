@@ -136,6 +136,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(game.chronicle_data("tutte" in url.query))
             if path == "/api/salvataggi":
                 return self._json(game.saves())
+            if path == "/libro":                         # (Agg. 83) il libro della tua vita, da stampare
+                return self._send(200, game.life_book().encode("utf-8"), "text/html; charset=utf-8")
+            if path == "/api/tts/stato":                 # (Agg. 83) le voci vere, se installate
+                from engine.web import tts
+                return self._json(tts.stato())
             if path == "/api/comandi":                   # (Agg. 79) suggerimenti, ricerca, albero dei Dao
                 return self._json(game.commands_data())
             if path == "/api/cerca":
@@ -214,6 +219,12 @@ class Handler(BaseHTTPRequestHandler):
                                                       b.get("nome", ""), b.get("rivali", "normale"),
                                                       bool(b.get("senza_ritorno")), bool(b.get("corpo")),
                                                       str(b.get("difficolta", "")))})
+            if path == "/api/tts":                       # (Agg. 83) una battuta detta da Piper
+                from engine.web import tts
+                wav = tts.sintetizza(str(b.get("testo", ""))[:700], str(b.get("genere", "m")), float(b.get("velocita", 1) or 1))
+                if wav is None:
+                    return self._send(204, b"", "text/plain")
+                return self._send(200, wav, "audio/wav")
             if path == "/api/interpreta":                # (Agg. 76) comandi a voce
                 return self._json(game.interpret(str(b.get("testo", "")), str(b.get("scheda", ""))))
             if path == "/api/ritratto":                  # (Agg. 76) il volto del protagonista

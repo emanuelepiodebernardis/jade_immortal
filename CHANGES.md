@@ -3791,3 +3791,68 @@ principale era la gerarchia: tutto chiedeva attenzione insieme.
 - **Puntini delle schede:** più piccoli, dentro il bordo, senza pulsazione.
 - **Telefono:** nella scheda dello Stato l'ultima riga («Punti liberi») non finisce più sotto la barra dei
   comandi.
+
+## Aggiornamento 83 — L'effetto «wow»: momenti cinematografici, paesaggi vivi, duelli spettacolari, voci vere
+
+### Momenti cinematografici (`static/cinema.js`)
+Brevi sequenze a schermo pieno, che si saltano con un clic, Esc o Spazio:
+- **Sfondamento:** il qi converge a spirale e il nome del nuovo regno compare in calligrafia.
+- **Tribolazione:** fulmini veri, lo schermo trema, il conto dei colpi, il verdetto.
+- **Fusione:** due correnti di qi si intrecciano e il sigillo del nuovo Dao si imprime.
+- **Morte e rinascita:** una goccia d'inchiostro che si allarga; la ruota del Samsara.
+- **Nuovo titolo:** un nastro dorato.
+- **Intuizione:** un loto di luce.
+- **Apparizioni:**
+  - quando un nuovo sangue scorre in te compare l'animale sacro (drago, fenice, qilin, volpe…);
+  - quando ti trasformi compare la forma che prendi;
+  - quando trovi una reliquia o un reperto compare l'oggetto;
+  - quando divori un'essenza compare lo spirito.
+- **Quando partono:** da sole, dal registro; mai durante il pilota automatico. Si spengono in Impostazioni
+  («🎬 Momenti cinematografici»).
+
+### Paesaggi vivi (`static/livebg.js`) e identità grafica
+- **Il luogo respira:** nebbia che scorre, pioggia, neve, foglie d'autunno, lucciole di notte, nuvole lente,
+  secondo il tempo, l'ora e la stagione; durante un combattimento l'aria si fa rossa.
+- **Caratteri nuovi** inclusi nel gioco (funzionano anche senza Internet): Cormorant Garamond per i titoli,
+  Ma Shan Zheng per la calligrafia cinese.
+- **Icone disegnate** al posto delle emoji nei pulsanti principali, e i **titoli come sigilli rossi**.
+- Si spengono con l'interruttore degli effetti in Impostazioni.
+
+### Duelli spettacolari (`static/duelfx.js`) e il protagonista che vive (`static/aura.js`)
+- **Le tecniche:** entrano in primo piano col ritratto di chi colpisce e il nome in calligrafia, tinto
+  dell'elemento.
+- **I colpi critici:** fermano il tempo un istante, con un lampo e un tremito.
+- **I colpi enormi:** crepano l'ambiente e alzano polvere.
+- **La fine del duello:** «Vittoria» o «Sconfitta» in calligrafia.
+- **Il tuo ritratto** respira, nella scena e nel duello, dentro un'aura del colore del tuo Dao principale.
+  Cresce col regno: appena visibile all'inizio, fiamme di qi a metà strada, rune che orbitano in alto.
+
+### La grandezza è la forza (`static/stage.js`)
+- **Nella scena del luogo:** ogni persona ha un gettone grande quanto la sua forza rispetto alla tua. Alla
+  pari è grande come il tuo; più è forte, più è grande (fino a ×1,4); più è debole, più è piccolo (fino a
+  ×0,55).
+- **Nel duello:** vale anche per il ritratto dell'avversario.
+- **Il confronto:** si basa sul punteggio totale di combattimento (attacco, difesa e vitalità con tutti i
+  bonus), non sul regno.
+- **Chi cela la propria forza:** alcuni eremiti, vagabondi e anziani dal terzo regno in su, uno su tre. Sembrano
+  persone qualunque finché non li smascheri: con un senso divino abbastanza forte, con `scruta`, o incrociando
+  le armi («celava la sua vera forza!»). Da quel momento il gettone mostra la verità.
+
+### Voci vere per il narratore (`engine/web/tts.py`, `strumenti/installa_voci.py`)
+- **Cos'è:** il narratore usa Piper, una sintesi vocale di qualità che gira sul tuo computer senza Internet,
+  quando nella cartella del gioco c'è `voci/`. L'installa `python strumenti/installa_voci.py`, una volta sola.
+- **Le voci:** la voce maschile italiana (Riccardo) fa il narratore e gli uomini; demoni, draghi e spiriti si
+  ottengono cambiando il tono. Le voci femminili restano quelle del browser, finché non si aggiunge un modello
+  femminile.
+- **Senza la cartella** non cambia nulla.
+
+### Il libro della tua vita (`engine/web/lifebook.py`, pagina `/libro`)
+- **Cos'è:** la tua vita come libro illustrato, da stampare o salvare in PDF dal browser.
+- **Cosa contiene:** frontespizio col ritratto, i titoli come sigilli rossi, i Dao con le loro immagini, un
+  capitolo ogni 30 giorni con i fatti della cronaca.
+- **Dove:** il pulsante è in Storia → Cronaca.
+
+### Altre rifiniture
+- **Pennellate d'inchiostro:** quando cambi scheda; le immagini compaiono come inchiostro che si allarga.
+- **L'albero dei Dao:** diventa una costellazione nel cielo notturno.
+- **La nuova vita:** l'origine si sceglie su carte dipinte, sotto il titolo in calligrafia.
