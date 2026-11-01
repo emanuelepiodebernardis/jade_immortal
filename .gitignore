@@ -5,3 +5,7 @@ saves/*.json
 .pytest_cache/
 database/saves/
 strumenti/taratura_out/
+
+# fogli di anteprima delle immagini generate (strumenti di lavoro)
+_oggetti/
+immagini/_anteprima*.jpg
